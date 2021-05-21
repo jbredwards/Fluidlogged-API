@@ -2,6 +2,8 @@ package git.jbredwards.fluidlogged.common.block;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.BlockSnow;
+import net.minecraft.block.SoundType;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
@@ -13,6 +15,7 @@ import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
@@ -258,25 +261,134 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
         }
     }
 
-    //fixes small issue with corners
+    //fixes small issues with corners
     @Nonnull
     @Override
     public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         updateQuanta();
 
-        IExtendedBlockState state = (IExtendedBlockState)super.getExtendedState(oldState, world, pos);
-        state = state.withProperty(LEVEL_CORNERS[0], 1.0f);
-        state = state.withProperty(LEVEL_CORNERS[1], 0.75f);
-        state = state.withProperty(LEVEL_CORNERS[2], 0.5f);
-        state = state.withProperty(LEVEL_CORNERS[3], 0.25f);
+        IExtendedBlockState state = (IExtendedBlockState)oldState;
+        state = state.withProperty(FLOW_DIRECTION, (float)getFlowDirection(world, pos));
+
+        final IBlockState[][] upBlockState = new IBlockState[3][3];
+        upBlockState[1][1] = world.getBlockState(pos.down(densityDir));
+
+        final float[][] corner = new float[2][2];
+        final float[][] height = new float[3][3];
+        height[1][1] = getFluidHeightForRender(world, pos, upBlockState[1][1]);
+
+        //checks if the block above this is a fluid block
+        if(height[1][1] == 1) {
+            //updates the corner values
+            for(int i = 0; i < 2; i++) {
+                for(int j = 0; j < 2; j++) {
+                    corner[i][j] = 1;
+                }
+            }
+        }
+        //else
+        else {
+            //height for sides & corners
+            for(int i = 0; i < 3; i++) {
+                for(int j = 0; j < 3; j++) {
+                    if(i != 1 || j != 1) {
+                        upBlockState[i][j] = world.getBlockState(pos.add(i - 1, 0, j - 1).down(densityDir));
+                        height[i][j] = getFluidHeightForRender(world, pos.add(i - 1, 0, j - 1), upBlockState[i][j]);
+                    }
+                }
+            }
+            //updates corners
+            for(int i = 0; i < 2; i++) {
+                for(int j = 0; j < 2; j++) {
+                    corner[i][j] = getFluidHeightAverage(height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
+                }
+            }
+
+            //check for down flow above corners
+            boolean n =  isFluid(upBlockState[0][1]);
+            boolean s =  isFluid(upBlockState[2][1]);
+            boolean w =  isFluid(upBlockState[1][0]);
+            boolean e =  isFluid(upBlockState[1][2]);
+            boolean nw = isFluid(upBlockState[0][0]);
+            boolean ne = isFluid(upBlockState[0][2]);
+            boolean sw = isFluid(upBlockState[2][0]);
+            boolean se = isFluid(upBlockState[2][2]);
+
+            if(nw || n || w) corner[0][0] = 1;
+            if(ne || n || e) corner[0][1] = 1;
+            if(sw || s || w) corner[1][0] = 1;
+            if(se || s || e) corner[1][1] = 1;
+        }
+
+        //fixes corners
+        if(height[1][1] != 1 || !canSideFlow(oldState, world, pos, densityDir == 1 ? EnumFacing.UP : EnumFacing.DOWN)) {
+            boolean n = !canSideFlow(oldState, world, pos, EnumFacing.NORTH);
+            boolean s = !canSideFlow(oldState, world, pos, EnumFacing.SOUTH);
+            boolean w = !canSideFlow(oldState, world, pos, EnumFacing.WEST);
+            boolean e = !canSideFlow(oldState, world, pos, EnumFacing.EAST);
+            boolean nFull = isFullFluid(world, pos.offset(EnumFacing.NORTH));
+            boolean sFull = isFullFluid(world, pos.offset(EnumFacing.SOUTH));
+            boolean eFull = isFullFluid(world, pos.offset(EnumFacing.EAST));
+            boolean wFull = isFullFluid(world, pos.offset(EnumFacing.WEST));
+
+            if((n || w) && !nFull && !wFull) corner[0][0] = quantaFraction;
+            if((s || w) && !sFull && !wFull) corner[0][1] = quantaFraction;
+            if((n || e) && !nFull && !eFull) corner[1][0] = quantaFraction;
+            if((s || e) && !sFull && !eFull) corner[1][1] = quantaFraction;
+        }
+
+        //side overlays
+        for(int i = 0; i < 4; i++) {
+            EnumFacing side = EnumFacing.getHorizontal(i);
+            BlockPos offset = pos.offset(side);
+            boolean useOverlay = world.getBlockState(offset).getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID;
+            state = state.withProperty(SIDE_OVERLAYS[i], useOverlay);
+        }
+
+        state = state.withProperty(LEVEL_CORNERS[0], corner[0][0]);
+        state = state.withProperty(LEVEL_CORNERS[1], corner[0][1]);
+        state = state.withProperty(LEVEL_CORNERS[2], corner[1][1]);
+        state = state.withProperty(LEVEL_CORNERS[3], corner[1][0]);
 
         return state;
+    }
+
+    //same as the BlockFluidBase version, but with protected access rather than private
+    protected static boolean isFluid(IBlockState state) {
+        return state.getMaterial().isLiquid() || state.getBlock() instanceof IFluidBlock;
+    }
+
+    //used by getExtendedState()
+    protected static boolean isFullFluid(IBlockAccess world, BlockPos pos) {
+        final IBlockState state = world.getBlockState(pos);
+
+        if(!isFluid(state)) return false;
+        else {
+            if(state.getBlock() instanceof BlockFluidClassic) return !((BlockFluidClassic)state.getBlock()).isSourceBlock(world, pos);
+            else return state.getBlock() instanceof BlockFluidFinite || state.getBlock().getMetaFromState(state) != 0;
+        }
     }
 
     @Override
     public boolean removedByPlayer(IBlockState state, World world, BlockPos pos, EntityPlayer player, boolean willHarvest) {
         onBlockHarvested(world, pos, state, player);
         return world.setBlockState(pos, fluid.getBlock().getDefaultState(), world.isRemote ? 11 : 3);
+    }
+
+    //walk sound fix
+    public static final Field nextStepDistance = ObfuscationReflectionHelper.findField(Entity.class, "field_70150_b");
+    static { nextStepDistance.setAccessible(true); }
+    @Override
+    public void onEntityWalk(World worldIn, BlockPos pos, Entity entityIn) {
+        try {
+            if(entityIn.posY - (int)entityIn.posY > 1 - quantaFraction && entityIn.distanceWalkedOnStepModified == nextStepDistance.getInt(entityIn) - 1) {
+                SoundType type = getSoundType(worldIn.getBlockState(pos), worldIn, pos, entityIn);
+                final IBlockState up = worldIn.getBlockState(pos.up());
+
+                if(up.getBlock() instanceof BlockSnow) type = up.getBlock().getSoundType(up, worldIn, pos.up(), entityIn);
+                entityIn.playSound(type.getStepSound(), type.getVolume() * 0.15f, type.getPitch());
+            }
+        } catch (IllegalAccessException ignored) {}
     }
 
     //================================================================
@@ -337,5 +449,16 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     @Override
     public int getLightOpacity(IBlockState state) {
         return fluid.getBlock().getDefaultState().getLightOpacity();
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    public int getPackedLightmapCoords(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        return fluid.getBlock().getDefaultState().getPackedLightmapCoords(world, pos);
+    }
+
+    @Override
+    public boolean isPassable(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        return fluid.getBlock().isPassable(world, pos);
     }
 }

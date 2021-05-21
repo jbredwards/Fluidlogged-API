@@ -38,6 +38,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
@@ -112,8 +113,10 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
 
         //for barriers
         if(ret && stored.getRenderType() == EnumBlockRenderType.INVISIBLE) return true;
+        //for leaves
+        else if(ret && stored.getBlock() instanceof BlockLeaves) return true;
         //helps to prevent texture fighting
-        else if(ret && stored.getBlockFaceShape(world, pos, side) == BlockFaceShape.SOLID) return false;
+        else if(ret && !canSideFlow(stored, world, pos, side)) return false;
         //default return statement
         else return ret;
     }
@@ -321,6 +324,14 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
     }
 
     @Override
+    public void onEntityWalk(World worldIn, BlockPos pos, Entity entityIn) {
+        final IBlockState stored = getStored(worldIn, pos);
+        stored.getBlock().onEntityWalk(worldIn, pos, entityIn);
+
+        super.onEntityWalk(worldIn, pos, entityIn);
+    }
+
+    @Override
     public boolean canHarvestBlock(IBlockAccess world, BlockPos pos, EntityPlayer player) {
         return canHarvestBlock(getStored(world, pos), player, world, pos);
     }
@@ -468,12 +479,6 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
     public BlockFaceShape getBlockFaceShape(@Nonnull IBlockAccess worldIn, @Nonnull IBlockState state, @Nonnull BlockPos pos, @Nonnull EnumFacing face) {
         final IBlockState stored = getStored(worldIn, pos);
         return stored.getBlockFaceShape(worldIn, pos, face);
-    }
-
-    @Override
-    public int getLightOpacity(IBlockState state, IBlockAccess world, BlockPos pos) {
-        final IBlockState stored = getStored(world, pos);
-        return stored.getLightOpacity(world, pos);
     }
 
     @Override

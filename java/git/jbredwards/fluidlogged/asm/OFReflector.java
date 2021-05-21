@@ -7,14 +7,14 @@ import net.minecraft.client.renderer.chunk.CompiledChunk;
 import net.minecraft.client.renderer.chunk.RenderChunk;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 
 import javax.annotation.Nullable;
+
 import java.lang.reflect.Method;
 
 /**
- * holds some optifine methods used in the RenderChunkPlugin
+ * stores optifine methods
  * @author jbred
  *
  */
@@ -22,7 +22,7 @@ public enum OFReflector
 {
     ;
 
-    @Nullable public static Class RenderEnv = null;
+    @Nullable public static Class<?> RenderEnv = null;
 
     @Nullable public static Method setBlockLayer = null;
     @Nullable public static Method getRenderEnv = null;
@@ -38,11 +38,11 @@ public enum OFReflector
             //optifine loaded
             try {
                 //this tries to find an optifine class, will catch if it isn't there
-                RenderEnv = Class.forName("optifine.RenderEnv");
+                RenderEnv = Class.forName("net.optifine.render.RenderEnv");
 
                 //sets the values for the optifine-only methods
                 setBlockLayer = ObfuscationReflectionHelper.findMethod(BufferBuilder.class, "setBlockLayer", void.class, BlockRenderLayer.class);
-                getRenderEnv = ObfuscationReflectionHelper.findMethod(BufferBuilder.class, "getRenderEnv", RenderEnv, IBlockAccess.class, IBlockState.class, BlockPos.class);
+                getRenderEnv = ObfuscationReflectionHelper.findMethod(BufferBuilder.class, "getRenderEnv", RenderEnv, IBlockState.class, BlockPos.class);
                 setRegionRenderCacheBuilder = ObfuscationReflectionHelper.findMethod(RenderEnv, "setRegionRenderCacheBuilder", void.class, RegionRenderCacheBuilder.class);
                 isOverlaysRendered = ObfuscationReflectionHelper.findMethod(RenderEnv, "isOverlaysRendered", boolean.class);
                 postRenderOverlays = ObfuscationReflectionHelper.findMethod(RenderChunk.class, "postRenderOverlays", void.class, RegionRenderCacheBuilder.class, CompiledChunk.class, boolean[].class);

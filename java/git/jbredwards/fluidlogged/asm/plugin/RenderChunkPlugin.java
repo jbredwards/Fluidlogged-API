@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged.asm.plugin;
 import git.jbredwards.fluidlogged.asm.AbstractPlugin;
 import git.jbredwards.fluidlogged.common.block.BlockFluidloggedTE;
 import git.jbredwards.fluidlogged.util.FluidloggedUtils;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockWall;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -17,6 +18,8 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.fml.relauncher.Side;
@@ -50,9 +53,9 @@ public final class RenderChunkPlugin extends AbstractPlugin
 
     @Override
     protected boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated) {
-        if(insn.getOpcode() == INVOKESTATIC && insn.getPrevious().getOpcode() == ACONST_NULL) {
-            //OPTIFINE
-            if(insn instanceof MethodInsnNode && ((MethodInsnNode)insn).owner.equals("optifine/Reflector")) {
+        //OPTIFINE
+        if(insn.getOpcode() == INVOKESTATIC && insn instanceof MethodInsnNode && ((MethodInsnNode)insn).name.equals("callVoid")) {
+            if(insn.getPrevious().getPrevious().getOpcode() == ACONST_NULL) {
                 final InsnList list = new InsnList();
                 list.add(new LabelNode());
                 //boolean array variable
@@ -63,46 +66,45 @@ public final class RenderChunkPlugin extends AbstractPlugin
                 list.add(new VarInsnNode(ALOAD, 4));
                 //compiled chunk variable
                 list.add(new VarInsnNode(ALOAD, 5));
-                //iblockstate variable
-                list.add(new VarInsnNode(ALOAD, 17));
+                //block variable
+                list.add(new VarInsnNode(ALOAD, 19));
                 //chunkCacheOF variable
                 list.add(new VarInsnNode(ALOAD, 11));
                 //block position variable
-                list.add(new VarInsnNode(ALOAD, 16));
-                //chunk position variable
-                list.add(new VarInsnNode(ALOAD, 0));
-                //actually adds the new code
-                list.add(new MethodInsnNode(INVOKESTATIC, "git/jbredwards/fluidlogged/asm/plugin/RenderChunkPlugin", "renderFluidloggedBlockOF", "([ZLnet/minecraft/client/renderer/chunk/RenderChunk;Lnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V", false));
-
-                instructions.insert(insn, list);
-                return true;
-            }
-
-            //VANILLA
-            else {
-                final InsnList list = new InsnList();
-                list.add(new LabelNode());
-                //boolean array variable
-                list.add(new VarInsnNode(ALOAD, 11));
-                //chunk compiler variable
-                list.add(new VarInsnNode(ALOAD, 4));
-                //compiled chunk variable
-                list.add(new VarInsnNode(ALOAD, 5));
-                //iblockstate variable
-                list.add(new VarInsnNode(ALOAD, 15));
-                //world variable
-                list.add(new VarInsnNode(ALOAD, 0));
-                list.add(new FieldInsnNode(GETFIELD, "net/minecraft/client/renderer/chunk/RenderChunk", (obfuscated ? "field_189564_r" : "worldView"), "Lnet/minecraft/world/ChunkCache;"));
-                //block position variable
-                list.add(new VarInsnNode(ALOAD, 14));
+                list.add(new VarInsnNode(ALOAD, 17));
                 //chunk position variable
                 list.add(new VarInsnNode(ALOAD, 7));
                 //actually adds the new code
-                list.add(new MethodInsnNode(INVOKESTATIC, "git/jbredwards/fluidlogged/asm/plugin/RenderChunkPlugin", "renderFluidloggedBlock", "([ZLnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V", false));
+                list.add(new MethodInsnNode(INVOKESTATIC, "git/jbredwards/fluidlogged/asm/plugin/RenderChunkPlugin", "renderFluidloggedBlockOF", "([ZLnet/minecraft/client/renderer/chunk/RenderChunk;Lnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/block/Block;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V", false));
 
                 instructions.insert(insn, list);
                 return true;
             }
+        }
+        //VANILLA
+        if(insn.getOpcode() == INVOKESTATIC && insn.getPrevious().getOpcode() == ACONST_NULL) {
+            final InsnList list = new InsnList();
+            list.add(new LabelNode());
+            //boolean array variable
+            list.add(new VarInsnNode(ALOAD, 11));
+            //chunk compiler variable
+            list.add(new VarInsnNode(ALOAD, 4));
+            //compiled chunk variable
+            list.add(new VarInsnNode(ALOAD, 5));
+            //block variable
+            list.add(new VarInsnNode(ALOAD, 16));
+            //world variable
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new FieldInsnNode(GETFIELD, "net/minecraft/client/renderer/chunk/RenderChunk", (obfuscated ? "field_189564_r" : "worldView"), "Lnet/minecraft/world/ChunkCache;"));
+            //block position variable
+            list.add(new VarInsnNode(ALOAD, 14));
+            //chunk position variable
+            list.add(new VarInsnNode(ALOAD, 7));
+            //actually adds the new code
+            list.add(new MethodInsnNode(INVOKESTATIC, "git/jbredwards/fluidlogged/asm/plugin/RenderChunkPlugin", "renderFluidloggedBlock", "([ZLnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/block/Block;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V", false));
+
+            instructions.insert(insn, list);
+            return true;
         }
 
         return false;
@@ -110,8 +112,8 @@ public final class RenderChunkPlugin extends AbstractPlugin
 
     @SuppressWarnings("unused")
     @SideOnly(Side.CLIENT)
-    public static void renderFluidloggedBlock(boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockState state, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
-        if(state.getBlock() instanceof BlockFluidloggedTE) {
+    public static void renderFluidloggedBlock(boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, Block block, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
+        if(block instanceof BlockFluidloggedTE) {
             final BlockRendererDispatcher renderer = Minecraft.getMinecraft().getBlockRendererDispatcher();
             IBlockState stored = Objects.requireNonNull(FluidloggedUtils.getStored(world, pos)).getActualState(world, pos);
 
@@ -146,6 +148,8 @@ public final class RenderChunkPlugin extends AbstractPlugin
                         array[layer.ordinal()] |= renderer.getBlockModelRenderer().renderModel(world, model, stored, pos, buffer, true);
                     }
                 }
+
+                ForgeHooksClient.setRenderLayer(null);
             }
         }
     }
@@ -153,11 +157,10 @@ public final class RenderChunkPlugin extends AbstractPlugin
     //same function as above method, but adapted for optifine compat
     @SuppressWarnings("unused")
     @SideOnly(Side.CLIENT)
-    public static void renderFluidloggedBlockOF(boolean[] array, RenderChunk renderChunk, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockState state, IBlockAccess chunkCacheOF, BlockPos pos, BlockPos chunkPos) {
-        //sets up the optifine reflector
+    public static void renderFluidloggedBlockOF(boolean[] array, RenderChunk renderChunk, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, Block block, IBlockAccess chunkCacheOF, BlockPos pos, BlockPos chunkPos) {
         load();
 
-        if(state.getBlock() instanceof BlockFluidloggedTE) {
+        if(block instanceof BlockFluidloggedTE) {
             final BlockRendererDispatcher renderer = Minecraft.getMinecraft().getBlockRendererDispatcher();
             IBlockState stored = Objects.requireNonNull(FluidloggedUtils.getStored(chunkCacheOF, pos)).getActualState(chunkCacheOF, pos);
 
@@ -170,8 +173,8 @@ public final class RenderChunkPlugin extends AbstractPlugin
                             BufferBuilder buffer = generator.getRegionRenderCacheBuilder().getWorldRendererByLayer(layer);
                             Objects.requireNonNull(setBlockLayer).invoke(buffer, layer);
 
-                            Object renderEnv = Objects.requireNonNull(getRenderEnv).invoke(chunkCacheOF, stored, pos);
-                            Objects.requireNonNull(setRegionRenderCacheBuilder).invoke(Objects.requireNonNull(RenderEnv).cast(renderEnv), generator.getRegionRenderCacheBuilder());
+                            Object renderEnv = Objects.requireNonNull(getRenderEnv).invoke(buffer, stored, pos);
+                            Objects.requireNonNull(setRegionRenderCacheBuilder).invoke(renderEnv, generator.getRegionRenderCacheBuilder());
 
                             if(!compiledChunk.isLayerStarted(layer)) {
                                 compiledChunk.setLayerStarted(layer);
@@ -198,14 +201,16 @@ public final class RenderChunkPlugin extends AbstractPlugin
                             array[layer.ordinal()] |= renderer.getBlockModelRenderer().renderModel(chunkCacheOF, model, stored, pos, buffer, true);
 
                             //post shader stuff
-                            if((boolean)Objects.requireNonNull(isOverlaysRendered).invoke(RenderEnv.cast(renderEnv))) {
+                            if((boolean)Objects.requireNonNull(isOverlaysRendered).invoke(renderEnv)) {
                                 Objects.requireNonNull(postRenderOverlays).invoke(renderChunk, generator.getRegionRenderCacheBuilder(), compiledChunk, array);
-                                Objects.requireNonNull(setOverlaysRendered).invoke(RenderEnv.cast(renderEnv), false);
+                                Objects.requireNonNull(setOverlaysRendered).invoke(renderEnv, false);
                             }
                         }
 
                         //shouldn't catch, but if it does, do nothing
-                        catch(Exception ignored) {}
+                        catch(Exception e) {
+                            Minecraft.getMinecraft().player.sendMessage(new TextComponentString(TextFormatting.RED + e.toString()));
+                        }
                     }
                 }
 

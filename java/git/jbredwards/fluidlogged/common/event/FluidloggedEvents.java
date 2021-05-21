@@ -94,7 +94,7 @@ public final class FluidloggedEvents
                 final Vec3d hit = event.getHitVec();
                 final EntityPlayer player = event.getEntityPlayer();
 
-                IBlockState stored = ((ItemBlock)held.getItem()).getBlock().getStateForPlacement(world, pos, facing, (float)hit.x, (float)hit.y, (float)hit.z, meta, player, event.getHand());
+                IBlockState stored = ((ItemBlock)held.getItem()).getBlock().getStateForPlacement(world, pos, facing, (float)hit.x - pos.getX(), (float)hit.y - pos.getY(), (float)hit.z - pos.getZ(), meta, player, event.getHand());
                 if(stored.getBlock() instanceof IFluidloggable) stored = ((IFluidloggable)stored.getBlock()).getFluidloggedState(world, pos, stored);
 
                 //if the held block can be fluidlogged
