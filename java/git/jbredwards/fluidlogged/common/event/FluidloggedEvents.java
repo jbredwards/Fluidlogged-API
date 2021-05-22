@@ -2,6 +2,7 @@ package git.jbredwards.fluidlogged.common.event;
 
 import git.jbredwards.fluidlogged.Fluidlogged;
 import git.jbredwards.fluidlogged.common.block.AbstractFluidloggedBlock;
+import git.jbredwards.fluidlogged.common.block.BlockFluidloggedTE;
 import git.jbredwards.fluidlogged.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged.common.block.TileEntityFluidlogged;
 import git.jbredwards.fluidlogged.util.FluidloggedConstants;
@@ -15,28 +16,34 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.block.statemap.StateMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundCategory;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.fluids.BlockFluidClassic;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.*;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
+import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
+
+import java.util.Optional;
 
 import static net.minecraftforge.fluids.BlockFluidBase.LEVEL;
 
@@ -69,8 +76,70 @@ public final class FluidloggedEvents
 
     //fired when a player tried to take from a fluidlogged te, or when they try to fluidlog a block
     @SuppressWarnings("unused")
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public void fluidPlaceOrTake(FillBucketEvent event) {
+        final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(event.getEmptyBucket());
+
+        //this shouldn't be null, but just in case
+        if(handler != null) {
+            //null if the bucket is empty
+            final @Nullable FluidStack fluidStack = handler.drain(Fluid.BUCKET_VOLUME, false);
+            final BlockPos pos = event.getTarget().getBlockPos();
+            final IBlockState here = event.getWorld().getBlockState(pos);
+
+            LogManager.getFormatterLogger("fluidlogged").info(here.getBlock().getRegistryName().toString());
+
+            //if the fluidStack is empty, the bucket is empty
+            if(fluidStack == null) {
+                //if the block here is fluidlogged
+                if(here.getBlock() instanceof BlockFluidloggedTE) {
+                    actionBucketEmpty(event.getWorld(), here, event.getEmptyBucket(), event.getTarget());
+                    event.setFilledBucket(FluidloggedUtils.getFilledBucket(event.getEmptyBucket(), ((BlockFluidloggedTE)here.getBlock()).fluid));
+                    event.setResult(Event.Result.ALLOW);
+                }
+                //if the block here is a normal fluidlogged block, the block should not be drained
+                else if(here.getBlock() instanceof AbstractFluidloggedBlock && !here.getBlock().isReplaceable(event.getWorld(), pos)) {
+                    event.setResult(Event.Result.DENY);
+                    event.setCanceled(true);
+                }
+                else {
+                    final IBlockState offset = event.getWorld().getBlockState(pos.offset(event.getTarget().sideHit));
+                    if(offset.getBlock() instanceof AbstractFluidloggedBlock && !offset.getBlock().isReplaceable(event.getWorld(), pos)) {
+                        event.setResult(Event.Result.DENY);
+                        event.setCanceled(true);
+                    }
+                }
+            }
+            //since the bucket if full, the block will get fluidlogged
+            else if(FluidloggedUtils.isStateFluidloggable(here, fluidStack.getFluid())) {
+                final @Nullable BlockFluidloggedTE block = FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.get(fluidStack.getFluid());
+
+                if(block != null) {
+                    actionBucketFull(event.getWorld(), here, event.getEmptyBucket(), event.getTarget(), fluidStack, block);
+                    //new UniversalBucket().onFillBucket(event);
+                    event.setResult(Event.Result.ALLOW);
+                }
+            }
+            //if the block here should not get replaced with fluid
+            else if(here.getBlock() instanceof AbstractFluidloggedBlock && !here.getBlock().isReplaceable(event.getWorld(), pos)) {
+                event.setResult(Event.Result.DENY);
+                event.setCanceled(true);
+            }
+            else {
+                final IBlockState offset = event.getWorld().getBlockState(pos.offset(event.getTarget().sideHit));
+                if(offset.getBlock() instanceof AbstractFluidloggedBlock && !offset.getBlock().isReplaceable(event.getWorld(), pos)) {
+                    event.setResult(Event.Result.DENY);
+                    event.setCanceled(true);
+                }
+            }
+        }
+    }
+
+    private static void actionBucketEmpty(World world, IBlockState here, ItemStack bucket, RayTraceResult trace) {
+
+    }
+
+    private static void actionBucketFull(World world, IBlockState here, ItemStack bucket, RayTraceResult trace, FluidStack fluidStack, BlockFluidloggedTE block) {
 
     }
 
@@ -82,16 +151,16 @@ public final class FluidloggedEvents
         final ItemStack held = event.getItemStack();
 
         //if the held item is a block
-        if(facing != null && event.getItemStack().getItem() instanceof ItemBlock) {
+        if(facing != null && held.getItem() instanceof ItemBlock) {
             final World world = event.getWorld();
             final BlockPos pos = event.getPos().offset(facing);
             final IBlockState here = world.getBlockState(pos);
-            final Fluid fluid = getFluid(here);
+            final @Nullable Fluid fluid = getFluid(here);
 
             //if the block is a fluid
             if(fluid != null && !(here.getBlock() instanceof AbstractFluidloggedBlock)) {
                 final int meta = held.getItem().getMetadata(held.getMetadata());
-                final Vec3d hit = event.getHitVec();
+                final Vec3d hit = Optional.ofNullable(event.getHitVec()).orElse(new Vec3d(pos));
                 final EntityPlayer player = event.getEntityPlayer();
 
                 IBlockState stored = ((ItemBlock)held.getItem()).getBlock().getStateForPlacement(world, pos, facing, (float)hit.x - pos.getX(), (float)hit.y - pos.getY(), (float)hit.z - pos.getZ(), meta, player, event.getHand());

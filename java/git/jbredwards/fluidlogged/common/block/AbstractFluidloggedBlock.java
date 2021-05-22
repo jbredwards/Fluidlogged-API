@@ -6,7 +6,9 @@ import net.minecraft.block.BlockSnow;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.PropertyInteger;
 import net.minecraft.block.state.BlockFaceShape;
+import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -21,6 +23,7 @@ import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.property.IExtendedBlockState;
+import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
@@ -44,8 +47,12 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     //private or protected fields used by this class
     public static final Field canCreateSourcesField = ObfuscationReflectionHelper.findField(BlockFluidClassic.class, "canCreateSources");
     public static final Field quantaPerBlockField = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlock");
-    static { canCreateSourcesField.setAccessible(true); }
-    static { quantaPerBlockField.setAccessible(true); }
+    public static final Field nextStepDistance = ObfuscationReflectionHelper.findField(Entity.class, "field_70150_b");
+    static {
+        canCreateSourcesField.setAccessible(true);
+        quantaPerBlockField.setAccessible(true);
+        nextStepDistance.setAccessible(true);
+    }
 
     //makes definedFluid public
     public final Fluid fluid;
@@ -376,17 +383,25 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     }
 
     //walk sound fix
-    public static final Field nextStepDistance = ObfuscationReflectionHelper.findField(Entity.class, "field_70150_b");
-    static { nextStepDistance.setAccessible(true); }
     @Override
     public void onEntityWalk(World worldIn, BlockPos pos, Entity entityIn) {
         try {
-            if(entityIn.posY - (int)entityIn.posY > 1 - quantaFraction && entityIn.distanceWalkedOnStepModified == nextStepDistance.getInt(entityIn) - 1) {
-                SoundType type = getSoundType(worldIn.getBlockState(pos), worldIn, pos, entityIn);
-                final IBlockState up = worldIn.getBlockState(pos.up());
+            //if the entity is above the fluid
+            if(entityIn.posY - (int)entityIn.posY < 1) {
+                //distance the player moved x & z
+                final double x = entityIn.posX - entityIn.prevPosX;
+                final double z = entityIn.posZ - entityIn.prevPosZ;
 
-                if(up.getBlock() instanceof BlockSnow) type = up.getBlock().getSoundType(up, worldIn, pos.up(), entityIn);
-                entityIn.playSound(type.getStepSound(), type.getVolume() * 0.15f, type.getPitch());
+                //if the cooldown is over
+                if(entityIn.distanceWalkedOnStepModified + MathHelper.sqrt(x * x + z * z) * 0.6D > nextStepDistance.getInt(entityIn) ) {
+                    SoundType type = getSoundType(worldIn.getBlockState(pos), worldIn, pos, entityIn);
+
+                    //special case for snow
+                    final IBlockState up = worldIn.getBlockState(pos.up());
+                    if(up.getBlock() instanceof BlockSnow) type = up.getBlock().getSoundType(up, worldIn, pos.up(), entityIn);
+                    //plays the step sound
+                    entityIn.playSound(type.getStepSound(), type.getVolume() * 0.15f, type.getPitch());
+                }
             }
         } catch (IllegalAccessException ignored) {}
     }
