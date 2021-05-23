@@ -21,12 +21,10 @@ public abstract class FluidloggedEvent extends Event
 {
     public final World world;
     public final BlockPos pos;
-    public final IBlockState here;
 
-    public FluidloggedEvent(World world, BlockPos pos, IBlockState here) {
+    public FluidloggedEvent(World world, BlockPos pos) {
         this.world = world;
         this.pos = pos;
-        this.here = here;
     }
 
     //fired when trying to fluidlog a block
@@ -34,6 +32,8 @@ public abstract class FluidloggedEvent extends Event
     @Cancelable
     public static class Fluidlog extends FluidloggedEvent
     {
+        //block prior to fluidlog
+        @Nonnull public final IBlockState here;
         //block to be fluidlogged
         @Nonnull public IBlockState stored;
         //block that stores the fluidlogged data
@@ -43,7 +43,8 @@ public abstract class FluidloggedEvent extends Event
 
 
         public Fluidlog(World world, BlockPos pos, IBlockState here, IBlockState stored, BlockFluidloggedTE block, TileEntityFluidlogged te) {
-            super(world, pos, here);
+            super(world, pos);
+            this.here = here;
             this.stored = stored;
             this.block = block;
             this.te = te;
@@ -55,11 +56,18 @@ public abstract class FluidloggedEvent extends Event
     @Cancelable
     public static class UnFluidlog extends FluidloggedEvent
     {
-        //if true, will run the old code
-        public boolean unfluidlog = true;
+        //stored block prior to un-fluidlog
+        @Nonnull public final IBlockState stored;
+        //block that gets made when un-fluidlog
+        @Nonnull public IBlockState toCreate;
+        //block that stores the fluidlogged data
+        @Nonnull public BlockFluidloggedTE block;
 
-        public UnFluidlog(World world, BlockPos pos, IBlockState here) {
-            super(world, pos, here);
+        public UnFluidlog(World world, BlockPos pos, IBlockState stored, IBlockState toCreate, BlockFluidloggedTE block) {
+            super(world, pos);
+            this.stored = stored;
+            this.toCreate = toCreate;
+            this.block = block;
         }
     }
 }

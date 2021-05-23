@@ -55,8 +55,8 @@ public final class ParticleDiggingPlugin extends AbstractPlugin
 
     @SuppressWarnings("unused")
     @SideOnly(Side.CLIENT)
-    public static int getColor(BlockColors blockColors, IBlockState state, World world, BlockPos pos, int index) {
+    public static int getColor(BlockColors old, IBlockState state, World world, BlockPos pos, int index) {
         if(state.getBlock() instanceof IParticleColor) return ((IParticleColor)state.getBlock()).getParticleColor(state, world, pos);
-        else return blockColors.colorMultiplier(state, world, pos, index);
+        else return old.colorMultiplier(state, world, pos, index);
     }
 }

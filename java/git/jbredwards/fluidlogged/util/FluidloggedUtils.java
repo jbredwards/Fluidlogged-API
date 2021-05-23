@@ -5,9 +5,7 @@ import git.jbredwards.fluidlogged.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged.common.block.TileEntityFluidlogged;
 import net.minecraft.block.*;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -77,41 +75,31 @@ public enum FluidloggedUtils
         else return isStateFluidloggable(state);
     }
 
-    //same as FluidUtil.getFilledBucket(), but designed to also work for modded buckets
+    //fills the bucket stack with the fluid
     public static ItemStack getFilledBucket(@Nonnull ItemStack empty, @Nonnull Fluid fluid) {
-        //vanilla bucket
-        if(empty.getItem() == Items.BUCKET) return FluidUtil.getFilledBucket(new FluidStack(fluid, Fluid.BUCKET_VOLUME));
-        //modded bucket
-        if(FluidUtil.getFluidHandler(empty) != null) {
-            empty = ItemHandlerHelper.copyStackWithSize(empty, 1);
+        empty = ItemHandlerHelper.copyStackWithSize(empty, 1);
+        final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(empty);
 
-            final NBTTagCompound tag = new NBTTagCompound();
-            new FluidStack(fluid, Fluid.BUCKET_VOLUME).writeToNBT(tag);
-            empty.setTagCompound(tag);
-
-            return empty;
-        }
-
-        //not a bucket
-        return ItemHandlerHelper.copyStackWithSize(empty, 1);
-    }
-
-    public static ItemStack getEmptyBucket(@Nonnull ItemStack filled) {
-        //vanilla
-        if(filled.getItem() == Items.WATER_BUCKET) return new ItemStack(Items.BUCKET);
-        if(filled.getItem() == Items.LAVA_BUCKET) return new ItemStack(Items.BUCKET);
-        if(filled.getItem() == Items.MILK_BUCKET) return new ItemStack(Items.BUCKET);
-
-        filled = ItemHandlerHelper.copyStackWithSize(filled, 1);
-        final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(filled);
-
-        //modded
         if(handler != null) {
-            handler.drain(Integer.MAX_VALUE, true);
+            handler.fill(new FluidStack(fluid, Fluid.BUCKET_VOLUME), true);
             return handler.getContainer();
         }
 
-        //default
+        //not a bucket
+        return empty;
+    }
+
+    //empties the bucket stack
+    public static ItemStack getEmptyBucket(@Nonnull ItemStack filled) {
+        filled = ItemHandlerHelper.copyStackWithSize(filled, 1);
+        final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(filled);
+
+        if(handler != null) {
+            handler.drain(Fluid.BUCKET_VOLUME, true);
+            return handler.getContainer();
+        }
+
+        //not a bucket
         return filled;
     }
 }
