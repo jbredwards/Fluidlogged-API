@@ -5,10 +5,12 @@ import git.jbredwards.fluidlogged.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged.common.block.TileEntityFluidlogged;
 import net.minecraft.block.*;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
@@ -36,8 +38,35 @@ public enum FluidloggedUtils
         else return ((TileEntityFluidlogged)te).getStored();
     }
 
-    public static void setStored(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable IBlockState stored, boolean notify) {
+    //if the block is fluidlogged, replaces the stored block, else does world.setBlockState()
+    public static void setStoredOrReal(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nullable IBlockState state, boolean notify) {
+        final @Nullable IBlockState stored = getStored(world, pos);
+        if(state == null) state = Blocks.AIR.getDefaultState();
 
+        //block here isn't fluidlogged
+        if(stored == null) {
+            world.setBlockState(pos, state, notify ? 3 : 0);
+            return;
+        }
+
+        //if the here state is null
+        if(here == null) here = world.getBlockState(pos);
+        if(here.getBlock() instanceof BlockFluidloggedTE) {
+            //if the state to be set is air and the block here is fluidlogged, set to the fluid
+            if(state.getBlock() == Blocks.AIR) {
+                world.setBlockState(pos, ((BlockFluidloggedTE)here.getBlock()).fluid.getBlock().getDefaultState(), notify ? 3 : 0);
+                return;
+            }
+
+            //if the state to be set can't be fluidlogged
+            if(!isStateFluidloggable(state)) {
+                world.setBlockState(pos, state, notify ? 3 : 0);
+                return;
+            }
+
+            ((BlockFluidloggedTE)here.getBlock()).setStored(world, pos, state, notify);
+        }
+        else world.setBlockState(pos, state, notify ? 3 : 0);
     }
 
     //should be used instead of world.getBlockState wherever possible

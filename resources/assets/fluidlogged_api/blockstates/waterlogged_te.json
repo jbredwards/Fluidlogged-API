@@ -5,7 +5,7 @@
         "normal": [{
             "model": "forge:multi-layer",
 		    "custom": {
-			    "Translucent": "fluidlogged:waterlogged_te#fluid"
+			    "Translucent": "fluidlogged_api:waterlogged_te#fluid"
 		    }
         }],
 		"fluid": [{

@@ -5,7 +5,7 @@
         "normal": [{
             "model": "forge:multi-layer",
 		    "custom": {
-			    "Solid": "fluidlogged:lavalogged_te#fluid"
+			    "Solid": "fluidlogged_api:lavalogged_te#fluid"
 		    }
         }],
 		"fluid": [{
