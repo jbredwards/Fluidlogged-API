@@ -42,6 +42,8 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nullable;
 
@@ -66,6 +68,7 @@ public final class FluidloggedEvents
 
     //registers the water & lava fluidlogged te custom state mappers
     @SuppressWarnings("unused")
+    @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomStateMapper(Fluidlogged.WATERLOGGED_TE, new StateMap.Builder().ignore(LEVEL).build());
@@ -74,6 +77,7 @@ public final class FluidloggedEvents
 
     //shows fluidlogged barrier particles
     @SuppressWarnings("unused")
+    @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public void showFluidloggedBarrier(TickEvent.ClientTickEvent event) {
         final Minecraft mc = Minecraft.getMinecraft();

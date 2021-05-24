@@ -30,9 +30,11 @@ public final class Fluidlogged
 {
     //vanilla fluidlogged te's, the modded ones get registered automatically through FluidPlugin
     public static final BlockFluidloggedTE WATERLOGGED_TE = (BlockFluidloggedTE)(new BlockFluidloggedTE(FluidRegistry.WATER, Material.WATER).setRegistryName("waterlogged_te").setUnlocalizedName("water"));
-    static { FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.put(FluidRegistry.WATER, WATERLOGGED_TE); }
     public static final BlockFluidloggedTE LAVALOGGED_TE = (BlockFluidloggedTE)(new BlockFluidloggedTE(FluidRegistry.LAVA, Material.LAVA).setRegistryName("lavalogged_te").setUnlocalizedName("lava"));
-    static { FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.put(FluidRegistry.LAVA, LAVALOGGED_TE); }
+    static {
+        FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.put(FluidRegistry.WATER, WATERLOGGED_TE);
+        FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.put(FluidRegistry.LAVA, LAVALOGGED_TE);
+    }
 
     //non-EventHandler events
     static {

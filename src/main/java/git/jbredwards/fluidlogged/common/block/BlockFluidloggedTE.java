@@ -38,7 +38,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
@@ -85,6 +84,16 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
                 else ((World)world).setBlockState(pos, fluid.getBlock().getDefaultState());
             }
         }
+    }
+
+    @Override
+    public String getUnlocalizedName() {
+        return fluid.getBlock().getUnlocalizedName();
+    }
+
+    @Override
+    public String getLocalizedName() {
+        return fluid.getBlock().getLocalizedName();
     }
 
     @SuppressWarnings("deprecation")
