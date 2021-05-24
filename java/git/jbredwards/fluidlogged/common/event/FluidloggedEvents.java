@@ -13,12 +13,18 @@ import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.block.statemap.StateMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
 import net.minecraft.init.SoundEvents;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -34,6 +40,7 @@ import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
 import javax.annotation.Nullable;
@@ -63,6 +70,33 @@ public final class FluidloggedEvents
     public void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomStateMapper(Fluidlogged.WATERLOGGED_TE, new StateMap.Builder().ignore(LEVEL).build());
         ModelLoader.setCustomStateMapper(Fluidlogged.LAVALOGGED_TE, new StateMap.Builder().ignore(LEVEL).build());
+    }
+
+    //shows fluidlogged barrier particles
+    @SuppressWarnings("unused")
+    @SubscribeEvent
+    public void showFluidloggedBarrier(TickEvent.ClientTickEvent event) {
+        final Minecraft mc = Minecraft.getMinecraft();
+        final @Nullable EntityPlayerSP player = mc.player;
+        final @Nullable WorldClient world = mc.world;
+
+        if(player != null && world != null) {
+            final BlockPos origin = new BlockPos(player);
+
+            if(player.isCreative() && world.getTotalWorldTime() % 80 == 0 && player.getHeldItemMainhand().getItem() == Item.getItemFromBlock(Blocks.BARRIER)) {
+                for(int x = -32; x < 32; x++) {
+                    for(int y = -32; y < 32; y++) {
+                        for(int z = -32; z < 32; z++) {
+                            BlockPos pos = origin.add(x, y, z);
+                            @Nullable TileEntity te = world.getTileEntity(pos);
+
+                            boolean flag = (te instanceof TileEntityFluidlogged && ((TileEntityFluidlogged)te).getStored().getBlock() == Blocks.BARRIER);
+                            if(flag) world.spawnParticle(EnumParticleTypes.BARRIER, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0, 0, 0);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     //===================
