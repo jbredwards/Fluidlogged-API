@@ -25,7 +25,10 @@ public final class ASMHandler implements IFMLLoadingPlugin
     {
         //plugin registry
         static final Map<String, AbstractPlugin> PLUGINS = new ImmutableMap.Builder<String, AbstractPlugin>()
+                .put("net.minecraft.block.BlockFenceGate", new BlockFenceGatePlugin())
+                .put("net.minecraft.block.BlockSponge", new BlockSpongePlugin())
                 .put("net.minecraft.block.BlockStairs", new BlockStairsPlugin())
+                .put("net.minecraft.block.BlockTrapDoor", new BlockTrapDoorPlugin())
                 .put("net.minecraft.client.particle.ParticleDigging", new ParticleDiggingPlugin())
                 .put("net.minecraft.client.renderer.BlockFluidRenderer", new BlockFluidRendererPlugin())
                 .put("net.minecraft.client.renderer.BlockModelShapes", new BlockModelShapesPlugin())

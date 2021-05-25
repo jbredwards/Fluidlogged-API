@@ -3,7 +3,6 @@ package git.jbredwards.fluidlogged.common.event;
 import git.jbredwards.fluidlogged.Fluidlogged;
 import git.jbredwards.fluidlogged.common.block.AbstractFluidloggedBlock;
 import git.jbredwards.fluidlogged.common.block.BlockFluidloggedTE;
-import git.jbredwards.fluidlogged.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged.common.block.TileEntityFluidlogged;
 import git.jbredwards.fluidlogged.util.FluidloggedConstants;
 import git.jbredwards.fluidlogged.util.FluidloggedUtils;
@@ -20,7 +19,6 @@ import net.minecraft.client.renderer.block.statemap.StateMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
-import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
@@ -31,7 +29,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -138,19 +135,22 @@ public final class FluidloggedEvents
         }
     }
 
-    private static boolean runBucketEmpty(FillBucketEvent event, World world, IBlockState state, BlockPos pos, EntityPlayer player) {
+    private static boolean runBucketEmpty(FillBucketEvent event, World world, IBlockState here, BlockPos pos, EntityPlayer player) {
         //if the state is fluidlogged
-        if(state.getBlock() instanceof BlockFluidloggedTE) {
-            final Fluid fluid = ((BlockFluidloggedTE)state.getBlock()).fluid;
+        if(here.getBlock() instanceof BlockFluidloggedTE && FluidloggedUtils.tryUnfluidlogBlock(world, pos, here)) {
+            //fill sound
+            final Fluid fluid = ((BlockFluidloggedTE)here.getBlock()).fluid;
+            final SoundEvent sound = fluid.getFillSound(new FluidStack(fluid, Fluid.BUCKET_VOLUME));
+            world.playSound(null, player.posX, player.posY + 0.5, player.posZ, sound, SoundCategory.BLOCKS, 1, 1);
 
-            actionBucketEmpty(world, state, pos, player, fluid);
+            //event bucket
             event.setFilledBucket(FluidloggedUtils.getFilledBucket(event.getEmptyBucket(), fluid));
             event.setResult(Event.Result.ALLOW);
 
             return true;
         }
         //if the block here is a normal fluidlogged block, the block should not be drained
-        else if(state.getBlock() instanceof AbstractFluidloggedBlock && !state.getBlock().isReplaceable(world, pos)) {
+        else if(here.getBlock() instanceof AbstractFluidloggedBlock && !here.getBlock().isReplaceable(world, pos)) {
             event.setResult(Event.Result.DENY);
             event.setCanceled(true);
 
@@ -161,73 +161,29 @@ public final class FluidloggedEvents
         return false;
     }
 
-    private static boolean runBucketFull(FillBucketEvent event, World world, IBlockState state, BlockPos pos, EntityPlayer player, FluidStack fluidStack) {
+    private static boolean runBucketFull(FillBucketEvent event, World world, IBlockState here, BlockPos pos, EntityPlayer player, FluidStack fluidStack) {
         //if the state can be fluidlogged with the given fluid
-        if(FluidloggedUtils.isStateFluidloggable(state, fluidStack.getFluid())) {
-            final @Nullable BlockFluidloggedTE block = FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.get(fluidStack.getFluid());
-
-            if(block != null) {
-                actionBucketFull(world, state, pos, player, fluidStack, block);
-                event.setFilledBucket(FluidloggedUtils.getEmptyBucket(event.getEmptyBucket()));
-                event.setResult(Event.Result.ALLOW);
-
-                return true;
-            }
-        }
-        //if the block here should not get replaced with fluid
-        else if(state.getBlock() instanceof AbstractFluidloggedBlock && !state.getBlock().isReplaceable(world, pos)) {
-            event.setResult(Event.Result.DENY);
-            event.setCanceled(true);
-
-            return true;
-        }
-
-        //nothing happened
-        return false;
-    }
-
-    private static void actionBucketEmpty(World world, IBlockState state, BlockPos pos, EntityPlayer player, Fluid fluid) {
-        final TileEntityFluidlogged te = (TileEntityFluidlogged)world.getTileEntity(pos);
-
-        //sets up the event
-        IBlockState toCreate = te.getStored().getBlock() instanceof IFluidloggable ? ((IFluidloggable)te.getStored()).getNonFluidloggedState(world, pos, te.getStored()) : te.getStored();
-        final FluidloggedEvent.UnFluidlog event = new FluidloggedEvent.UnFluidlog(world, pos, te.getStored(), toCreate, (BlockFluidloggedTE)state.getBlock());
-
-        if(!MinecraftForge.EVENT_BUS.post(event)) {
-            world.setBlockState(pos, event.toCreate);
-
-            //plays the empty sound
-            final SoundEvent sound = fluid.getFillSound(new FluidStack(fluid, Fluid.BUCKET_VOLUME));
-            world.playSound(null, player.posX, player.posY + 0.5, player.posZ, sound, SoundCategory.BLOCKS, 1, 1);
-        }
-    }
-
-    private static void actionBucketFull(World world, IBlockState state, BlockPos pos, EntityPlayer player, FluidStack fluidStack, BlockFluidloggedTE block) {
-        //sets up the event
-        IBlockState stored = state.getBlock() instanceof IFluidloggable ? ((IFluidloggable)state.getBlock()).getFluidloggedState(world, pos, state) : state;
-        final FluidloggedEvent.Fluidlog event = new FluidloggedEvent.Fluidlog(world, pos, state, stored, block, new TileEntityFluidlogged());
-
-        if(!MinecraftForge.EVENT_BUS.post(event)) {
-            //vaporizes water if in the nether
-            if(world.provider.doesWaterVaporize() && fluidStack.getFluid().doesVaporize(fluidStack)) {
-                for(int i = 0; i < 8; ++i) world.spawnParticle(EnumParticleTypes.SMOKE_LARGE, pos.getX() + Math.random(), pos.getY() + Math.random(), pos.getZ() + Math.random(), 0, 0, 0);
-                world.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.5f, 2.6f + (world.rand.nextFloat() - world.rand.nextFloat()) * 0.8f);
-
-                return;
-            }
-
-            //gets possible changes set via the event
-            stored = event.stored;
-            event.te.setStored(stored, false);
-
-            //does the place
-            world.setBlockState(pos, event.block.getDefaultState());
-            world.setTileEntity(pos, event.te);
-
-            //plays the empty sound
+        if(FluidloggedUtils.tryFluidlogBlock(world, pos, here, fluidStack.getFluid(), false)) {
+            //empty sound
             final SoundEvent sound = fluidStack.getFluid().getEmptySound(fluidStack);
             world.playSound(null, player.posX, player.posY + 0.5, player.posZ, sound, SoundCategory.BLOCKS, 1, 1);
+
+            //event bucket
+            event.setFilledBucket(FluidloggedUtils.getEmptyBucket(event.getEmptyBucket()));
+            event.setResult(Event.Result.ALLOW);
+
+            return true;
         }
+        //if the block here should not get replaced with fluid
+        else if(here.getBlock() instanceof AbstractFluidloggedBlock && !here.getBlock().isReplaceable(world, pos)) {
+            event.setResult(Event.Result.DENY);
+            event.setCanceled(true);
+
+            return true;
+        }
+
+        //nothing happened
+        return false;
     }
 
     //allows the player to place fluidloggable blocks into fluid and have them become fluidlogged
@@ -249,38 +205,25 @@ public final class FluidloggedEvents
                 final int meta = held.getItem().getMetadata(held.getMetadata());
                 final Vec3d hit = Optional.ofNullable(event.getHitVec()).orElse(new Vec3d(pos));
                 final EntityPlayer player = event.getEntityPlayer();
+                final IBlockState stored = ((ItemBlock)held.getItem()).getBlock().getStateForPlacement(world, pos, facing, (float)hit.x - pos.getX(), (float)hit.y - pos.getY(), (float)hit.z - pos.getZ(), meta, player, event.getHand());
 
-                IBlockState stored = ((ItemBlock)held.getItem()).getBlock().getStateForPlacement(world, pos, facing, (float)hit.x - pos.getX(), (float)hit.y - pos.getY(), (float)hit.z - pos.getZ(), meta, player, event.getHand());
-                if(stored.getBlock() instanceof IFluidloggable) stored = ((IFluidloggable)stored.getBlock()).getFluidloggedState(world, pos, stored);
+                if(FluidloggedUtils.tryFluidlogBlock(world, pos, stored, fluid, true)) {
+                    //place sound
+                    final SoundType sound = stored.getBlock().getSoundType(stored, world, pos, player);
+                    world.playSound(null, pos, sound.getPlaceSound(), SoundCategory.BLOCKS, (sound.getVolume() + 1) / 2, sound.getPitch() * 0.8f);
 
-                //if the held block can be fluidlogged
-                if(FluidloggedUtils.isStateFluidloggable(stored, fluid)) {
-                    final FluidloggedEvent.Fluidlog fluidlog = new FluidloggedEvent.Fluidlog(world, pos, here, stored, FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.get(fluid), new TileEntityFluidlogged());
-                    if(!MinecraftForge.EVENT_BUS.post(fluidlog)) {
-                        stored = fluidlog.stored;
-                        fluidlog.te.setStored(stored, false);
+                    //updates the player's stats
+                    if(player instanceof EntityPlayerMP) CriteriaTriggers.PLACED_BLOCK.trigger((EntityPlayerMP)player, pos, event.getItemStack());
+                    if(!player.isCreative()) event.getItemStack().shrink(1);
 
-                        //does the place
-                        world.setBlockState(pos, fluidlog.block.getDefaultState());
-                        world.setTileEntity(pos, fluidlog.te);
-
-                        //place sound
-                        final SoundType sound = stored.getBlock().getSoundType(stored, world, pos, player);
-                        world.playSound(null, pos, sound.getPlaceSound(), SoundCategory.BLOCKS, (sound.getVolume() + 1) / 2, sound.getPitch() * 0.8f);
-
-                        //updates the player's stats
-                        if(player instanceof EntityPlayerMP) CriteriaTriggers.PLACED_BLOCK.trigger((EntityPlayerMP)player, pos, event.getItemStack());
-                        if(!player.isCreative()) event.getItemStack().shrink(1);
-
-                        event.setCanceled(true);
-                        event.setCancellationResult(EnumActionResult.SUCCESS);
-                    }
+                    event.setCanceled(true);
+                    event.setCancellationResult(EnumActionResult.SUCCESS);
                 }
             }
         }
     }
 
-    //gets the fluid here, null if none
+    //gets the fluid source here, null if none
     @Nullable
     public static Fluid getFluid(IBlockState state) {
         if((state.getBlock() instanceof BlockFluidClassic || state.getBlock() instanceof BlockLiquid) && state.getValue(BlockLiquid.LEVEL) == 0) {

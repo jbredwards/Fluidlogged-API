@@ -15,7 +15,11 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.WorldType;
 
-//changes some rendering stuff for fluidlogged te's
+/**
+ * changes some rendering stuff for fluidlogged te's
+ * @author jbred
+ *
+ */
 @SuppressWarnings("NullableProblems")
 public class FluidloggedBlockRendererDispatcher extends BlockRendererDispatcher
 {

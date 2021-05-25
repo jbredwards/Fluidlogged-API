@@ -50,7 +50,7 @@ public final class Fluidlogged
     private static void clientInit() {
         //changes the vanilla block renderer
         ObfuscationReflectionHelper.setPrivateValue(Minecraft.class, Minecraft.getMinecraft(), new FluidloggedBlockRendererDispatcher(Minecraft.getMinecraft().getBlockRendererDispatcher()), "field_175618_aM");
-        //tile entity special renderer
+        //tile entity special renderer (does nothing by default, only for IFluidloggable blocks that choose to use it)
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityFluidlogged.class, new FluidloggedTESR());
         //colors the waterlogged te
         Minecraft.getMinecraft().getBlockColors().registerBlockColorHandler((state, world, pos, index) -> BiomeColorHelper.getWaterColorAtPos(world, pos), WATERLOGGED_TE);

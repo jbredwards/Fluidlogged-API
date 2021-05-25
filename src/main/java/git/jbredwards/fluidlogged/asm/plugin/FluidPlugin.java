@@ -4,7 +4,6 @@ import git.jbredwards.fluidlogged.asm.AbstractPlugin;
 import git.jbredwards.fluidlogged.common.block.BlockFluidloggedTE;
 import git.jbredwards.fluidlogged.util.FluidloggedConstants;
 import net.minecraft.block.Block;
-import net.minecraft.util.BlockRenderLayer;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -77,7 +76,7 @@ public final class FluidPlugin extends AbstractPlugin
             FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.put(fluid, block);
 
             //registers the block
-            ForgeRegistries.BLOCKS.register(block.setRegistryName(fluid.getName() + "logged_te").setUnlocalizedName(fluid.getBlock().getUnlocalizedName().replaceFirst("tile.", "")));
+            ForgeRegistries.BLOCKS.register(block.setRegistryName(fluid.getName() + "logged_te"));
         }
     }
 

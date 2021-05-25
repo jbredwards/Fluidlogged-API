@@ -32,6 +32,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.IShearable;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -122,8 +123,8 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
 
         //for barriers
         if(ret && stored.getRenderType() == EnumBlockRenderType.INVISIBLE) return true;
-        //for leaves
-        else if(ret && stored.getBlock() instanceof BlockLeaves) return true;
+        //for leaves and trapdoors
+        else if(ret && stored.getBlock().getBlockLayer() != BlockRenderLayer.SOLID) return true;
         //helps to prevent texture fighting
         else if(ret && !canSideFlow(stored, world, pos, side)) return false;
         //default return statement
@@ -131,7 +132,7 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
     }
 
     @Override
-    public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
+    public boolean canRenderInLayer(IBlockState ignored, BlockRenderLayer layer) {
         return fluid.getBlock().canRenderInLayer(fluid.getBlock().getDefaultState(), layer);
     }
 
@@ -141,9 +142,39 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         return EnumPushReaction.BLOCK;
     }
 
+    @Nullable
+    @Override
+    public FluidStack drain(World world, BlockPos pos, boolean doDrain) {
+        if(doDrain && !FluidloggedUtils.tryUnfluidlogBlock(world, pos, null)) return null;
+        else return stack.copy();
+    }
+
     //================================================
     //BELOW METHODS ARE USED TO MIMIC THE STORED BLOCK
     //================================================
+
+    @Override
+    public boolean canSideFlow(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
+        final IBlockState stored = getStored(world, pos);
+
+        //fixes trapdoors
+        if(stored.getBlock() instanceof BlockTrapDoor) {
+            if(!stored.getValue(BlockTrapDoor.OPEN)) {
+                final boolean bottom = stored.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.BOTTOM;
+
+                if(bottom && side == EnumFacing.DOWN) return false;
+                if(!bottom && side == EnumFacing.UP) return false;
+                else return true;
+            }
+            else {
+                if(stored.getValue(BlockTrapDoor.FACING).getOpposite() == side) return false;
+                else return true;
+            }
+        }
+
+        //default
+        return super.canSideFlow(state, world, pos, side);
+    }
 
     @SuppressWarnings("deprecation")
     @Override
@@ -341,11 +372,24 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
     }
 
     @Override
+    public void onEntityCollidedWithBlock(World worldIn, BlockPos pos, IBlockState state, Entity entityIn) {
+        final IBlockState stored = getStored(worldIn, pos);
+        stored.getBlock().onEntityCollidedWithBlock(worldIn, pos, stored, entityIn);
+
+        super.onEntityCollidedWithBlock(worldIn, pos, state, entityIn);
+    }
+
+    @Override
     public boolean canHarvestBlock(IBlockAccess world, BlockPos pos, EntityPlayer player) {
         return canHarvestBlock(getStored(world, pos), player, world, pos);
     }
 
-    //DELETE
+    @Override
+    public boolean isPassable(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        if(!fluid.getBlock().isPassable(world, pos)) return false;
+        else return getStored(world, pos).getBlock().isPassable(world, pos);
+    }
+
     @Nonnull
     @Override
     public Vec3d modifyAcceleration(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Entity entity, @Nonnull Vec3d vec) {
