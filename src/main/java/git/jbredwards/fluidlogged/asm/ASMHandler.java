@@ -15,7 +15,7 @@ import java.util.Map;
  *
  */
 @SuppressWarnings("unused")
-@IFMLLoadingPlugin.SortingIndex(1001)
+@IFMLLoadingPlugin.SortingIndex(1005)
 @IFMLLoadingPlugin.Name("Fluidlogged Plugin")
 @IFMLLoadingPlugin.MCVersion("1.12.2")
 @IFMLLoadingPlugin.TransformerExclusions({"git.jbredwards.fluidlogged.asm", "git.jbredwards.fluidlogged.asm.plugin"})
@@ -53,7 +53,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
 
     @Override
     public String getModContainerClass() {
-        return Fluidlogged.class.getName();
+        return null;
     }
 
     @Nullable

@@ -1,6 +1,5 @@
 package git.jbredwards.fluidlogged;
 
-import com.google.common.collect.ImmutableList;
 import git.jbredwards.fluidlogged.client.util.FluidloggedBlockRendererDispatcher;
 import git.jbredwards.fluidlogged.client.util.FluidloggedTESR;
 import git.jbredwards.fluidlogged.common.block.BlockFluidloggedTE;
@@ -24,7 +23,7 @@ import static git.jbredwards.fluidlogged.util.FluidloggedConstants.*;
  *
  */
 @Mod(modid = MODID, name = NAME, version = VERSION)
-public final class Fluidlogged extends DummyModContainer
+public final class Fluidlogged
 {
     //vanilla fluidlogged te's, the modded ones get registered automatically through FluidPlugin
     public static final BlockFluidloggedTE WATERLOGGED_TE = new BlockFluidloggedTE(FluidRegistry.WATER, Material.WATER);
@@ -32,18 +31,6 @@ public final class Fluidlogged extends DummyModContainer
     static {
         FLUIDLOGGED_TE_LOOKUP.put(FluidRegistry.WATER, WATERLOGGED_TE);
         FLUIDLOGGED_TE_LOOKUP.put(FluidRegistry.LAVA, LAVALOGGED_TE);
-    }
-
-    //plugin
-    public Fluidlogged() {
-        super(new ModMetadata());
-        ModMetadata meta = getMetadata();
-        meta.modId = MODID + "_plugin";
-        meta.name = NAME + " Plugin";
-        meta.version = VERSION;
-        meta.credits = "jbredwards";
-        meta.authorList = ImmutableList.of("jbredwards");
-        meta.url = "https://curseforge.com/minecraft/mc-mods/fluidlogged-api";
     }
 
     @SuppressWarnings("unused")
