@@ -11,6 +11,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -25,15 +26,19 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.ModelRegistryEvent;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -44,6 +49,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nullable;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static net.minecraftforge.fluids.BlockFluidBase.LEVEL;
@@ -53,13 +59,19 @@ import static net.minecraftforge.fluids.BlockFluidBase.LEVEL;
  * @author jbred
  *
  */
+@Mod.EventBusSubscriber(modid = FluidloggedConstants.MODID)
 public final class FluidloggedEvents
 {
     //registers the water & lava fluidlogged te's
     @SuppressWarnings("unused")
     @SubscribeEvent
-    public void registerBlocks(RegistryEvent.Register<Block> event) {
+    public static void registerBlocks(RegistryEvent.Register<Block> event) {
+        //sets up the registry names
+        Fluidlogged.WATERLOGGED_TE.setRegistryName("waterlogged_te").setUnlocalizedName("water");
+        Fluidlogged.LAVALOGGED_TE.setRegistryName("lavalogged_te").setUnlocalizedName("lava");
+        //registers the blocks
         event.getRegistry().registerAll(Fluidlogged.WATERLOGGED_TE, Fluidlogged.LAVALOGGED_TE);
+        //registers the te
         GameRegistry.registerTileEntity(TileEntityFluidlogged.class, new ResourceLocation(FluidloggedConstants.MODID, "te"));
     }
 
@@ -67,7 +79,7 @@ public final class FluidloggedEvents
     @SuppressWarnings("unused")
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
-    public void registerModels(ModelRegistryEvent event) {
+    public static void registerModels(ModelRegistryEvent event) {
         ModelLoader.setCustomStateMapper(Fluidlogged.WATERLOGGED_TE, new StateMap.Builder().ignore(LEVEL).build());
         ModelLoader.setCustomStateMapper(Fluidlogged.LAVALOGGED_TE, new StateMap.Builder().ignore(LEVEL).build());
     }
@@ -76,7 +88,7 @@ public final class FluidloggedEvents
     @SuppressWarnings("unused")
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
-    public void showFluidloggedBarrier(TickEvent.ClientTickEvent event) {
+    public static void showFluidloggedBarrier(TickEvent.ClientTickEvent event) {
         final Minecraft mc = Minecraft.getMinecraft();
         final @Nullable EntityPlayerSP player = mc.player;
         final @Nullable WorldClient world = mc.world;
@@ -100,6 +112,37 @@ public final class FluidloggedEvents
         }
     }
 
+    //shows more fluidlogged block data in the F3 screen
+    @SuppressWarnings("unused")
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent
+    public static void showAdditionalDebugData(RenderGameOverlayEvent.Text event) {
+        final Minecraft mc = Minecraft.getMinecraft();
+        final WorldClient world = mc.world;
+        final RayTraceResult trace = mc.objectMouseOver;
+
+        if(world != null && trace != null && !event.getLeft().isEmpty() && !event.getRight().isEmpty()) {
+            @Nullable IBlockState stored = FluidloggedUtils.getStored(world, trace.getBlockPos());
+
+            if(stored != null) {
+                //some blocks like to hide additional data in their actual state
+                stored = stored.getActualState(world, trace.getBlockPos());
+                //initial text
+                event.getRight().add("");
+                event.getRight().add(Optional.ofNullable(stored.getBlock().getRegistryName()).orElse(new ResourceLocation("barrier")).toString());
+                //block state data
+                for(Map.Entry<IProperty<?>, Comparable<?>> entry : stored.getProperties().entrySet()) {
+                    String value = entry.getValue().toString();
+                    //consistent coloring with vanilla
+                    if(value.equals("true")) value = TextFormatting.GREEN + value;
+                    else if(value.equals("false")) value = TextFormatting.RED + value;
+                    //adds the text
+                    event.getRight().add(entry.getKey().getName() + ": " + value);
+                }
+            }
+        }
+    }
+
     //===================
     //FLUIDLOGGING EVENTS
     //===================
@@ -107,7 +150,7 @@ public final class FluidloggedEvents
     //fired when a player tried to take from a fluidlogged te, or when they try to fluidlog a block
     @SuppressWarnings("unused")
     @SubscribeEvent(priority = EventPriority.HIGH)
-    public void fluidPlaceOrTake(FillBucketEvent event) {
+    public static void fluidPlaceOrTake(FillBucketEvent event) {
         final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(event.getEmptyBucket());
 
         //this shouldn't be null, but just in case
@@ -189,7 +232,7 @@ public final class FluidloggedEvents
     //allows the player to place fluidloggable blocks into fluid and have them become fluidlogged
     @SuppressWarnings("unused")
     @SubscribeEvent
-    public void placeBlockInFluid(PlayerInteractEvent.RightClickBlock event) {
+    public static void placeBlockInFluid(PlayerInteractEvent.RightClickBlock event) {
         final @Nullable EnumFacing facing = event.getFace();
         final ItemStack held = event.getItemStack();
 

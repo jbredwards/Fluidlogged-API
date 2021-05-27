@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged.asm;
 
 import com.google.common.collect.ImmutableMap;
+import git.jbredwards.fluidlogged.Fluidlogged;
 import git.jbredwards.fluidlogged.asm.plugin.*;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
@@ -32,6 +33,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.client.particle.ParticleDigging", new ParticleDiggingPlugin())
                 .put("net.minecraft.client.renderer.BlockFluidRenderer", new BlockFluidRendererPlugin())
                 .put("net.minecraft.client.renderer.BlockModelShapes", new BlockModelShapesPlugin())
+                .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin())
                 .put("net.minecraftforge.fluids.BlockFluidClassic", new BlockFluidClassicPlugin())
                 .put("net.minecraftforge.fluids.Fluid", new FluidPlugin())
@@ -51,7 +53,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
 
     @Override
     public String getModContainerClass() {
-        return null;
+        return Fluidlogged.class.getName();
     }
 
     @Nullable

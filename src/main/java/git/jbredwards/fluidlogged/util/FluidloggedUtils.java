@@ -132,28 +132,32 @@ public enum FluidloggedUtils
     public static boolean tryFluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull Fluid fluid, boolean ignoreVaporize) {
         if(isStateFluidloggable(here, fluid)) {
             final IBlockState stored = (here.getBlock() instanceof IFluidloggable ? ((IFluidloggable)here.getBlock()).getFluidloggedState(world, pos, here) : here);
-            final FluidloggedEvent.Fluidlog event = new FluidloggedEvent.Fluidlog(world, pos, here, stored, FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.get(fluid), new TileEntityFluidlogged(), ignoreVaporize);
+            final @Nullable BlockFluidloggedTE block = FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.get(fluid);
 
-            //event did stuff
-            if(MinecraftForge.EVENT_BUS.post(event)) return false;
-            else if(event.getResult() == Event.Result.DENY) return false;
-            else if(event.getResult() == Event.Result.ALLOW) return true;
-            //default
-            else {
-                //vaporizes water if in the nether
-                if(!event.ignoreVaporize && world.provider.doesWaterVaporize() && fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME))) {
-                    for(int i = 0; i < 8; ++i) world.spawnParticle(EnumParticleTypes.SMOKE_LARGE, pos.getX() + Math.random(), pos.getY() + Math.random(), pos.getZ() + Math.random(), 0, 0, 0);
-                    world.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.5f, 2.6f + (world.rand.nextFloat() - world.rand.nextFloat()) * 0.8f);
+            if(block != null) {
+                final FluidloggedEvent.Fluidlog event = new FluidloggedEvent.Fluidlog(world, pos, here, stored, block, new TileEntityFluidlogged(), ignoreVaporize);
 
-                    return false;
+                //event did stuff
+                if(MinecraftForge.EVENT_BUS.post(event)) return false;
+                else if(event.getResult() == Event.Result.DENY) return false;
+                else if(event.getResult() == Event.Result.ALLOW) return true;
+                    //default
+                else {
+                    //vaporizes water if in the nether
+                    if(!event.ignoreVaporize && world.provider.doesWaterVaporize() && fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME))) {
+                        for(int i = 0; i < 8; ++i) world.spawnParticle(EnumParticleTypes.SMOKE_LARGE, pos.getX() + Math.random(), pos.getY() + Math.random(), pos.getZ() + Math.random(), 0, 0, 0);
+                        world.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.5f, 2.6f + (world.rand.nextFloat() - world.rand.nextFloat()) * 0.8f);
+
+                        return false;
+                    }
+
+                    event.te.setStored(event.stored, false);
+
+                    world.setBlockState(pos, event.block.getDefaultState());
+                    world.setTileEntity(pos, event.te);
+
+                    return true;
                 }
-
-                event.te.setStored(event.stored, false);
-
-                world.setBlockState(pos, event.block.getDefaultState());
-                world.setTileEntity(pos, event.te);
-
-                return true;
             }
         }
 

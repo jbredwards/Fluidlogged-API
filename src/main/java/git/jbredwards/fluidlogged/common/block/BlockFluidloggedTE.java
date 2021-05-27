@@ -384,12 +384,6 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         return canHarvestBlock(getStored(world, pos), player, world, pos);
     }
 
-    @Override
-    public boolean isPassable(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        if(!fluid.getBlock().isPassable(world, pos)) return false;
-        else return getStored(world, pos).getBlock().isPassable(world, pos);
-    }
-
     @Nonnull
     @Override
     public Vec3d modifyAcceleration(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Entity entity, @Nonnull Vec3d vec) {

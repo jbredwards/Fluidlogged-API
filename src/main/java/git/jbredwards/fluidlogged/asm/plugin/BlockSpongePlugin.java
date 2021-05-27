@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged.asm.plugin;
 import com.google.common.collect.Lists;
 import git.jbredwards.fluidlogged.asm.ASMUtils;
 import git.jbredwards.fluidlogged.asm.AbstractPlugin;
+import git.jbredwards.fluidlogged.common.block.AbstractFluidloggedBlock;
 import net.minecraft.block.BlockSponge;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -10,7 +11,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.fluids.IFluidBlock;
 import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
@@ -19,7 +19,6 @@ import org.objectweb.asm.tree.MethodNode;
 
 import javax.annotation.Nonnull;
 
-import java.util.List;
 import java.util.Queue;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -60,7 +59,6 @@ public final class BlockSpongePlugin extends AbstractPlugin
         final Queue<Pair<BlockPos, Integer>> queue = Lists.newLinkedList();
         queue.add(Pair.of(posIn, 0));
 
-        final List<BlockPos> list = Lists.newArrayList();
         int blocksDrained = 0;
 
         while(!queue.isEmpty()) {
@@ -74,10 +72,9 @@ public final class BlockSpongePlugin extends AbstractPlugin
 
                 if(state.getMaterial() == Material.WATER) {
                     //custom drain action
-                    if(state.getBlock() instanceof IFluidBlock) ((IFluidBlock)state.getBlock()).drain(world, offset, true);
-                    else world.setBlockState(offset, Blocks.AIR.getDefaultState(), 2);
+                    if(state.getBlock() instanceof AbstractFluidloggedBlock) ((AbstractFluidloggedBlock)state.getBlock()).drain(world, offset, true);
+                    else world.setBlockState(offset, Blocks.AIR.getDefaultState());
 
-                    list.add(offset);
                     ++blocksDrained;
 
                     if(distance < 6) queue.add(Pair.of(offset, distance + 1));
@@ -85,10 +82,6 @@ public final class BlockSpongePlugin extends AbstractPlugin
             }
 
             if(blocksDrained > 64) break;
-        }
-
-        for(BlockPos pos : list) {
-            world.notifyNeighborsOfStateChange(pos, Blocks.AIR, false);
         }
 
         return blocksDrained > 0;

@@ -179,7 +179,7 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     @Override
     protected boolean canFlowInto(IBlockAccess world, BlockPos pos) {
         final IBlockState state = world.getBlockState(pos);
-        final boolean flag = state.getBlock() instanceof BlockLiquid && state.getValue(BlockLiquid.LEVEL) == 0;
+        final boolean flag = state.getBlock() instanceof BlockLiquid && state.getValue(LEVEL) == 0;
         final boolean flag2 = state.getBlock() instanceof IFluidBlock && state.getValue(LEVEL) == 0;
         final boolean flag3 = (state.getBlock() instanceof IFluidBlock && ((IFluidBlock)state.getBlock()).getFluid() == fluid);
         final boolean flag4 = (fluid.getBlock() instanceof BlockLiquid ? state.getMaterial() == blockMaterial : flag3);

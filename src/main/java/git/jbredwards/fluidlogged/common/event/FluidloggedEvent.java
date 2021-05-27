@@ -90,4 +90,14 @@ public abstract class FluidloggedEvent extends Event
             this.fluid = fluid;
         }
     }
+
+    @Override
+    public boolean isCancelable() {
+        return true;
+    }
+
+    @Override
+    public boolean hasResult() {
+        return true;
+    }
 }
