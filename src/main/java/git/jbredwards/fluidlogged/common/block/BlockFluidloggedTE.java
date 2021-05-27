@@ -163,17 +163,13 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
                 final boolean bottom = stored.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.BOTTOM;
 
                 if(bottom && side == EnumFacing.DOWN) return false;
-                if(!bottom && side == EnumFacing.UP) return false;
-                else return true;
+                else return bottom || side != EnumFacing.UP;
             }
-            else {
-                if(stored.getValue(BlockTrapDoor.FACING).getOpposite() == side) return false;
-                else return true;
-            }
+            else return stored.getValue(BlockTrapDoor.FACING).getOpposite() != side;
         }
 
         //default
-        return super.canSideFlow(state, world, pos, side);
+        return stored.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
     @SuppressWarnings("deprecation")
@@ -346,11 +342,19 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
                         if(playerIn instanceof EntityPlayerMP) CriteriaTriggers.PLACED_BLOCK.trigger((EntityPlayerMP)playerIn, pos, held);
                         if(!playerIn.isCreative()) held.shrink(1);
 
+                        //updates this just in case the stored block changes
+                        worldIn.scheduleUpdate(pos, this, tickRate);
+
                         return true;
                     }
                 }
                 catch(Exception ignored) {}
             }
+        }
+
+        if(storedAction) {
+            //updates this just in case the stored block changes
+            worldIn.scheduleUpdate(pos, this, tickRate);
         }
 
         //default

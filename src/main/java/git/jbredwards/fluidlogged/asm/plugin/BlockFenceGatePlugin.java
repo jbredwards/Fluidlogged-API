@@ -2,11 +2,6 @@ package git.jbredwards.fluidlogged.asm.plugin;
 
 import git.jbredwards.fluidlogged.asm.ASMUtils;
 import git.jbredwards.fluidlogged.asm.AbstractPlugin;
-import git.jbredwards.fluidlogged.common.block.TileEntityFluidlogged;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -35,7 +30,7 @@ public final class BlockFenceGatePlugin extends AbstractPlugin
         }
         //world.setBlockState to BlockFenceGatePlugin.set
         else if(insn.getOpcode() == INVOKEVIRTUAL && ASMUtils.checkMethod(insn, obfuscated ? "func_180501_a" : "setBlockState", null)) {
-            instructions.insert(insn, new MethodInsnNode(INVOKESTATIC, "git/jbredwards/fluidlogged/asm/plugin/BlockFenceGatePlugin", "set", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z", false));
+            instructions.insert(insn, new MethodInsnNode(INVOKESTATIC, "git/jbredwards/fluidlogged/asm/ASMHooks", "setStoredOrRealSimple", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z", false));
             instructions.remove(insn);
         }
 
@@ -54,19 +49,5 @@ public final class BlockFenceGatePlugin extends AbstractPlugin
     @Override
     public String getMethodDesc() {
         return "";
-    }
-
-    @SuppressWarnings("unused")
-    public static boolean set(World world, BlockPos pos, IBlockState state, int flags) {
-        final TileEntity te = world.getTileEntity(pos);
-
-        //fluidlogged
-        if(te instanceof TileEntityFluidlogged) {
-            ((TileEntityFluidlogged)te).setStored(state, true);
-            return true;
-        }
-
-        //default
-        return world.setBlockState(pos, state, flags);
     }
 }
