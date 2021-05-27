@@ -17,7 +17,7 @@ public enum FluidloggedConstants
 
     public static final String MODID = "fluidlogged_api";
     public static final String NAME = "Fluidlogged API";
-    public static final String VERSION = "1.3";
+    public static final String VERSION = "1.3.1";
 
     //used to get the fluidlogged te's from the fluid
     public static final Map<Fluid, BlockFluidloggedTE> FLUIDLOGGED_TE_LOOKUP = new HashMap<>();
