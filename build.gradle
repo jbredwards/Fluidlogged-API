@@ -10,8 +10,8 @@ buildscript {
 apply plugin: 'net.minecraftforge.gradle.forge'
 //Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 
-version = "1.3.2"
-group = "git.jbredwards.fluidlogged"
+version = "1.4"
+group = "git.jbredwards.fluidlogged_api"
 archivesBaseName = "fluidlogged_api"
 
 sourceCompatibility = targetCompatibility = '1.8'
@@ -25,8 +25,6 @@ minecraft {
     mappings = "snapshot_20171003"
     makeObfSourceJar = false
 }
-
-dependencies {}
 
 processResources {
     // this will ensure that this task is redone when the versions change.
@@ -67,19 +65,20 @@ artifacts {
 jar {
     manifest {
         attributes(
-            "FMLCorePlugin": "git.jbredwards.fluidlogged.asm.ASMHandler",
-            "FMLCorePluginContainsFMLMod": "true"
+            "FMLCorePlugin": "git.jbredwards.fluidlogged_api.asm.ASMHandler",
+            "FMLCorePluginContainsFMLMod": "true",
+            "FMLAT": "fluidloggedApi_at.cfg"
         )
     }
 }
 //for using asm with intellij
 runClient {
     jvmArgs [
-        "-Dfml.coreMods.load=git.jbredwards.fluidlogged.asm.ASMHandler"
+        "-Dfml.coreMods.load=git.jbredwards.fluidlogged_api.asm.ASMHandler"
     ]
 }
 runServer {
     jvmArgs [
-        "-Dfml.coreMods.load=git.jbredwards.fluidlogged.asm.ASMHandler"
+        "-Dfml.coreMods.load=git.jbredwards.fluidlogged_api.asm.ASMHandler"
     ]
 }
