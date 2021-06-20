@@ -829,14 +829,14 @@ public enum ASMHooks
     public static double fixTextureFightingX(double old, int index, BlockPos pos) {
         final EnumFacing facing = EnumFacing.values()[index + 2]; // [N, S, W, E]
         if(facing.getAxis() == Axis.Z) return old;
-        else return old - pos.getX() == 1 ? pos.getX() + 0.998 : pos.getX() + 0.002;
+        else return old - pos.getX() > 0.5 ? pos.getX() + 0.998 : pos.getX() + 0.002;
     }
 
     //BlockFluidRendererPlugin
     public static double fixTextureFightingZ(double old, int index, BlockPos pos) {
         final EnumFacing facing = EnumFacing.values()[index + 2]; // [N, S, W, E]
         if(facing.getAxis() == Axis.X) return old;
-        else return old - pos.getZ() == 1 ? pos.getZ() + 0.998 : pos.getZ() + 0.002;
+        else return old - pos.getZ() > 0.5 ? pos.getZ() + 0.998 : pos.getZ() + 0.002;
     }
 
     //ModelFluidPlugin
