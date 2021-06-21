@@ -852,4 +852,22 @@ public enum ASMHooks
         if(facing.getAxis() == Axis.Z) return old;
         else return old == 1 ? 0.998f : 0.002f;
     }
+
+    //==========
+    //MOD COMPAT
+    //==========
+    //I find it kinda funny that most of the mod compatibility issues can be summed up with this one function
+    public static Block modCompat(Block block, Block obj, Fluid fluid, IBlockAccess world, BlockPos pos, boolean checkReplaceable) {
+        return FluidloggedUtils.getFluidFromBlock(block) == fluid && (checkReplaceable ? block.isReplaceable(world, pos) : true) ? obj : null;
+    }
+
+    //[W, N, E, S]
+    public static EnumFacing betweenlandsFacing(int side) {
+        switch(side) {
+            case(0): return WEST;
+            case(1): return NORTH;
+            case(2): return EAST;
+            default: return SOUTH;
+        }
+    }
 }

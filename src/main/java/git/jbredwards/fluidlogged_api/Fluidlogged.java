@@ -13,7 +13,7 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.registries.IRegistryDelegate;
@@ -47,9 +47,7 @@ public final class Fluidlogged
 
     @SuppressWarnings("unused")
     @Mod.EventHandler
-    public static void postInit(FMLPostInitializationEvent event) {
-        if(event.getSide() == Side.CLIENT) clientPostInit();
-    }
+    public static void loaded(FMLLoadCompleteEvent event) { if(event.getSide() == Side.CLIENT) clientColor(); }
 
     @SideOnly(Side.CLIENT)
     private static void clientInit() {
@@ -60,7 +58,7 @@ public final class Fluidlogged
     }
 
     @SideOnly(Side.CLIENT)
-    private static void clientPostInit() {
+    private static void clientColor() {
         //syncs fluidlogged fluid block colors
         final Map<IRegistryDelegate<Block>, IBlockColor> blockColorMap = ObfuscationReflectionHelper.getPrivateValue(BlockColors.class, Minecraft.getMinecraft().getBlockColors(), "blockColorMap");
         for(BlockFluidloggedTE fluid : FLUIDLOGGED_TE_LOOKUP.values()) {

@@ -2,6 +2,7 @@ package git.jbredwards.fluidlogged_api.asm;
 
 import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.asm.plugin.*;
+import git.jbredwards.fluidlogged_api.asm.plugin.compat.*;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
@@ -39,6 +40,12 @@ public class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin())
                 .put("net.minecraftforge.fluids.BlockFluidClassic", new BlockFluidClassicPlugin())
                 .put("net.minecraftforge.fluids.Fluid", new FluidPlugin())
+                //mod compat
+                .put("biomesoplenty.common.fluids.blocks.BlockBloodFluid", new BiomesOPlentyPlugin())
+                .put("biomesoplenty.common.fluids.blocks.BlockHotSpringWaterFluid", new BiomesOPlentyPlugin())
+                .put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new BiomesOPlentyPlugin())
+                .put("thebetweenlands.common.block.terrain.BlockSwampWater", new BetweenlandsPlugin())
+                .put("thebetweenlands.common.registries.FluidRegistry$FluidMultipleBlocks", new FluidPlugin())
                 .build();
 
         @Override

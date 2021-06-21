@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm.plugin;
 
+import git.jbredwards.fluidlogged_api.asm.AbstractMultiMethodPlugin;
 import git.jbredwards.fluidlogged_api.asm.AbstractPlugin;
 import org.objectweb.asm.tree.*;
 
@@ -10,18 +11,11 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-public final class FluidPlugin extends AbstractPlugin
+public final class FluidPlugin extends AbstractMultiMethodPlugin
 {
-    @Nonnull
     @Override
-    public String getMethodName(boolean obfuscated) {
-        return "setBlock";
-    }
-
-    @Nonnull
-    @Override
-    public String getMethodDesc() {
-        return "(Lnet/minecraft/block/Block;)Lnet/minecraftforge/fluids/Fluid;";
+    public boolean isMethodValid(MethodNode method, boolean obfuscated) {
+        return method.name.equals("setBlock") || method.name.equals("setOriginalBlock"); //setOriginalBlock for betweenlands fix
     }
 
     @Override
