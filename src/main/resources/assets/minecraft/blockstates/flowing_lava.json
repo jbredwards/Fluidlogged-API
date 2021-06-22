@@ -1,0 +1,12 @@
+{
+	"forge_marker": 1,
+    "variants": {
+		"inventory": [{}],
+        "normal": [{
+            "model": "forge:multi-layer",
+		    "custom": {
+			    "Solid": "lava#fluid"
+		    }
+        }]
+	}
+}

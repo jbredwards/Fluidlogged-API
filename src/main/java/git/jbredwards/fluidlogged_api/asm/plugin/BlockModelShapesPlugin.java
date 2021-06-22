@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- * registers this mod's built-in models
+ * removes water & lava from the built-in blocks list
  * @author jbred
  *
  */

@@ -6,6 +6,7 @@ import git.jbredwards.fluidlogged_api.asm.plugin.compat.*;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Map;
 
@@ -24,15 +25,13 @@ public class ASMHandler implements IFMLLoadingPlugin
     public static class Transformer implements IClassTransformer
     {
         //plugin registry
-        public Map<String, AbstractPlugin> PLUGINS = new ImmutableMap.Builder<String, AbstractPlugin>()
+        @Nonnull public Map<String, AbstractPlugin> PLUGINS = new ImmutableMap.Builder<String, AbstractPlugin>()
                 .put("net.minecraft.block.BlockDynamicLiquid", new BlockDynamicLiquidPlugin())
                 .put("net.minecraft.block.BlockFenceGate", new BlockFenceGatePlugin())
-                .put("net.minecraft.block.BlockLiquid", new BlockLiquidPlugin())
                 .put("net.minecraft.block.BlockSponge", new BlockSpongePlugin())
                 .put("net.minecraft.block.BlockStairs", new BlockStairsPlugin())
                 .put("net.minecraft.block.BlockTrapDoor", new BlockTrapDoorPlugin())
                 .put("net.minecraft.client.particle.ParticleDigging", new ParticleDiggingPlugin())
-                .put("net.minecraft.client.renderer.BlockFluidRenderer", new BlockFluidRendererPlugin())
                 .put("net.minecraft.client.renderer.BlockModelShapes", new BlockModelShapesPlugin())
                 .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin())
@@ -57,7 +56,10 @@ public class ASMHandler implements IFMLLoadingPlugin
 
     @Override
     public String[] getASMTransformerClass() {
-        return new String[] {"git.jbredwards.fluidlogged_api.asm.ASMHandler$Transformer"};
+        return new String[] {
+                "git.jbredwards.fluidlogged_api.asm.swapper.ASMSwapper",
+                "git.jbredwards.fluidlogged_api.asm.ASMHandler$Transformer"
+        };
     }
 
     @Override

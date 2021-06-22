@@ -4,6 +4,7 @@ import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -23,6 +24,8 @@ public abstract class AbstractPlugin implements Opcodes
     public abstract boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated);
     //used to add local variables, returns the amount of variables added
     public int addLocalVariables(List<LocalVariableNode> variables, LabelNode start, LabelNode end) { return 0; }
+    //used to remove methods from classes (currently only used for betweenlands compat)
+    public boolean removeMethod(Iterator<MethodNode> methods, boolean obfuscated) { return false; }
 
     //checks if the method is the one that has to be transformed
     public boolean isMethodValid(MethodNode method, boolean obfuscated) {
@@ -41,8 +44,12 @@ public abstract class AbstractPlugin implements Opcodes
         reader.accept(classNode, 0);
 
         //runs through each method in the class to find the one that has to be transformed
-        all:for(MethodNode method : classNode.methods) {
+        all:for(Iterator<MethodNode> it = classNode.methods.iterator(); it.hasNext();) {
+            MethodNode method = it.next();
             if(isMethodValid(method, obfuscated)) {
+                //removes methods and skips the rest if so
+                if(removeMethod(it, obfuscated)) continue;
+
                 //used to help add any new local variables
                 LabelNode start = new LabelNode();
                 LabelNode end = new LabelNode();

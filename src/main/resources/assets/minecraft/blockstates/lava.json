@@ -5,11 +5,14 @@
         "normal": [{
             "model": "forge:multi-layer",
 		    "custom": {
-			    "Solid": "fluidlogged_api:lavalogged_te#fluid"
+			    "Solid": "lava#fluid"
 		    }
         }],
 		"fluid": [{
             "model":"forge:fluid",
+            "textures": { 
+                "particle": "blocks/lava_still"
+            },
             "custom":{
                 "fluid":"lava"
             }

@@ -5,11 +5,14 @@
         "normal": [{
             "model": "forge:multi-layer",
 		    "custom": {
-			    "Translucent": "fluidlogged_api:waterlogged_te#fluid"
+			    "Translucent": "water#fluid"
 		    }
         }],
 		"fluid": [{
             "model":"forge:fluid",
+            "textures": { 
+                "particle": "blocks/water_still"
+            },
             "custom":{
                 "fluid":"water"
             }

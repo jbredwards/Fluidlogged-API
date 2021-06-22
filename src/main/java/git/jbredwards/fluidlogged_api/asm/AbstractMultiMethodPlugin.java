@@ -8,6 +8,7 @@ import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import javax.annotation.Nonnull;
+import java.util.Iterator;
 
 /**
  * used for plugins that transform multiple methods
@@ -46,8 +47,12 @@ public abstract class AbstractMultiMethodPlugin extends AbstractPlugin
         reader.accept(classNode, 0);
 
         //runs through each method in the class to find the one that has to be transformed
-        all:for(MethodNode method : classNode.methods) {
+        all:for(Iterator<MethodNode> it = classNode.methods.iterator(); it.hasNext();) {
+            MethodNode method = it.next();
             if(isMethodValid(method, obfuscated)) {
+                //removes methods and skips the rest if so
+                if(removeMethod(it, obfuscated)) continue;
+
                 //used to help add any new local variables
                 LabelNode start = new LabelNode();
                 LabelNode end = new LabelNode();

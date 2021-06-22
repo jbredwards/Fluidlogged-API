@@ -13,7 +13,6 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockFluidRenderer;
 import net.minecraft.client.renderer.BlockModelShapes;
 import net.minecraft.client.renderer.BlockRendererDispatcher;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -49,7 +48,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 
-import static git.jbredwards.fluidlogged_api.asm.plugin.BlockFluidRendererPlugin.CORNER_LOCAL_VAR;
 import static net.minecraft.block.BlockStairs.FACING;
 import static net.minecraft.block.BlockStairs.HALF;
 import static net.minecraft.util.EnumFacing.*;
@@ -121,12 +119,11 @@ public enum ASMHooks
     //BlockModelShapesPlugin
     @SideOnly(Side.CLIENT)
     public static void registerBuiltinBlocks(BlockModelShapes shapes) {
-        for(BlockFluidloggedTE block : FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.values()) {
-            //makes sure to not register the vanilla ones
-            if(block.fluid != FluidRegistry.WATER && block.fluid != FluidRegistry.LAVA) {
-                shapes.registerBuiltInBlocks(block);
-            }
-        }
+        shapes.getBlockStateMapper().setBuiltInBlocks.remove(Blocks.WATER);
+        shapes.getBlockStateMapper().setBuiltInBlocks.remove(Blocks.FLOWING_WATER);
+        shapes.getBlockStateMapper().setBuiltInBlocks.remove(Blocks.LAVA);
+        shapes.getBlockStateMapper().setBuiltInBlocks.remove(Blocks.FLOWING_LAVA);
+        shapes.registerBuiltInBlocks(FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.values().toArray(new BlockFluidloggedTE[0]));
     }
 
     //BlockSpongePlugin
@@ -201,9 +198,9 @@ public enum ASMHooks
         if(fluid.getName() != null && FluidRegistry.isFluidRegistered(fluid) && fluid.getBlock() instanceof BlockFluidClassic && !FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.containsKey(fluid)) {
             //generates the block
             final BlockFluidloggedTE block = new BlockFluidloggedTE(fluid, fluid.getBlock().getDefaultState().getMaterial(), fluid.getBlock().getDefaultState().getMapColor(null, null));
-            //nonnull if the block already exists for some reason
+            //registers the block
             FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.put(fluid, block);
-            ForgeRegistries.BLOCKS.register(block.setRegistryName(new ResourceLocation(fluid.getName()).getResourcePath() + "logged_te"));
+            ForgeRegistries.BLOCKS.register(block.setRegistryName(new ResourceLocation(fluid.getName()).getResourcePath() + "logged_te").setUnlocalizedName(fluid.getUnlocalizedName()));
         }
     }
 
@@ -326,29 +323,6 @@ public enum ASMHooks
     }
 
     //BlockLiquidPlugin
-    public static Material checkForMixing(World world, BlockPos pos, EnumFacing facing) {
-        final BlockPos offset = pos.offset(facing);
-        final IBlockState state = world.getBlockState(offset);
-
-        if(state.getMaterial() == Material.WATER) {
-            if(!(state.getBlock() instanceof AbstractFluidloggedBlock) || ((AbstractFluidloggedBlock)state.getBlock()).canSideFlow(state, world, offset, facing.getOpposite())) return Material.WATER;
-        }
-
-        //default
-        return Material.ROCK;
-    }
-
-    //BlockLiquidPlugin
-    public static int getRenderedDepth(BlockLiquid obj, IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing facing) {
-        if(FluidloggedUtils.getFluidFromBlock(obj) != FluidloggedUtils.getFluidFromBlock(state.getBlock())) return -1;
-        else if(state.getBlock() instanceof AbstractFluidloggedBlock && !((AbstractFluidloggedBlock)state.getBlock()).canSideFlow(state, world, pos, facing.getOpposite())) return -1;
-        else {
-            final int level = state.getValue(BlockLiquid.LEVEL);
-            return level >= 8 ? 0 : level;
-        }
-    }
-
-    //BlockLiquidPlugin
     public static boolean getFlow(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing facing, BlockLiquid obj) {
         final Fluid fluidIn = FluidloggedUtils.getFluidFromBlock(obj);
         final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(state.getBlock());
@@ -360,11 +334,6 @@ public enum ASMHooks
         if(fluid != null && fluid != fluidIn) return true;
             //default
         else return state.getMaterial().blocksMovement();
-    }
-
-    //BlockLiquidPlugin
-    public static Material causesDownwardCurrent(Material material, Block block) {
-        return FluidloggedUtils.getFluidFromBlock(block) == (material == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA) ? material : null;
     }
 
     //BlockDynamicLiquidPlugin
@@ -704,60 +673,6 @@ public enum ASMHooks
     }
 
     //BlockFluidRendererPlugin
-    public static void storeCorners(IBlockState state, IBlockAccess world, BlockPos pos) {
-        //local variables
-        final Fluid fluid = FluidloggedUtils.getFluidFromBlock(state.getBlock());
-        final IBlockState[][] upBlockState = new IBlockState[3][3];
-        final float[][] height = new float[3][3];
-        final float[][] corner = new float[2][2];
-
-        upBlockState[1][1] = world.getBlockState(pos.up());
-        height[1][1] = getFluidHeightForRender(fluid, world, pos, upBlockState[1][1], 1, 1);
-
-        //block above this is fluid
-        if(height[1][1] == 1) {
-            for(int i = 0; i < 2; i++) {
-                for(int j = 0; j < 2; j++) {
-                    corner[i][j] = 1;
-                }
-            }
-        }
-        //else
-        else {
-            //all eight adjacent blocks
-            for(int i = 0; i < 3; i++) {
-                for(int j = 0; j < 3; j++) {
-                    if(i != 1 || j != 1) {
-                        upBlockState[i][j] = world.getBlockState(pos.add(i - 1, 0, j - 1).up());
-                        height[i][j] = getFluidHeightForRender(fluid, world, pos.add(i - 1, 0, j - 1), upBlockState[i][j], i, j);
-                    }
-                }
-            }
-            //corner average
-            for(int i = 0; i < 2; i++) {
-                for(int j = 0; j < 2; j++) {
-                    corner[i][j] = getFluidHeightAverage(8f/9, i, j, height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
-                }
-            }
-            //check for downflow above corners
-            final boolean n =  isFluid(upBlockState[0][1], fluid, world, pos.north());
-            final boolean s =  isFluid(upBlockState[2][1], fluid, world, pos.south());
-            final boolean w =  isFluid(upBlockState[1][0], fluid, world, pos.west());
-            final boolean e =  isFluid(upBlockState[1][2], fluid, world, pos.east());
-            final boolean nw = isFluid(upBlockState[0][0], fluid, world, pos.north().west());
-            final boolean ne = isFluid(upBlockState[0][2], fluid, world, pos.north().east());
-            final boolean sw = isFluid(upBlockState[2][0], fluid, world, pos.south().west());
-            final boolean se = isFluid(upBlockState[2][2], fluid, world, pos.south().east());
-            if(nw || n || w) corner[0][0] = 1;
-            if(ne || n || e) corner[0][1] = 1;
-            if(sw || s || w) corner[1][0] = 1;
-            if(se || s || e) corner[1][1] = 1;
-        }
-
-        CORNER_LOCAL_VAR = corner;
-    }
-
-    //BlockFluidRendererPlugin
     public static float getFluidHeightForRender(Fluid fluid, IBlockAccess world, BlockPos pos, IBlockState up, int i, int j) {
         //check block above
         if(isFluid(up, fluid, world, pos)) return 1;
@@ -819,13 +734,6 @@ public enum ASMHooks
     }
 
     //BlockFluidRendererPlugin
-    @SideOnly(Side.CLIENT)
-    public static float getFluidHeight(BlockFluidRenderer obj, IBlockAccess world, BlockPos offset, Material material, BlockPos pos) {
-        final BlockPos diff = offset.subtract(pos);
-        return CORNER_LOCAL_VAR[diff.getX()][diff.getZ()];
-    }
-
-    //BlockFluidRendererPlugin
     public static double fixTextureFightingX(double old, int index, BlockPos pos) {
         final EnumFacing facing = EnumFacing.values()[index + 2]; // [N, S, W, E]
         if(facing.getAxis() == Axis.Z) return old;
@@ -856,18 +764,7 @@ public enum ASMHooks
     //==========
     //MOD COMPAT
     //==========
-    //I find it kinda funny that most of the mod compatibility issues can be summed up with this one function
-    public static Block modCompat(Block block, Block obj, Fluid fluid, IBlockAccess world, BlockPos pos, boolean checkReplaceable) {
-        return FluidloggedUtils.getFluidFromBlock(block) == fluid && (checkReplaceable ? block.isReplaceable(world, pos) : true) ? obj : null;
-    }
-
-    //[W, N, E, S]
-    public static EnumFacing betweenlandsFacing(int side) {
-        switch(side) {
-            case(0): return WEST;
-            case(1): return NORTH;
-            case(2): return EAST;
-            default: return SOUTH;
-        }
+    public static Block BOPCompat(Block block, Block obj, Fluid fluid) {
+        return FluidloggedUtils.getFluidFromBlock(block) == fluid ? obj : null;
     }
 }

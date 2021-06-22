@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.common.event;
 
 import git.jbredwards.fluidlogged_api.Fluidlogged;
+import git.jbredwards.fluidlogged_api.asm.swapper.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.block.AbstractFluidloggedBlock;
 import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
 import git.jbredwards.fluidlogged_api.util.FluidloggedConstants;
@@ -12,6 +13,7 @@ import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.IProperty;
+import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -33,6 +35,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -73,15 +76,27 @@ public final class FluidloggedEvents
         event.getRegistry().registerAll(Fluidlogged.WATERLOGGED_TE, Fluidlogged.LAVALOGGED_TE);
         //registers the te
         GameRegistry.registerTileEntity(TileEntityFluidlogged.class, new ResourceLocation(FluidloggedConstants.MODID, "te"));
+        //update vanilla fluid states
+        for(Block block : event.getRegistry()) {
+            if(block instanceof BlockLiquidBase) {
+                block.blockState = new BlockStateContainer.Builder(block)
+                        .add(block.blockState.getProperties().toArray(new IProperty<?>[0]))
+                        .add(BlockFluidBase.FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0]))
+                        .build();
+                block.defaultBlockState = block.blockState.getBaseState().withProperty(LEVEL, 0);
+            }
+        }
     }
 
-    //registers the water & lava fluidlogged te custom state mappers
+    //vanilla fluid state mappers
     @SuppressWarnings("unused")
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public static void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomStateMapper(Fluidlogged.WATERLOGGED_TE, new StateMap.Builder().ignore(LEVEL).build());
-        ModelLoader.setCustomStateMapper(Fluidlogged.LAVALOGGED_TE, new StateMap.Builder().ignore(LEVEL).build());
+        ModelLoader.setCustomStateMapper(Blocks.WATER, new StateMap.Builder().ignore(LEVEL).build());
+        ModelLoader.setCustomStateMapper(Blocks.FLOWING_WATER, new StateMap.Builder().ignore(LEVEL).build());
+        ModelLoader.setCustomStateMapper(Blocks.LAVA, new StateMap.Builder().ignore(LEVEL).build());
+        ModelLoader.setCustomStateMapper(Blocks.FLOWING_LAVA, new StateMap.Builder().ignore(LEVEL).build());
     }
 
     //shows fluidlogged barrier particles
@@ -269,7 +284,7 @@ public final class FluidloggedEvents
     //gets the fluid source here, null if none
     @Nullable
     public static Fluid getFluid(IBlockState state) {
-        if((state.getBlock() instanceof BlockFluidClassic || state.getBlock() instanceof BlockLiquid) && state.getValue(BlockLiquid.LEVEL) == 0) {
+        if((state.getBlock() instanceof BlockFluidClassic || state.getBlock() instanceof BlockLiquid) && state.getValue(LEVEL) == 0) {
             if(state.getBlock() instanceof BlockFluidClassic) return ((BlockFluidClassic)state.getBlock()).getFluid();
             else {
                 if(state.getMaterial() == Material.WATER) return FluidRegistry.WATER;

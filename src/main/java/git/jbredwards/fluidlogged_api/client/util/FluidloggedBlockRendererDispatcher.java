@@ -10,7 +10,6 @@ import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.IResourceManager;
-import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.WorldType;
@@ -35,11 +34,7 @@ public class FluidloggedBlockRendererDispatcher extends BlockRendererDispatcher
     public boolean renderBlock(IBlockState state, BlockPos pos, IBlockAccess blockAccess, BufferBuilder bufferBuilderIn) {
         //non-fluidlogged blocks
         if(!(state.getBlock() instanceof BlockFluidloggedTE)) return old.renderBlock(state, pos, blockAccess, bufferBuilderIn);
-        //vanilla fluidlogged blocks
-        else if(((BlockFluidloggedTE)state.getBlock()).fluid.getBlock().getDefaultState().getRenderType() == EnumBlockRenderType.LIQUID) {
-            return old.renderBlock(state, pos, blockAccess, bufferBuilderIn);
-        }
-        //modded fluidlogged blocks
+        //fluidlogged blocks
         else {
             if(blockAccess.getWorldType() != WorldType.DEBUG_ALL_BLOCK_STATES) state = state.getActualState(blockAccess, pos);
 
