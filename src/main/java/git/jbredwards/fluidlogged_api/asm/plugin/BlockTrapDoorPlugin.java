@@ -16,9 +16,7 @@ public final class BlockTrapDoorPlugin extends AbstractMultiMethodPlugin
         //onBlockActivated
         if(ASMUtils.checkMethod(method, obfuscated ? "func_180639_a" : "onBlockActivated", null)) return true;
         //neighborChanged
-        if(ASMUtils.checkMethod(method, obfuscated ? "func_189546_a" : "neighborChanged", null)) return true;
-        //if method is either
-        return false;
+        else return ASMUtils.checkMethod(method, obfuscated ? "func_189540_a" : "neighborChanged", null);
     }
 
     @Override

@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged_api.util;
 import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
 import net.minecraftforge.fluids.Fluid;
 
+import javax.annotation.Nonnull;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,10 +16,10 @@ public enum FluidloggedConstants
 {
     ;
 
-    public static final String MODID = "fluidlogged_api";
-    public static final String NAME = "Fluidlogged API";
-    public static final String VERSION = "1.4.1";
+    @Nonnull public static final String MODID = "fluidlogged_api";
+    @Nonnull public static final String NAME = "Fluidlogged API";
+    @Nonnull public static final String VERSION = "1.4.2";
 
     //used to get the fluidlogged te's from the fluid
-    public static final Map<Fluid, BlockFluidloggedTE> FLUIDLOGGED_TE_LOOKUP = new HashMap<>();
+    @Nonnull public static Map<Fluid, BlockFluidloggedTE> FLUIDLOGGED_TE_LOOKUP = new HashMap<>();
 }
