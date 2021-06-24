@@ -5,6 +5,7 @@
         "normal": [{
             "model": "forge:multi-layer",
 		    "custom": {
+                "base": "water#fluid",
 			    "Translucent": "water#fluid"
 		    }
         }]

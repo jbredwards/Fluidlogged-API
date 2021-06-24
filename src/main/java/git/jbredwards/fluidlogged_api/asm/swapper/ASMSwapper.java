@@ -26,11 +26,11 @@ public class ASMSwapper implements IClassTransformer
         final ClassReader reader = new ClassReader(basicClass);
         final String oldName = Optional.ofNullable(reader.getSuperName()).orElse("NULL");
         final @Nullable String newName = SWAP.get(oldName);
-        return newName == null ? basicClass : swap(reader, oldName, newName, basicClass);
+        return newName == null ? basicClass : swap(reader, basicClass, oldName, newName);
     }
 
     //does the swap
-    public byte[] swap(@Nonnull ClassReader reader, @Nonnull String oldName, @Nonnull String newName, byte[] basicClass) {
+    public byte[] swap(@Nonnull ClassReader reader, byte[] basicClass, @Nonnull String oldName, @Nonnull String newName) {
         final ClassWriter writer = new ClassWriter(0);
         //does not transform the new super class itself
         if(newName.equals(reader.getClassName())) return basicClass;

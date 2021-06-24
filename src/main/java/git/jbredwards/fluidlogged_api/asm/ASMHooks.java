@@ -733,20 +733,6 @@ public enum ASMHooks
         return false;
     }
 
-    //BlockFluidRendererPlugin
-    public static double fixTextureFightingX(double old, int index, BlockPos pos) {
-        final EnumFacing facing = EnumFacing.values()[index + 2]; // [N, S, W, E]
-        if(facing.getAxis() == Axis.Z) return old;
-        else return old - pos.getX() > 0.5 ? pos.getX() + 0.998 : pos.getX() + 0.002;
-    }
-
-    //BlockFluidRendererPlugin
-    public static double fixTextureFightingZ(double old, int index, BlockPos pos) {
-        final EnumFacing facing = EnumFacing.values()[index + 2]; // [N, S, W, E]
-        if(facing.getAxis() == Axis.X) return old;
-        else return old - pos.getZ() > 0.5 ? pos.getZ() + 0.998 : pos.getZ() + 0.002;
-    }
-
     //ModelFluidPlugin
     public static float fixTextureFightingZ(float old, int index) {
         final EnumFacing facing = EnumFacing.getHorizontal((5 - index) % 4); // [W, S, E, N]

@@ -24,6 +24,8 @@ import net.minecraftforge.fluids.FluidRegistry;
 
 /**
  * allows vanilla fluids to use the forge fluid rendering system
+ * this was done as there were LOTS of issues with the vanilla one,
+ * and some of those I couldn't patch without just overriding it
  * @author jbred
  *
  */
@@ -120,10 +122,6 @@ public abstract class BlockLiquidBase extends BlockLiquid
     public EnumBlockRenderType getRenderType(IBlockState state) {
         return EnumBlockRenderType.MODEL;
     }
-
-    //==================================================
-    //BELOW FIXES FLUID BEHAVIOR WITH FLUIDLOGGED BLOCKS
-    //==================================================
 
     @Override
     protected boolean causesDownwardCurrent(IBlockAccess worldIn, BlockPos pos, EnumFacing side) {

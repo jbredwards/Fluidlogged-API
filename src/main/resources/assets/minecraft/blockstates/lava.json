@@ -5,14 +5,12 @@
         "normal": [{
             "model": "forge:multi-layer",
 		    "custom": {
+                "base": "lava#fluid",
 			    "Solid": "lava#fluid"
 		    }
         }],
 		"fluid": [{
             "model":"forge:fluid",
-            "textures": { 
-                "particle": "blocks/lava_still"
-            },
             "custom":{
                 "fluid":"lava"
             }

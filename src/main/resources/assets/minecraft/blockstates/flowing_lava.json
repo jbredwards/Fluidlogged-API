@@ -5,6 +5,7 @@
         "normal": [{
             "model": "forge:multi-layer",
 		    "custom": {
+                "base": "lava#fluid",
 			    "Solid": "lava#fluid"
 		    }
         }]
