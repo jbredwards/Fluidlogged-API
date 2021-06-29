@@ -119,10 +119,6 @@ public enum ASMHooks
     //BlockModelShapesPlugin
     @SideOnly(Side.CLIENT)
     public static void registerBuiltinBlocks(BlockModelShapes shapes) {
-        shapes.getBlockStateMapper().setBuiltInBlocks.remove(Blocks.WATER);
-        shapes.getBlockStateMapper().setBuiltInBlocks.remove(Blocks.FLOWING_WATER);
-        shapes.getBlockStateMapper().setBuiltInBlocks.remove(Blocks.LAVA);
-        shapes.getBlockStateMapper().setBuiltInBlocks.remove(Blocks.FLOWING_LAVA);
         shapes.registerBuiltInBlocks(FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.values().toArray(new BlockFluidloggedTE[0]));
     }
 

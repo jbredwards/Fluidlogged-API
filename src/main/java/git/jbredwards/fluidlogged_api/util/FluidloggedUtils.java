@@ -106,7 +106,7 @@ public enum FluidloggedUtils
             //modded
             if(block instanceof IFluidloggable) return ((IFluidloggable)block).isFluidValid(state, fluid);
             //unsupported tile entity blocks
-            else if(block instanceof ITileEntityProvider) return false;
+            else if(block.hasTileEntity(state)) return false;
             //normal vanilla blocks
             else return (block instanceof BlockSlab && !((BlockSlab)block).isDouble())
                         || block instanceof BlockStairs

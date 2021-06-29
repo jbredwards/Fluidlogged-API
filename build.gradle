@@ -10,9 +10,9 @@ buildscript {
 apply plugin: 'net.minecraftforge.gradle.forge'
 //Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 
-version = "1.4.2"
+version = "1.4.3"
 group = "git.jbredwards.fluidlogged_api"
-archivesBaseName = "fluidlogged_api"
+archivesBaseName = "Fluidlogged-API"
 
 sourceCompatibility = targetCompatibility = '1.8'
 compileJava {

@@ -1,7 +1,6 @@
 package git.jbredwards.fluidlogged_api.common.event;
 
 import git.jbredwards.fluidlogged_api.Fluidlogged;
-import git.jbredwards.fluidlogged_api.asm.swapper.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.block.AbstractFluidloggedBlock;
 import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
 import git.jbredwards.fluidlogged_api.util.FluidloggedConstants;
@@ -18,7 +17,10 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.client.renderer.block.statemap.StateMap;
+import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.client.renderer.block.statemap.StateMapperBase;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
@@ -32,9 +34,13 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
+import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.client.event.TextureStitchEvent;
+import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.common.model.TRSRTransformation;
 import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
@@ -46,13 +52,16 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static net.minecraftforge.fluids.BlockFluidBase.LEVEL;
@@ -76,9 +85,9 @@ public final class FluidloggedEvents
         event.getRegistry().registerAll(Fluidlogged.WATERLOGGED_TE, Fluidlogged.LAVALOGGED_TE);
         //registers the te
         GameRegistry.registerTileEntity(TileEntityFluidlogged.class, new ResourceLocation(FluidloggedConstants.MODID, "te"));
-        //update vanilla fluid states
+        //smoothwater mod integration
         for(Block block : event.getRegistry()) {
-            if(block instanceof BlockLiquidBase) {
+            if(block instanceof BlockLiquid) {
                 block.blockState = new BlockStateContainer.Builder(block)
                         .add(block.blockState.getProperties().toArray(new IProperty<?>[0]))
                         .add(BlockFluidBase.FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0]))
@@ -88,15 +97,43 @@ public final class FluidloggedEvents
         }
     }
 
-    //vanilla fluid state mappers
+    //smoothwater mod integration
     @SuppressWarnings("unused")
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
-    public static void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomStateMapper(Blocks.WATER, new StateMap.Builder().ignore(LEVEL).build());
-        ModelLoader.setCustomStateMapper(Blocks.FLOWING_WATER, new StateMap.Builder().ignore(LEVEL).build());
-        ModelLoader.setCustomStateMapper(Blocks.LAVA, new StateMap.Builder().ignore(LEVEL).build());
-        ModelLoader.setCustomStateMapper(Blocks.FLOWING_LAVA, new StateMap.Builder().ignore(LEVEL).build());
+    public static void onModelRegistry(ModelRegistryEvent event) {
+        for(Block block : ForgeRegistries.BLOCKS) {
+            if(block instanceof BlockLiquid) {
+                ModelLoader.setCustomStateMapper(block, new StateMapperBase() {
+                    @Nonnull
+                    @Override
+                    protected ModelResourceLocation getModelResourceLocation(@Nonnull IBlockState state) {
+                        return new ModelResourceLocation(Objects.requireNonNull(state.getBlock().getRegistryName()), "fluid");
+                    }
+                });
+            }
+        }
+    }
+
+    //smoothwater mod integration
+    @SuppressWarnings("unused")
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent
+    public static void onTextureStitch(TextureStitchEvent.Pre event) {
+        Minecraft.getMinecraft().modelManager.getBlockModelShapes().getBlockStateMapper().setBuiltInBlocks.removeIf(b -> b instanceof BlockLiquid);
+    }
+
+    //smoothwater mod integration
+    @SuppressWarnings("unused")
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent
+    public static void onModelBake(ModelBakeEvent event) {
+        for(Block block : ForgeRegistries.BLOCKS) {
+            if(block instanceof BlockLiquid) {
+                IBakedModel model = new ModelFluid(Optional.ofNullable(FluidloggedUtils.getFluidFromBlock(block)).orElse(FluidRegistry.WATER)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
+                event.getModelRegistry().putObject(new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid"), model);
+            }
+        }
     }
 
     //shows fluidlogged barrier particles
@@ -136,9 +173,8 @@ public final class FluidloggedEvents
         final WorldClient world = mc.world;
         final RayTraceResult trace = mc.objectMouseOver;
 
-        if(world != null && trace != null && !event.getLeft().isEmpty() && !event.getRight().isEmpty()) {
+        if(world != null && trace != null && trace.getBlockPos() != null && !event.getLeft().isEmpty() && !event.getRight().isEmpty()) {
             @Nullable IBlockState stored = FluidloggedUtils.getStored(world, trace.getBlockPos());
-
             if(stored != null) {
                 //some blocks like to hide additional data in their actual state
                 stored = stored.getActualState(world, trace.getBlockPos());

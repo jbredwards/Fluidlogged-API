@@ -14,6 +14,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.WorldType;
 
+import javax.annotation.Nonnull;
+
 /**
  * changes some rendering stuff for fluidlogged te's
  * @author jbred
@@ -22,9 +24,9 @@ import net.minecraft.world.WorldType;
 @SuppressWarnings("NullableProblems")
 public class FluidloggedBlockRendererDispatcher extends BlockRendererDispatcher
 {
-    public BlockRendererDispatcher old;
+    @Nonnull public BlockRendererDispatcher old;
 
-    public FluidloggedBlockRendererDispatcher(BlockRendererDispatcher old) {
+    public FluidloggedBlockRendererDispatcher(@Nonnull BlockRendererDispatcher old) {
         super(old.getBlockModelShapes(), Minecraft.getMinecraft().getBlockColors());
         this.old = old;
     }

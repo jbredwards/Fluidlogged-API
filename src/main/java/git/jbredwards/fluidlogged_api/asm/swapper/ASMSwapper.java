@@ -19,6 +19,9 @@ public class ASMSwapper implements IClassTransformer
 {
     @Nonnull public Map<String, String> SWAP = new ImmutableMap.Builder<String, String>()
             .put("net/minecraft/block/BlockLiquid", "git/jbredwards/fluidlogged_api/asm/swapper/BlockLiquidBase")
+            //removes the smoothwater mod overrides and replaces them with the integrated ones
+            .put("pl/asie/mage/core/water/BlockLiquidForged", "git/jbredwards/fluidlogged_api/asm/swapper/BlockLiquidBase")
+            .put("pl/asie/smoothwater/BlockLiquidForged", "git/jbredwards/fluidlogged_api/asm/swapper/BlockLiquidBase")
             .build();
 
     @Override
@@ -34,8 +37,8 @@ public class ASMSwapper implements IClassTransformer
         final ClassWriter writer = new ClassWriter(0);
         //does not transform the new super class itself
         if(newName.equals(reader.getClassName())) return basicClass;
-        else reader.accept(new SwapperHandler(writer, oldName, newName), 0);
         //returns the transformed class
+        reader.accept(new SwapperHandler(writer, oldName, newName), 0);
         return writer.toByteArray();
     }
 
