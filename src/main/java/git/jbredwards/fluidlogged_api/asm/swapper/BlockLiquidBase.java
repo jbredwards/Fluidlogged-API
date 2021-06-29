@@ -8,6 +8,7 @@ import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.BlockStairs;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
+import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumBlockRenderType;
@@ -17,23 +18,30 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.property.IExtendedBlockState;
+import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 /**
- * allows vanilla fluids to use the forge fluid rendering system
- * this was done as there were LOTS of issues with the vanilla one,
- * and some of those I couldn't patch without just overriding it
+ * -allows vanilla fluid blocks to render through the forge fluid renderer by providing the necessary properties
+ * -all classes that extend BlockLiquid will extend this class during runtime, through asm
  * @author jbred
  *
  */
-@SuppressWarnings("NullableProblems")
+@SuppressWarnings({"NullableProblems", "unused"})
 public abstract class BlockLiquidBase extends BlockLiquid
 {
     protected BlockLiquidBase(Material materialIn) {
         super(materialIn);
+    }
+
+    @Override
+    protected BlockStateContainer createBlockState() {
+        return new BlockStateContainer.Builder(this).add(LEVEL).add(BlockFluidBase.FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0])).build();
     }
 
     @Override
@@ -121,6 +129,13 @@ public abstract class BlockLiquidBase extends BlockLiquid
     @Override
     public EnumBlockRenderType getRenderType(IBlockState state) {
         return EnumBlockRenderType.MODEL;
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    public boolean shouldSideBeRendered(IBlockState blockState, IBlockAccess world, BlockPos pos, EnumFacing side) {
+        if(ASMHooks.shouldSideBeRendered(world.getBlockState(pos.offset(side)), FluidloggedUtils.getFluidFromBlock(this), world, pos, side) == blockMaterial) return false;
+        else return super.shouldSideBeRendered(blockState, world, pos, side);
     }
 
     @Override

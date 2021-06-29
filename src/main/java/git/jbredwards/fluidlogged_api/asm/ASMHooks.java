@@ -444,6 +444,54 @@ public enum ASMHooks
     }
 
     //BlockFluidBasePlugin
+    public static Map<Block, Boolean> defaultDisplacements(Map<Block, Boolean> map) {
+        if(map.isEmpty()) {
+            map.put(Blocks.OAK_DOOR,                       false);
+            map.put(Blocks.SPRUCE_DOOR,                    false);
+            map.put(Blocks.BIRCH_DOOR,                     false);
+            map.put(Blocks.JUNGLE_DOOR,                    false);
+            map.put(Blocks.ACACIA_DOOR,                    false);
+            map.put(Blocks.DARK_OAK_DOOR,                  false);
+            map.put(Blocks.TRAPDOOR,                       false);
+            map.put(Blocks.IRON_TRAPDOOR,                  false);
+            map.put(Blocks.OAK_FENCE,                      false);
+            map.put(Blocks.SPRUCE_FENCE,                   false);
+            map.put(Blocks.BIRCH_FENCE,                    false);
+            map.put(Blocks.JUNGLE_FENCE,                   false);
+            map.put(Blocks.DARK_OAK_FENCE,                 false);
+            map.put(Blocks.ACACIA_FENCE,                   false);
+            map.put(Blocks.NETHER_BRICK_FENCE,             false);
+            map.put(Blocks.OAK_FENCE_GATE,                 false);
+            map.put(Blocks.SPRUCE_FENCE_GATE,              false);
+            map.put(Blocks.BIRCH_FENCE_GATE,               false);
+            map.put(Blocks.JUNGLE_FENCE_GATE,              false);
+            map.put(Blocks.DARK_OAK_FENCE_GATE,            false);
+            map.put(Blocks.ACACIA_FENCE_GATE,              false);
+            map.put(Blocks.WOODEN_PRESSURE_PLATE,          false);
+            map.put(Blocks.STONE_PRESSURE_PLATE,           false);
+            map.put(Blocks.LIGHT_WEIGHTED_PRESSURE_PLATE,  false);
+            map.put(Blocks.HEAVY_WEIGHTED_PRESSURE_PLATE,  false);
+            map.put(Blocks.LADDER,                         false);
+            map.put(Blocks.IRON_BARS,                      false);
+            map.put(Blocks.GLASS_PANE,                     false);
+            map.put(Blocks.STAINED_GLASS_PANE,             false);
+            map.put(Blocks.PORTAL,                         false);
+            map.put(Blocks.END_PORTAL,                     false);
+            map.put(Blocks.COBBLESTONE_WALL,               false);
+            map.put(Blocks.BARRIER,                        false);
+            map.put(Blocks.STANDING_BANNER,                false);
+            map.put(Blocks.WALL_BANNER,                    false);
+            map.put(Blocks.CAKE,                           false);
+            map.put(Blocks.IRON_DOOR,                      false);
+            map.put(Blocks.STANDING_SIGN,                  false);
+            map.put(Blocks.WALL_SIGN,                      false);
+            map.put(Blocks.REEDS,                          false);
+        }
+
+        return map;
+    }
+
+    //BlockFluidBasePlugin
     public static Block canDisplace(Block block, BlockFluidBase fluid, IBlockAccess world, BlockPos pos) {
         final boolean flag = FluidloggedUtils.getFluidFromBlock(block) == fluid.getFluid();
         return flag || !block.isReplaceable(world, pos) ? fluid : null;

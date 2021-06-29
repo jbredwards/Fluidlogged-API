@@ -10,7 +10,7 @@ buildscript {
 apply plugin: 'net.minecraftforge.gradle.forge'
 //Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 
-version = "1.4.3"
+version = "1.4.4"
 group = "git.jbredwards.fluidlogged_api"
 archivesBaseName = "Fluidlogged-API"
 
@@ -67,7 +67,7 @@ jar {
         attributes(
             "FMLCorePlugin": "git.jbredwards.fluidlogged_api.asm.ASMHandler",
             "FMLCorePluginContainsFMLMod": "true",
-            "FMLAT": "fluidloggedApi_at.cfg"
+            "FMLAT": "fluidlogged_api_at.cfg"
         )
     }
 }

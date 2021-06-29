@@ -12,7 +12,6 @@ import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -41,7 +40,6 @@ import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.model.TRSRTransformation;
-import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -85,16 +83,6 @@ public final class FluidloggedEvents
         event.getRegistry().registerAll(Fluidlogged.WATERLOGGED_TE, Fluidlogged.LAVALOGGED_TE);
         //registers the te
         GameRegistry.registerTileEntity(TileEntityFluidlogged.class, new ResourceLocation(FluidloggedConstants.MODID, "te"));
-        //smoothwater mod integration
-        for(Block block : event.getRegistry()) {
-            if(block instanceof BlockLiquid) {
-                block.blockState = new BlockStateContainer.Builder(block)
-                        .add(block.blockState.getProperties().toArray(new IProperty<?>[0]))
-                        .add(BlockFluidBase.FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0]))
-                        .build();
-                block.defaultBlockState = block.blockState.getBaseState().withProperty(LEVEL, 0);
-            }
-        }
     }
 
     //smoothwater mod integration

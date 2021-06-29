@@ -4,6 +4,8 @@ import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractMultiMethodPlugin;
 import org.objectweb.asm.tree.*;
 
+import java.util.Iterator;
+
 /**
  * -no longer flow into non-replaceable blocks
  * -fixes issues with vertical flowing fluids
@@ -15,34 +17,44 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
 {
     @Override
     public boolean isMethodValid(MethodNode method, boolean obfuscated) {
+        //init
+        if(ASMUtils.checkMethod(method, "<init>", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V")) {
+            currentMethod = 1;
+            return true;
+        }
         //canDisplace
         if(ASMUtils.checkMethod(method, "canDisplace", null)) {
-            currentMethod = 1;
+            currentMethod = 2;
             return true;
         }
         //shouldSideBeRendered
         if(ASMUtils.checkMethod(method, obfuscated ? "func_176225_a" : "shouldSideBeRendered", null)) {
-            currentMethod = 2;
+            currentMethod = 3;
             return true;
         }
         //getExtendedState
         if(ASMUtils.checkMethod(method, "getExtendedState", null)) {
-            currentMethod = 3;
+            currentMethod = 4;
             return true;
         }
         //getFlowVector
         if(ASMUtils.checkMethod(method, "getFlowVector", null)) {
-            currentMethod = 4;
+            currentMethod = 5;
             return true;
         }
         //hasVerticalFlow
         if(ASMUtils.checkMethod(method, "hasVerticalFlow", null)) {
-            currentMethod = 5;
+            currentMethod = 6;
             return true;
         }
         //causesDownwardCurrent
         if(ASMUtils.checkMethod(method, "causesDownwardCurrent", null)) {
-            currentMethod = 6;
+            currentMethod = 7;
+            return true;
+        }
+        //defaultDisplacements clinit
+        if(ASMUtils.checkMethod(method, "<clinit>", "()V")) {
+            currentMethod = 8;
             return true;
         }
 
@@ -52,8 +64,12 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
 
     @Override
     public boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated) {
+        //init, line 181
+        if(currentMethod == 1 && insn.getOpcode() == GETSTATIC && ASMUtils.checkField(insn, "defaultDisplacements", "Ljava/util/Map;")) {
+            instructions.insert(insn, method("defaultDisplacements", "(Ljava/util/Map;)Ljava/util/Map;"));
+        }
         //canDisplace, line 284
-        if(currentMethod == 1 && insn.getOpcode() == IF_ACMPNE) {
+        if(currentMethod == 2 && insn.getOpcode() == IF_ACMPNE) {
             final InsnList list = new InsnList();
             //this param
             list.add(new VarInsnNode(ALOAD, 0));
@@ -68,7 +84,7 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
             return true;
         }
         //shouldSideBeRendered, line 474
-        if(currentMethod == 2 && insn.getOpcode() == INVOKEINTERFACE && insn.getNext().getOpcode() == ALOAD && ASMUtils.checkMethod(insn, obfuscated ? "func_185904_a" : "getMaterial", null)) {
+        if(currentMethod == 3 && insn.getOpcode() == INVOKEINTERFACE && insn.getNext().getOpcode() == ALOAD && ASMUtils.checkMethod(insn, obfuscated ? "func_185904_a" : "getMaterial", null)) {
             final InsnList list = new InsnList();
             //definedFluid var
             list.add(new VarInsnNode(ALOAD, 0));
@@ -87,7 +103,7 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
             return true;
         }
         //getExtendedState
-        if(currentMethod == 3) {
+        if(currentMethod == 4) {
             if(insn.getOpcode() == INVOKEVIRTUAL && ASMUtils.checkMethod(insn, "getFluidHeightForRender", null)) {
                 //first instance
                 if(ASMUtils.getPrevious(insn, 2).getOpcode() == ICONST_1) {
@@ -164,7 +180,7 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
             }
         }
         //getFlowVector
-        if(currentMethod == 4) {
+        if(currentMethod == 5) {
             //line 723
             if(insn.getOpcode() == INVOKESPECIAL && ASMUtils.checkMethod(insn, "getFlowDecay", null) && insn.getPrevious().getOpcode()== ALOAD && ((VarInsnNode)insn.getPrevious()).var == 7) {
                 final InsnList list = new InsnList();
@@ -208,7 +224,7 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
             }
         }
         //hasVerticalFlow
-        if(currentMethod == 5 && insn.getOpcode() == IF_ACMPNE) {
+        if(currentMethod == 6 && insn.getOpcode() == IF_ACMPNE) {
             ++method.maxStack;
 
             //adds new
@@ -223,7 +239,7 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
             return true;
         }
         //causesDownwardCurrent, line 780
-        if(currentMethod == 6 && insn.getOpcode() == IF_ACMPNE) {
+        if(currentMethod == 7 && insn.getOpcode() == IF_ACMPNE) {
             //this local var
             instructions.insert(ASMUtils.getPrevious(insn, 2), new VarInsnNode(ALOAD, 0));
             //definedFluid var
@@ -232,7 +248,15 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
             //method
             instructions.insert(ASMUtils.getPrevious(insn, 2), method("causesDownwardCurrent", "(Lnet/minecraft/block/Block;Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraftforge/fluids/Fluid;)Lnet/minecraft/block/Block;"));
 
-            //end of transformations
+            return true;
+        }
+        //clinit, line 73-113
+        if(currentMethod == 8 && insn.getOpcode() == GETSTATIC && ASMUtils.checkField(insn, "defaultDisplacements", "Ljava/util/Map;")) {
+            while(!(insn.getNext().getNext() instanceof LineNumberNode && ((LineNumberNode)insn.getNext().getNext()).line == 125)) {
+                instructions.remove(insn.getNext());
+            }
+
+            instructions.remove(insn);
             finishedAll = true;
             return true;
         }
