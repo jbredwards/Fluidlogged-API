@@ -341,11 +341,6 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
             }
         }
 
-        if(storedAction) {
-            //updates this just in case the stored block changes
-            worldIn.scheduleUpdate(pos, this, tickRate);
-        }
-
         //default
         return storedAction;
     }

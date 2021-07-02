@@ -34,6 +34,8 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.client.ForgeHooksClient;
+import net.minecraftforge.client.MinecraftForgeClient;
+import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
@@ -208,6 +210,37 @@ public enum ASMHooks
     public static int getColor(BlockColors old, IBlockState state, World world, BlockPos pos, int index) {
         if(state.getBlock() instanceof IParticleColor) return ((IParticleColor)state.getBlock()).getParticleColor(state, world, pos);
         else return old.colorMultiplier(state, world, pos, index);
+    }
+
+    //RenderChunkPlugin
+    @SideOnly(Side.CLIENT)
+    public static IBlockState correctFluidloggedFluidShader(IBlockState state) {
+        boolean fluidShader = false;
+        //fluidlogged te's always return the fluid
+        if(state.getBlock() instanceof BlockFluidloggedTE) fluidShader = true;
+        //abstract fluidlogged blocks return the fluid only if it can render in the current layer
+        else if(state.getBlock() instanceof AbstractFluidloggedBlock) {
+            final Block fluid = ((AbstractFluidloggedBlock)state.getBlock()).getFluid().getBlock();
+            fluidShader = fluid.canRenderInLayer(fluid.getDefaultState(), MinecraftForgeClient.getRenderLayer());
+        }
+
+        if(!fluidShader) return state;
+        else if(!(state instanceof IExtendedBlockState)) return ((AbstractFluidloggedBlock)state.getBlock()).getFluid().getBlock().getDefaultState();
+        else {
+            IExtendedBlockState extendedState = (IExtendedBlockState)state;
+            IExtendedBlockState fluidState = (IExtendedBlockState)((AbstractFluidloggedBlock)state.getBlock()).getFluid().getBlock().getDefaultState();
+            fluidState = fluidState.withProperty(BlockFluidBase.FLOW_DIRECTION, extendedState.getValue(BlockFluidBase.FLOW_DIRECTION));
+            fluidState = fluidState.withProperty(BlockFluidBase.SIDE_OVERLAYS[0], extendedState.getValue(BlockFluidBase.SIDE_OVERLAYS[0]));
+            fluidState = fluidState.withProperty(BlockFluidBase.SIDE_OVERLAYS[1], extendedState.getValue(BlockFluidBase.SIDE_OVERLAYS[1]));
+            fluidState = fluidState.withProperty(BlockFluidBase.SIDE_OVERLAYS[2], extendedState.getValue(BlockFluidBase.SIDE_OVERLAYS[2]));
+            fluidState = fluidState.withProperty(BlockFluidBase.SIDE_OVERLAYS[3], extendedState.getValue(BlockFluidBase.SIDE_OVERLAYS[3]));
+            fluidState = fluidState.withProperty(BlockFluidBase.LEVEL_CORNERS[0], extendedState.getValue(BlockFluidBase.LEVEL_CORNERS[0]));
+            fluidState = fluidState.withProperty(BlockFluidBase.LEVEL_CORNERS[1], extendedState.getValue(BlockFluidBase.LEVEL_CORNERS[1]));
+            fluidState = fluidState.withProperty(BlockFluidBase.LEVEL_CORNERS[2], extendedState.getValue(BlockFluidBase.LEVEL_CORNERS[2]));
+            fluidState = fluidState.withProperty(BlockFluidBase.LEVEL_CORNERS[3], extendedState.getValue(BlockFluidBase.LEVEL_CORNERS[3]));
+
+            return fluidState;
+        }
     }
 
     //RenderChunkPlugin

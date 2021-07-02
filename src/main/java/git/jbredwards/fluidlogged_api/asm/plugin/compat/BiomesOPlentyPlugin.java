@@ -27,7 +27,7 @@ public class BiomesOPlentyPlugin extends AbstractPlugin
 
     @Override
     public boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated) {
-        if(insn.getOpcode() == INVOKEINTERFACE && ASMUtils.checkMethod(insn, obfuscated ? "func_177230_c" : "getBlock", "()Lnet/minecraft/block/Block;")) {
+        if(ASMUtils.checkMethod(insn, obfuscated ? "func_177230_c" : "getBlock", "()Lnet/minecraft/block/Block;")) {
             final InsnList list = new InsnList();
             //this param
             list.add(new VarInsnNode(ALOAD, 0));

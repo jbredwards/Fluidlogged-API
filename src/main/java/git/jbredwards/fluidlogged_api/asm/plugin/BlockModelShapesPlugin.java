@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm.plugin;
 
+import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractPlugin;
 import org.objectweb.asm.tree.*;
 
@@ -26,13 +27,9 @@ public final class BlockModelShapesPlugin extends AbstractPlugin
 
     @Override
     public boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated) {
-        if(insn.getOpcode() == INVOKESPECIAL && insn instanceof MethodInsnNode && ((MethodInsnNode)insn).owner.equals("net/minecraft/client/renderer/BlockModelShapes")) {
-            final InsnList list = new InsnList();
-            list.add(new LabelNode());
-            list.add(new VarInsnNode(ALOAD, 0));
-            list.add(new MethodInsnNode(INVOKESTATIC, "git/jbredwards/fluidlogged_api/asm/ASMHooks", "registerBuiltinBlocks", "(Lnet/minecraft/client/renderer/BlockModelShapes;)V", false));
-
-            instructions.insert(insn, list);
+        if(ASMUtils.checkMethod(insn, obfuscated ? "func_178119_d" : "registerAllBlocks", "()V")) {
+            instructions.insert(insn, method("registerBuiltinBlocks", "(Lnet/minecraft/client/renderer/BlockModelShapes;)V"));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 0));
         }
 
         return false;

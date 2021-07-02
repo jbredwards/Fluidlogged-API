@@ -33,6 +33,7 @@ public class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.BlockTrapDoor", new BlockTrapDoorPlugin())
                 .put("net.minecraft.client.particle.ParticleDigging", new ParticleDiggingPlugin())
                 .put("net.minecraft.client.renderer.BlockModelShapes", new BlockModelShapesPlugin())
+                .put("net.minecraft.client.renderer.BlockModelRenderer", new BlockModelRendererPlugin())
                 .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin())
                 .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new ModelFluidPlugin())

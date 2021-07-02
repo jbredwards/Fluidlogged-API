@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm.plugin;
 
+import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractPlugin;
 import org.objectweb.asm.tree.*;
 
@@ -26,8 +27,13 @@ public final class RenderChunkPlugin extends AbstractPlugin
 
     @Override
     public boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated) {
-        //OPTIFINE
-        if(insn.getOpcode() == INVOKESTATIC && insn instanceof MethodInsnNode && ((MethodInsnNode)insn).name.equals("callVoid")) {
+        //OPTIFINE (corrects the fluidlogged fluid block shader compat)
+        if(ASMUtils.checkMethod(insn, "getRenderEnv", null)) {
+            instructions.insert(ASMUtils.getPrevious(insn, 2), method("correctFluidloggedFluidShader", "(Lnet/minecraft/block/state/IBlockState;)Lnet/minecraft/block/state/IBlockState;"));
+            return false;
+        }
+        //OPTIFINE (adds stored block render)
+        if(ASMUtils.checkMethod(insn, "callVoid", null)) {
             if(insn.getPrevious().getPrevious().getOpcode() == ACONST_NULL) {
                 final InsnList list = new InsnList();
                 list.add(new LabelNode());
@@ -54,7 +60,7 @@ public final class RenderChunkPlugin extends AbstractPlugin
                 return true;
             }
         }
-        //VANILLA
+        //VANILLA (adds stored block render)
         if(insn.getOpcode() == INVOKESTATIC && insn.getPrevious().getOpcode() == ACONST_NULL) {
             final InsnList list = new InsnList();
             list.add(new LabelNode());

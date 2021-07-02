@@ -34,9 +34,9 @@ public class FluidloggedBlockRendererDispatcher extends BlockRendererDispatcher
     //if the block is a fluidlogged te, render the fluid instead
     @Override
     public boolean renderBlock(IBlockState state, BlockPos pos, IBlockAccess blockAccess, BufferBuilder bufferBuilderIn) {
-        //non-fluidlogged blocks
+        //non-fluidlogged blocks render link normal
         if(!(state.getBlock() instanceof BlockFluidloggedTE)) return old.renderBlock(state, pos, blockAccess, bufferBuilderIn);
-        //fluidlogged blocks
+        //fluidlogged fluid blocks render the fluid only
         else {
             if(blockAccess.getWorldType() != WorldType.DEBUG_ALL_BLOCK_STATES) state = state.getActualState(blockAccess, pos);
 

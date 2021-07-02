@@ -70,7 +70,7 @@ import static net.minecraftforge.fluids.BlockFluidBase.LEVEL;
  *
  */
 @Mod.EventBusSubscriber(modid = FluidloggedConstants.MODID)
-public final class FluidloggedEvents
+public class FluidloggedEvents
 {
     //registers the water & lava fluidlogged te's
     @SuppressWarnings("unused")
@@ -88,7 +88,7 @@ public final class FluidloggedEvents
     //smoothwater mod integration
     @SuppressWarnings("unused")
     @SideOnly(Side.CLIENT)
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onModelRegistry(ModelRegistryEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
             if(block instanceof BlockLiquid) {
@@ -106,7 +106,7 @@ public final class FluidloggedEvents
     //smoothwater mod integration
     @SuppressWarnings("unused")
     @SideOnly(Side.CLIENT)
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onTextureStitch(TextureStitchEvent.Pre event) {
         Minecraft.getMinecraft().modelManager.getBlockModelShapes().getBlockStateMapper().setBuiltInBlocks.removeIf(b -> b instanceof BlockLiquid);
     }
@@ -114,7 +114,7 @@ public final class FluidloggedEvents
     //smoothwater mod integration
     @SuppressWarnings("unused")
     @SideOnly(Side.CLIENT)
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onModelBake(ModelBakeEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
             if(block instanceof BlockLiquid) {
