@@ -26,6 +26,8 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import javax.annotation.Nullable;
+
 /**
  * -allows vanilla fluid blocks to render through the forge fluid renderer by providing the necessary properties
  * -all classes that extend BlockLiquid will extend this class during runtime, through asm
@@ -52,7 +54,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
         //covert to extended state
         IExtendedBlockState state = (IExtendedBlockState)oldState;
-        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, (float)getFlowDirection(state, world, pos));
+        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, (float)getFlowDirection(oldState, world, pos));
 
         //corner height variables
         final IBlockState[][] upBlockState = new IBlockState[3][3];
@@ -112,11 +114,16 @@ public abstract class BlockLiquidBase extends BlockLiquid
         }
 
         //sets the corner props
-        state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[0], corner[0][0]);
-        state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[1], corner[0][1]);
-        state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[2], corner[1][1]);
-        state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[3], corner[1][0]);
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[0], corner[0][0], 8f/9);
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[1], corner[0][1], 8f/9);
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[2], corner[1][1], 8f/9);
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[3], corner[1][0], 8f/9);
         return state;
+    }
+
+    //fixes crash when trying to render invalid state (temporary fix)
+    public <V> IExtendedBlockState withPropertyFallback(IExtendedBlockState state, IUnlistedProperty<V> property, @Nullable V value, V fallback) {
+        return state.withProperty(property, property.isValid(value) ? value : fallback);
     }
 
     public double getFlowDirection(IBlockState state, IBlockAccess world, BlockPos pos) {

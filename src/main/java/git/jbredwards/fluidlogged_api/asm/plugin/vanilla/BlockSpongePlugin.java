@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.asm.plugin;
+package git.jbredwards.fluidlogged_api.asm.plugin.vanilla;
 
 import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractPlugin;

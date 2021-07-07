@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.asm.plugin.compat;
+package git.jbredwards.fluidlogged_api.asm.plugin.modded;
 
 import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractPlugin;
@@ -7,7 +7,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- * compat for the biomes o plenty mod
+ * fixes weird biomes o' plenty fluidlogged fluid block interactions
  * @author jbred
  *
  */

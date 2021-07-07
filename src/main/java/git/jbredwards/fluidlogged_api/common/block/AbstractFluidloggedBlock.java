@@ -52,7 +52,8 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
         canCreateSourcesField.setAccessible(true);
         quantaPerBlockField.setAccessible(true);
     }
-
+    //should only be called from this class
+    public static boolean isStateFluidloggableCache = false;
     //makes definedFluid public
     public Fluid fluid;
 
@@ -83,6 +84,12 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     //this doe not serve the same function as canFlowInto() or canDisplace()
     public boolean canSideFlow(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
         return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
+    }
+
+    //returns true if the fluid should render
+    @SideOnly(Side.CLIENT)
+    public boolean shouldFluidRender(IBlockState state, IBlockAccess world, BlockPos pos) {
+        return true;
     }
 
     //no longer gets the fluid from the registery, now returns the fluid directly
@@ -157,7 +164,7 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
 
     @Override
     public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
-        return renderLayer == layer || fluid.getBlock().canRenderInLayer(fluid.getBlock().getDefaultState(), layer);
+        return renderLayer == layer;
     }
 
     //so this doesn't create more of itself
@@ -171,7 +178,7 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     }
 
     @Override
-    protected boolean canFlowInto(IBlockAccess world, BlockPos pos) {
+    public boolean canFlowInto(IBlockAccess world, BlockPos pos) {
         final IBlockState state = world.getBlockState(pos);
         final boolean flag = state.getBlock() instanceof BlockLiquid && state.getValue(BlockLiquid.LEVEL) == 0;
         final boolean flag2 = state.getBlock() instanceof IFluidBlock && state.getValue(LEVEL) == 0;
@@ -198,9 +205,10 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
 
         final boolean replaceable = block.isReplaceable(world, pos);
         final int density = getDensity(world, pos);
+        isStateFluidloggableCache = !replaceable && FluidloggedUtils.isStateFluidloggable(state, fluid);
 
-        if(density == Integer.MAX_VALUE) return replaceable;
-        else return replaceable && this.density > density;
+        if(density == Integer.MAX_VALUE) return replaceable || isStateFluidloggableCache;
+        else return (replaceable || isStateFluidloggableCache) && this.density > density;
     }
 
     //draining this block drops the item

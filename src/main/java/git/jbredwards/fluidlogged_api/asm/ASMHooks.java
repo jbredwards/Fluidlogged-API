@@ -13,7 +13,6 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockModelShapes;
 import net.minecraft.client.renderer.BlockRendererDispatcher;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.block.model.IBakedModel;
@@ -33,13 +32,11 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldType;
 import net.minecraftforge.client.ForgeHooksClient;
-import net.minecraftforge.client.MinecraftForgeClient;
 import net.minecraftforge.common.property.IExtendedBlockState;
-import net.minecraftforge.fluids.BlockFluidBase;
-import net.minecraftforge.fluids.BlockFluidClassic;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.common.property.IUnlistedProperty;
+import net.minecraftforge.fluids.*;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -116,12 +113,6 @@ public enum ASMHooks
         }
 
         return Math.max(quantaRemaining, compare);
-    }
-
-    //BlockModelShapesPlugin
-    @SideOnly(Side.CLIENT)
-    public static void registerBuiltinBlocks(BlockModelShapes shapes) {
-        shapes.registerBuiltInBlocks(FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.values().toArray(new BlockFluidloggedTE[0]));
     }
 
     //BlockSpongePlugin
@@ -213,43 +204,90 @@ public enum ASMHooks
     }
 
     //RenderChunkPlugin
-    @SideOnly(Side.CLIENT)
-    public static IBlockState correctFluidloggedFluidShader(IBlockState state) {
-        boolean fluidShader = false;
-        //fluidlogged te's always return the fluid
-        if(state.getBlock() instanceof BlockFluidloggedTE) fluidShader = true;
-        //abstract fluidlogged blocks return the fluid only if it can render in the current layer
-        else if(state.getBlock() instanceof AbstractFluidloggedBlock) {
-            final Block fluid = ((AbstractFluidloggedBlock)state.getBlock()).getFluid().getBlock();
-            fluidShader = fluid.canRenderInLayer(fluid.getDefaultState(), MinecraftForgeClient.getRenderLayer());
-        }
+    public static boolean canRenderInLayer(Block blockIn, IBlockState state, BlockRenderLayer layer, IBlockAccess world, BlockPos pos) {
+        //renders fluid rather than actual block
+        if(blockIn instanceof AbstractFluidloggedBlock) {
+            final AbstractFluidloggedBlock block = (AbstractFluidloggedBlock)blockIn;
+            final Block fluidBlock = block.getFluid().getBlock();
 
-        if(!fluidShader) return state;
-        else if(!(state instanceof IExtendedBlockState)) return ((AbstractFluidloggedBlock)state.getBlock()).getFluid().getBlock().getDefaultState();
+            return fluidBlock.canRenderInLayer(fluidBlock.getDefaultState(), layer) && block.shouldFluidRender(state, world, pos);
+        }
+        //default use old code
+        else return blockIn.canRenderInLayer(state, layer);
+    }
+
+    //RenderChunkPlugin
+    public static boolean canRenderInLayerOF(Object blockIn, Object ignored, Object[] args, IBlockAccess world, BlockPos pos) {
+        //OF version calls above method, as there is no difference in function, but only params
+        return canRenderInLayer((Block)blockIn, (IBlockState)args[0], (BlockRenderLayer)args[1], world, pos);
+    }
+
+    //BlockModelRendererPlugin
+    public static IBlockState correctFluidloggedFluidShader(IBlockState state) {
+        return renderFluid ? correctFluidloggedFluidShaderBase(state) : state;
+    }
+
+    //RenderChunkPlugin
+    public static IBlockState correctFluidloggedFluidShaderBase(IBlockState state) {
+        //default do nothing
+        if(!(state.getBlock() instanceof AbstractFluidloggedBlock)) return state;
+        //transfers the properties to the fluid state to make it render right
         else {
             IExtendedBlockState extendedState = (IExtendedBlockState)state;
             IExtendedBlockState fluidState = (IExtendedBlockState)((AbstractFluidloggedBlock)state.getBlock()).getFluid().getBlock().getDefaultState();
-            fluidState = fluidState.withProperty(BlockFluidBase.FLOW_DIRECTION, extendedState.getValue(BlockFluidBase.FLOW_DIRECTION));
-            fluidState = fluidState.withProperty(BlockFluidBase.SIDE_OVERLAYS[0], extendedState.getValue(BlockFluidBase.SIDE_OVERLAYS[0]));
-            fluidState = fluidState.withProperty(BlockFluidBase.SIDE_OVERLAYS[1], extendedState.getValue(BlockFluidBase.SIDE_OVERLAYS[1]));
-            fluidState = fluidState.withProperty(BlockFluidBase.SIDE_OVERLAYS[2], extendedState.getValue(BlockFluidBase.SIDE_OVERLAYS[2]));
-            fluidState = fluidState.withProperty(BlockFluidBase.SIDE_OVERLAYS[3], extendedState.getValue(BlockFluidBase.SIDE_OVERLAYS[3]));
-            fluidState = fluidState.withProperty(BlockFluidBase.LEVEL_CORNERS[0], extendedState.getValue(BlockFluidBase.LEVEL_CORNERS[0]));
-            fluidState = fluidState.withProperty(BlockFluidBase.LEVEL_CORNERS[1], extendedState.getValue(BlockFluidBase.LEVEL_CORNERS[1]));
-            fluidState = fluidState.withProperty(BlockFluidBase.LEVEL_CORNERS[2], extendedState.getValue(BlockFluidBase.LEVEL_CORNERS[2]));
-            fluidState = fluidState.withProperty(BlockFluidBase.LEVEL_CORNERS[3], extendedState.getValue(BlockFluidBase.LEVEL_CORNERS[3]));
+            fluidState = applyFrom(fluidState, extendedState, BlockFluidBase.FLOW_DIRECTION, -1000f);
+            fluidState = applyFrom(fluidState, extendedState, BlockFluidBase.SIDE_OVERLAYS[0], false);
+            fluidState = applyFrom(fluidState, extendedState, BlockFluidBase.SIDE_OVERLAYS[1], false);
+            fluidState = applyFrom(fluidState, extendedState, BlockFluidBase.SIDE_OVERLAYS[2], false);
+            fluidState = applyFrom(fluidState, extendedState, BlockFluidBase.SIDE_OVERLAYS[3], false);
+            fluidState = applyFrom(fluidState, extendedState, BlockFluidBase.LEVEL_CORNERS[0], 8f/9);
+            fluidState = applyFrom(fluidState, extendedState, BlockFluidBase.LEVEL_CORNERS[1], 8f/9);
+            fluidState = applyFrom(fluidState, extendedState, BlockFluidBase.LEVEL_CORNERS[2], 8f/9);
+            fluidState = applyFrom(fluidState, extendedState, BlockFluidBase.LEVEL_CORNERS[3], 8f/9);
 
             return fluidState;
         }
     }
 
     //RenderChunkPlugin
-    @SideOnly(Side.CLIENT)
-    public static void renderFluidloggedBlock(boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, Block block, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
-        if(block instanceof BlockFluidloggedTE) {
-            final BlockRendererDispatcher renderer = Minecraft.getMinecraft().getBlockRendererDispatcher();
-            IBlockState stored = Objects.requireNonNull(FluidloggedUtils.getStored(world, pos)).getActualState(world, pos);
+    public static <V> IExtendedBlockState applyFrom(IExtendedBlockState apply, IExtendedBlockState source, IUnlistedProperty<V> property, V defaultValue) {
+        final @Nullable V value = source.getValue(property);
 
+        if(value == null) return apply.withProperty(property, defaultValue);
+        else              return apply.withProperty(property, value);
+    }
+
+    //RenderChunkPlugin
+    public static boolean renderFluid = false;
+    @SideOnly(Side.CLIENT)
+    public static boolean renderBlock(BlockRendererDispatcher renderer, IBlockState state, BlockPos pos, IBlockAccess world, BufferBuilder builder) {
+        if(state.getBlock() instanceof AbstractFluidloggedBlock) {
+            renderFluid = true;
+
+            if(world.getWorldType() != WorldType.DEBUG_ALL_BLOCK_STATES) state = state.getActualState(world, pos);
+            state = state.getBlock().getExtendedState(state, world, pos);
+
+            final IBakedModel model = renderer.getModelForState(((AbstractFluidloggedBlock)state.getBlock()).getFluid().getBlock().getDefaultState());
+            final boolean rendered =  renderer.getBlockModelRenderer().renderModel(world, model, state, pos, builder, true);
+
+            renderFluid = false;
+            return rendered;
+        }
+
+        //default
+        return renderer.renderBlock(state, pos, world, builder);
+    }
+
+    //RenderChunkPlugin
+    @SideOnly(Side.CLIENT)
+    public static void renderFluidloggedBlock(boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockState block, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
+        IBlockState stored = block;
+        if(block.getBlock() instanceof BlockFluidloggedTE) {
+            stored = Optional.ofNullable(FluidloggedUtils.getStored(world, pos)).orElse(Blocks.BARRIER.getDefaultState()).getActualState(world, pos);
+        }
+
+        if(block.getBlock() instanceof AbstractFluidloggedBlock) {
+            final BlockRendererDispatcher renderer = Minecraft.getMinecraft().getBlockRendererDispatcher();
             if(stored.getRenderType() != EnumBlockRenderType.INVISIBLE) {
                 for(BlockRenderLayer layer : BlockRenderLayer.values()) {
                     if(stored.getBlock().canRenderInLayer(stored, layer)) {
@@ -289,13 +327,16 @@ public enum ASMHooks
 
     //RenderChunkPlugin
     @SideOnly(Side.CLIENT)
-    public static void renderFluidloggedBlockOF(boolean[] array, RenderChunk renderChunk, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, Block block, IBlockAccess chunkCacheOF, BlockPos pos, BlockPos chunkPos) {
+    public static void renderFluidloggedBlockOF(boolean[] array, RenderChunk renderChunk, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockState block, IBlockAccess chunkCacheOF, BlockPos pos, BlockPos chunkPos) {
         OFReflector.load();
 
-        if(block instanceof BlockFluidloggedTE) {
-            final BlockRendererDispatcher renderer = Minecraft.getMinecraft().getBlockRendererDispatcher();
-            IBlockState stored = Objects.requireNonNull(FluidloggedUtils.getStored(chunkCacheOF, pos)).getActualState(chunkCacheOF, pos);
+        IBlockState stored = block;
+        if(block.getBlock() instanceof BlockFluidloggedTE) {
+            stored = Optional.ofNullable(FluidloggedUtils.getStored(chunkCacheOF, pos)).orElse(Blocks.BARRIER.getDefaultState()).getActualState(chunkCacheOF, pos);
+        }
 
+        if(block.getBlock() instanceof AbstractFluidloggedBlock) {
+            final BlockRendererDispatcher renderer = Minecraft.getMinecraft().getBlockRendererDispatcher();
             if(stored.getRenderType() != EnumBlockRenderType.INVISIBLE) {
                 for(BlockRenderLayer layer : BlockRenderLayer.values()) {
                     if(stored.getBlock().canRenderInLayer(stored, layer)) {
@@ -389,7 +430,7 @@ public enum ASMHooks
     public static boolean canFlowDown(BlockDynamicLiquid obj, World world, BlockPos offset, IBlockState down, IBlockState here) {
         final boolean isSource = FluidloggedUtils.isSource(world, offset.up(), here);
         final boolean fluidMatches = FluidloggedUtils.getFluidFromBlock(obj) == FluidloggedUtils.getFluidFromBlock(down.getBlock());
-        return (!isSource || !fluidMatches) && down.getBlock().isReplaceable(world, offset);
+        return (!isSource || !fluidMatches) && isReplaceable(down, world, offset);
     }
 
     //BlockDynamicLiquidPlugin
@@ -423,9 +464,9 @@ public enum ASMHooks
             flowCost[index] = 1000;
 
             //side cannot flow
-            if(FluidloggedUtils.isSource(world, offset, state) || !state.getBlock().isReplaceable(world, offset)) continue;
+            if(FluidloggedUtils.isSource(world, offset, state) || !isReplaceable(state, world, offset)) continue;
 
-            if(world.getBlockState(offset.down(1)).getBlock().isReplaceable(world, offset.down(1))) flowCost[index] = 0;
+            if(isReplaceable(world.getBlockState(offset.down(1)), world, offset.down(1))) flowCost[index] = 0;
             else flowCost[index] = calculateFlowCost(obj, world, offset, 1, index);
         }
 
@@ -437,7 +478,7 @@ public enum ASMHooks
                 BlockPos offset = pos.offset(facing);
                 IBlockState state = world.getBlockState(offset);
 
-                if(FluidloggedUtils.getFluidFromBlock(obj) != FluidloggedUtils.getFluidFromBlock(state.getBlock()) && state.getBlock().isReplaceable(world, offset)) {
+                if(FluidloggedUtils.getFluidFromBlock(obj) != FluidloggedUtils.getFluidFromBlock(state.getBlock()) && isReplaceable(state, world, offset)) {
                     if(state.getBlock() != Blocks.SNOW_LAYER) state.getBlock().dropBlockAsItem(world, offset, state, 0);
                     world.setBlockState(offset, obj.getDefaultState().withProperty(BlockLiquid.LEVEL, level));
                 }
@@ -462,10 +503,10 @@ public enum ASMHooks
             IBlockState state = world.getBlockState(offset);
 
             //side cannot flow
-            if(FluidloggedUtils.isSource(world, offset, state) || !state.getBlock().isReplaceable(world, offset)) continue;
+            if(FluidloggedUtils.isSource(world, offset, state) || !isReplaceable(state, world, offset)) continue;
 
             //flow down
-            if(world.getBlockState(offset.down(1)).getBlock().isReplaceable(world, offset.down(1))) return recurseDepth;
+            if(isReplaceable(world.getBlockState(offset.down(1)), world, offset.down(1))) return recurseDepth;
 
             //side cannot flow
             if(recurseDepth >= (obj.getDefaultState().getMaterial() == Material.LAVA && !world.provider.doesWaterVaporize() ? 2 : 4)) continue;
@@ -527,7 +568,7 @@ public enum ASMHooks
     //BlockFluidBasePlugin
     public static Block canDisplace(Block block, BlockFluidBase fluid, IBlockAccess world, BlockPos pos) {
         final boolean flag = FluidloggedUtils.getFluidFromBlock(block) == fluid.getFluid();
-        return flag || !block.isReplaceable(world, pos) ? fluid : null;
+        return flag || !isReplaceable(block.getDefaultState(), world, pos) ? fluid : null;
     }
 
     //BlockFluidBasePlugin
@@ -691,7 +732,7 @@ public enum ASMHooks
         final BlockPos offset = pos.offset(facing);
         final IBlockState state = world.getBlockState(offset);
         final boolean matches = FluidloggedUtils.getFluidFromBlock(state.getBlock()) == fluid;
-        final boolean replaceable = state.getBlock().isReplaceable(world, offset);
+        final boolean replaceable = isReplaceable(state, world, offset);
 
         return (matches && replaceable) || block.canDisplace(world, pos.offset(facing));
     }
@@ -822,6 +863,41 @@ public enum ASMHooks
         final EnumFacing facing = EnumFacing.getHorizontal((5 - index) % 4); // [W, S, E, N]
         if(facing.getAxis() == Axis.Z) return old;
         else return old == 1 ? 0.998f : 0.002f;
+    }
+
+    //FluidUtilPlugin
+    public static boolean isStateFluidloggableCache = false;
+    public static boolean isReplaceable(boolean replaceable, IBlockState here, Fluid fluid) {
+        if(FluidloggedUtils.isStateFluidloggable(here, fluid)) {
+            isStateFluidloggableCache = true;
+            return true;
+        }
+        else return replaceable;
+    }
+
+    //FluidBlockWrapperPlugin
+    public static int placeModded(IFluidBlock fluidBlock, World world, BlockPos pos, FluidStack resource, boolean doFill) {
+        if(doFill) {
+            if(FluidloggedUtils.tryFluidlogBlock(world, pos, null, resource.getFluid(), true, isStateFluidloggableCache)) {
+                isStateFluidloggableCache = false;
+                return Fluid.BUCKET_VOLUME;
+            }
+
+            isStateFluidloggableCache = false;
+        }
+        //default
+        return fluidBlock.place(world, pos, resource, doFill);
+    }
+
+    //BlockLiquidWrapperPlugin
+    public static void placeVanilla(World world, BlockPos pos, IBlockState fluidBlock, int flags, FluidStack resource) {
+        if(!FluidloggedUtils.tryFluidlogBlock(world, pos, null, resource.getFluid(), true, isStateFluidloggableCache)) world.setBlockState(pos, fluidBlock, flags);
+        isStateFluidloggableCache = false;
+    }
+
+    //not for any one plugin, but rather for a lot
+    public static boolean isReplaceable(IBlockState state, IBlockAccess world, BlockPos pos) {
+        return state.getBlock().isReplaceable(world, pos) || (!state.getMaterial().blocksMovement() && !state.getMaterial().isLiquid());
     }
 
     //==========

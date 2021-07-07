@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.asm.plugin.compat;
+package git.jbredwards.fluidlogged_api.asm.plugin.modded;
 
 import git.jbredwards.fluidlogged_api.asm.AbstractMultiMethodPlugin;
 import org.objectweb.asm.tree.*;
@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import java.util.Iterator;
 
 /**
- * the betweenlands mod by default has the need to override most forge fluid methods
+ * the betweenlands mod by default has the need to override most forge fluid methods,
  * this mod fixes everything betweenlands did already, so this undoes all of its stuff
  * @author jbred
  *

@@ -24,7 +24,7 @@ public abstract class AbstractPlugin implements Opcodes
     public abstract boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated);
     //used to add local variables, returns the amount of variables added
     public int addLocalVariables(List<LocalVariableNode> variables, LabelNode start, LabelNode end) { return 0; }
-    //used to remove methods from classes (currently only used for betweenlands compat)
+    //used to remove methods from classes (currently only used for betweenlands modded)
     public boolean removeMethod(Iterator<MethodNode> methods, boolean obfuscated) { return false; }
 
     //checks if the method is the one that has to be transformed

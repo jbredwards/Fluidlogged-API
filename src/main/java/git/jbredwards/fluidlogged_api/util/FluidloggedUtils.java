@@ -9,11 +9,8 @@ import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
-import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumParticleTypes;
-import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -84,11 +81,13 @@ public enum FluidloggedUtils
         else world.setBlockState(pos, state, notify ? 3 : 0);
     }
 
-    //returns true if the state can be fluidlogged in general
+    //use fluid sensitive version below
+    @Deprecated
     public static boolean isStateFluidloggable(@Nullable IBlockState state) {
         return isStateFluidloggable(state, null);
     }
 
+    //fluid is null if checking is the block can be fluidlogged at all
     //returns true if the state can be fluidlogged with the given fluid
     public static boolean isStateFluidloggable(@Nullable IBlockState state, @Nullable Fluid fluid) {
         if(state == null) return false;
@@ -122,53 +121,62 @@ public enum FluidloggedUtils
         }
     }
 
-    //tries to fluidlog the block here with the fluid
-    //returns true if the block was successfully fluidlogged
+    //use state sensitive version
+    @Deprecated
     public static boolean tryFluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, boolean ignoreVaporize) {
         return tryFluidlogBlock(world, pos, world.getBlockState(pos), fluid, ignoreVaporize);
     }
 
-    //tries to fluidlog the block here with the fluid
-    //returns true if the block was successfully fluidlogged
+    //same as below method, but also calls isStateFluidloggable
     public static boolean tryFluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull Fluid fluid, boolean ignoreVaporize) {
-        if(isStateFluidloggable(here, fluid)) {
-            final IBlockState stored = (here.getBlock() instanceof IFluidloggable ? ((IFluidloggable)here.getBlock()).getFluidloggedState(world, pos, here) : here);
-            final FluidloggedEvent.Fluidlog event = new FluidloggedEvent.Fluidlog(world, pos, here, stored, FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.get(fluid), new TileEntityFluidlogged(), ignoreVaporize);
-
-            //event did stuff
-            if(MinecraftForge.EVENT_BUS.post(event)) return false;
-            else if(event.getResult() == Event.Result.DENY) return false;
-            else if(event.getResult() == Event.Result.ALLOW) return true;
-            //default
-            else {
-                //vaporizes water if in the nether
-                if(!event.ignoreVaporize && world.provider.doesWaterVaporize() && fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME))) {
-                    for(int i = 0; i < 8; ++i) world.spawnParticle(EnumParticleTypes.SMOKE_LARGE, pos.getX() + Math.random(), pos.getY() + Math.random(), pos.getZ() + Math.random(), 0, 0, 0);
-                    world.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.5f, 2.6f + (world.rand.nextFloat() - world.rand.nextFloat()) * 0.8f);
-
-                    return false;
-                }
-
-                event.te.setStored(event.stored, false);
-
-                world.setBlockState(pos, event.block.getDefaultState());
-                world.setTileEntity(pos, event.te);
-
-                return true;
-            }
-        }
-
-        //default
-        return false;
+        return tryFluidlogBlock(world, pos, here, fluid, ignoreVaporize, isStateFluidloggable(here, fluid));
     }
 
-    //tries to un-fluidlog the block here
-    //returns true if the block was successfully un-fluidlogged
+    //tries to fluidlog the block here with the fluid
+    //returns true if the block was successfully fluidlogged
+    public static boolean tryFluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull Fluid fluid, boolean ignoreVaporize, boolean isStateFluidloggable) {
+        if(!isStateFluidloggable) return false;
+        if(here == null) here = world.getBlockState(pos);
+
+        final IBlockState stored = (here.getBlock() instanceof IFluidloggable ? ((IFluidloggable)here.getBlock()).getFluidloggedState(world, pos, here) : here);
+        final FluidloggedEvent.Fluidlog event = new FluidloggedEvent.Fluidlog(world, pos, here, stored, FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.get(fluid), new TileEntityFluidlogged(), ignoreVaporize);
+
+        //event did stuff
+        if(MinecraftForge.EVENT_BUS.post(event)) return false;
+        else if(event.getResult() == Event.Result.DENY) return false;
+        else if(event.getResult() == Event.Result.ALLOW) return true;
+        //default
+        else {
+            //vaporizes water if in the nether
+            if(!event.ignoreVaporize && world.provider.doesWaterVaporize() && fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME))) {
+                fluid.vaporize(null, world, pos, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
+                return false;
+            }
+
+            event.te.setStored(event.stored, false);
+            world.setBlockState(pos, event.block.getDefaultState());
+            world.setTileEntity(pos, event.te);
+
+            return true;
+        }
+    }
+
+    //use state sensitive version
+    @Deprecated
+    public static boolean tryUnfluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos) {
+        return tryUnfluidlogBlock(world, pos, world.getBlockState(pos), getStored(world, pos));
+    }
+
+    //use stored sensitive version
+    @Deprecated
     public static boolean tryUnfluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here) {
         return tryUnfluidlogBlock(world, pos, here, getStored(world, pos));
     }
 
+    //tries to un-fluidlog the block here
+    //returns true if the block was successfully un-fluidlogged
     public static boolean tryUnfluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nullable IBlockState stored) {
+        if(stored == null) stored = getStored(world, pos);
         if(stored == null) return false;
         if(here == null) here = world.getBlockState(pos);
 

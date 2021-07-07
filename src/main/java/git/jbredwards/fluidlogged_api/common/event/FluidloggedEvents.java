@@ -24,7 +24,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.*;
@@ -58,9 +57,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static net.minecraftforge.fluids.BlockFluidBase.LEVEL;
 
@@ -90,6 +87,9 @@ public class FluidloggedEvents
     @SideOnly(Side.CLIENT)
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onModelRegistry(ModelRegistryEvent event) {
+        //remove fluidlogged fluid block models
+        FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.values().forEach(block -> ModelLoader.setCustomStateMapper(block, b -> new HashMap<>()));
+        //register vanilla fluid block models
         for(Block block : ForgeRegistries.BLOCKS) {
             if(block instanceof BlockLiquid) {
                 ModelLoader.setCustomStateMapper(block, new StateMapperBase() {
@@ -219,7 +219,7 @@ public class FluidloggedEvents
 
     public static boolean runBucketEmpty(FillBucketEvent event, World world, IBlockState here, BlockPos pos, EntityPlayer player) {
         //if the state is fluidlogged
-        if(here.getBlock() instanceof BlockFluidloggedTE && FluidloggedUtils.tryUnfluidlogBlock(world, pos, here)) {
+        if(here.getBlock() instanceof BlockFluidloggedTE && FluidloggedUtils.tryUnfluidlogBlock(world, pos, here, FluidloggedUtils.getStored(world, pos))) {
             //fill sound
             final Fluid fluid = ((BlockFluidloggedTE)here.getBlock()).fluid;
             final SoundEvent sound = fluid.getFillSound(new FluidStack(fluid, Fluid.BUCKET_VOLUME));
@@ -276,7 +276,7 @@ public class FluidloggedEvents
         final ItemStack held = event.getItemStack();
 
         //if the held item is a block
-        if(facing != null && held.getItem() instanceof ItemBlock) {
+        if(facing != null) {
             final World world = event.getWorld();
             final BlockPos pos = event.getPos().offset(facing);
             final IBlockState here = world.getBlockState(pos);
@@ -287,7 +287,7 @@ public class FluidloggedEvents
                 final int meta = held.getItem().getMetadata(held.getMetadata());
                 final Vec3d hit = Optional.ofNullable(event.getHitVec()).orElse(new Vec3d(pos));
                 final EntityPlayer player = event.getEntityPlayer();
-                final IBlockState stored = ((ItemBlock)held.getItem()).getBlock().getStateForPlacement(world, pos, facing, (float)hit.x - pos.getX(), (float)hit.y - pos.getY(), (float)hit.z - pos.getZ(), meta, player, event.getHand());
+                final IBlockState stored = Block.getBlockFromItem(held.getItem()).getStateForPlacement(world, pos, facing, (float)hit.x - pos.getX(), (float)hit.y - pos.getY(), (float)hit.z - pos.getZ(), meta, player, event.getHand());
 
                 if(FluidloggedUtils.tryFluidlogBlock(world, pos, stored, fluid, true)) {
                     //place sound

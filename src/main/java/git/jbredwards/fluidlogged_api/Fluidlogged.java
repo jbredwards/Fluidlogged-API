@@ -1,14 +1,16 @@
 package git.jbredwards.fluidlogged_api;
 
-import git.jbredwards.fluidlogged_api.client.util.FluidloggedBlockRendererDispatcher;
 import git.jbredwards.fluidlogged_api.client.util.FluidloggedTESR;
 import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
 import git.jbredwards.fluidlogged_api.common.block.TileEntityFluidlogged;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockDispenser;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.color.BlockColors;
 import net.minecraft.client.renderer.color.IBlockColor;
+import net.minecraft.init.Items;
+import net.minecraftforge.fluids.DispenseFluidContainer;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.*;
@@ -42,20 +44,18 @@ public final class Fluidlogged
     @SuppressWarnings("unused")
     @Mod.EventHandler
     public static void init(FMLInitializationEvent event) {
-        if(event.getSide() == Side.CLIENT) clientInit();
+        //fixes the vanilla bucket dispenser action
+        BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
+        BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET, DispenseFluidContainer.getInstance());
+        //tile entity special renderer (does nothing by default, only for IFluidloggable blocks that choose to use it)
+        if(event.getSide() == Side.CLIENT) {
+            ClientRegistry.bindTileEntitySpecialRenderer(TileEntityFluidlogged.class, new FluidloggedTESR());
+        }
     }
 
     @SuppressWarnings("unused")
     @Mod.EventHandler
     public static void loaded(FMLLoadCompleteEvent event) { if(event.getSide() == Side.CLIENT) clientColor(); }
-
-    @SideOnly(Side.CLIENT)
-    private static void clientInit() {
-        //changes the vanilla block renderer
-        ObfuscationReflectionHelper.setPrivateValue(Minecraft.class, Minecraft.getMinecraft(), new FluidloggedBlockRendererDispatcher(Minecraft.getMinecraft().getBlockRendererDispatcher()), "field_175618_aM");
-        //tile entity special renderer (does nothing by default, only for IFluidloggable blocks that choose to use it)
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityFluidlogged.class, new FluidloggedTESR());
-    }
 
     @SideOnly(Side.CLIENT)
     private static void clientColor() {

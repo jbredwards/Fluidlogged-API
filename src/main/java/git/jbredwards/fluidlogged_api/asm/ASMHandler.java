@@ -1,8 +1,9 @@
 package git.jbredwards.fluidlogged_api.asm;
 
 import com.google.common.collect.ImmutableMap;
-import git.jbredwards.fluidlogged_api.asm.plugin.*;
-import git.jbredwards.fluidlogged_api.asm.plugin.compat.*;
+import git.jbredwards.fluidlogged_api.asm.plugin.forge.*;
+import git.jbredwards.fluidlogged_api.asm.plugin.modded.*;
+import git.jbredwards.fluidlogged_api.asm.plugin.vanilla.*;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
@@ -26,21 +27,25 @@ public class ASMHandler implements IFMLLoadingPlugin
     {
         //plugin registry
         @Nonnull public Map<String, AbstractPlugin> PLUGINS = new ImmutableMap.Builder<String, AbstractPlugin>()
+                //vanilla
                 .put("net.minecraft.block.BlockDynamicLiquid", new BlockDynamicLiquidPlugin())
                 .put("net.minecraft.block.BlockFenceGate", new BlockFenceGatePlugin())
                 .put("net.minecraft.block.BlockSponge", new BlockSpongePlugin())
                 .put("net.minecraft.block.BlockStairs", new BlockStairsPlugin())
                 .put("net.minecraft.block.BlockTrapDoor", new BlockTrapDoorPlugin())
                 .put("net.minecraft.client.particle.ParticleDigging", new ParticleDiggingPlugin())
-                .put("net.minecraft.client.renderer.BlockModelShapes", new BlockModelShapesPlugin())
                 .put("net.minecraft.client.renderer.BlockModelRenderer", new BlockModelRendererPlugin())
                 .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin())
+                //forge
                 .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new ModelFluidPlugin())
                 .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin())
                 .put("net.minecraftforge.fluids.BlockFluidClassic", new BlockFluidClassicPlugin())
                 .put("net.minecraftforge.fluids.Fluid", new FluidPlugin())
-                //mod compat
+                .put("net.minecraftforge.fluids.FluidUtil", new FluidUtilPlugin())
+                .put("net.minecraftforge.fluids.capability.wrappers.BlockLiquidWrapper", new BlockLiquidWrapperPlugin())
+                .put("net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper", new FluidBlockWrapperPlugin())
+                //modded
                 .put("biomesoplenty.common.fluids.blocks.BlockBloodFluid", new BiomesOPlentyPlugin())
                 .put("biomesoplenty.common.fluids.blocks.BlockHotSpringWaterFluid", new BiomesOPlentyPlugin())
                 .put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new BiomesOPlentyPlugin())

@@ -52,8 +52,12 @@ public interface IFluidloggable
     @SideOnly(Side.CLIENT)
     default void runFluidloggedTESR(@Nonnull TileEntityFluidlogged te, double x, double y, double z, float partialTicks, int destroyStage, float alpha) {}
 
+    //return false if the fluid should not be rendered while fluidlogged
+    @SideOnly(Side.CLIENT)
+    default boolean shouldFluidRender(@Nonnull IBlockState stored, @Nullable Fluid fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return true; }
+
     //returns true if the block can flow in the given direction
-    default boolean canSideFlow(IBlockState stored, Fluid fluid, IBlockAccess world, BlockPos pos, EnumFacing side) {
+    default boolean canSideFlow(@Nonnull IBlockState stored, @Nullable Fluid fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
         return stored.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 }

@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.common.block;
 
 import com.google.common.collect.ImmutableList;
+import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvents;
 import git.jbredwards.fluidlogged_api.util.FluidloggedUtils;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.block.*;
@@ -73,7 +74,7 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         //if the block here is a fluidlogged one
         if(te instanceof TileEntityFluidlogged) {
             //if the block can be fluidlogged
-            if(FluidloggedUtils.isStateFluidloggable(stored)) ((TileEntityFluidlogged)te).setStored(stored, notify);
+            if(FluidloggedUtils.isStateFluidloggable(stored, null)) ((TileEntityFluidlogged)te).setStored(stored, notify);
             //if the block can't be fluidlogged
             else if(world instanceof World) {
                 //if the block is not air
@@ -119,14 +120,12 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
 
     @SuppressWarnings("deprecation")
     @Override
-    public EnumPushReaction getMobilityFlag(IBlockState state) {
-        return EnumPushReaction.BLOCK;
-    }
+    public EnumPushReaction getMobilityFlag(IBlockState state) { return EnumPushReaction.NORMAL; }
 
     @Nullable
     @Override
     public FluidStack drain(World world, BlockPos pos, boolean doDrain) {
-        if(doDrain && !FluidloggedUtils.tryUnfluidlogBlock(world, pos, null)) return null;
+        if(doDrain && !FluidloggedUtils.tryUnfluidlogBlock(world, pos, null, FluidloggedUtils.getStored(world, pos))) return null;
         else return stack.copy();
     }
 
@@ -143,6 +142,42 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
 
         //default
         return fluid.getBlock().getDefaultState().shouldSideBeRendered(world, pos, side);
+    }
+
+    @Override
+    public void updateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
+        super.updateTick(world, pos, state, rand);
+        final boolean canFlowVertical = canSideFlow(state, world, pos, densityDir < 0 ? EnumFacing.DOWN : EnumFacing.UP);
+        //Fluidlogs nearby blocks if enough sources
+        if(canCreateSources && (!canFlowVertical || !canFlowInto(world, pos.up(densityDir)) || FluidloggedEvents.getFluid(world.getBlockState(pos.up(densityDir))) == fluid)) {
+            for(EnumFacing parentFacing : EnumFacing.HORIZONTALS) {
+                if(canSideFlow(state, world, pos, parentFacing)) {
+                    BlockPos parentOffset = pos.offset(parentFacing);
+                    IBlockState parentState = world.getBlockState(parentOffset);
+
+                    if(parentState.getBlockFaceShape(world, parentOffset, parentFacing.getOpposite()) != BlockFaceShape.SOLID && FluidloggedUtils.isStateFluidloggable(parentState, fluid)) {
+                        for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+                            //doesn't check the original block as a source
+                            if(facing.getOpposite() != parentFacing) {
+                                BlockPos offset = parentOffset.offset(facing);
+                                IBlockState blockState = world.getBlockState(offset);
+
+                                if(blockState.getBlock() instanceof BlockFluidloggedTE && FluidloggedUtils.getFluidFromBlock(blockState.getBlock()) == fluid) {
+                                    BlockFluidloggedTE block = (BlockFluidloggedTE) blockState.getBlock();
+                                    if(block.canSideFlow(blockState, world, offset, facing.getOpposite())) {
+                                        boolean vertical = !block.canSideFlow(blockState, world, offset, densityDir < 0 ? EnumFacing.DOWN : EnumFacing.UP) || !block.canFlowInto(world, offset.up(densityDir));
+                                        if(vertical || FluidloggedEvents.getFluid(world.getBlockState(offset.up(densityDir))) == fluid) {
+                                            FluidloggedUtils.tryFluidlogBlock(world, parentOffset, parentState, fluid, true, true);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     //================================================
@@ -167,6 +202,13 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         //default
         if(stored.getBlock() instanceof IFluidloggable) return ((IFluidloggable)stored.getBlock()).canSideFlow(stored, fluid, world, pos, side);
         else return stored.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    public boolean shouldFluidRender(IBlockState state, IBlockAccess world, BlockPos pos) {
+        final IBlockState stored = getStored(world, pos);
+        return !(stored.getBlock() instanceof IFluidloggable) || ((IFluidloggable)stored.getBlock()).shouldFluidRender(stored, fluid, world, pos);
     }
 
     @SuppressWarnings("deprecation")
