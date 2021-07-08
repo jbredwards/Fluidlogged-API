@@ -222,13 +222,8 @@ public enum ASMHooks
         return canRenderInLayer((Block)blockIn, (IBlockState)args[0], (BlockRenderLayer)args[1], world, pos);
     }
 
-    //BlockModelRendererPlugin
-    public static IBlockState correctFluidloggedFluidShader(IBlockState state) {
-        return renderFluid ? correctFluidloggedFluidShaderBase(state) : state;
-    }
-
     //RenderChunkPlugin
-    public static IBlockState correctFluidloggedFluidShaderBase(IBlockState state) {
+    public static IBlockState fixFluidState(IBlockState state) {
         //default do nothing
         if(!(state.getBlock() instanceof AbstractFluidloggedBlock)) return state;
         //transfers the properties to the fluid state to make it render right
@@ -258,20 +253,14 @@ public enum ASMHooks
     }
 
     //RenderChunkPlugin
-    public static boolean renderFluid = false;
     @SideOnly(Side.CLIENT)
     public static boolean renderBlock(BlockRendererDispatcher renderer, IBlockState state, BlockPos pos, IBlockAccess world, BufferBuilder builder) {
         if(state.getBlock() instanceof AbstractFluidloggedBlock) {
-            renderFluid = true;
-
             if(world.getWorldType() != WorldType.DEBUG_ALL_BLOCK_STATES) state = state.getActualState(world, pos);
             state = state.getBlock().getExtendedState(state, world, pos);
 
             final IBakedModel model = renderer.getModelForState(((AbstractFluidloggedBlock)state.getBlock()).getFluid().getBlock().getDefaultState());
-            final boolean rendered =  renderer.getBlockModelRenderer().renderModel(world, model, state, pos, builder, true);
-
-            renderFluid = false;
-            return rendered;
+            return renderer.getBlockModelRenderer().renderModel(world, model, fixFluidState(state), pos, builder, true);
         }
 
         //default
@@ -878,7 +867,7 @@ public enum ASMHooks
     //FluidBlockWrapperPlugin
     public static int placeModded(IFluidBlock fluidBlock, World world, BlockPos pos, FluidStack resource, boolean doFill) {
         if(doFill) {
-            if(FluidloggedUtils.tryFluidlogBlock(world, pos, null, resource.getFluid(), true, isStateFluidloggableCache)) {
+            if(FluidloggedUtils.tryFluidlogBlock(world, pos, null, resource.getFluid(), false, isStateFluidloggableCache)) {
                 isStateFluidloggableCache = false;
                 return Fluid.BUCKET_VOLUME;
             }
@@ -891,7 +880,7 @@ public enum ASMHooks
 
     //BlockLiquidWrapperPlugin
     public static void placeVanilla(World world, BlockPos pos, IBlockState fluidBlock, int flags, FluidStack resource) {
-        if(!FluidloggedUtils.tryFluidlogBlock(world, pos, null, resource.getFluid(), true, isStateFluidloggableCache)) world.setBlockState(pos, fluidBlock, flags);
+        if(!FluidloggedUtils.tryFluidlogBlock(world, pos, null, resource.getFluid(), false, isStateFluidloggableCache)) world.setBlockState(pos, fluidBlock, flags);
         isStateFluidloggableCache = false;
     }
 
@@ -903,7 +892,11 @@ public enum ASMHooks
     //==========
     //MOD COMPAT
     //==========
-    public static Block BOPCompat(Block block, Block obj, Fluid fluid) {
-        return FluidloggedUtils.getFluidFromBlock(block) == fluid ? obj : null;
+    public static boolean ASCompat(IBlockState state, World world, BlockPos pos, EnumFacing facing, Fluid fluid) {
+        return FluidloggedUtils.getFluidFromBlock(state.getBlock()) != fluid && !(state.getBlock() instanceof AbstractFluidloggedBlock && ((AbstractFluidloggedBlock)state.getBlock()).canSideFlow(state, world, pos.offset(facing), facing.getOpposite()));
+    }
+
+    public static Block BOPCompat(IBlockState state, Block obj, World world, BlockPos pos, EnumFacing facing, Fluid fluid) {
+        return ASCompat(state, world, pos, facing, fluid) ? null : obj;
     }
 }

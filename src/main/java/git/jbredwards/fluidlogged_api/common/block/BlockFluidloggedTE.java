@@ -565,6 +565,16 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
     }
 
     @Override
+    public int getWeakPower(IBlockState blockState, IBlockAccess blockAccess, BlockPos pos, EnumFacing side) {
+        return Math.min(super.getWeakPower(blockState, blockAccess, pos, side) + getStored(blockAccess, pos).getWeakPower(blockAccess, pos, side), 15);
+    }
+
+    @Override
+    public int getStrongPower(IBlockState blockState, IBlockAccess blockAccess, BlockPos pos, EnumFacing side) {
+        return Math.min(super.getStrongPower(blockState, blockAccess, pos, side) + getStored(blockAccess, pos).getStrongPower(blockAccess, pos, side), 15);
+    }
+
+    @Override
     public boolean canGrow(World worldIn, BlockPos pos, IBlockState state, boolean isClient) {
         final IBlockState stored = getStored(worldIn, pos);
         return stored.getBlock() instanceof IGrowable && ((IGrowable)stored.getBlock()).canGrow(worldIn, pos, stored, isClient);

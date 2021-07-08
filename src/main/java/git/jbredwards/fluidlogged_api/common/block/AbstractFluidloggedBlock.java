@@ -523,6 +523,23 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
         return fluid.getBlock().isEntityInsideMaterial(world, blockpos, fluid.getBlock().getDefaultState(), entity, yToTest, materialIn, testingHead);
     }
 
+    @SuppressWarnings("deprecation")
+    @Override
+    public int getWeakPower(IBlockState blockState, IBlockAccess blockAccess, BlockPos pos, EnumFacing side) {
+        return fluid.getBlock().getDefaultState().getWeakPower(blockAccess, pos, side);
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public int getStrongPower(IBlockState blockState, IBlockAccess blockAccess, BlockPos pos, EnumFacing side) {
+        return fluid.getBlock().getDefaultState().getStrongPower(blockAccess, pos, side);
+    }
+
+    @Override
+    public int getFireSpreadSpeed(IBlockAccess world, BlockPos pos, EnumFacing face) {
+        return fluid.getBlock().getFireSpreadSpeed(world, pos, face);
+    }
+
     @Override
     public boolean isFireSource(World world, BlockPos pos, EnumFacing side) {
         return fluid.getBlock().isFireSource(world, pos, side);

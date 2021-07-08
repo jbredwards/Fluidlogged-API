@@ -62,7 +62,7 @@ public final class RenderChunkPlugin extends AbstractPlugin
         }
         //OPTIFINE (corrects the fluidlogged fluid block OF shader)
         if(ASMUtils.checkMethod(insn, "getRenderEnv", null)) {
-            instructions.insert(ASMUtils.getPrevious(insn, 2), method("correctFluidloggedFluidShaderBase", "(Lnet/minecraft/block/state/IBlockState;)Lnet/minecraft/block/state/IBlockState;"));
+            instructions.insert(ASMUtils.getPrevious(insn, 2), method("fixFluidState", "(Lnet/minecraft/block/state/IBlockState;)Lnet/minecraft/block/state/IBlockState;"));
             return false;
         }
         //OPTIFINE (adds stored block render)

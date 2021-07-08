@@ -71,7 +71,7 @@ public enum FluidloggedUtils
             }
 
             //if the state to be set can't be fluidlogged
-            if(!isStateFluidloggable(state)) {
+            if(!isStateFluidloggable(state, null)) {
                 world.setBlockState(pos, state, notify ? 3 : 0);
                 return;
             }

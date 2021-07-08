@@ -26,7 +26,7 @@ public class ASMHandler implements IFMLLoadingPlugin
     public static class Transformer implements IClassTransformer
     {
         //plugin registry
-        @Nonnull public Map<String, AbstractPlugin> PLUGINS = new ImmutableMap.Builder<String, AbstractPlugin>()
+        @Nonnull public static Map<String, AbstractPlugin> PLUGINS = new ImmutableMap.Builder<String, AbstractPlugin>()
                 //vanilla
                 .put("net.minecraft.block.BlockDynamicLiquid", new BlockDynamicLiquidPlugin())
                 .put("net.minecraft.block.BlockFenceGate", new BlockFenceGatePlugin())
@@ -34,7 +34,6 @@ public class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.BlockStairs", new BlockStairsPlugin())
                 .put("net.minecraft.block.BlockTrapDoor", new BlockTrapDoorPlugin())
                 .put("net.minecraft.client.particle.ParticleDigging", new ParticleDiggingPlugin())
-                .put("net.minecraft.client.renderer.BlockModelRenderer", new BlockModelRendererPlugin())
                 .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin())
                 //forge
@@ -49,6 +48,7 @@ public class ASMHandler implements IFMLLoadingPlugin
                 .put("biomesoplenty.common.fluids.blocks.BlockBloodFluid", new BiomesOPlentyPlugin())
                 .put("biomesoplenty.common.fluids.blocks.BlockHotSpringWaterFluid", new BiomesOPlentyPlugin())
                 .put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new BiomesOPlentyPlugin())
+                .put("hellfirepvp.astralsorcery.common.block.fluid.FluidBlockLiquidStarlight", new AstralSorceryPlugin())
                 .put("thebetweenlands.common.block.terrain.BlockSwampWater", new BetweenlandsPlugin())
                 .put("thebetweenlands.common.registries.FluidRegistry$FluidMultipleBlocks", new FluidPlugin())
                 .build();

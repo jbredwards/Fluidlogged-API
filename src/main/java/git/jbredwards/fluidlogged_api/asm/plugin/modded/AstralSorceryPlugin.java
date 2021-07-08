@@ -11,26 +11,24 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-public class BiomesOPlentyPlugin extends AbstractPlugin
+public class AstralSorceryPlugin extends AbstractPlugin
 {
     @Nonnull
     @Override
     public String getMethodName(boolean obfuscated) {
-        return "checkForMixing";
+        return "interactWithAdjacent";
     }
 
     @Nonnull
     @Override
     public String getMethodDesc() {
-        return "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Z";
+        return "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)V";
     }
 
     @Override
     public boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated) {
-        if(ASMUtils.checkMethod(insn, "func_177230_c", null) || ASMUtils.checkMethod(insn, "getBlock", null)) {
+        if(ASMUtils.checkMethod(insn, "func_76224_d", "()Z") || ASMUtils.checkMethod(insn, "isLiquid", "()Z")) {
             final InsnList list = new InsnList();
-            //this param
-            list.add(new VarInsnNode(ALOAD, 0));
             //World param
             list.add(new VarInsnNode(ALOAD, 1));
             //BlockPos param
@@ -40,12 +38,12 @@ public class BiomesOPlentyPlugin extends AbstractPlugin
             //definedFluid var
             list.add(new VarInsnNode(ALOAD, 0));
             list.add(new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "definedFluid", "Lnet/minecraftforge/fluids/Fluid;"));
-            //method
-            list.add(method("BOPCompat", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;Lnet/minecraftforge/fluids/Fluid;)Lnet/minecraft/block/Block;"));
 
+            //adds new code
+            list.add(method("ASCompat", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;Lnet/minecraftforge/fluids/Fluid;)Z"));
             instructions.insert(insn, list);
+            instructions.remove(insn.getPrevious());
             instructions.remove(insn);
-            method.maxStack += 3;
             return true;
         }
 
