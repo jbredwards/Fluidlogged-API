@@ -4,7 +4,7 @@ import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractPlugin;
 import org.objectweb.asm.tree.*;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  *
@@ -13,13 +13,13 @@ import javax.annotation.Nonnull;
  */
 public class FluidUtilPlugin extends AbstractPlugin
 {
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodName(boolean obfuscated) {
         return "tryPlaceFluid";
     }
 
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodDesc() {
         return "(Lnet/minecraft/entity/player/EntityPlayer;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/capability/IFluidHandler;Lnet/minecraftforge/fluids/FluidStack;)Z";

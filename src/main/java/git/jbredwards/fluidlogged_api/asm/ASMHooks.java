@@ -5,7 +5,6 @@ import com.google.common.primitives.Ints;
 import git.jbredwards.fluidlogged_api.util.FluidloggedConstants;
 import git.jbredwards.fluidlogged_api.common.block.AbstractFluidloggedBlock;
 import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
-import git.jbredwards.fluidlogged_api.common.block.IParticleColor;
 import git.jbredwards.fluidlogged_api.common.block.TileEntityFluidlogged;
 import git.jbredwards.fluidlogged_api.util.FluidloggedUtils;
 import net.minecraft.block.*;
@@ -19,7 +18,6 @@ import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.chunk.ChunkCompileTaskGenerator;
 import net.minecraft.client.renderer.chunk.CompiledChunk;
 import net.minecraft.client.renderer.chunk.RenderChunk;
-import net.minecraft.client.renderer.color.BlockColors;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
@@ -32,6 +30,7 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraft.world.WorldType;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.property.IExtendedBlockState;
@@ -187,21 +186,15 @@ public enum ASMHooks
         if(fluid.getName() != null && FluidRegistry.isFluidRegistered(fluid) && fluid.getBlock() instanceof BlockFluidClassic && !FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.containsKey(fluid)) {
             //generates the block
             final BlockFluidloggedTE block = new BlockFluidloggedTE(fluid, fluid.getBlock().getDefaultState().getMaterial(), fluid.getBlock().getDefaultState().getMapColor(null, null));
+            final String unlocalizedName = fluid.getBlock().getUnlocalizedName();
             //registers the block
             FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.put(fluid, block);
-            ForgeRegistries.BLOCKS.register(block.setRegistryName(new ResourceLocation(fluid.getName()).getResourcePath() + "logged_te").setUnlocalizedName(fluid.getUnlocalizedName()));
+            ForgeRegistries.BLOCKS.register(block.setRegistryName(new ResourceLocation(fluid.getName()).getResourcePath() + "logged_te").setUnlocalizedName(unlocalizedName.substring(unlocalizedName.indexOf('.'))));
         }
     }
 
     //FluidPlugin
     public static void fluidBlockErrorSpamFix(Logger logger, String message, Block block, String fluidName, Block old) {}
-
-    //ParticleDiggingPlugin
-    @SideOnly(Side.CLIENT)
-    public static int getColor(BlockColors old, IBlockState state, World world, BlockPos pos, int index) {
-        if(state.getBlock() instanceof IParticleColor) return ((IParticleColor)state.getBlock()).getParticleColor(state, world, pos);
-        else return old.colorMultiplier(state, world, pos, index);
-    }
 
     //RenderChunkPlugin
     public static boolean canRenderInLayer(Block blockIn, IBlockState state, BlockRenderLayer layer, IBlockAccess world, BlockPos pos) {
@@ -887,6 +880,29 @@ public enum ASMHooks
     //not for any one plugin, but rather for a lot
     public static boolean isReplaceable(IBlockState state, IBlockAccess world, BlockPos pos) {
         return state.getBlock().isReplaceable(world, pos) || (!state.getMaterial().blocksMovement() && !state.getMaterial().isLiquid());
+    }
+
+    //BlockRailBasePlugin
+    public static boolean setBlockToAir(World world, BlockPos pos) {
+        final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(world.getBlockState(pos).getBlock());
+        if(fluid == null) return world.setBlockToAir(pos);
+        else return world.setBlockState(pos, fluid.getBlock().getDefaultState(), 11);
+    }
+
+    //BlockRailBasePlugin
+    public static boolean setStoredOrRealSimple(World world, BlockPos pos, IBlockState state) {
+        return setStoredOrRealSimple(world, pos, state, 3);
+    }
+
+    //WorldServerPlugin
+    public static IBlockState correctStoredOrLiquid(WorldServer world, BlockPos pos, Block compare) {
+        final IBlockState here = world.getBlockState(pos);
+        //liquid
+        if(Block.isEqualTo(here.getBlock(), compare)) return here;
+        //stored
+        else if(here.getBlock() instanceof BlockFluidloggedTE) return ((BlockFluidloggedTE)here.getBlock()).getStored(world, pos);
+        //old
+        return here;
     }
 
     //==========

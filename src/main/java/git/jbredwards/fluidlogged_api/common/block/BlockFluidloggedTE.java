@@ -97,9 +97,7 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
 
     @SuppressWarnings("deprecation")
     @Override
-    public boolean eventReceived(IBlockState state, World worldIn, BlockPos pos, int id, int param) {
-        return id == 1;
-    }
+    public boolean eventReceived(IBlockState state, World worldIn, BlockPos pos, int id, int param) { return id == 1; }
 
     @Nullable
     @Override
@@ -414,6 +412,17 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         return canHarvestBlock(getStored(world, pos), player, world, pos);
     }
 
+    @Override
+    public void breakBlock(World worldIn, BlockPos pos, IBlockState state) {
+        final IBlockState stored = getStored(worldIn, pos);
+        stored.getBlock().breakBlock(worldIn, pos, stored);
+    }
+
+    @Override
+    public boolean rotateBlock(World world, BlockPos pos, EnumFacing axis) {
+        return getStored(world, pos).getBlock().rotateBlock(world, pos, axis);
+    }
+
     @Nonnull
     @Override
     public Vec3d modifyAcceleration(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Entity entity, @Nonnull Vec3d vec) {
@@ -425,7 +434,9 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
 
     @Override
     public void neighborChanged(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Block neighborBlock, @Nonnull BlockPos neighbourPos) {
-        getStored(world, pos).neighborChanged(world, pos, neighborBlock, neighbourPos);
+        final IBlockState stored = getStored(world, pos);
+        stored.neighborChanged(world, pos, neighborBlock, neighbourPos);
+
         super.neighborChanged(state, world, pos, neighborBlock, neighbourPos);
     }
 

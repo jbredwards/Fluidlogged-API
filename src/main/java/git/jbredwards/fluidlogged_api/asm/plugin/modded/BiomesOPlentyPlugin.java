@@ -4,7 +4,7 @@ import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractPlugin;
 import org.objectweb.asm.tree.*;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * fixes weird fluidlogged fluid block interactions
@@ -13,13 +13,13 @@ import javax.annotation.Nonnull;
  */
 public class BiomesOPlentyPlugin extends AbstractPlugin
 {
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodName(boolean obfuscated) {
         return "checkForMixing";
     }
 
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodDesc() {
         return "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Z";

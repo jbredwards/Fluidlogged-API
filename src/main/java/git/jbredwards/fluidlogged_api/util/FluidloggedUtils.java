@@ -117,7 +117,8 @@ public enum FluidloggedUtils
                         || block instanceof BlockLeaves
                         || block instanceof BlockFenceGate
                         || block instanceof BlockTrapDoor
-                        || block instanceof BlockLadder;
+                        || block instanceof BlockLadder
+                        || block instanceof BlockRailBase;
         }
     }
 
@@ -156,6 +157,7 @@ public enum FluidloggedUtils
             event.te.setStored(event.stored, false);
             world.setBlockState(pos, event.block.getDefaultState());
             world.setTileEntity(pos, event.te);
+            event.stored.getBlock().onBlockAdded(world, pos, event.stored);
 
             return true;
         }

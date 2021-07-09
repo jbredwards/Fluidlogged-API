@@ -86,11 +86,39 @@ public class TileEntityFluidlogged extends TileEntity implements ITickable
         if(stored.getBlock() instanceof IFluidloggable) ((IFluidloggable)stored.getBlock()).readFromStoredNBT(this);
     }
 
+    //gets the value from the given index
+    //returns the cached value, or the fallback if there's no value
+    @SuppressWarnings("unchecked")
+    @Nullable
+    public <V> V getValue(int index, @Nullable V fallback) {
+        if(cache == null || cache.length <= index) setValue(index, fallback);
+        //returns the cached value
+        try { return (V)cache[index]; }
+        //cached value is a different type, this shouldn't happen
+        catch(Exception e) { return fallback; }
+    }
+
+    //sets the value at the given index
+    public void setValue(int index, @Nullable Object value) {
+        //generates a new empty cache if the old one doesn't exist
+        if(cache == null) cache = new Object[index + 1];
+        //generates a new cache with all of the old one's values
+        if(cache.length <= index) {
+            final Object[] newCache = new Object[index + 1];
+            for(int i = 0; i <= index; i++) {
+                if(i < cache.length) newCache[i] = cache[i];
+            }
+            cache = newCache;
+        }
+        //sets the new value
+        cache[index] = value;
+    }
+
     @Override
     public void update() {
-        if(hasWorld() && stored.getBlock() instanceof IFluidloggable) {
+        if(hasWorld() && pos != null) {
             ticksExisted++;
-            ((IFluidloggable)stored.getBlock()).fluidloggedTick(this);
+            if(stored.getBlock() instanceof IFluidloggable) ((IFluidloggable)stored.getBlock()).fluidloggedTick(this);
         }
     }
 
@@ -119,6 +147,7 @@ public class TileEntityFluidlogged extends TileEntity implements ITickable
     @Override
     public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity pkt) {
         readFromNBT(pkt.getNbtCompound());
+        if(world != null && pos != null) world.markBlockRangeForRenderUpdate(pos, pos);
     }
 
     @Override

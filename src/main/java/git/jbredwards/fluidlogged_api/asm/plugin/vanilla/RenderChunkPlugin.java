@@ -4,7 +4,7 @@ import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractPlugin;
 import org.objectweb.asm.tree.*;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  *
@@ -13,13 +13,13 @@ import javax.annotation.Nonnull;
  */
 public final class RenderChunkPlugin extends AbstractPlugin
 {
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodName(boolean obfuscated) {
         return obfuscated ? "func_178581_b" : "rebuildChunk";
     }
 
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodDesc() {
         return "(FFFLnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;)V";

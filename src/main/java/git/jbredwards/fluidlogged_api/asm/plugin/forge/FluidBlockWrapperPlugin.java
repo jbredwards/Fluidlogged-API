@@ -4,7 +4,7 @@ import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractPlugin;
 import org.objectweb.asm.tree.*;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  *
@@ -13,13 +13,13 @@ import javax.annotation.Nonnull;
  */
 public class FluidBlockWrapperPlugin extends AbstractPlugin
 {
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodName(boolean obfuscated) {
         return "fill";
     }
 
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodDesc() {
         return "(Lnet/minecraftforge/fluids/FluidStack;Z)I";

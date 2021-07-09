@@ -22,7 +22,8 @@ public class BetweenlandsPlugin extends AbstractMultiMethodPlugin
                 || method.name.equals("causesDownwardCurrent")
                 || method.name.equals("getQuantaValue")
                 || method.name.equals("canFlowInto")
-                || method.name.equals(obfuscated ? "func_180650_b" : "updateTick");
+                || method.name.equals("updateTick")
+                || method.name.equals("func_180650_b");
     }
 
     @Override

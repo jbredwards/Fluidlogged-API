@@ -4,7 +4,7 @@ import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractPlugin;
 import org.objectweb.asm.tree.*;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * fixes the following issues:
@@ -16,13 +16,13 @@ import javax.annotation.Nonnull;
  */
 public class BlockDynamicLiquidPlugin extends AbstractPlugin
 {
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodName(boolean obfuscated) {
         return obfuscated ? "func_180650_b" : "updateTick";
     }
 
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodDesc() {
         return "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Ljava/util/Random;)V";

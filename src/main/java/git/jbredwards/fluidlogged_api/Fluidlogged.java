@@ -3,25 +3,16 @@ package git.jbredwards.fluidlogged_api;
 import git.jbredwards.fluidlogged_api.client.util.FluidloggedTESR;
 import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
 import git.jbredwards.fluidlogged_api.common.block.TileEntityFluidlogged;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.block.material.Material;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.color.BlockColors;
-import net.minecraft.client.renderer.color.IBlockColor;
 import net.minecraft.init.Items;
 import net.minecraftforge.fluids.DispenseFluidContainer;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
-import net.minecraftforge.fml.common.*;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.registries.IRegistryDelegate;
-
-import javax.annotation.Nullable;
-import java.util.Map;
 
 import static git.jbredwards.fluidlogged_api.util.FluidloggedConstants.*;
 
@@ -48,22 +39,10 @@ public final class Fluidlogged
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET, DispenseFluidContainer.getInstance());
         //tile entity special renderer (does nothing by default, only for IFluidloggable blocks that choose to use it)
-        if(event.getSide() == Side.CLIENT) {
-            ClientRegistry.bindTileEntitySpecialRenderer(TileEntityFluidlogged.class, new FluidloggedTESR());
-        }
+        if(event.getSide() == Side.CLIENT) clInit();
     }
 
-    @SuppressWarnings("unused")
-    @Mod.EventHandler
-    public static void loaded(FMLLoadCompleteEvent event) { if(event.getSide() == Side.CLIENT) clientColor(); }
-
+    //separate method to fix serverside crash
     @SideOnly(Side.CLIENT)
-    private static void clientColor() {
-        //syncs fluidlogged fluid block colors
-        final Map<IRegistryDelegate<Block>, IBlockColor> blockColorMap = ObfuscationReflectionHelper.getPrivateValue(BlockColors.class, Minecraft.getMinecraft().getBlockColors(), "blockColorMap");
-        for(BlockFluidloggedTE fluid : FLUIDLOGGED_TE_LOOKUP.values()) {
-            @Nullable IBlockColor handler = blockColorMap.get(fluid.getFluid().getBlock().delegate);
-            if(handler != null) Minecraft.getMinecraft().getBlockColors().registerBlockColorHandler(handler, fluid);
-        }
-    }
+    private static void clInit() { ClientRegistry.bindTileEntitySpecialRenderer(TileEntityFluidlogged.class, new FluidloggedTESR()); }
 }

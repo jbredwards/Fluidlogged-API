@@ -3,7 +3,7 @@ package git.jbredwards.fluidlogged_api.asm;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 
@@ -16,10 +16,9 @@ import java.util.List;
 public abstract class AbstractPlugin implements Opcodes
 {
     //returns the method being transformed
-    @Nonnull
-    public abstract String getMethodName(boolean obfuscated);
+    @Nullable public abstract String getMethodName(boolean obfuscated);
     //returns the desc of the method being transformed
-    @Nonnull public abstract String getMethodDesc();
+    @Nullable public abstract String getMethodDesc();
     //ran once for each node in the method, return true if the transformation is finished
     public abstract boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated);
     //used to add local variables, returns the amount of variables added
@@ -29,7 +28,7 @@ public abstract class AbstractPlugin implements Opcodes
 
     //checks if the method is the one that has to be transformed
     public boolean isMethodValid(MethodNode method, boolean obfuscated) {
-        return method.name.equals(getMethodName(obfuscated)) && method.desc.equals(getMethodDesc());
+        return ASMUtils.checkMethod(method, getMethodName(obfuscated), getMethodDesc());
     }
 
     //I got tired of typing mostly the same stuff for method insn nodes

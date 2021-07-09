@@ -7,7 +7,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Iterator;
 
 /**
@@ -26,17 +26,17 @@ public abstract class AbstractMultiMethodPlugin extends AbstractPlugin
     public abstract boolean isMethodValid(MethodNode method, boolean obfuscated);
 
     //unused
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodName(boolean obfuscated) {
-        return "";
+        return null;
     }
 
     //unused
-    @Nonnull
+    @Nullable
     @Override
     public String getMethodDesc() {
-        return "";
+        return null;
     }
 
     //copied from parent
