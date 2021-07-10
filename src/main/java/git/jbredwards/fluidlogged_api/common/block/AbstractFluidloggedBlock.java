@@ -92,12 +92,6 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
         return true;
     }
 
-    //no longer gets the fluid from the registery, now returns the fluid directly
-    @Override
-    public Fluid getFluid() {
-        return fluid;
-    }
-
     @Nonnull
     @Override
     public BlockFaceShape getBlockFaceShape(@Nonnull IBlockAccess worldIn, @Nonnull IBlockState state, @Nonnull BlockPos pos, @Nonnull EnumFacing face) {

@@ -182,6 +182,36 @@ public class FluidloggedEvents
         }
     }
 
+    //minecarts travel slower in fluids
+    /*@SuppressWarnings("unused")
+    @SubscribeEvent
+    public static void onMinecartUpdate(MinecartUpdateEvent event) {
+        final EntityMinecart entity = event.getMinecart();
+        final World world = entity.world;
+        final BlockPos pos = new BlockPos(entity);
+        final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(world.getBlockState(pos).getBlock());
+
+        if(fluid != null) {
+            final int density = fluid.getDensity(world, pos);
+            //the fluid will resist the minecart
+            if(density > 0) {
+                //drag formula
+                //Fd=drag,Cd=drag coefficient,D=density,V=velocity,A=area
+                //Fd=Cd*A*(D*V)^2*0.5
+                //velocity is handled later
+                final float coefficient = 1.05f;
+                final float area = entity.width * entity.height;
+                final float drag = coefficient * area * density * density * 0.5f;
+                //x motion
+                final double dragX = drag * entity.motionX * entity.motionX;
+                entity.motionX -= dragX;
+                //z motion
+                final double dragZ = drag * entity.motionZ * entity.motionZ;
+                entity.motionZ -= dragZ;
+            }
+        }
+    }*/
+
     //===================
     //FLUIDLOGGING EVENTS
     //===================

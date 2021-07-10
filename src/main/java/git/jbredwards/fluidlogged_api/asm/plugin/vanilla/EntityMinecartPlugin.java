@@ -15,6 +15,8 @@ public class EntityMinecartPlugin extends AbstractMultiMethodPlugin
     public boolean isMethodValid(MethodNode method, boolean obfuscated) {
         //onUpdate, line 379
         if(ASMUtils.checkMethod(method, obfuscated ? "func_70071_h_" : "onUpdate", "()V")) return true;
+        //moveAlongTrack, lines 695, 699, 706, 710
+        if(ASMUtils.checkMethod(method, obfuscated ? "func_180460_a" : "moveAlongTrack", null)) return true;
         //getPosOffset, line 760
         if(ASMUtils.checkMethod(method, obfuscated ? "func_70495_a" : "getPosOffset", null)) return true;
         //getPos, line 810
@@ -28,7 +30,6 @@ public class EntityMinecartPlugin extends AbstractMultiMethodPlugin
         if(ASMUtils.checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", null)) {
             instructions.insert(insn, new MethodInsnNode(INVOKESTATIC, "git/jbredwards/fluidlogged_api/util/FluidloggedUtils", "getStoredOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;", false));
             instructions.remove(insn);
-            return true;
         }
 
         return false;

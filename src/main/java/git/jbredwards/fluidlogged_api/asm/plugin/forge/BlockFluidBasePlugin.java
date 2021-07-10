@@ -4,8 +4,6 @@ import git.jbredwards.fluidlogged_api.asm.ASMUtils;
 import git.jbredwards.fluidlogged_api.asm.AbstractMultiMethodPlugin;
 import org.objectweb.asm.tree.*;
 
-import java.util.Iterator;
-
 /**
  * -no longer flow into non-replaceable blocks
  * -fixes issues with vertical flowing fluids
@@ -52,9 +50,14 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
             currentMethod = 7;
             return true;
         }
+        //getFluid
+        if(ASMUtils.checkMethod(method, "getFluid", null)) {
+            currentMethod = 8;
+            return true;
+        }
         //defaultDisplacements clinit
         if(ASMUtils.checkMethod(method, "<clinit>", "()V")) {
-            currentMethod = 8;
+            currentMethod = 9;
             return true;
         }
 
@@ -83,24 +86,43 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
 
             return true;
         }
-        //shouldSideBeRendered, line 474
-        if(currentMethod == 3 && insn.getOpcode() == INVOKEINTERFACE && insn.getNext().getOpcode() == ALOAD && ASMUtils.checkMethod(insn, obfuscated ? "func_185904_a" : "getMaterial", null)) {
-            final InsnList list = new InsnList();
-            //definedFluid var
-            list.add(new VarInsnNode(ALOAD, 0));
-            list.add(new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "definedFluid", "Lnet/minecraftforge/fluids/Fluid;"));
-            //IBlockAccess param
-            list.add(new VarInsnNode(ALOAD, 2));
-            //BlockPos param
-            list.add(new VarInsnNode(ALOAD, 3));
-            //EnumFacing param
-            list.add(new VarInsnNode(ALOAD, 4));
+        //shouldSideBeRendered
+        if(currentMethod == 3) {
+            //line 474 (old checker becomes "if(true)")
+            if(insn.getOpcode() == IF_ACMPNE) {
+                instructions.remove(ASMUtils.getPrevious(insn, 4));
+                instructions.remove(ASMUtils.getPrevious(insn, 3));
+                instructions.remove(ASMUtils.getPrevious(insn, 2));
+                instructions.remove(ASMUtils.getPrevious(insn, 1));
+                instructions.insertBefore(insn, new InsnNode(ICONST_1));
+                ((JumpInsnNode)insn).setOpcode(IFEQ);
 
-            list.add(method("shouldSideBeRendered", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Lnet/minecraft/block/material/Material;"));
-            instructions.insert(insn, list);
-            instructions.remove(insn);
+                return false;
+            }
+            //line 476
+            if(insn.getOpcode() == ICONST_0) {
+                final InsnList list = new InsnList();
+                //IBlockState param
+                list.add(new VarInsnNode(ALOAD, 1));
+                //IBlockState local var
+                list.add(new VarInsnNode(ALOAD, 5));
+                //IBlockAccess param
+                list.add(new VarInsnNode(ALOAD, 2));
+                //BlockPos param
+                list.add(new VarInsnNode(ALOAD, 3));
+                //EnumFacing param
+                list.add(new VarInsnNode(ALOAD, 4));
+                //densityDir var
+                list.add(new VarInsnNode(ALOAD, 0));
+                list.add(new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "densityDir", "I"));
+                //adds the new code
+                list.add(method("shouldSideBeRendered", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;I)Z"));
+                instructions.insert(insn, list);
+                instructions.remove(insn);
+                method.maxStack++;
 
-            return true;
+                return true;
+            }
         }
         //getExtendedState
         if(currentMethod == 4) {
@@ -250,8 +272,14 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
 
             return true;
         }
+        //getFluid, line 792 (exposed to boost performance, sorry forge devs)
+        if(currentMethod == 8 && ASMUtils.checkMethod(insn, "getFluid", "(Ljava/lang/String;)Lnet/minecraftforge/fluids/Fluid;")) {
+            instructions.insert(insn, new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "definedFluid", "Lnet/minecraftforge/fluids/Fluid;"));
+            instructions.remove(insn.getPrevious());
+            instructions.remove(insn);
+        }
         //clinit, line 73-113
-        if(currentMethod == 8 && insn.getOpcode() == GETSTATIC && ASMUtils.checkField(insn, "defaultDisplacements", "Ljava/util/Map;")) {
+        if(currentMethod == 9 && insn.getOpcode() == GETSTATIC && ASMUtils.checkField(insn, "defaultDisplacements", "Ljava/util/Map;")) {
             while(!(insn.getNext().getNext() instanceof LineNumberNode && ((LineNumberNode)insn.getNext().getNext()).line == 125)) {
                 instructions.remove(insn.getNext());
             }

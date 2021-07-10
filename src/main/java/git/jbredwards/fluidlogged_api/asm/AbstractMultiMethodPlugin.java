@@ -56,7 +56,7 @@ public abstract class AbstractMultiMethodPlugin extends AbstractPlugin
                 //used to help add any new local variables
                 LabelNode start = new LabelNode();
                 LabelNode end = new LabelNode();
-                int localVariablesAdded = addLocalVariables(method.localVariables, start, end);
+                int localVariablesAdded = addLocalVariables(method, start, end);
 
                 //adds any new local variables
                 if(localVariablesAdded > 0) {

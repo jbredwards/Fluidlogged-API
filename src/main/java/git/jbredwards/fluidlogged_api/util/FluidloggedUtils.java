@@ -157,7 +157,7 @@ public enum FluidloggedUtils
             event.te.setStored(event.stored, false);
             world.setBlockState(pos, event.block.getDefaultState());
             world.setTileEntity(pos, event.te);
-            event.stored.getBlock().onBlockAdded(world, pos, event.stored);
+            if(!world.isRemote) event.stored.getBlock().onBlockAdded(world, pos, event.stored);
 
             return true;
         }

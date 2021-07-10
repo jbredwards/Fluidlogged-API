@@ -10,6 +10,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ITickable;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.relauncher.Side;
@@ -147,7 +148,10 @@ public class TileEntityFluidlogged extends TileEntity implements ITickable
     @Override
     public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity pkt) {
         readFromNBT(pkt.getNbtCompound());
-        if(world != null && pos != null) world.markBlockRangeForRenderUpdate(pos, pos);
+        if(world != null && pos != null) {
+            world.checkLightFor(EnumSkyBlock.BLOCK, pos);
+            world.markBlockRangeForRenderUpdate(pos, pos);
+        }
     }
 
     @Override

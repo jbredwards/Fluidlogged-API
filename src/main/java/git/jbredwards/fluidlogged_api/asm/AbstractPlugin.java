@@ -5,7 +5,6 @@ import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
-import java.util.List;
 
 /**
  * PLUGIN METHODS & FIELDS SHOULD ONLY BE ACCESS THROUGH THEIR OWN MOD
@@ -22,7 +21,7 @@ public abstract class AbstractPlugin implements Opcodes
     //ran once for each node in the method, return true if the transformation is finished
     public abstract boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated);
     //used to add local variables, returns the amount of variables added
-    public int addLocalVariables(List<LocalVariableNode> variables, LabelNode start, LabelNode end) { return 0; }
+    public int addLocalVariables(MethodNode method, LabelNode start, LabelNode end) { return 0; }
     //used to remove methods from classes (currently only used for betweenlands modded)
     public boolean removeMethod(Iterator<MethodNode> methods, boolean obfuscated) { return false; }
 
@@ -52,7 +51,7 @@ public abstract class AbstractPlugin implements Opcodes
                 //used to help add any new local variables
                 LabelNode start = new LabelNode();
                 LabelNode end = new LabelNode();
-                int localVariablesAdded = addLocalVariables(method.localVariables, start, end);
+                int localVariablesAdded = addLocalVariables(method, start, end);
 
                 //adds any new local variables
                 if(localVariablesAdded > 0) {

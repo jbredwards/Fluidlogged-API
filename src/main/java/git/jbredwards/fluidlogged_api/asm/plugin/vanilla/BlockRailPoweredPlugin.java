@@ -36,7 +36,7 @@ public class BlockRailPoweredPlugin extends AbstractMultiMethodPlugin
             return true;
         }
         //updateState
-        if(currentMethod == 2 && ASMUtils.checkMethod(insn, obfuscated ? "func_175656_a" : "setBlockState", null)) {
+        if(currentMethod == 2 && ASMUtils.checkMethod(insn, obfuscated ? "func_180501_a" : "setBlockState", null)) {
             instructions.insert(insn, method("setStoredOrRealSimple", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"));
             instructions.remove(insn);
             finishedAll = true;

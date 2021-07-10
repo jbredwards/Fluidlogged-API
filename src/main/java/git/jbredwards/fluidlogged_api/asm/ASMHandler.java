@@ -52,11 +52,18 @@ public class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraftforge.fluids.capability.wrappers.BlockLiquidWrapper", new BlockLiquidWrapperPlugin())
                 .put("net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper", new FluidBlockWrapperPlugin())
                 //modded
-                .put("biomesoplenty.common.fluids.blocks.BlockBloodFluid", new BiomesOPlentyPlugin())
+                .put("biomesoplenty.common.fluids.blocks.BlockBloodFluid",          new BiomesOPlentyPlugin())
                 .put("biomesoplenty.common.fluids.blocks.BlockHotSpringWaterFluid", new BiomesOPlentyPlugin())
-                .put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new BiomesOPlentyPlugin())
+                .put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid",      new BiomesOPlentyPlugin())
                 .put("hellfirepvp.astralsorcery.common.block.fluid.FluidBlockLiquidStarlight", new AstralSorceryPlugin())
-                .put("thebetweenlands.common.block.terrain.BlockSwampWater", new BetweenlandsPlugin())
+                .put("io.github.lxgaming.sledgehammer.mixin.core.block.BlockLiquidAccessor", new SledgehammerPlugin())
+                .put("mods.railcraft.client.render.carts.RenderCart",   new RailcraftPlugin())
+                .put("mods.railcraft.common.blocks.tracks.TrackTools",  new RailcraftPlugin())
+                .put("mods.railcraft.common.carts.CartTools",           new RailcraftPlugin())
+                .put("mods.railcraft.common.carts.EntityCartBasic",     new RailcraftPlugin())
+                .put("mods.railcraft.common.plugins.forge.WorldPlugin", new RailcraftPlugin())
+                .put("mods.railcraft.common.util.sounds.SoundRegistry", new RailcraftPlugin())
+                .put("thebetweenlands.common.block.terrain.BlockSwampWater",                new BetweenlandsPlugin())
                 .put("thebetweenlands.common.registries.FluidRegistry$FluidMultipleBlocks", new FluidPlugin())
                 .build();
 

@@ -4,8 +4,10 @@ import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,6 +20,7 @@ public enum FluidloggedConstants
 {
     ;
 
+    //mod id constants
     @Nonnull public static final String MODID = "fluidlogged_api";
     @Nonnull public static final String NAME = "Fluidlogged API";
     @Nonnull public static final String VERSION = "1.5.1";

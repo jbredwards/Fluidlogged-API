@@ -140,9 +140,8 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
     @SideOnly(Side.CLIENT)
     @Override
-    public boolean shouldSideBeRendered(IBlockState blockState, IBlockAccess world, BlockPos pos, EnumFacing side) {
-        if(ASMHooks.shouldSideBeRendered(world.getBlockState(pos.offset(side)), FluidloggedUtils.getFluidFromBlock(this), world, pos, side) == blockMaterial) return false;
-        else return super.shouldSideBeRendered(blockState, world, pos, side);
+    public boolean shouldSideBeRendered(IBlockState here, IBlockAccess world, BlockPos pos, EnumFacing facing) {
+        return ASMHooks.shouldSideBeRendered(here, world.getBlockState(pos.offset(facing)), world, pos, facing, -1);
     }
 
     @Override

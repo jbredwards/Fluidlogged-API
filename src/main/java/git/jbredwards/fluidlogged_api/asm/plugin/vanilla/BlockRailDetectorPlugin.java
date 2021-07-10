@@ -27,7 +27,7 @@ public class BlockRailDetectorPlugin extends AbstractPlugin
 
     @Override
     public boolean transform(InsnList instructions, MethodNode method, AbstractInsnNode insn, boolean obfuscated) {
-        if(ASMUtils.checkMethod(insn, obfuscated ? "func_175656_a" : "setBlockState", null)) {
+        if(ASMUtils.checkMethod(insn, obfuscated ? "func_180501_a" : "setBlockState", null)) {
             instructions.insert(insn, method("setStoredOrRealSimple", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"));
             instructions.remove(insn);
         }

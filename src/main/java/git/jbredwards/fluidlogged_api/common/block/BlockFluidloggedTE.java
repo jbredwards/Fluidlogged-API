@@ -449,6 +449,12 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         super.randomDisplayTick(stateIn, worldIn, pos, rand);
     }
 
+    @Override
+    public void randomTick(World worldIn, BlockPos pos, IBlockState state, Random random) {
+        final IBlockState stored = getStored(worldIn, pos);
+        stored.getBlock().randomTick(worldIn, pos, stored, random);
+    }
+
     @Nullable
     @Override
     public PathNodeType getAiPathNodeType(IBlockState state, IBlockAccess world, BlockPos pos, @Nullable EntityLiving entity) {

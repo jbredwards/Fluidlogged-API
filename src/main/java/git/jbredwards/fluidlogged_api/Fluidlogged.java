@@ -14,6 +14,8 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import javax.annotation.Nonnull;
+
 import static git.jbredwards.fluidlogged_api.util.FluidloggedConstants.*;
 
 /**
@@ -25,8 +27,10 @@ import static git.jbredwards.fluidlogged_api.util.FluidloggedConstants.*;
 public final class Fluidlogged
 {
     //vanilla fluidlogged te's, the modded ones get registered automatically through FluidPlugin
-    public static final BlockFluidloggedTE WATERLOGGED_TE = new BlockFluidloggedTE(FluidRegistry.WATER, Material.WATER);
-    public static final BlockFluidloggedTE LAVALOGGED_TE = new BlockFluidloggedTE(FluidRegistry.LAVA, Material.LAVA);
+    @Nonnull public static BlockFluidloggedTE WATERLOGGED_TE = new BlockFluidloggedTE(FluidRegistry.WATER, Material.WATER);
+    @Nonnull public static BlockFluidloggedTE LAVALOGGED_TE = new BlockFluidloggedTE(FluidRegistry.LAVA, Material.LAVA);
+
+    //puts the vanilla fluidlogged te's into the lookup
     static {
         FLUIDLOGGED_TE_LOOKUP.put(FluidRegistry.WATER, WATERLOGGED_TE);
         FLUIDLOGGED_TE_LOOKUP.put(FluidRegistry.LAVA, LAVALOGGED_TE);

@@ -25,6 +25,7 @@ import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
@@ -183,10 +184,10 @@ public enum ASMHooks
 
     //FluidPlugin
     public static void registerFluidloggedBlock(Fluid fluid) {
-        if(fluid.getName() != null && FluidRegistry.isFluidRegistered(fluid) && fluid.getBlock() instanceof BlockFluidClassic && !FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.containsKey(fluid)) {
+        if(fluid.getName() != null && FluidRegistry.isFluidRegistered(fluid) && fluid.getBlock() instanceof BlockFluidClassic && !fluid.getBlock().hasTileEntity() && !FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.containsKey(fluid)) {
             //generates the block
             final BlockFluidloggedTE block = new BlockFluidloggedTE(fluid, fluid.getBlock().getDefaultState().getMaterial(), fluid.getBlock().getDefaultState().getMapColor(null, null));
-            final String unlocalizedName = fluid.getBlock().getUnlocalizedName();
+            final String unlocalizedName = fluid.getUnlocalizedName();
             //registers the block
             FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.put(fluid, block);
             ForgeRegistries.BLOCKS.register(block.setRegistryName(new ResourceLocation(fluid.getName()).getResourcePath() + "logged_te").setUnlocalizedName(unlocalizedName.substring(unlocalizedName.indexOf('.'))));
@@ -763,13 +764,34 @@ public enum ASMHooks
     }
 
     //BlockFluidBasePlugin
-    public static Material shouldSideBeRendered(IBlockState state, Fluid fluid, IBlockAccess world, BlockPos pos, EnumFacing facing) {
-        if(FluidloggedUtils.getFluidFromBlock(state.getBlock()) == fluid) {
-            if(!(state.getBlock() instanceof AbstractFluidloggedBlock) || ((AbstractFluidloggedBlock)state.getBlock()).canSideFlow(state, world, pos.offset(facing), facing.getOpposite())) return state.getMaterial();
+    public static boolean shouldSideBeRendered(IBlockState here, IBlockState offset, IBlockAccess world, BlockPos pos, EnumFacing facing, int densityDir) {
+        //handles fluidlogged fluid blocks
+        final boolean exempt = offset.getBlock() instanceof AbstractFluidloggedBlock && !((AbstractFluidloggedBlock)offset.getBlock()).canSideFlow(offset, world, pos.offset(facing), facing.getOpposite());
+
+        //handles fluid blocks
+        if(!exempt) {
+            final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(offset.getBlock());
+            if(fluid != null) return fluid != FluidloggedUtils.getFluidFromBlock(here.getBlock());
+        }
+
+        //top face shouldn't perform the rest of the checks
+        if(facing == (densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN)) return true;
+
+        //handles normal blocks
+        final AxisAlignedBB aabb = here.getBoundingBox(world, pos);
+
+        //bounding box isn't full on the given side
+        switch(facing) {
+            case DOWN:  if(aabb.minY > 0) return true;
+            case UP:    if(aabb.maxY < 1) return true;
+            case NORTH: if(aabb.minZ > 0) return true;
+            case SOUTH: if(aabb.maxZ < 1) return true;
+            case WEST:  if(aabb.minX > 0) return true;
+            case EAST:  if(aabb.maxX < 1) return true;
         }
 
         //default
-        return null;
+        return !offset.doesSideBlockRendering(world, pos.offset(facing), facing.getOpposite());
     }
 
     //BlockFluidRendererPlugin
@@ -892,6 +914,12 @@ public enum ASMHooks
     //BlockRailBasePlugin
     public static boolean setStoredOrRealSimple(World world, BlockPos pos, IBlockState state) {
         return setStoredOrRealSimple(world, pos, state, 3);
+    }
+
+    //WorldServerPlugin
+    public static IBlockState getStoredOrReal(IBlockState here, WorldServer world, BlockPos pos) {
+        if(!(here.getBlock() instanceof BlockFluidloggedTE)) return here;
+        else return ((BlockFluidloggedTE)here.getBlock()).getStored(world, pos);
     }
 
     //WorldServerPlugin
