@@ -230,12 +230,8 @@ public enum FluidloggedUtils
         //modded
         if(fluid instanceof IFluidBlock) return ((IFluidBlock)fluid).getFluid();
         //vanilla
-        else if(fluid instanceof BlockLiquid) {
-            return fluid.getDefaultState().getMaterial() == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA;
-        }
-
-        //default
-        return null;
+        else if(fluid.getDefaultState().getMaterial() == Material.WATER) return FluidRegistry.WATER;
+        else return fluid.getDefaultState().getMaterial() == Material.LAVA ? FluidRegistry.LAVA : null;
     }
 
     //returns true if the fluid can create sources

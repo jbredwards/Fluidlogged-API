@@ -39,12 +39,10 @@ public class SledgehammerPlugin extends AbstractPlugin
         }
 
         @Override
-        public void visit(String name, Object value) {
-            av.visit(name, Type.getType("Lgit/jbredwards/fluidlogged_api/asm/swapper/BlockLiquidBase;"));
-        }
+        public void visit(String name, Object value) { }
 
         @Override
-        public AnnotationVisitor visitArray(String name) {
+        public AnnotationVisitor visitArray(String name) { 
             return new AnnotationSwapper(super.visitArray(name));
         }
     }

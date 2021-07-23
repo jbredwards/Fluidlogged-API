@@ -313,20 +313,21 @@ public class FluidloggedEvents
             final @Nullable Fluid fluid = getFluid(here);
 
             //if the block is a fluid
-            if(fluid != null && !(here.getBlock() instanceof AbstractFluidloggedBlock)) {
+            if(fluid != null) {
                 final int meta = held.getItem().getMetadata(held.getMetadata());
-                final Vec3d hit = Optional.ofNullable(event.getHitVec()).orElse(new Vec3d(pos));
                 final EntityPlayer player = event.getEntityPlayer();
+                final Vec3d hit = Optional.ofNullable(event.getHitVec()).orElse(new Vec3d(pos));
                 final IBlockState stored = Block.getBlockFromItem(held.getItem()).getStateForPlacement(world, pos, facing, (float)hit.x - pos.getX(), (float)hit.y - pos.getY(), (float)hit.z - pos.getZ(), meta, player, event.getHand());
 
-                if(FluidloggedUtils.tryFluidlogBlock(world, pos, stored, fluid, true)) {
+                //checks if the player would be able to place the block at the location normally
+                if(player.canPlayerEdit(pos.offset(facing), facing, held) && world.mayPlace(stored.getBlock(), pos, false, facing, player) && FluidloggedUtils.tryFluidlogBlock(world, pos, stored, fluid, true)) {
                     //place sound
                     final SoundType sound = stored.getBlock().getSoundType(stored, world, pos, player);
                     world.playSound(null, pos, sound.getPlaceSound(), SoundCategory.BLOCKS, (sound.getVolume() + 1) / 2, sound.getPitch() * 0.8f);
 
                     //updates the player's stats
                     if(player instanceof EntityPlayerMP) CriteriaTriggers.PLACED_BLOCK.trigger((EntityPlayerMP)player, pos, event.getItemStack());
-                    if(!player.isCreative()) event.getItemStack().shrink(1);
+                    if(!player.isCreative()) held.shrink(1);
 
                     event.setCanceled(true);
                     event.setCancellationResult(EnumActionResult.SUCCESS);
@@ -338,14 +339,22 @@ public class FluidloggedEvents
     //gets the fluid source here, null if none
     @Nullable
     public static Fluid getFluid(IBlockState state) {
-        if((state.getBlock() instanceof BlockFluidClassic || state.getBlock() instanceof BlockLiquid) && state.getValue(LEVEL) == 0) {
-            if(state.getBlock() instanceof BlockFluidClassic) return ((BlockFluidClassic)state.getBlock()).getFluid();
-            else {
-                if(state.getMaterial() == Material.WATER) return FluidRegistry.WATER;
-                else return FluidRegistry.LAVA;
+        if((state.getBlock() instanceof BlockFluidClassic || state.getBlock() instanceof BlockLiquid)) {
+            if(state.getValue(LEVEL) == 0) {
+                if(state.getBlock() instanceof BlockFluidClassic) return ((BlockFluidClassic)state.getBlock()).getFluid();
+                else {
+                    if(state.getMaterial() == Material.WATER) return FluidRegistry.WATER;
+                    else return FluidRegistry.LAVA;
+                }
             }
         }
+        //vanilla blocks that don't extend the vanilla fluid class (biomes o plenty cough cough)
+        else if(!(state.getBlock() instanceof BlockFluidFinite)) {
+            if(state.getMaterial() == Material.WATER) return FluidRegistry.WATER;
+            else if(state.getMaterial() == Material.LAVA) return FluidRegistry.LAVA;
+        }
 
+        //default
         return null;
     }
 }

@@ -11,6 +11,7 @@ import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -37,13 +38,11 @@ import javax.annotation.Nullable;
 @SuppressWarnings({"NullableProblems", "unused"})
 public abstract class BlockLiquidBase extends BlockLiquid
 {
-    protected BlockLiquidBase(Material materialIn) {
-        super(materialIn);
-    }
+    protected BlockLiquidBase(Material materialIn) { super(materialIn); }
 
     @Override
     protected BlockStateContainer createBlockState() {
-        return new BlockStateContainer.Builder(this).add(LEVEL).add(BlockFluidBase.FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0])).build();
+        return new BlockStateContainer.Builder(this).add(BlockFluidBase.LEVEL).add(BlockFluidBase.FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0])).build();
     }
 
     @Override
@@ -142,6 +141,12 @@ public abstract class BlockLiquidBase extends BlockLiquid
     @Override
     public boolean shouldSideBeRendered(IBlockState here, IBlockAccess world, BlockPos pos, EnumFacing facing) {
         return ASMHooks.shouldSideBeRendered(here, world.getBlockState(pos.offset(facing)), world, pos, facing, -1);
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    public BlockRenderLayer getBlockLayer() {
+        return blockMaterial == Material.WATER ? BlockRenderLayer.TRANSLUCENT : BlockRenderLayer.SOLID;
     }
 
     @Override

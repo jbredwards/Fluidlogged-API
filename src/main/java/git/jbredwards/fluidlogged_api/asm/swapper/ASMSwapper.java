@@ -22,8 +22,6 @@ public class ASMSwapper implements IClassTransformer
             //removes the smoothwater mod overrides and replaces them with the integrated ones
             .put("pl/asie/mage/core/water/BlockLiquidForged", "git/jbredwards/fluidlogged_api/asm/swapper/BlockLiquidBase")
             .put("pl/asie/smoothwater/BlockLiquidForged", "git/jbredwards/fluidlogged_api/asm/swapper/BlockLiquidBase")
-            //sledgehammer mod compat
-            .put("io/github/lxgaming/sledgehammer/mixin/core/block/BlockDynamicLiquidMixin", "git/jbredwards/fluidlogged_api/asm/swapper/BlockLiquidBase")
             .build();
 
     @Override
