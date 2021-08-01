@@ -70,6 +70,7 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
         //init, line 181
         if(currentMethod == 1 && insn.getOpcode() == GETSTATIC && ASMUtils.checkField(insn, "defaultDisplacements", "Ljava/util/Map;")) {
             instructions.insert(insn, method("defaultDisplacements", "(Ljava/util/Map;)Ljava/util/Map;"));
+            return true;
         }
         //canDisplace, line 284
         if(currentMethod == 2 && insn.getOpcode() == IF_ACMPNE) {
@@ -150,7 +151,6 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
                     list.add(method("getFluidHeightForRender", "(Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;IIIIFF)F"));
 
                     instructions.insert(insn, list);
-
                 }
                 //second instance
                 else {
@@ -175,7 +175,6 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
                     list.add(method("getFluidHeightForRender", "(Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;IIIIFF)F"));
 
                     instructions.insert(insn, list);
-
                 }
 
                 instructions.remove(insn);
@@ -272,19 +271,17 @@ public class BlockFluidBasePlugin extends AbstractMultiMethodPlugin
 
             return true;
         }
-        //getFluid, line 792 (exposed to boost performance, sorry forge devs)
+        //getFluid, line 792 (exposed to significantly boost performance, sorry forge devs)
         if(currentMethod == 8 && ASMUtils.checkMethod(insn, "getFluid", "(Ljava/lang/String;)Lnet/minecraftforge/fluids/Fluid;")) {
             instructions.insert(insn, new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "definedFluid", "Lnet/minecraftforge/fluids/Fluid;"));
             instructions.remove(insn.getPrevious());
             instructions.remove(insn);
         }
         //clinit, line 73-113
-        if(currentMethod == 9 && insn.getOpcode() == GETSTATIC && ASMUtils.checkField(insn, "defaultDisplacements", "Ljava/util/Map;")) {
-            while(!(insn.getNext().getNext() instanceof LineNumberNode && ((LineNumberNode)insn.getNext().getNext()).line == 125)) {
-                instructions.remove(insn.getNext());
-            }
-
-            instructions.remove(insn);
+        if(currentMethod == 9 && insn.getNext().getOpcode() == LDC) {
+            //removes all default entries, as the class is now loaded before they're registered
+            while(insn.getPrevious().getOpcode() != PUTSTATIC) instructions.remove(insn.getPrevious());
+            //finish all transformations
             finishedAll = true;
             return true;
         }

@@ -15,7 +15,7 @@ import javax.annotation.Nullable;
 
 /**
  * implement this if the block can be fluidlogged (but also can be not fluidlogged, like sea pickles)
- * this interface supports the forge optional @interface as well, so iuf you want your mod to have optional support for this one, you can!
+ * this interface supports the forge net.minecraftforge.fml.common.Optional @interface as well, so if you want your mod to have optional support for this one, you can!
  * @author jbred
  *
  */

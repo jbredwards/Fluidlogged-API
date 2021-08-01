@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm;
 
+import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -67,5 +68,31 @@ public enum ASMUtils
         else if(desc == null) return ((FieldInsnNode)insn).name.equals(name);
         //default
         else return((FieldInsnNode)insn).name.equals(name) && ((FieldInsnNode)insn).desc.equals(desc);
+    }
+
+    //removes all annotations from a class during runtime
+    @Nonnull
+    public static byte[] removeAnnotations(@Nonnull byte[] basicClass) {
+        final ClassReader reader = new ClassReader(basicClass);
+        final ClassWriter writer = new ClassWriter(0);
+        //removes all annotations from the class
+        reader.accept(new ClassVisitor(Opcodes.ASM5, writer) {
+            //removes all class annotations
+            public AnnotationVisitor visitAnnotation(String desc, boolean visible) { return null; }
+            //removes all field annotations
+            public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+                return new FieldVisitor(Opcodes.ASM5, cv.visitField(access, name, desc, signature, value)) {
+                    public AnnotationVisitor visitAnnotation(String desc, boolean visible) { return null; }
+                };
+            }
+            //removes all method annotations
+            public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+                return new MethodVisitor(Opcodes.ASM5, cv.visitMethod(access, name, desc, signature, exceptions)) {
+                    public AnnotationVisitor visitAnnotation(String desc, boolean visible) { return null; }
+                };
+            }
+        }, 0);
+        //returns the transformed class
+        return writer.toByteArray();
     }
 }

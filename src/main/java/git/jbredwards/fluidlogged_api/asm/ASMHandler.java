@@ -17,7 +17,7 @@ import java.util.Map;
  *
  */
 @SuppressWarnings("unused")
-@IFMLLoadingPlugin.SortingIndex(1005)
+@IFMLLoadingPlugin.SortingIndex(1401)
 @IFMLLoadingPlugin.Name("Fluidlogged Plugin")
 @IFMLLoadingPlugin.MCVersion("1.12.2")
 public class ASMHandler implements IFMLLoadingPlugin
@@ -37,6 +37,7 @@ public class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.BlockSponge", new BlockSpongePlugin())
                 .put("net.minecraft.block.BlockStairs", new BlockStairsPlugin())
                 .put("net.minecraft.block.BlockTrapDoor", new BlockTrapDoorPlugin())
+                .put("net.minecraft.block.BlockWall", new BlockWallPlugin())
                 .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin())
                 .put("net.minecraft.entity.item.EntityMinecart", new EntityMinecartPlugin())
@@ -53,10 +54,15 @@ public class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper", new FluidBlockWrapperPlugin())
                 //modded
                 .put("biomesoplenty.common.fluids.blocks.BlockBloodFluid",          new BiomesOPlentyPlugin())
+                .put("biomesoplenty.common.fluids.blocks.BlockHoneyFluid",          new BiomesOPlentyPlugin())
                 .put("biomesoplenty.common.fluids.blocks.BlockHotSpringWaterFluid", new BiomesOPlentyPlugin())
+                .put("biomesoplenty.common.fluids.blocks.BlockPoisonFluid",         new BiomesOPlentyPlugin())
                 .put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid",      new BiomesOPlentyPlugin())
+                .put("com.HopierXl.TimeStop.Items.tools.bucketUsed", new TimestopPlugin())
+                .put("com.HopierXl.TimeStop.RegistryHandler",        new TimestopPlugin())
                 .put("hellfirepvp.astralsorcery.common.block.fluid.FluidBlockLiquidStarlight", new AstralSorceryPlugin())
                 .put("io.github.lxgaming.sledgehammer.mixin.core.block.BlockLiquidAccessor", new SledgehammerPlugin())
+                .put("mods.octarinecore.client.render.BlockContext", new BetterFoliagePlugin())
                 .put("mods.railcraft.client.render.carts.RenderCart",   new RailcraftPlugin())
                 .put("mods.railcraft.common.blocks.tracks.TrackTools",  new RailcraftPlugin())
                 .put("mods.railcraft.common.carts.CartTools",           new RailcraftPlugin())

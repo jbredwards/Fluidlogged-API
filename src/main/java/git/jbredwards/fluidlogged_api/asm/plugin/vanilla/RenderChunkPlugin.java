@@ -54,9 +54,40 @@ public final class RenderChunkPlugin extends AbstractPlugin
             instructions.remove(insn);
             return false;
         }
+        //BETTER FOLIAGE, line 189 (switches to fluid render for fluidlogged blocks)
+        if(ASMUtils.checkMethod(insn, "canRenderBlockInLayer", null)) {
+            final InsnList list = new InsnList();
+            //optifine
+            if(insn.getNext().getOpcode() == ISTORE) {
+                //IBlockAccess local var
+                list.add(new VarInsnNode(ALOAD, 11));
+                //BlockPos local var
+                list.add(new VarInsnNode(ALOAD, 17));
+            }
+            //vanilla
+            else {
+                //IBlockAccess var
+                list.add(new VarInsnNode(ALOAD, 0));
+                list.add(new FieldInsnNode(GETFIELD, "net/minecraft/client/renderer/chunk/RenderChunk", (obfuscated ? "field_189564_r" : "worldView"), "Lnet/minecraft/world/ChunkCache;"));
+                //BlockPos local var
+                list.add(new VarInsnNode(ALOAD, 14));
+            }
+
+            //adds the code
+            list.add(method("canRenderInLayer", "(Lnet/minecraft/block/Block;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/BlockRenderLayer;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z"));
+            instructions.insert(insn, list);
+            instructions.remove(insn);
+            return false;
+        }
         //BOTH, line 203 (renders the fluid block rather than the actual block for fluidlogged blocks)
         if(ASMUtils.checkMethod(insn, obfuscated ? "func_175018_a" : "renderBlock", null)) {
             instructions.insert(insn, method("renderBlock", "(Lnet/minecraft/client/renderer/BlockRendererDispatcher;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/client/renderer/BufferBuilder;)Z"));
+            instructions.remove(insn);
+            return false;
+        }
+        //BETTER FOLIAGE, line 203 (renders the fluid block rather than the actual block for fluidlogged blocks)
+        if(ASMUtils.checkMethod(insn, "renderWorldBlock", null)) {
+            instructions.insert(insn, method("renderBlockBF", "(Lnet/minecraft/client/renderer/BlockRendererDispatcher;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/client/renderer/BufferBuilder;Lnet/minecraft/util/BlockRenderLayer;)Z"));
             instructions.remove(insn);
             return false;
         }

@@ -11,6 +11,7 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 /**
  * you should still use IFluidloggable for your own blocks if possible
@@ -49,6 +50,12 @@ public abstract class FluidloggedEvent extends Event
             this.te = te;
             this.ignoreVaporize = ignoreVaporize;
         }
+
+        @Override
+        public boolean isCancelable() { return true; }
+
+        @Override
+        public boolean hasResult() { return true; }
     }
 
     //fired when trying to un-fluidlog a block
@@ -63,16 +70,30 @@ public abstract class FluidloggedEvent extends Event
         @Nonnull public final IBlockState here;
         //stored block prior to un-fluidlog
         @Nonnull public final IBlockState stored;
+        @Nonnull public final TileEntityFluidlogged te;
         //block that gets made when un-fluidlog
         @Nonnull public IBlockState toCreate;
 
-        public UnFluidlog(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull IBlockState stored, @Nonnull IBlockState toCreate) {
+        public UnFluidlog(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull IBlockState stored, @Nonnull TileEntityFluidlogged te, @Nonnull IBlockState toCreate) {
             this.world = world;
             this.pos = pos;
             this.here = here;
             this.stored = stored;
+            this.te = te;
             this.toCreate = toCreate;
         }
+
+        //use the tile entity sensitive version
+        @Deprecated
+        public UnFluidlog(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull IBlockState stored, @Nonnull IBlockState toCreate) {
+            this(world, pos, here, stored, (TileEntityFluidlogged)Objects.requireNonNull(world.getTileEntity(pos)), toCreate);
+        }
+
+        @Override
+        public boolean isCancelable() { return true; }
+
+        @Override
+        public boolean hasResult() { return true; }
     }
 
     //fired by FluidloggedUtils.isStateFluidloggable(state, fluid)
@@ -92,12 +113,8 @@ public abstract class FluidloggedEvent extends Event
     }
 
     @Override
-    public boolean isCancelable() {
-        return true;
-    }
+    public boolean isCancelable() { return true; }
 
     @Override
-    public boolean hasResult() {
-        return true;
-    }
+    public boolean hasResult() { return true; }
 }

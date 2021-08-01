@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged_api.common.block;
 import com.google.common.primitives.Ints;
 import git.jbredwards.fluidlogged_api.asm.ASMHooks;
 import git.jbredwards.fluidlogged_api.util.FluidloggedUtils;
+import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.BlockSnow;
@@ -14,7 +15,6 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
-import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -33,6 +33,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Field;
 import java.util.Random;
 
@@ -42,18 +43,21 @@ import java.util.Random;
  * @author jbred
  *
  */
-@SuppressWarnings("NullableProblems")
+@MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
 public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
 {
     //private or protected fields used by this class
     public static final Field canCreateSourcesField = ObfuscationReflectionHelper.findField(BlockFluidClassic.class, "canCreateSources");
     public static final Field quantaPerBlockField = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlock");
+    public static final Field quantaPerBlockFloatField = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlockFloat");
+    public static final Field quantaFractionField = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaFraction");
     static {
         canCreateSourcesField.setAccessible(true);
         quantaPerBlockField.setAccessible(true);
+        quantaPerBlockFloatField.setAccessible(true);
+        quantaFractionField.setAccessible(true);
     }
-    //should only be called from this class
-    public static boolean isStateFluidloggableCache = false;
     //makes definedFluid public
     public Fluid fluid;
 
@@ -73,7 +77,11 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     public boolean isQuantaDirty = true;
     public void updateQuanta() {
         if(isQuantaDirty) {
-            try { setQuantaPerBlock(quantaPerBlockField.getInt(fluid.getBlock())); }
+            try {
+                quantaPerBlock = quantaPerBlockField.getInt(fluid.getBlock());
+                quantaPerBlockFloat = quantaPerBlockFloatField.getFloat(fluid.getBlock());
+                quantaFraction = quantaFractionField.getFloat(fluid.getBlock());
+            }
             catch(Exception ignored) {}
 
             isQuantaDirty = false;
@@ -156,11 +164,6 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
         return 0;
     }
 
-    @Override
-    public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
-        return renderLayer == layer;
-    }
-
     //so this doesn't create more of itself
     @Override
     protected void flowIntoBlock(World world, BlockPos pos, int meta) {
@@ -197,12 +200,11 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
             return false;
         }
 
-        final boolean replaceable = block.isReplaceable(world, pos);
+        final boolean replaceable = block.isReplaceable(world, pos) || FluidloggedUtils.isStateFluidloggable(state, fluid);
         final int density = getDensity(world, pos);
-        isStateFluidloggableCache = !replaceable && FluidloggedUtils.isStateFluidloggable(state, fluid);
 
-        if(density == Integer.MAX_VALUE) return replaceable || isStateFluidloggableCache;
-        else return (replaceable || isStateFluidloggableCache) && this.density > density;
+        if(density == Integer.MAX_VALUE) return replaceable;
+        else return replaceable && this.density > density;
     }
 
     //draining this block drops the item
@@ -222,8 +224,6 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
 
     @Override
     public void updateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
-        updateQuanta();
-
         final boolean canFlowVertical = canSideFlow(state, world, pos, densityDir < 0 ? EnumFacing.DOWN : EnumFacing.UP);
 
         //Flow vertically if possible
@@ -287,8 +287,6 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     @Nonnull
     @Override
     public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        updateQuanta();
-
         IExtendedBlockState state = (IExtendedBlockState)oldState;
         state = state.withProperty(FLOW_DIRECTION, (float)getFlowDirection(world, pos));
 

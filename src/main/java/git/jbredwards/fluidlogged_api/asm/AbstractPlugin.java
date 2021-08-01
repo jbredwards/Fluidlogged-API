@@ -1,8 +1,11 @@
 package git.jbredwards.fluidlogged_api.asm;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Iterator;
 
@@ -14,6 +17,9 @@ import java.util.Iterator;
  */
 public abstract class AbstractPlugin implements Opcodes
 {
+    //inform the console when a specific thing is successfully transformed
+    @Nonnull public static final Logger LOGGER = LogManager.getFormatterLogger("Fluidlogged API");
+
     //returns the method being transformed
     @Nullable public abstract String getMethodName(boolean obfuscated);
     //returns the desc of the method being transformed
@@ -35,6 +41,11 @@ public abstract class AbstractPlugin implements Opcodes
         return new MethodInsnNode(INVOKESTATIC, "git/jbredwards/fluidlogged_api/asm/ASMHooks", name, desc, false);
     }
 
+    //informs the console of the transformation
+    public void log(ClassReader reader, MethodNode method) {
+        LOGGER.info(String.format("transforming... %s.%s%s", reader.getClassName(), method.name, method.desc));
+    }
+
     //ran when the handler transforms the class
     public byte[] transform(byte[] basicClass, boolean obfuscated) {
         final ClassNode classNode = new ClassNode();
@@ -45,6 +56,9 @@ public abstract class AbstractPlugin implements Opcodes
         all:for(Iterator<MethodNode> it = classNode.methods.iterator(); it.hasNext();) {
             MethodNode method = it.next();
             if(isMethodValid(method, obfuscated)) {
+                //informs the console of the transformation
+                log(reader, method);
+
                 //removes methods and skips the rest if so
                 if(removeMethod(it, obfuscated)) continue;
 
@@ -70,6 +84,7 @@ public abstract class AbstractPlugin implements Opcodes
             }
         }
 
+        //writes the changes
         final ClassWriter writer = new ClassWriter(0);
         classNode.accept(writer);
 

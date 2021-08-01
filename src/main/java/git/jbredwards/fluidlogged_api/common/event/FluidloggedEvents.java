@@ -10,7 +10,6 @@ import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -58,8 +57,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.util.*;
-
-import static net.minecraftforge.fluids.BlockFluidBase.LEVEL;
 
 /**
  *
@@ -153,7 +150,7 @@ public class FluidloggedEvents
     }
 
     //shows more fluidlogged block data in the F3 screen
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"ConstantConditions", "unused"})
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public static void showAdditionalDebugData(RenderGameOverlayEvent.Text event) {
@@ -173,8 +170,8 @@ public class FluidloggedEvents
                 for(Map.Entry<IProperty<?>, Comparable<?>> entry : stored.getProperties().entrySet()) {
                     String value = entry.getValue().toString();
                     //consistent coloring with vanilla
-                    if(value.equals("true")) value = TextFormatting.GREEN + value;
-                    else if(value.equals("false")) value = TextFormatting.RED + value;
+                    if(Boolean.TRUE.equals(entry.getValue())) value = TextFormatting.GREEN + value;
+                    else if(Boolean.FALSE.equals(entry.getValue())) value = TextFormatting.RED + value;
                     //adds the text
                     event.getRight().add(entry.getKey().getName() + ": " + value);
                 }
@@ -220,36 +217,38 @@ public class FluidloggedEvents
     @SuppressWarnings("unused")
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void fluidPlaceOrTake(FillBucketEvent event) {
-        final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(event.getEmptyBucket());
+        if(!event.isCanceled() && event.getResult() == Event.Result.DEFAULT) {
+            final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(event.getEmptyBucket());
 
-        //this shouldn't be null, but just in case
-        if(handler != null && event.getTarget() != null) {
-            //null if the bucket is empty
-            final @Nullable FluidStack fluidStack = handler.drain(Fluid.BUCKET_VOLUME, false);
-            final BlockPos pos = event.getTarget().getBlockPos();
-            final World world = event.getWorld();
-            final EnumFacing sideHit = event.getTarget().sideHit;
+            //this shouldn't be null, but just in case
+            if(handler != null && event.getTarget() != null) {
+                //null if the bucket is empty
+                final @Nullable FluidStack fluidStack = handler.drain(Fluid.BUCKET_VOLUME, false);
+                final BlockPos pos = event.getTarget().getBlockPos();
+                final World world = event.getWorld();
+                final EnumFacing sideHit = event.getTarget().sideHit;
 
-            //if the fluidStack is empty, the bucket is empty
-            if(fluidStack == null) {
-                //directly interacts with the block
-                if(runBucketEmpty(event, world, world.getBlockState(pos), pos, event.getEntityPlayer())) return;
-                //indirectly interacts with the block
-                runBucketEmpty(event, world, world.getBlockState(pos.offset(sideHit)), pos.offset(sideHit), event.getEntityPlayer());
-            }
-            //since the bucket if full, the block will get fluidlogged
-            else {
-                //directly interacts with the block
-                if(runBucketFull(event, world, world.getBlockState(pos), pos, event.getEntityPlayer(), fluidStack)) return;
-                //indirectly interacts with the block
-                runBucketFull(event, world, world.getBlockState(pos.offset(sideHit)), pos.offset(sideHit), event.getEntityPlayer(), fluidStack);
+                //if the fluidStack is empty, the bucket is empty
+                if(fluidStack == null) {
+                    //directly interacts with the block
+                    if(runBucketEmpty(event, world, world.getBlockState(pos), pos, event.getEntityPlayer())) return;
+                    //indirectly interacts with the block
+                    runBucketEmpty(event, world, world.getBlockState(pos.offset(sideHit)), pos.offset(sideHit), event.getEntityPlayer());
+                }
+                //since the bucket if full, the block will get fluidlogged
+                else {
+                    //directly interacts with the block
+                    if(runBucketFull(event, world, world.getBlockState(pos), pos, event.getEntityPlayer(), fluidStack)) return;
+                    //indirectly interacts with the block
+                    runBucketFull(event, world, world.getBlockState(pos.offset(sideHit)), pos.offset(sideHit), event.getEntityPlayer(), fluidStack);
+                }
             }
         }
     }
 
     public static boolean runBucketEmpty(FillBucketEvent event, World world, IBlockState here, BlockPos pos, EntityPlayer player) {
         //if the state is fluidlogged
-        if(here.getBlock() instanceof BlockFluidloggedTE && FluidloggedUtils.tryUnfluidlogBlock(world, pos, here, FluidloggedUtils.getStored(world, pos))) {
+        if(here.getBlock() instanceof BlockFluidloggedTE && FluidloggedUtils.tryUnfluidlogBlock(world, pos, here, null)) {
             //fill sound
             final Fluid fluid = ((BlockFluidloggedTE)here.getBlock()).fluid;
             final SoundEvent sound = fluid.getFillSound(new FluidStack(fluid, Fluid.BUCKET_VOLUME));
@@ -310,7 +309,7 @@ public class FluidloggedEvents
             final World world = event.getWorld();
             final BlockPos pos = event.getPos().offset(facing);
             final IBlockState here = world.getBlockState(pos);
-            final @Nullable Fluid fluid = getFluid(here);
+            final @Nullable Fluid fluid = getFluidFromBlockSource(here);
 
             //if the block is a fluid
             if(fluid != null) {
@@ -338,20 +337,20 @@ public class FluidloggedEvents
 
     //gets the fluid source here, null if none
     @Nullable
-    public static Fluid getFluid(IBlockState state) {
-        if((state.getBlock() instanceof BlockFluidClassic || state.getBlock() instanceof BlockLiquid)) {
-            if(state.getValue(LEVEL) == 0) {
-                if(state.getBlock() instanceof BlockFluidClassic) return ((BlockFluidClassic)state.getBlock()).getFluid();
-                else {
-                    if(state.getMaterial() == Material.WATER) return FluidRegistry.WATER;
-                    else return FluidRegistry.LAVA;
+    public static Fluid getFluidFromBlockSource(IBlockState state) {
+        if(state.getBlock() instanceof BlockFluidClassic || state.getBlock() instanceof BlockLiquid) {
+            final int level = state.getValue(BlockLiquid.LEVEL);
+            //block is a source
+            if(level == 0) return FluidloggedUtils.getFluidFromBlock(state.getBlock());
+            //vertical flow source
+            try {
+                final int depth = state.getBlock() instanceof BlockFluidClassic ? AbstractFluidloggedBlock.quantaPerBlockField.getInt(state.getBlock()) - level : 8 - level;
+                if(depth <= 0) {
+                    final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(state.getBlock());
+                    if(fluid != null && FluidloggedUtils.canFluidCreateSources(fluid)) return fluid;
                 }
             }
-        }
-        //vanilla blocks that don't extend the vanilla fluid class (biomes o plenty cough cough)
-        else if(!(state.getBlock() instanceof BlockFluidFinite)) {
-            if(state.getMaterial() == Material.WATER) return FluidRegistry.WATER;
-            else if(state.getMaterial() == Material.LAVA) return FluidRegistry.LAVA;
+            catch(Exception ignored) {}
         }
 
         //default

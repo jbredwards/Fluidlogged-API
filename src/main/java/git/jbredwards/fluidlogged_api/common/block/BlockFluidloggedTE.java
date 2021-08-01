@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged_api.common.block;
 import com.google.common.collect.ImmutableList;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvents;
 import git.jbredwards.fluidlogged_api.util.FluidloggedUtils;
+import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.block.*;
 import net.minecraft.block.material.EnumPushReaction;
@@ -38,16 +39,20 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
 /**
- *
+ * this is the block responsible for storing fluidlogged states in the world.
+ * new instances of this block should not be created externally, use IFluidloggable instead.
+ * if you need more functionality from IFluidloggable, create an issue or pull request on git.
  * @author jbred
  *
  */
-@SuppressWarnings("NullableProblems")
+@MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
 public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITileEntityProvider, IGrowable, IShearable
 {
     public BlockFluidloggedTE(Fluid fluid, Material material, MapColor mapColor) {
@@ -111,11 +116,6 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         return new TileEntityFluidlogged();
     }
 
-    @Override
-    public boolean canRenderInLayer(IBlockState ignored, BlockRenderLayer layer) {
-        return fluid.getBlock().canRenderInLayer(fluid.getBlock().getDefaultState(), layer);
-    }
-
     @SuppressWarnings("deprecation")
     @Override
     public EnumPushReaction getMobilityFlag(IBlockState state) { return EnumPushReaction.NORMAL; }
@@ -123,7 +123,7 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
     @Nullable
     @Override
     public FluidStack drain(World world, BlockPos pos, boolean doDrain) {
-        if(doDrain && !FluidloggedUtils.tryUnfluidlogBlock(world, pos, null, FluidloggedUtils.getStored(world, pos))) return null;
+        if(doDrain && !FluidloggedUtils.tryUnfluidlogBlock(world, pos, null, null)) return null;
         else return stack.copy();
     }
 
@@ -147,7 +147,7 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         super.updateTick(world, pos, state, rand);
         final boolean canFlowVertical = canSideFlow(state, world, pos, densityDir < 0 ? EnumFacing.DOWN : EnumFacing.UP);
         //Fluidlogs nearby blocks if enough sources
-        if(canCreateSources && (!canFlowVertical || !canFlowInto(world, pos.up(densityDir)) || FluidloggedEvents.getFluid(world.getBlockState(pos.up(densityDir))) == fluid)) {
+        if(canCreateSources && (!canFlowVertical || !canFlowInto(world, pos.up(densityDir)) || FluidloggedEvents.getFluidFromBlockSource(world.getBlockState(pos.up(densityDir))) == fluid)) {
             for(EnumFacing parentFacing : EnumFacing.HORIZONTALS) {
                 if(canSideFlow(state, world, pos, parentFacing)) {
                     BlockPos parentOffset = pos.offset(parentFacing);
@@ -164,7 +164,7 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
                                     BlockFluidloggedTE block = (BlockFluidloggedTE) blockState.getBlock();
                                     if(block.canSideFlow(blockState, world, offset, facing.getOpposite())) {
                                         boolean vertical = !block.canSideFlow(blockState, world, offset, densityDir < 0 ? EnumFacing.DOWN : EnumFacing.UP) || !block.canFlowInto(world, offset.up(densityDir));
-                                        if(vertical || FluidloggedEvents.getFluid(world.getBlockState(offset.up(densityDir))) == fluid) {
+                                        if(vertical || FluidloggedEvents.getFluidFromBlockSource(world.getBlockState(offset.up(densityDir))) == fluid) {
                                             FluidloggedUtils.tryFluidlogBlock(world, parentOffset, parentState, fluid, true, true);
                                             break;
                                         }

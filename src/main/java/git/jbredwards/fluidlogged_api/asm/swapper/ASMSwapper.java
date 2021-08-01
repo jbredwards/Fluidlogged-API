@@ -17,7 +17,7 @@ import java.util.Optional;
 @SuppressWarnings("unused")
 public class ASMSwapper implements IClassTransformer
 {
-    @Nonnull public Map<String, String> SWAP = new ImmutableMap.Builder<String, String>()
+    @Nonnull public static Map<String, String> SWAP = new ImmutableMap.Builder<String, String>()
             .put("net/minecraft/block/BlockLiquid", "git/jbredwards/fluidlogged_api/asm/swapper/BlockLiquidBase")
             //removes the smoothwater mod overrides and replaces them with the integrated ones
             .put("pl/asie/mage/core/water/BlockLiquidForged", "git/jbredwards/fluidlogged_api/asm/swapper/BlockLiquidBase")

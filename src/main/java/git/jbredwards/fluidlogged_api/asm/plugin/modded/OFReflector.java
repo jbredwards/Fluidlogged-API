@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.asm;
+package git.jbredwards.fluidlogged_api.asm.plugin.modded;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -31,16 +31,16 @@ public enum OFReflector
     @Nullable public static Method postRenderOverlays = null;
     @Nullable public static Method setOverlaysRendered = null;
 
-    //loads the methods & fields
+    //loads the class & the methods
     public static boolean loaded = false;
     public static void load() {
         if(!loaded) {
             //optifine loaded
             try {
-                //this tries to find an optifine class, will catch if it isn't there
+                //this tries to find the optifine class, will catch if it isn't there
                 RenderEnv = Class.forName("net.optifine.render.RenderEnv");
 
-                //sets the values for the optifine-only methods
+                //sets the values for the methods
                 setBlockLayer = ObfuscationReflectionHelper.findMethod(BufferBuilder.class, "setBlockLayer", void.class, BlockRenderLayer.class);
                 getRenderEnv = ObfuscationReflectionHelper.findMethod(BufferBuilder.class, "getRenderEnv", RenderEnv, IBlockState.class, BlockPos.class);
                 setRegionRenderCacheBuilder = ObfuscationReflectionHelper.findMethod(RenderEnv, "setRegionRenderCacheBuilder", void.class, RegionRenderCacheBuilder.class);

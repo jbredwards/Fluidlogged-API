@@ -50,6 +50,9 @@ public abstract class AbstractMultiMethodPlugin extends AbstractPlugin
         all:for(Iterator<MethodNode> it = classNode.methods.iterator(); it.hasNext();) {
             MethodNode method = it.next();
             if(isMethodValid(method, obfuscated)) {
+                //informs the console of the transformation
+                log(reader, method);
+
                 //removes methods and skips the rest if so
                 if(removeMethod(it, obfuscated)) continue;
 
