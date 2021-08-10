@@ -10,8 +10,8 @@
 
 ```groovy
 dependencies {
-    provided 'com.github.jbredwards:Fluidlogged-API:d3c10a0c5c'
-    compile 'com.github.jbredwards:Fluidlogged-API:d3c10a0c5c'
+    provided 'com.github.jbredwards:Fluidlogged-API:3c43a8209d'
+    compile 'com.github.jbredwards:Fluidlogged-API:3c43a8209d'
 }
 
 repositories {
