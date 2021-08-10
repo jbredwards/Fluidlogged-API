@@ -2,23 +2,22 @@ package git.jbredwards.fluidlogged_api.common.block;
 
 import com.google.common.primitives.Ints;
 import git.jbredwards.fluidlogged_api.asm.ASMHooks;
+import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvents;
 import git.jbredwards.fluidlogged_api.util.FluidloggedUtils;
 import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.BlockSnow;
-import net.minecraft.block.SoundType;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
@@ -35,6 +34,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -81,6 +81,10 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
                 quantaPerBlock = quantaPerBlockField.getInt(fluid.getBlock());
                 quantaPerBlockFloat = quantaPerBlockFloatField.getFloat(fluid.getBlock());
                 quantaFraction = quantaFractionField.getFloat(fluid.getBlock());
+
+                if(fluid.getBlock() instanceof BlockFluidClassic) {
+                    canCreateSources = canCreateSourcesField.getBoolean(fluid.getBlock());
+                }
             }
             catch(Exception ignored) {}
 
@@ -134,13 +138,18 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
 
     @Override
     public void onBlockExploded(World world, BlockPos pos, Explosion explosion) {
-        world.setBlockState(pos, fluid.getBlock().getDefaultState(), 11);
-        fluid.getBlock().onBlockDestroyedByExplosion(world, pos, explosion);
+        final Block toCreate = fluid.getBlock() instanceof BlockLiquid ? BlockLiquid.getFlowingBlock(
+                fluid.getBlock().getDefaultState().getMaterial()) : fluid.getBlock();
+        world.setBlockState(pos, toCreate.getDefaultState(), 11);
+        toCreate.onBlockDestroyedByExplosion(world, pos, explosion);
     }
 
     @Override
     public void onBlockDestroyedByPlayer(World worldIn, BlockPos pos, IBlockState state) {
-        worldIn.setBlockState(pos, fluid.getBlock().getDefaultState(), 11);
+        final Block toCreate = fluid.getBlock() instanceof BlockLiquid ? BlockLiquid.getFlowingBlock(
+                fluid.getBlock().getDefaultState().getMaterial()) : fluid.getBlock();
+
+        worldIn.setBlockState(pos, toCreate.getDefaultState(), 11);
     }
 
     @Override
@@ -225,32 +234,32 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     @Override
     public void updateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
         final boolean canFlowVertical = canSideFlow(state, world, pos, densityDir < 0 ? EnumFacing.DOWN : EnumFacing.UP);
-
         //Flow vertically if possible
         if(canFlowVertical && canDisplace(world, pos.up(densityDir))) {
             flowIntoBlock(world, pos.up(densityDir), 1);
             return;
         }
-
         //Flow outward if possible
         if(1 >= quantaPerBlock) return;
         final boolean[] flowTo = getOptimalFlowDirections(world, pos);
-
         for(int side = 0; side < 4; side++) {
             if(flowTo[side] && canSideFlow(state, world, pos, SIDES.get(side))) flowIntoBlock(world, pos.offset(SIDES.get(side)), 1);
+        }
+        //lava fluid fire spread
+        if(fluid == FluidRegistry.LAVA) Blocks.LAVA.updateTick(world, pos, Blocks.LAVA.getDefaultState(), rand);
+        //modded fluid fire spread
+        else if(fluid.getBlock() instanceof IFluidFireSpreader) {
+            ((IFluidFireSpreader)fluid.getBlock()).tryFireSpread(world, pos, state, rand, Arrays.stream(EnumFacing.values()).filter(e -> canSideFlow(state, world, pos, e)).toArray(EnumFacing[]::new));
         }
     }
 
     @Override
     protected boolean[] getOptimalFlowDirections(World world, BlockPos pos) {
         for(int side = 0; side < 4; side++) {
-            flowCost[side] = 1000;
-
             BlockPos pos2 = pos.offset(SIDES.get(side));
-
+            flowCost[side] = 1000;
             //can't flow into the block
             if(!canSideFlow(world.getBlockState(pos), world, pos, SIDES.get(side)) || !canFlowInto(world, pos2) || isSourceBlock(world, pos2)) continue;
-
             //can flow into the block
             if(canFlowInto(world, pos2.up(densityDir))) flowCost[side] = 0;
             else flowCost[side] = calculateFlowCost(world, pos2, 1, side);
@@ -376,13 +385,8 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     //used by getExtendedState()
     public boolean isFullFluid(IBlockAccess world, BlockPos pos, EnumFacing facing) {
         final IBlockState state = world.getBlockState(pos);
-
-        if(!state.getMaterial().isLiquid() && !(state.getBlock() instanceof IFluidBlock)) return false;
-        else if(state.getBlock() instanceof AbstractFluidloggedBlock) return ((AbstractFluidloggedBlock)state.getBlock()).canSideFlow(state, world, pos, facing.getOpposite());
-        else {
-            if(state.getBlock() instanceof BlockFluidClassic) return !((BlockFluidClassic)state.getBlock()).isSourceBlock(world, pos);
-            else return state.getBlock() instanceof BlockFluidFinite || state.getBlock().getMetaFromState(state) != 0;
-        }
+        if(state.getBlock() instanceof AbstractFluidloggedBlock) return ((AbstractFluidloggedBlock)state.getBlock()).canSideFlow(state, world, pos, facing.getOpposite());
+        else return FluidloggedEvents.getFluidFromBlockSource(state) != null;
     }
 
     //fixes the fluidlogged block flow direction
@@ -433,29 +437,10 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     @Override
     public boolean removedByPlayer(IBlockState state, World world, BlockPos pos, EntityPlayer player, boolean willHarvest) {
         onBlockHarvested(world, pos, state, player);
-        return world.setBlockState(pos, fluid.getBlock().getDefaultState(), world.isRemote ? 11 : 3);
-    }
+        final Block toCreate = fluid.getBlock() instanceof BlockLiquid ? BlockLiquid.getFlowingBlock(
+                fluid.getBlock().getDefaultState().getMaterial()) : fluid.getBlock();
 
-    //walk sound fix
-    @Override
-    public void onEntityWalk(World worldIn, BlockPos pos, Entity entityIn) {
-        //if the entity is above the fluid
-        if(entityIn.posY - (int)entityIn.posY < 1) {
-            //distance the player moved x & z
-            final double x = entityIn.posX - entityIn.prevPosX;
-            final double z = entityIn.posZ - entityIn.prevPosZ;
-
-            //if the cooldown is over
-            if(entityIn.distanceWalkedOnStepModified + MathHelper.sqrt(x * x + z * z) * 0.6D > entityIn.nextStepDistance) {
-                SoundType type = getSoundType(worldIn.getBlockState(pos), worldIn, pos, entityIn);
-
-                //special case for snow
-                final IBlockState up = worldIn.getBlockState(pos.up());
-                if(up.getBlock() instanceof BlockSnow) type = up.getBlock().getSoundType(up, worldIn, pos.up(), entityIn);
-                //plays the step sound
-                entityIn.playSound(type.getStepSound(), type.getVolume() * 0.15f, type.getPitch());
-            }
-        }
+        return world.setBlockState(pos, toCreate.getDefaultState(), world.isRemote ? 11 : 3);
     }
 
     //================================================================

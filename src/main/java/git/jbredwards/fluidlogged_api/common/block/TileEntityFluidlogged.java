@@ -48,7 +48,8 @@ public class TileEntityFluidlogged extends TileEntity implements ITickable
             world.addBlockEvent(pos, here.getBlock(), 1, Block.getStateId(stored));
 
             if(notify) {
-                world.markAndNotifyBlock(pos, world.getChunkFromBlockCoords(pos), here, stored, 3);
+                world.scheduleUpdate(pos, blockType, blockType.tickRate(world));
+                world.markAndNotifyBlock(pos, world.getChunkFromBlockCoords(pos), here, here, 3);
             }
         }
     }

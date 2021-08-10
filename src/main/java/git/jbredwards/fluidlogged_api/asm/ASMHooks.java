@@ -456,39 +456,41 @@ public enum ASMHooks
 
     //BlockDynamicLiquidPlugin
     public static Set<EnumFacing> flowInto(BlockDynamicLiquid obj, World world, BlockPos pos, int i, int j) {
-        final int[] flowCost = new int[4];
-        int level = i + j;
-        //has vertical flow
-        if(i >= 8) level = 1;
-        //cannot flow further
-        else if(level < 0 || level >= 8) return new HashSet<>();
+        if(!world.isRemote) {
+            final int[] flowCost = new int[4];
+            int level = i + j;
+            //has vertical flow
+            if(i >= 8) level = 1;
+            //cannot flow further
+            else if(level < 0 || level >= 8) return new HashSet<>();
 
-        //flows outward in each possible horizontal direction
-        for(int index = 0; index < 4; index++) {
-            EnumFacing facing = getHorizontal(index);
-            BlockPos offset = pos.offset(facing);
-            IBlockState state = world.getBlockState(offset);
-
-            flowCost[index] = 1000;
-
-            //side cannot flow
-            if(FluidloggedUtils.isSource(world, offset, state) || !isReplaceable(state, world, offset)) continue;
-
-            if(isReplaceable(world.getBlockState(offset.down(1)), world, offset.down(1))) flowCost[index] = 0;
-            else flowCost[index] = calculateFlowCost(obj, world, offset, 1, index);
-        }
-
-        //does the flow
-        final int min = Ints.min(flowCost);
-        for(int index = 0; index < 4; index++) {
-            if(flowCost[index] == min) {
+            //flows outward in each possible horizontal direction
+            for(int index = 0; index < 4; index++) {
                 EnumFacing facing = getHorizontal(index);
                 BlockPos offset = pos.offset(facing);
                 IBlockState state = world.getBlockState(offset);
 
-                if(FluidloggedUtils.getFluidFromBlock(obj) != FluidloggedUtils.getFluidFromBlock(state.getBlock()) && isReplaceable(state, world, offset)) {
-                    if(state.getBlock() != Blocks.SNOW_LAYER) state.getBlock().dropBlockAsItem(world, offset, state, 0);
-                    world.setBlockState(offset, obj.getDefaultState().withProperty(BlockLiquid.LEVEL, level));
+                flowCost[index] = 1000;
+
+                //side cannot flow
+                if(FluidloggedUtils.isSource(world, offset, state) || !isReplaceable(state, world, offset)) continue;
+
+                if(isReplaceable(world.getBlockState(offset.down(1)), world, offset.down(1))) flowCost[index] = 0;
+                else flowCost[index] = calculateFlowCost(obj, world, offset, 1, index);
+            }
+
+            //does the flow
+            final int min = Ints.min(flowCost);
+            for(int index = 0; index < 4; index++) {
+                if(flowCost[index] == min) {
+                    EnumFacing facing = getHorizontal(index);
+                    BlockPos offset = pos.offset(facing);
+                    IBlockState state = world.getBlockState(offset);
+
+                    if(FluidloggedUtils.getFluidFromBlock(obj) != FluidloggedUtils.getFluidFromBlock(state.getBlock()) && isReplaceable(state, world, offset)) {
+                        if(state.getBlock() != Blocks.SNOW_LAYER) state.getBlock().dropBlockAsItem(world, offset, state, 0);
+                        world.setBlockState(offset, obj.getDefaultState().withProperty(BlockLiquid.LEVEL, level));
+                    }
                 }
             }
         }
@@ -958,6 +960,11 @@ public enum ASMHooks
         else if(here.getBlock() instanceof BlockFluidloggedTE) return ((BlockFluidloggedTE)here.getBlock()).getStored(world, pos);
         //old
         return here;
+    }
+
+    //EntityPlugin
+    public static boolean playStepSound(Block block) {
+        return !(block instanceof AbstractFluidloggedBlock) && FluidloggedUtils.getFluidFromBlock(block) != null;
     }
 
     //==========

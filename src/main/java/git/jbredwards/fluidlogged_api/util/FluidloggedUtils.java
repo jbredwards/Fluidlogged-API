@@ -5,6 +5,7 @@ import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.block.TileEntityFluidlogged;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
+import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -20,21 +21,23 @@ import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.items.ItemHandlerHelper;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 /**
  * helpful functions
  * @author jbred
  *
  */
+@MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
 public enum FluidloggedUtils
 {
     ;
 
     //returns the stored fluidlogged block, null if there is none
     @Nullable
-    public static IBlockState getStored(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+    public static IBlockState getStored(IBlockAccess world, BlockPos pos) {
         final @Nullable TileEntity te = world.getTileEntity(pos);
 
         if(!(te instanceof TileEntityFluidlogged)) return null;
@@ -42,7 +45,7 @@ public enum FluidloggedUtils
     }
 
     //should be used instead of world.getBlockState wherever possible
-    public static IBlockState getStoredOrReal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+    public static IBlockState getStoredOrReal(IBlockAccess world, BlockPos pos) {
         final IBlockState here = world.getBlockState(pos);
 
         if(!(here.getBlock() instanceof BlockFluidloggedTE)) return here;
@@ -51,7 +54,7 @@ public enum FluidloggedUtils
 
     //if the block is fluidlogged, replaces the stored block, else does world.setBlockState()
     //this should be used instead of world.setBlockState wherever possible
-    public static void setStoredOrReal(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nullable IBlockState state, boolean notify) {
+    public static void setStoredOrReal(World world, BlockPos pos, @Nullable IBlockState here, @Nullable IBlockState state, boolean notify) {
         final @Nullable IBlockState stored = getStored(world, pos);
         if(state == null) state = Blocks.AIR.getDefaultState();
 
@@ -81,8 +84,7 @@ public enum FluidloggedUtils
         else world.setBlockState(pos, state, notify ? 3 : 0);
     }
 
-    //use fluid sensitive version below
-    @Deprecated
+    //checks if the block can be fluidlogged at all
     public static boolean isStateFluidloggable(@Nullable IBlockState state) {
         return isStateFluidloggable(state, null);
     }
@@ -123,19 +125,18 @@ public enum FluidloggedUtils
     }
 
     //use state sensitive version
-    @Deprecated
-    public static boolean tryFluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, boolean ignoreVaporize) {
+    public static boolean tryFluidlogBlock(World world, BlockPos pos, Fluid fluid, boolean ignoreVaporize) {
         return tryFluidlogBlock(world, pos, world.getBlockState(pos), fluid, ignoreVaporize);
     }
 
     //same as below method, but also calls isStateFluidloggable
-    public static boolean tryFluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull Fluid fluid, boolean ignoreVaporize) {
+    public static boolean tryFluidlogBlock(World world, BlockPos pos, @Nullable IBlockState here, Fluid fluid, boolean ignoreVaporize) {
         return tryFluidlogBlock(world, pos, here, fluid, ignoreVaporize, isStateFluidloggable(here, fluid));
     }
 
     //tries to fluidlog the block here with the fluid
     //returns true if the block was successfully fluidlogged
-    public static boolean tryFluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull Fluid fluid, boolean ignoreVaporize, boolean isStateFluidloggable) {
+    public static boolean tryFluidlogBlock(World world, BlockPos pos, @Nullable IBlockState here, Fluid fluid, boolean ignoreVaporize, boolean isStateFluidloggable) {
         if(!isStateFluidloggable) return false;
         if(here == null) here = world.getBlockState(pos);
 
@@ -169,20 +170,18 @@ public enum FluidloggedUtils
     }
 
     //use state sensitive version
-    @Deprecated
-    public static boolean tryUnfluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos) {
+    public static boolean tryUnfluidlogBlock(World world, BlockPos pos) {
         return tryUnfluidlogBlock(world, pos, null, null);
     }
 
     //use stored sensitive version
-    @Deprecated
-    public static boolean tryUnfluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here) {
+    public static boolean tryUnfluidlogBlock(World world, BlockPos pos, @Nullable IBlockState here) {
         return tryUnfluidlogBlock(world, pos, here, null);
     }
 
     //tries to un-fluidlog the block here
     //returns true if the block was successfully un-fluidlogged
-    public static boolean tryUnfluidlogBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nullable IBlockState stored) {
+    public static boolean tryUnfluidlogBlock(World world, BlockPos pos, @Nullable IBlockState here, @Nullable IBlockState stored) {
         final @Nullable TileEntity te = world.getTileEntity(pos);
         if(te instanceof TileEntityFluidlogged) {
             if(stored == null) stored = ((TileEntityFluidlogged)te).stored;
@@ -207,7 +206,7 @@ public enum FluidloggedUtils
     }
 
     //fills the bucket stack with the fluid
-    public static ItemStack getFilledBucket(@Nonnull ItemStack empty, @Nonnull Fluid fluid) {
+    public static ItemStack getFilledBucket(ItemStack empty, Fluid fluid) {
         empty = ItemHandlerHelper.copyStackWithSize(empty, 1);
         final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(empty);
 
@@ -221,7 +220,7 @@ public enum FluidloggedUtils
     }
 
     //empties the bucket stack
-    public static ItemStack getEmptyBucket(@Nonnull ItemStack filled) {
+    public static ItemStack getEmptyBucket(ItemStack filled) {
         filled = ItemHandlerHelper.copyStackWithSize(filled, 1);
         final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(filled);
 
@@ -236,7 +235,7 @@ public enum FluidloggedUtils
 
     //gets the fluid from the block (null if there is no fluid)
     @Nullable
-    public static Fluid getFluidFromBlock(@Nonnull Block fluid) {
+    public static Fluid getFluidFromBlock(Block fluid) {
         //modded
         if(fluid instanceof IFluidBlock) return ((IFluidBlock)fluid).getFluid();
         //vanilla
@@ -245,7 +244,7 @@ public enum FluidloggedUtils
     }
 
     //returns true if the fluid can create sources
-    public static boolean canFluidCreateSources(@Nonnull Fluid fluid) {
+    public static boolean canFluidCreateSources(Fluid fluid) {
         final @Nullable Block block = fluid.getBlock();
         if(block == null) return false;
 
@@ -260,7 +259,7 @@ public enum FluidloggedUtils
     }
 
     //returns true if the block here is a fluid source block
-    public static boolean isSource(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable IBlockState here) {
+    public static boolean isSource(IBlockAccess world, BlockPos pos, @Nullable IBlockState here) {
         if(here == null) here = world.getBlockState(pos);
 
         //modded

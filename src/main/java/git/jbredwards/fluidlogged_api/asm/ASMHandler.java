@@ -41,6 +41,7 @@ public class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin())
                 .put("net.minecraft.entity.item.EntityMinecart", new EntityMinecartPlugin())
+                .put("net.minecraft.entity.Entity", new EntityPlugin())
                 .put("net.minecraft.item.ItemMinecart", new ItemMinecartPlugin())
                 .put("net.minecraft.item.ItemMinecart$1", new ItemMinecartPlugin())
                 .put("net.minecraft.world.WorldServer", new WorldServerPlugin())

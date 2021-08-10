@@ -13,7 +13,6 @@ import net.minecraft.block.SoundType;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -21,10 +20,7 @@ import net.minecraft.client.renderer.block.statemap.StateMapperBase;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -47,7 +43,6 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
@@ -117,34 +112,6 @@ public class FluidloggedEvents
             if(block instanceof BlockLiquid) {
                 IBakedModel model = new ModelFluid(Optional.ofNullable(FluidloggedUtils.getFluidFromBlock(block)).orElse(FluidRegistry.WATER)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
                 event.getModelRegistry().putObject(new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid"), model);
-            }
-        }
-    }
-
-    //shows fluidlogged barrier particles
-    @SuppressWarnings("unused")
-    @SideOnly(Side.CLIENT)
-    @SubscribeEvent
-    public static void showFluidloggedBarrier(TickEvent.ClientTickEvent event) {
-        final Minecraft mc = Minecraft.getMinecraft();
-        final @Nullable EntityPlayerSP player = mc.player;
-        final @Nullable WorldClient world = mc.world;
-
-        if(player != null && world != null) {
-            final BlockPos origin = new BlockPos(player);
-
-            if(player.isCreative() && world.getTotalWorldTime() % 80 == 0 && player.getHeldItemMainhand().getItem() == Item.getItemFromBlock(Blocks.BARRIER)) {
-                for(int x = -32; x < 32; x++) {
-                    for(int y = -32; y < 32; y++) {
-                        for(int z = -32; z < 32; z++) {
-                            BlockPos pos = origin.add(x, y, z);
-                            @Nullable TileEntity te = world.getTileEntity(pos);
-
-                            boolean flag = (te instanceof TileEntityFluidlogged && ((TileEntityFluidlogged)te).stored.getBlock() == Blocks.BARRIER);
-                            if(flag) world.spawnParticle(EnumParticleTypes.BARRIER, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0, 0, 0);
-                        }
-                    }
-                }
             }
         }
     }

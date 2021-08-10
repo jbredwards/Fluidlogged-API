@@ -11,6 +11,7 @@ import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.ParticleDigging;
 import net.minecraft.client.particle.ParticleManager;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -21,6 +22,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Enchantments;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemSlab;
 import net.minecraft.item.ItemStack;
 import net.minecraft.pathfinding.PathNodeType;
@@ -149,15 +151,16 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         //Fluidlogs nearby blocks if enough sources
         if(canCreateSources && (!canFlowVertical || !canFlowInto(world, pos.up(densityDir)) || FluidloggedEvents.getFluidFromBlockSource(world.getBlockState(pos.up(densityDir))) == fluid)) {
             for(EnumFacing parentFacing : EnumFacing.HORIZONTALS) {
-                if(canSideFlow(state, world, pos, parentFacing)) {
-                    BlockPos parentOffset = pos.offset(parentFacing);
+                BlockPos parentOffset = pos.offset(parentFacing);
+
+                if(world.isBlockLoaded(parentOffset) && canSideFlow(state, world, pos, parentFacing)) {
                     IBlockState parentState = world.getBlockState(parentOffset);
 
                     if(parentState.getBlockFaceShape(world, parentOffset, parentFacing.getOpposite()) != BlockFaceShape.SOLID && FluidloggedUtils.isStateFluidloggable(parentState, fluid)) {
                         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
-                            //doesn't check the original block as a source
-                            if(facing.getOpposite() != parentFacing) {
-                                BlockPos offset = parentOffset.offset(facing);
+                            BlockPos offset = parentOffset.offset(facing);
+                            //doesn't repeat the check for the original fluid source & that the other fluid source can flow into the side
+                            if(world.isBlockLoaded(offset) && facing.getOpposite() != parentFacing && parentState.getBlockFaceShape(world, offset, facing) != BlockFaceShape.SOLID) {
                                 IBlockState blockState = world.getBlockState(offset);
 
                                 if(blockState.getBlock() instanceof BlockFluidloggedTE && FluidloggedUtils.getFluidFromBlock(blockState.getBlock()) == fluid) {
@@ -385,6 +388,21 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         return storedAction;
     }
 
+    @SideOnly(Side.CLIENT)
+    @Override
+    public void randomDisplayTick(IBlockState stateIn, World worldIn, BlockPos pos, Random rand) {
+        final IBlockState stored = getStored(worldIn, pos);
+        stored.getBlock().randomDisplayTick(stored, worldIn, pos, rand);
+
+        super.randomDisplayTick(stateIn, worldIn, pos, rand);
+
+        //show fluidlogged barrier when item is held
+        final EntityPlayer player = Minecraft.getMinecraft().player;
+        if(stored.getBlock() == Blocks.BARRIER && player.isCreative() && player.getHeldItemMainhand().getItem() == Item.getItemFromBlock(Blocks.BARRIER)) {
+            worldIn.spawnParticle(EnumParticleTypes.BARRIER, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0, 0, 0);
+        }
+    }
+
     @Override
     public void onBlockClicked(World worldIn, BlockPos pos, EntityPlayer playerIn) {
         final IBlockState stored = getStored(worldIn, pos);
@@ -438,15 +456,6 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         stored.neighborChanged(world, pos, neighborBlock, neighbourPos);
 
         super.neighborChanged(state, world, pos, neighborBlock, neighbourPos);
-    }
-
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void randomDisplayTick(IBlockState stateIn, World worldIn, BlockPos pos, Random rand) {
-        final IBlockState stored = getStored(worldIn, pos);
-        stored.getBlock().randomDisplayTick(stored, worldIn, pos, rand);
-
-        super.randomDisplayTick(stateIn, worldIn, pos, rand);
     }
 
     @Override
