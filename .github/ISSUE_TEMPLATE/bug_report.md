@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Thank you for reporting!
+about: Create a report to help improve this mod
 title: ''
 labels: bug
 assignees: ''
