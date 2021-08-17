@@ -1,19 +1,22 @@
 package git.jbredwards.fluidlogged_api.asm.swapper;
 
 import com.google.common.collect.ImmutableMap;
+import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * swaps a class's parent class for something else
  * @author jbred
  *
  */
+@MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
 @SuppressWarnings("unused")
 public class ASMSwapper implements IClassTransformer
 {
@@ -24,17 +27,21 @@ public class ASMSwapper implements IClassTransformer
             .put("pl/asie/smoothwater/BlockLiquidForged", "git/jbredwards/fluidlogged_api/asm/swapper/BlockLiquidBase")
             .build();
 
+    @Nullable
     @Override
-    public byte[] transform(String name, String transformedName, byte[] basicClass) {
+    public byte[] transform(@Nullable String name, @Nullable String transformedName, @Nullable byte[] basicClass) {
         if(basicClass == null) return null;
         final ClassReader reader = new ClassReader(basicClass);
-        final String oldName = Optional.ofNullable(reader.getSuperName()).orElse("NULL");
+
+        final @Nullable String oldName = reader.getSuperName();
+        if(oldName == null) return basicClass;
+
         final @Nullable String newName = SWAP.get(oldName);
         return newName == null ? basicClass : swap(reader, basicClass, oldName, newName);
     }
 
     //does the swap
-    public byte[] swap(@Nonnull ClassReader reader, byte[] basicClass, @Nonnull String oldName, @Nonnull String newName) {
+    public byte[] swap(ClassReader reader, byte[] basicClass, String oldName, String newName) {
         final ClassWriter writer = new ClassWriter(0);
         //does not transform the new super class itself
         if(newName.equals(reader.getClassName())) return basicClass;
@@ -49,7 +56,7 @@ public class ASMSwapper implements IClassTransformer
         @Nonnull public String oldName;
         @Nonnull public String newName;
 
-        public SwapperHandler(@Nonnull ClassWriter writer, @Nonnull String oldName, @Nonnull String newName) {
+        public SwapperHandler(ClassWriter writer, String oldName, String newName) {
             super(Opcodes.ASM5, writer);
             this.oldName = oldName;
             this.newName = newName;

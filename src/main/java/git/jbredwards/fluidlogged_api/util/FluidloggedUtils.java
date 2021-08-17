@@ -140,33 +140,37 @@ public enum FluidloggedUtils
         if(!isStateFluidloggable) return false;
         if(here == null) here = world.getBlockState(pos);
 
-        final IBlockState stored = (here.getBlock() instanceof IFluidloggable ? ((IFluidloggable)here.getBlock()).getFluidloggedState(world, pos, here) : here);
         final BlockFluidloggedTE block = FluidloggedConstants.FLUIDLOGGED_TE_LOOKUP.get(fluid);
-        block.updateQuanta();
+        //shouldn't be null, but just in case
+        if(block != null) {
+            block.updateQuanta();
+            final IBlockState stored = (here.getBlock() instanceof IFluidloggable ? ((IFluidloggable)here.getBlock()).getFluidloggedState(world, pos, here) : here);
+            final FluidloggedEvent.Fluidlog event = new FluidloggedEvent.Fluidlog(world, pos, here, stored, block, new TileEntityFluidlogged(), ignoreVaporize);
 
-        final FluidloggedEvent.Fluidlog event = new FluidloggedEvent.Fluidlog(world, pos, here, stored, block, new TileEntityFluidlogged(), ignoreVaporize);
+            //event did stuff
+            if(MinecraftForge.EVENT_BUS.post(event)) return false;
+            else if(event.getResult() == Event.Result.DENY) return false;
+            else if(event.getResult() == Event.Result.ALLOW) return true;
+            //default
+            else {
+                //vaporizes water if in the nether
+                if(!event.ignoreVaporize && world.provider.doesWaterVaporize() && fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME))) {
+                    fluid.vaporize(null, world, pos, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
+                    return false;
+                }
 
-        //event did stuff
-        if(MinecraftForge.EVENT_BUS.post(event)) return false;
-        else if(event.getResult() == Event.Result.DENY) return false;
-        else if(event.getResult() == Event.Result.ALLOW) return true;
-        //default
-        else {
-            //vaporizes water if in the nether
-            if(!event.ignoreVaporize && world.provider.doesWaterVaporize() && fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME))) {
-                fluid.vaporize(null, world, pos, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
-                return false;
+                if(!world.isRemote) {
+                    event.te.setStored(event.stored, false);
+                    world.setBlockState(pos, event.block.getDefaultState());
+                    world.setTileEntity(pos, event.te);
+                    event.stored.getBlock().onBlockAdded(world, pos, event.stored);
+                }
+
+                return true;
             }
-
-            if(!world.isRemote) {
-                event.te.setStored(event.stored, false);
-                world.setBlockState(pos, event.block.getDefaultState());
-                world.setTileEntity(pos, event.te);
-                event.stored.getBlock().onBlockAdded(world, pos, event.stored);
-            }
-
-            return true;
         }
+
+        return false;
     }
 
     //use state sensitive version

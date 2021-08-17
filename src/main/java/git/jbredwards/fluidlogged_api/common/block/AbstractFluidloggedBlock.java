@@ -30,7 +30,6 @@ import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Field;
@@ -104,30 +103,28 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
         return true;
     }
 
-    @Nonnull
     @Override
-    public BlockFaceShape getBlockFaceShape(@Nonnull IBlockAccess worldIn, @Nonnull IBlockState state, @Nonnull BlockPos pos, @Nonnull EnumFacing face) {
+    public BlockFaceShape getBlockFaceShape(IBlockAccess worldIn, IBlockState state, BlockPos pos, EnumFacing face) {
         return BlockFaceShape.SOLID;
     }
 
     @Override
-    public AxisAlignedBB getCollisionBoundingBox(@Nonnull IBlockState blockState, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
+    public AxisAlignedBB getCollisionBoundingBox(IBlockState blockState, IBlockAccess worldIn, BlockPos pos) {
         return FULL_BLOCK_AABB;
     }
 
     @Override
-    public boolean canCollideCheck(@Nonnull IBlockState state, boolean fullHit) {
+    public boolean canCollideCheck(IBlockState state, boolean fullHit) {
         return true;
     }
 
-    @Nonnull
     @Override
-    public Item getItemDropped(@Nonnull IBlockState state, @Nonnull Random rand, int fortune) {
+    public Item getItemDropped(IBlockState state, Random rand, int fortune) {
         return Item.getItemFromBlock(this);
     }
 
     @Override
-    public int quantityDropped(@Nonnull Random par1Random) {
+    public int quantityDropped(Random par1Random) {
         return 1;
     }
 
@@ -162,14 +159,13 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     }
 
     @SuppressWarnings("deprecation")
-    @Nonnull
     @Override
     public IBlockState getStateFromMeta(int meta) {
         return getDefaultState();
     }
 
     @Override
-    public int getMetaFromState(@Nonnull IBlockState state) {
+    public int getMetaFromState(IBlockState state) {
         return 0;
     }
 
@@ -232,7 +228,7 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     }
 
     @Override
-    public void updateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
+    public void updateTick(World world, BlockPos pos, IBlockState state, Random rand) {
         final boolean canFlowVertical = canSideFlow(state, world, pos, densityDir < 0 ? EnumFacing.DOWN : EnumFacing.UP);
         //Flow vertically if possible
         if(canFlowVertical && canDisplace(world, pos.up(densityDir))) {
@@ -287,15 +283,14 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
 
     @SideOnly(Side.CLIENT)
     @Override
-    public boolean shouldSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
+    public boolean shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
         if(!canSideFlow(state, world, pos, side)) return true;
         else return super.shouldSideBeRendered(state, world, pos, side);
     }
 
     //fixes small issues with corners
-    @Nonnull
     @Override
-    public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+    public IBlockState getExtendedState(IBlockState oldState, IBlockAccess world, BlockPos pos) {
         IExtendedBlockState state = (IExtendedBlockState)oldState;
         state = state.withProperty(FLOW_DIRECTION, (float)getFlowDirection(world, pos));
 
@@ -351,19 +346,10 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
 
         //fixes corners
         if(height[1][1] != 1) {
-            boolean n = !canSideFlow(oldState, world, pos, EnumFacing.NORTH);
-            boolean s = !canSideFlow(oldState, world, pos, EnumFacing.SOUTH);
-            boolean w = !canSideFlow(oldState, world, pos, EnumFacing.WEST);
-            boolean e = !canSideFlow(oldState, world, pos, EnumFacing.EAST);
-            boolean nFull = isFullFluid(world, pos.north(), EnumFacing.NORTH);
-            boolean sFull = isFullFluid(world, pos.south(), EnumFacing.SOUTH);
-            boolean eFull = isFullFluid(world, pos.east(), EnumFacing.EAST);
-            boolean wFull = isFullFluid(world, pos.west(), EnumFacing.WEST);
-
-            if((n || w) && !nFull && !wFull) corner[0][0] = quantaFraction;
-            if((s || w) && !sFull && !wFull) corner[0][1] = quantaFraction;
-            if((n || e) && !nFull && !eFull) corner[1][0] = quantaFraction;
-            if((s || e) && !sFull && !eFull) corner[1][1] = quantaFraction;
+            if(fixCorner(oldState, world, pos, EnumFacing.NORTH, EnumFacing.WEST) || fixCorner(oldState, world, pos, EnumFacing.WEST, EnumFacing.NORTH)) corner[0][0] = quantaFraction;
+            if(fixCorner(oldState, world, pos, EnumFacing.SOUTH, EnumFacing.WEST) || fixCorner(oldState, world, pos, EnumFacing.WEST, EnumFacing.SOUTH)) corner[0][1] = quantaFraction;
+            if(fixCorner(oldState, world, pos, EnumFacing.NORTH, EnumFacing.EAST) || fixCorner(oldState, world, pos, EnumFacing.EAST, EnumFacing.NORTH)) corner[1][0] = quantaFraction;
+            if(fixCorner(oldState, world, pos, EnumFacing.SOUTH, EnumFacing.EAST) || fixCorner(oldState, world, pos, EnumFacing.EAST, EnumFacing.SOUTH)) corner[1][1] = quantaFraction;
         }
 
         //side overlays
@@ -382,11 +368,18 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
         return state;
     }
 
-    //used by getExtendedState()
-    public boolean isFullFluid(IBlockAccess world, BlockPos pos, EnumFacing facing) {
-        final IBlockState state = world.getBlockState(pos);
-        if(state.getBlock() instanceof AbstractFluidloggedBlock) return ((AbstractFluidloggedBlock)state.getBlock()).canSideFlow(state, world, pos, facing.getOpposite());
-        else return FluidloggedEvents.getFluidFromBlockSource(state) != null;
+    //used by this::getExtendedState
+    public boolean fixCorner(IBlockState oldState, IBlockAccess world, BlockPos pos, EnumFacing primary, EnumFacing other) {
+        if(canSideFlow(oldState, world, pos, primary)) return false;
+
+        final BlockPos offset = pos.offset(other);
+        final IBlockState neighbor = world.getBlockState(offset);
+        final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(neighbor.getBlock());
+
+        if(this.fluid != fluid) return true;
+        else return neighbor.getBlock() instanceof AbstractFluidloggedBlock &&
+                (!((AbstractFluidloggedBlock)neighbor.getBlock()).canSideFlow(neighbor, world, offset, primary)
+                || !((AbstractFluidloggedBlock)neighbor.getBlock()).canSideFlow(neighbor, world, offset, other.getOpposite()));
     }
 
     //fixes the fluidlogged block flow direction
@@ -449,7 +442,7 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
 
     @SideOnly(Side.CLIENT)
     @Override
-    public int getPackedLightmapCoords(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+    public int getPackedLightmapCoords(IBlockState state, IBlockAccess world, BlockPos pos) {
         if(fluid.getBlock().getBlockLayer() == MinecraftForgeClient.getRenderLayer())
             if(!(fluid.getBlock() instanceof BlockFluidBase)) return super.getPackedLightmapCoords(state, world, pos);
             else return fluid.getBlock().getDefaultState().getPackedLightmapCoords(world, pos);
@@ -463,17 +456,17 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     }
 
     @Override
-    public void onBlockAdded(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
+    public void onBlockAdded(World world, BlockPos pos, IBlockState state) {
         world.scheduleUpdate(pos, this, fluid.getBlock().tickRate(world));
     }
 
     @Override
-    public void neighborChanged(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Block neighborBlock, @Nonnull BlockPos neighbourPos) {
+    public void neighborChanged(IBlockState state, World world, BlockPos pos, Block neighborBlock, BlockPos neighbourPos) {
         world.scheduleUpdate(pos, this, fluid.getBlock().tickRate(world));
     }
 
     @Override
-    public int tickRate(@Nonnull World world) {
+    public int tickRate(World world) {
         return fluid.getBlock().tickRate(world);
     }
 
@@ -545,7 +538,7 @@ public abstract class AbstractFluidloggedBlock extends BlockFluidClassic
     }
 
     @Override
-    public boolean isPassable(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+    public boolean isPassable(IBlockAccess world, BlockPos pos) {
         return fluid.getBlock().isPassable(world, pos);
     }
 }
