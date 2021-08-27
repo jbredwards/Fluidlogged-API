@@ -1,9 +1,11 @@
 package git.jbredwards.fluidlogged_api.util;
 
+import git.jbredwards.fluidlogged_api.Fluidlogged;
 import git.jbredwards.fluidlogged_api.common.block.AbstractFluidloggedBlock;
 import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.block.TileEntityFluidlogged;
+import git.jbredwards.fluidlogged_api.common.capability.IFluidloggedCapability;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.*;
@@ -23,6 +25,7 @@ import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Objects;
 
 /**
  * helpful functions
@@ -38,50 +41,50 @@ public enum FluidloggedUtils
     //returns the stored fluidlogged block, null if there is none
     @Nullable
     public static IBlockState getStored(IBlockAccess world, BlockPos pos) {
-        final @Nullable TileEntity te = world.getTileEntity(pos);
-
-        if(!(te instanceof TileEntityFluidlogged)) return null;
-        else return ((TileEntityFluidlogged)te).stored;
+        final @Nullable IFluidloggedCapability cap = Fluidlogged.CAPABILITY.get(world.getTileEntity(pos));
+        return cap == null ? null : cap.getStored();
     }
 
-    //should be used instead of world.getBlockState wherever possible
+    //should be used instead of IBlockAccess::getBlockState wherever possible
     public static IBlockState getStoredOrReal(IBlockAccess world, BlockPos pos) {
-        final IBlockState here = world.getBlockState(pos);
+        final @Nullable IBlockState stored = getStored(world, pos);
+        return stored == null ? world.getBlockState(pos) : stored;
+    }
 
-        if(!(here.getBlock() instanceof BlockFluidloggedTE)) return here;
-        else return ((BlockFluidloggedTE)here.getBlock()).getStored(world, pos);
+    //old, please use flag sensitive method below
+    @Deprecated
+    public static void setStoredOrReal(World world, BlockPos pos, @Nullable IBlockState here, @Nullable IBlockState state, boolean notify) {
+        setStoredOrReal(world, pos, here, state, notify ? 3 : 0);
     }
 
     //if the block is fluidlogged, replaces the stored block, else does world.setBlockState()
-    //this should be used instead of world.setBlockState wherever possible
-    public static void setStoredOrReal(World world, BlockPos pos, @Nullable IBlockState here, @Nullable IBlockState state, boolean notify) {
-        final @Nullable IBlockState stored = getStored(world, pos);
+    //this should be used instead of World::setBlockState wherever possible
+    public static boolean setStoredOrReal(World world, BlockPos pos, @Nullable IBlockState here, @Nullable IBlockState state, int flags) {
+        final @Nullable IFluidloggedCapability cap = Fluidlogged.CAPABILITY.get(world.getTileEntity(pos));
+        final @Nullable IBlockState stored = cap == null ? null : cap.getStored();
         if(state == null) state = Blocks.AIR.getDefaultState();
 
         //block here isn't fluidlogged
-        if(stored == null) {
-            world.setBlockState(pos, state, notify ? 3 : 0);
-            return;
-        }
+        if(stored == null) return world.setBlockState(pos, state, flags);
 
         //if the here state is null
         if(here == null) here = world.getBlockState(pos);
         if(here.getBlock() instanceof BlockFluidloggedTE) {
             //if the state to be set is air and the block here is fluidlogged, set to the fluid
             if(state.getBlock() == Blocks.AIR) {
-                world.setBlockState(pos, ((BlockFluidloggedTE)here.getBlock()).fluid.getBlock().getDefaultState(), notify ? 3 : 0);
-                return;
+                return world.setBlockState(pos, ((BlockFluidloggedTE)here.getBlock()).fluid.getBlock().getDefaultState(), flags);
             }
 
             //if the state to be set can't be fluidlogged
-            if(!isStateFluidloggable(state, null)) {
-                world.setBlockState(pos, state, notify ? 3 : 0);
-                return;
+            if(!isStateFluidloggable(state, getFluidFromBlock(here.getBlock()))) {
+                return world.setBlockState(pos, state, flags);
             }
 
-            ((BlockFluidloggedTE)here.getBlock()).setStored(world, pos, state, notify);
+            //only change the stored fluidlogged block
+            if(!world.isRemote) cap.setStored(world, pos, stored, true);
+            return true;
         }
-        else world.setBlockState(pos, state, notify ? 3 : 0);
+        else return world.setBlockState(pos, state, flags);
     }
 
     //checks if the block can be fluidlogged at all
@@ -106,8 +109,13 @@ public enum FluidloggedUtils
 
             //modded
             if(block instanceof IFluidloggable) return ((IFluidloggable)block).isFluidValid(state, fluid);
-            //unsupported tile entity blocks
-            else if(block.hasTileEntity(state)) return false;
+            //supported vanilla tile entity blocks
+            else if(block.hasTileEntity(state)) {
+                final Class<? extends Block> clazz = block.getClass();
+                return (clazz == BlockChest.class
+                        || clazz == BlockEnderChest.class
+                        || clazz == BlockHopper.class);
+            }
             //normal vanilla blocks
             else return (block instanceof BlockSlab && !((BlockSlab)block).isDouble())
                         || block instanceof BlockStairs
@@ -145,7 +153,7 @@ public enum FluidloggedUtils
         if(block != null) {
             block.updateQuanta();
             final IBlockState stored = (here.getBlock() instanceof IFluidloggable ? ((IFluidloggable)here.getBlock()).getFluidloggedState(world, pos, here) : here);
-            final FluidloggedEvent.Fluidlog event = new FluidloggedEvent.Fluidlog(world, pos, here, stored, block, new TileEntityFluidlogged(), ignoreVaporize);
+            final FluidloggedEvent.Fluidlog event = new FluidloggedEvent.Fluidlog(world, pos, here, stored, block, ignoreVaporize);
 
             //event did stuff
             if(MinecraftForge.EVENT_BUS.post(event)) return false;
@@ -160,10 +168,19 @@ public enum FluidloggedUtils
                 }
 
                 if(!world.isRemote) {
-                    event.te.setStored(event.stored, false);
+                    @Nullable TileEntity te = world.getTileEntity(pos);
+                    final boolean setInWorld = (te == null);
+                    //set tile entity stored value
+                    if(setInWorld) te = new TileEntityFluidlogged();
+                    Objects.requireNonNull(Fluidlogged.CAPABILITY.get(te)).setStored(world, pos, event.stored, true);
+                    //set in world
                     world.setBlockState(pos, event.block.getDefaultState());
-                    world.setTileEntity(pos, event.te);
-                    event.stored.getBlock().onBlockAdded(world, pos, event.stored);
+                    if(setInWorld) {
+                        world.setTileEntity(pos, te);
+                        //post place logic
+                        event.stored.getBlock().onBlockAdded(world, pos, event.stored);
+                    }
+                    else te.updateContainingBlockInfo();
                 }
 
                 return true;
@@ -185,28 +202,30 @@ public enum FluidloggedUtils
 
     //tries to un-fluidlog the block here
     //returns true if the block was successfully un-fluidlogged
-    public static boolean tryUnfluidlogBlock(World world, BlockPos pos, @Nullable IBlockState here, @Nullable IBlockState stored) {
-        final @Nullable TileEntity te = world.getTileEntity(pos);
-        if(te instanceof TileEntityFluidlogged) {
-            if(stored == null) stored = ((TileEntityFluidlogged)te).stored;
-            if(here == null) here = world.getBlockState(pos);
+    public static boolean tryUnfluidlogBlock(World world, BlockPos pos, @Nullable IBlockState here, @Nullable IFluidloggedCapability cap) {
+        if(cap == null) cap = Fluidlogged.CAPABILITY.get(world.getTileEntity(pos));
+        if(cap == null) return false;
 
-            final IBlockState toCreate = (stored.getBlock() instanceof IFluidloggable ? ((IFluidloggable)stored.getBlock()).getNonFluidloggedState(world, pos, stored) : stored);
-            final FluidloggedEvent.UnFluidlog event = new FluidloggedEvent.UnFluidlog(world, pos, here, stored, (TileEntityFluidlogged)te, toCreate);
+        final IBlockState stored = cap.getStored();
+        if(stored == null) return false;
 
-            //event did stuff
-            if(MinecraftForge.EVENT_BUS.post(event)) return false;
-            else if(event.getResult() == Event.Result.DENY) return false;
-            else if(event.getResult() == Event.Result.ALLOW) return true;
-            //default
-            else {
-                if(!world.isRemote) world.setBlockState(pos, event.toCreate);
-                return true;
+        if(here == null) here = world.getBlockState(pos);
+        final IBlockState toCreate = (stored.getBlock() instanceof IFluidloggable ? ((IFluidloggable)stored.getBlock()).getNonFluidloggedState(world, pos, stored) : stored);
+        final FluidloggedEvent.UnFluidlog event = new FluidloggedEvent.UnFluidlog(world, pos, here, stored, cap, toCreate);
+
+        //event did stuff
+        if(MinecraftForge.EVENT_BUS.post(event)) return false;
+        else if(event.getResult() == Event.Result.DENY) return false;
+        else if(event.getResult() == Event.Result.ALLOW) return true;
+        //default
+        else {
+            if(!world.isRemote) {
+                cap.setStored(world, pos, null, true);
+                world.setBlockState(pos, event.toCreate);
             }
-        }
 
-        //block here isn't fluidlogged
-        return false;
+            return true;
+        }
     }
 
     //fills the bucket stack with the fluid

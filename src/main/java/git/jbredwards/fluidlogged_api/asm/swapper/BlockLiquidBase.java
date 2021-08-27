@@ -150,7 +150,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
     }
 
     @Override
-    protected boolean causesDownwardCurrent(IBlockAccess worldIn, BlockPos pos, EnumFacing side) {
+    public boolean causesDownwardCurrent(IBlockAccess worldIn, BlockPos pos, EnumFacing side) {
         final Fluid fluid = (blockMaterial == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA);
         final IBlockState state = worldIn.getBlockState(pos);
 

@@ -26,9 +26,7 @@ public interface IFluidloggable
 {
     //return true if the block can be fluidlogged with the input fluid
     //if the fluid is null, always return true
-    default boolean isFluidValid(IBlockState here, @Nullable Fluid fluid) {
-        return true;
-    }
+    default boolean isFluidValid(IBlockState here, @Nullable Fluid fluid) { return true; }
 
     //sets the fluidlogged state when this becomes fluidlogged
     default IBlockState getFluidloggedState(World world, BlockPos pos, IBlockState old) { return old; }
@@ -36,29 +34,34 @@ public interface IFluidloggable
     //sets the non-fluidlogged state when this becomes non-fluidlogged
     default IBlockState getNonFluidloggedState(World world, BlockPos pos, IBlockState old) { return old; }
 
-    //restore optional cache from storedNBT or do other things
-    default void readFromStoredNBT(TileEntityFluidlogged te) {}
-
-    //save optional cache to storedNBT or do other things
-    default void writeToStoredNBT(TileEntityFluidlogged te) {}
-
-    //fired each tick by the tile entity while it's fluidlogged
-    default void fluidloggedTick(TileEntityFluidlogged te) {}
-
-    //return true if the TESR should be ran
-    @SideOnly(Side.CLIENT)
-    default boolean doFluidloggedTESR(TileEntityFluidlogged te) { return false; }
-
-    //renders using the TESR, note that the special renderer does nothing except execute this code
-    @SideOnly(Side.CLIENT)
-    default void runFluidloggedTESR(TileEntityFluidlogged te, double x, double y, double z, float partialTicks, int destroyStage, float alpha) {}
-
-    //return false if the fluid should not be rendered while fluidlogged
-    @SideOnly(Side.CLIENT)
-    default boolean shouldFluidRender(IBlockState stored, @Nullable Fluid fluid, IBlockAccess world, BlockPos pos) { return true; }
-
     //returns true if the block can flow in the given direction
     default boolean canSideFlow(IBlockState stored, @Nullable Fluid fluid, IBlockAccess world, BlockPos pos, EnumFacing side) {
         return stored.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
+
+    //return true if the fluid should be rendered while fluidlogged
+    @SideOnly(Side.CLIENT)
+    default boolean shouldFluidRender(IBlockState stored, @Nullable Fluid fluid, IBlockAccess world, BlockPos pos) { return true; }
+
+    //tile entity integration has been rewritten and this method is no longer used, please remove it
+    @Deprecated
+    default void readFromStoredNBT(TileEntityFluidlogged te) {}
+
+    //tile entity integration has been rewritten and this method is no longer used, please remove it
+    @Deprecated
+    default void writeToStoredNBT(TileEntityFluidlogged te) {}
+
+    //tile entity integration has been rewritten and this method is no longer used, please remove it
+    @Deprecated
+    default void fluidloggedTick(TileEntityFluidlogged te) {}
+
+    //tile entity integration has been rewritten and this method is no longer used, please remove it
+    @Deprecated
+    @SideOnly(Side.CLIENT)
+    default boolean doFluidloggedTESR(TileEntityFluidlogged te) { return false; }
+
+    //tile entity integration has been rewritten and this method is no longer used, please remove it
+    @Deprecated
+    @SideOnly(Side.CLIENT)
+    default void runFluidloggedTESR(TileEntityFluidlogged te, double x, double y, double z, float partialTicks, int destroyStage, float alpha) {}
 }

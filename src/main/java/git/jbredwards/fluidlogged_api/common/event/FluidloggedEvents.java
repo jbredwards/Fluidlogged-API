@@ -3,6 +3,8 @@ package git.jbredwards.fluidlogged_api.common.event;
 import git.jbredwards.fluidlogged_api.Fluidlogged;
 import git.jbredwards.fluidlogged_api.common.block.AbstractFluidloggedBlock;
 import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
+import git.jbredwards.fluidlogged_api.common.capability.FluidloggedCapabilityProvider;
+import git.jbredwards.fluidlogged_api.common.capability.IFluidloggedCapability;
 import git.jbredwards.fluidlogged_api.util.FluidloggedConstants;
 import git.jbredwards.fluidlogged_api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.common.block.TileEntityFluidlogged;
@@ -21,6 +23,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -34,6 +37,7 @@ import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.model.TRSRTransformation;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -142,8 +146,18 @@ public class FluidloggedEvents
                     //adds the text
                     event.getRight().add(entry.getKey().getName() + ": " + value);
                 }
+                final @Nullable TileEntity te = world.getTileEntity(trace.getBlockPos());
+                event.getRight().add("TILE CLASS: " + (te == null ? "null" : te.getClass().getName()));
+                event.getRight().add("TILE NBT: " + (te == null ? "null" : te.serializeNBT().toString()));
             }
         }
+    }
+
+    //make sure all tile entities have this mod's capabilty attached
+    @SuppressWarnings("unused")
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void attachCapabilities(AttachCapabilitiesEvent<TileEntity> event) {
+        event.addCapability(new ResourceLocation(FluidloggedConstants.MODID, "stored"), new FluidloggedCapabilityProvider(new IFluidloggedCapability.Impl()));
     }
 
     //minecarts travel slower in fluids

@@ -68,28 +68,8 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
     //returns barriers if null (should never be null)
     @Nonnull
     public IBlockState getStored(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        final @Nullable TileEntity te = world.getTileEntity(pos);
-
-        if(te instanceof TileEntityFluidlogged) return ((TileEntityFluidlogged)te).stored;
-        //should never pass
-        return Blocks.BARRIER.getDefaultState();
-    }
-
-    public void setStored(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState stored, boolean notify) {
-        final @Nullable TileEntity te = world.getTileEntity(pos);
-
-        //if the block here is a fluidlogged one
-        if(te instanceof TileEntityFluidlogged) {
-            //if the block can be fluidlogged
-            if(FluidloggedUtils.isStateFluidloggable(stored, null)) ((TileEntityFluidlogged)te).setStored(stored, notify);
-            //if the block can't be fluidlogged
-            else if(world instanceof World) {
-                //if the block is not air
-                if(stored.getMaterial() != Material.AIR) ((World)world).setBlockState(pos, stored);
-                //if the block is air
-                else ((World)world).setBlockState(pos, fluid.getBlock().getDefaultState());
-            }
-        }
+        final @Nullable IBlockState stored = FluidloggedUtils.getStored(world, pos);
+        return stored == null ? Blocks.BARRIER.getDefaultState() : stored;
     }
 
     @Override
@@ -102,19 +82,9 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         return fluid.getBlock().getLocalizedName();
     }
 
-    @SuppressWarnings("deprecation")
-    @Override
-    public boolean eventReceived(IBlockState state, World worldIn, BlockPos pos, int id, int param) { return id == 1; }
-
     @Nullable
     @Override
     public TileEntityFluidlogged createNewTileEntity(World worldIn, int meta) {
-        return new TileEntityFluidlogged();
-    }
-
-    @Nullable
-    @Override
-    public TileEntityFluidlogged createTileEntity(World world, IBlockState state) {
         return new TileEntityFluidlogged();
     }
 
@@ -403,6 +373,12 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
         }
     }
 
+    @SuppressWarnings("deprecation")
+    @Override
+    public boolean eventReceived(IBlockState state, World worldIn, BlockPos pos, int id, int param) {
+        return getStored(worldIn, pos).onBlockEventReceived(worldIn, pos, id, param);
+    }
+
     @Override
     public void onBlockClicked(World worldIn, BlockPos pos, EntityPlayer playerIn) {
         final IBlockState stored = getStored(worldIn, pos);
@@ -582,6 +558,12 @@ public class BlockFluidloggedTE extends AbstractFluidloggedBlock implements ITil
     public BlockFaceShape getBlockFaceShape(@Nonnull IBlockAccess worldIn, @Nonnull IBlockState state, @Nonnull BlockPos pos, @Nonnull EnumFacing face) {
         final IBlockState stored = getStored(worldIn, pos);
         return stored.getBlockFaceShape(worldIn, pos, face);
+    }
+
+    @Override
+    public boolean doesSideBlockChestOpening(IBlockState blockState, IBlockAccess world, BlockPos pos, EnumFacing side) {
+        final IBlockState stored = getStored(world, pos);
+        return stored.doesSideBlockChestOpening(world, pos, side);
     }
 
     @Override

@@ -2,12 +2,14 @@ package git.jbredwards.fluidlogged_api.asm;
 
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
+import git.jbredwards.fluidlogged_api.Fluidlogged;
 import git.jbredwards.fluidlogged_api.asm.plugin.modded.BFReflector;
 import git.jbredwards.fluidlogged_api.asm.plugin.modded.OFReflector;
+import git.jbredwards.fluidlogged_api.common.block.TileEntityFluidlogged;
+import git.jbredwards.fluidlogged_api.common.capability.IFluidloggedCapability;
 import git.jbredwards.fluidlogged_api.util.FluidloggedConstants;
 import git.jbredwards.fluidlogged_api.common.block.AbstractFluidloggedBlock;
 import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
-import git.jbredwards.fluidlogged_api.common.block.TileEntityFluidlogged;
 import git.jbredwards.fluidlogged_api.util.FluidloggedUtils;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
@@ -22,6 +24,7 @@ import net.minecraft.client.renderer.chunk.CompiledChunk;
 import net.minecraft.client.renderer.chunk.RenderChunk;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.init.Blocks;
+import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumBlockRenderType;
@@ -32,10 +35,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.WorldType;
+import net.minecraft.world.*;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
@@ -70,12 +71,12 @@ public enum ASMHooks
 
     //BlockFenceGatePlugin
     public static boolean setStoredOrRealSimple(World world, BlockPos pos, IBlockState state, int flags) {
-        final TileEntity te = world.getTileEntity(pos);
-
-        //fluidlogged
-        if(te instanceof TileEntityFluidlogged) {
-            ((TileEntityFluidlogged)te).setStored(state, true);
-            return true;
+        final @Nullable IFluidloggedCapability cap = Fluidlogged.CAPABILITY.get(world.getTileEntity(pos));
+        if(cap != null && cap.getStored() != null) {
+            if(FluidloggedUtils.isStateFluidloggable(state, FluidloggedUtils.getFluidFromBlock(world.getBlockState(pos).getBlock()))) {
+                if(!world.isRemote) cap.setStored(world, pos, state, true);
+                return true;
+            }
         }
 
         //default
@@ -966,6 +967,80 @@ public enum ASMHooks
     public static boolean playStepSound(Block block) {
         return !(block instanceof AbstractFluidloggedBlock) && FluidloggedUtils.getFluidFromBlock(block) != null;
     }
+
+    //TODO DELETE
+    //TileEntityPlugin
+    /*public static TileEntity create(TileEntity old, World world, NBTTagCompound compound) {
+        if(old instanceof TileEntityFluidlogged) {
+            final @Nullable IFluidloggedCapability cap = Fluidlogged.CAPABILITY.get(old);
+            if(cap != null) {
+                //get the stored block
+                final @Nullable IBlockState stored = cap.getStored();
+                if(stored != null && stored.getBlock().hasTileEntity(stored)) {
+                    //create the tile entity from the stored block
+                    final @Nullable TileEntity te = stored.getBlock().createTileEntity(world, stored);
+                    if(te != null) {
+                        te.setWorldCreate(world);
+                        te.readFromNBT(compound);
+                        return te;
+                    }
+                }
+            }
+        }
+
+        //default do nothing
+        return old;
+    }*/
+
+    //ChunkPlugin
+    public static boolean shouldRefresh(TileEntity te, World world, BlockPos pos, IBlockState oldState, IBlockState newState, Chunk chunk) {
+        //prevent tile entities from being refreshed when fluidlogged
+        if(oldState.getBlock().hasTileEntity(oldState) && newState.getBlock() instanceof BlockFluidloggedTE) return false;
+        else {
+            //correct the oldState & newState values
+            final @Nullable IFluidloggedCapability cap = Fluidlogged.CAPABILITY.get(te);
+            if(cap != null) {
+                if(oldState.getBlock() instanceof BlockFluidloggedTE && cap.getPreviousStored() != null) oldState = cap.getPreviousStored();
+                if(newState.getBlock() instanceof BlockFluidloggedTE && cap.getStored() != null) newState = cap.getStored();
+            }
+        }
+        //old
+        return te.shouldRefresh(world, pos, oldState, newState);
+    }
+
+    //TileEntityPlugin
+    public static SPacketUpdateTileEntity getUpdatePacket(TileEntity te) {
+        return new SPacketUpdateTileEntity(te.getPos(), TileEntityFluidlogged.packetType, te.getUpdateTag());
+    }
+
+    //TileEntityPlugin
+    public static boolean receiveClientEvent(TileEntity te, int id, int type) {
+        if(id == TileEntityFluidlogged.packetType) {
+            Objects.requireNonNull(Fluidlogged.CAPABILITY.get(te)).setStored(type == 0 ? null : Block.getStateById(type));
+            return true;
+        }
+
+        //default
+        return false;
+    }
+
+    //TileEntityPlguin
+    @SuppressWarnings("ConstantConditions")
+    public static void onDataPacket(TileEntity te, SPacketUpdateTileEntity pkt) {
+        if(pkt != null) {
+            final @Nullable BlockPos pos = te.getPos();
+            final @Nullable World world = te.getWorld();
+            te.handleUpdateTag(pkt.getNbtCompound());
+            //update rendering stuffs
+            if(te.hasWorld() && world != null && pos != null) {
+                world.checkLightFor(EnumSkyBlock.BLOCK, pos);
+                world.markBlockRangeForRenderUpdate(pos, pos);
+            }
+        }
+    }
+
+    //BlockPlugin
+    public static boolean eventReceived(int id) { return id == TileEntityFluidlogged.packetType; }
 
     //==========
     //MOD COMPAT

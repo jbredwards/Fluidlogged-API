@@ -1,18 +1,16 @@
 package git.jbredwards.fluidlogged_api;
 
-import git.jbredwards.fluidlogged_api.client.util.FluidloggedTESR;
 import git.jbredwards.fluidlogged_api.common.block.BlockFluidloggedTE;
-import git.jbredwards.fluidlogged_api.common.block.TileEntityFluidlogged;
+import git.jbredwards.fluidlogged_api.common.capability.IFluidloggedCapability;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.block.material.Material;
 import net.minecraft.init.Items;
+import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fluids.DispenseFluidContainer;
 import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
 import javax.annotation.Nonnull;
 
@@ -29,6 +27,7 @@ public final class Fluidlogged
     //vanilla fluidlogged te's, the modded ones get registered automatically through FluidPlugin
     @Nonnull public static BlockFluidloggedTE WATERLOGGED_TE = new BlockFluidloggedTE(FluidRegistry.WATER, Material.WATER);
     @Nonnull public static BlockFluidloggedTE LAVALOGGED_TE = new BlockFluidloggedTE(FluidRegistry.LAVA, Material.LAVA);
+    @Nonnull public static IFluidloggedCapability CAPABILITY = new IFluidloggedCapability.Impl();
 
     //puts the vanilla fluidlogged te's into the lookup
     static {
@@ -38,15 +37,16 @@ public final class Fluidlogged
 
     @SuppressWarnings("unused")
     @Mod.EventHandler
-    public static void init(FMLInitializationEvent event) {
+    public static void onPreInit(FMLPreInitializationEvent event) {
+        //register capability
+        CapabilityManager.INSTANCE.register(IFluidloggedCapability.class, CAPABILITY, () -> CAPABILITY);
+    }
+
+    @SuppressWarnings("unused")
+    @Mod.EventHandler
+    public static void onInit(FMLInitializationEvent event) {
         //fixes the vanilla bucket dispenser action
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET, DispenseFluidContainer.getInstance());
-        //tile entity special renderer (does nothing by default, only for IFluidloggable blocks that choose to use it)
-        if(event.getSide() == Side.CLIENT) clInit();
     }
-
-    //separate method to fix serverside crash
-    @SideOnly(Side.CLIENT)
-    private static void clInit() { ClientRegistry.bindTileEntitySpecialRenderer(TileEntityFluidlogged.class, new FluidloggedTESR()); }
 }

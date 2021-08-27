@@ -28,8 +28,11 @@ public class ASMHandler implements IFMLLoadingPlugin
         //plugin registry
         @Nonnull public static Map<String, AbstractPlugin> PLUGINS = new ImmutableMap.Builder<String, AbstractPlugin>()
                 //vanilla
+                .put("net.minecraft.block.Block", new BlockPlugin())
+                .put("net.minecraft.block.BlockChest", new BlockChestPlugin())
                 .put("net.minecraft.block.BlockDynamicLiquid", new BlockDynamicLiquidPlugin())
                 .put("net.minecraft.block.BlockFenceGate", new BlockFenceGatePlugin())
+                .put("net.minecraft.block.BlockHopper", new BlockHopperPlugin())
                 .put("net.minecraft.block.BlockRailBase", new BlockRailBasePlugin())
                 .put("net.minecraft.block.BlockRailBase$Rail", new BlockRailBasePlugin())
                 .put("net.minecraft.block.BlockRailDetector", new BlockRailDetectorPlugin())
@@ -44,7 +47,11 @@ public class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.entity.Entity", new EntityPlugin())
                 .put("net.minecraft.item.ItemMinecart", new ItemMinecartPlugin())
                 .put("net.minecraft.item.ItemMinecart$1", new ItemMinecartPlugin())
+                .put("net.minecraft.tileentity.TileEntity", new TileEntityPlugin())
+                .put("net.minecraft.tileentity.TileEntityChest", new TileEntityChestPlugin())
+                .put("net.minecraft.tileentity.TileEntityHopper", new TileEntityHopperPlugin())
                 .put("net.minecraft.world.WorldServer", new WorldServerPlugin())
+                .put("net.minecraft.world.chunk.Chunk", new ChunkPlugin())
                 //forge
                 .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new ModelFluidPlugin())
                 .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin())
@@ -53,6 +60,7 @@ public class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraftforge.fluids.FluidUtil", new FluidUtilPlugin())
                 .put("net.minecraftforge.fluids.capability.wrappers.BlockLiquidWrapper", new BlockLiquidWrapperPlugin())
                 .put("net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper", new FluidBlockWrapperPlugin())
+                .put("net.minecraftforge.items.VanillaDoubleChestItemHandler", new VanillaDoubleChestItemHandlerPlugin())
                 //modded
                 .put("biomesoplenty.common.fluids.blocks.BlockBloodFluid",          new BiomesOPlentyPlugin())
                 .put("biomesoplenty.common.fluids.blocks.BlockHoneyFluid",          new BiomesOPlentyPlugin())
