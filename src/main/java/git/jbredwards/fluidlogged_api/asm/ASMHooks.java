@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm;
 
-import git.jbredwards.fluidlogged_api.api.block.IFluidloggableBase;
+import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import net.minecraft.block.Block;
 import org.apache.logging.log4j.Logger;
 

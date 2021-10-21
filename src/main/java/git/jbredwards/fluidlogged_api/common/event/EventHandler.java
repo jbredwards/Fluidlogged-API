@@ -1,6 +1,7 @@
-package git.jbredwards.fluidlogged_api;
+package git.jbredwards.fluidlogged_api.common.event;
 
-import git.jbredwards.fluidlogged_api.api.capability.IFluidCapability;
+import git.jbredwards.fluidlogged_api.Constants;
+import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
@@ -18,7 +19,7 @@ public final class EventHandler
 {
     @SubscribeEvent
     public static void attachCapabilities(AttachCapabilitiesEvent<Chunk> event) {
-        event.addCapability(new ResourceLocation(Constants.MODID, "fluid_states"), new IFluidCapability.Impl());
+        event.addCapability(new ResourceLocation(Constants.MODID, "fluid_states"), new IFluidStateCapability.Impl());
     }
 
 

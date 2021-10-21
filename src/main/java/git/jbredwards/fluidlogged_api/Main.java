@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api;
 
-import git.jbredwards.fluidlogged_api.api.capability.IFluidCapability;
+import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.common.network.NetworkHandler;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.init.Items;
 import net.minecraftforge.common.capabilities.CapabilityManager;
@@ -23,7 +24,8 @@ public final class Main
     //register this mod's capability & packet
     @Mod.EventHandler
     public static void preInit(FMLPreInitializationEvent event) {
-        CapabilityManager.INSTANCE.register(IFluidCapability.class, new IFluidCapability.Impl(), IFluidCapability.Impl::new);
+        CapabilityManager.INSTANCE.register(IFluidStateCapability.class, new IFluidStateCapability.Impl(), IFluidStateCapability.Impl::new);
+        NetworkHandler.init();
     }
 
     //fixes the vanilla bucket dispenser action by using the forge one instead

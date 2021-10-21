@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.api.util;
+package git.jbredwards.fluidlogged_api.common.util;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;

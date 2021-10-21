@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.api.block;
+package git.jbredwards.fluidlogged_api.common.block;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;

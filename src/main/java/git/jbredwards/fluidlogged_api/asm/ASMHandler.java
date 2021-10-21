@@ -41,7 +41,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
     @Override
     public String[] getASMTransformerClass() {
         return new String[] {
-                "git.jbredwards.fluidlogged_api.asm.swapper.ASMSwapper",
+                "git.jbredwards.fluidlogged_api.asm.ASMReplacer",
                 "git.jbredwards.fluidlogged_api.asm.ASMHandler$Transformer"
         };
     }
