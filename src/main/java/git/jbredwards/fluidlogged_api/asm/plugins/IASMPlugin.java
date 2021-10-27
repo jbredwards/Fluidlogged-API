@@ -15,7 +15,7 @@ import java.util.Objects;
  * @author jbred
  *
  */
-public interface IPlugin extends Opcodes
+public interface IASMPlugin extends Opcodes
 {
     int isMethodValid(@Nonnull MethodNode method, boolean obfuscated);
     boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index);
@@ -80,7 +80,12 @@ public interface IPlugin extends Opcodes
 
     @Nonnull
     default MethodInsnNode genMethodNode(@Nonnull String name, @Nonnull String desc) {
-        return new MethodInsnNode(INVOKESTATIC, "git/jbredwards/fluidlogged_api/asm/ASMHooks", name, desc, false);
+        return genMethodNode("git/jbredwards/fluidlogged_api/asm/plugins/ASMHooks", name, desc);
+    }
+
+    @Nonnull
+    default MethodInsnNode genMethodNode(@Nonnull String clazz, @Nonnull String name, @Nonnull String desc) {
+        return new MethodInsnNode(INVOKESTATIC, clazz, name, desc, false);
     }
 
     //same as the normal method, but this one can specify how many to go back
@@ -135,5 +140,10 @@ public interface IPlugin extends Opcodes
         else if(desc == null) return ((FieldInsnNode)insn).name.equals(name);
         //default
         else return((FieldInsnNode)insn).name.equals(name) && ((FieldInsnNode)insn).desc.equals(desc);
+    }
+
+    //sets the max locals while taking possible external transformers into account
+    default void setMaxLocals(@Nonnull MethodNode method, int newMaxLocals) {
+        if(method.maxLocals < newMaxLocals) method.maxLocals = newMaxLocals;
     }
 }

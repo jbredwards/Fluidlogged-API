@@ -1,8 +1,9 @@
 package git.jbredwards.fluidlogged_api.asm;
 
 import com.google.common.collect.ImmutableMap;
-import git.jbredwards.fluidlogged_api.asm.plugins.IPlugin;
+import git.jbredwards.fluidlogged_api.asm.plugins.IASMPlugin;
 import git.jbredwards.fluidlogged_api.asm.plugins.forge.*;
+import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.*;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
@@ -26,14 +27,19 @@ public final class ASMHandler implements IFMLLoadingPlugin
     {
         //plugin registry
         @Nonnull
-        public static Map<String, IPlugin> PLUGINS = new ImmutableMap.Builder<String, IPlugin>()
+        public static Map<String, IASMPlugin> PLUGINS = new ImmutableMap.Builder<String, IASMPlugin>()
+                //vanilla
+                .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
+                .put("net.minecraft.world.World", new WorldPlugin())
+                .put("net.minecraft.world.WorldServer", new WorldServerPlugin())
                 //forge
+                .put("net.minecraftforge.common.ForgeHooks", new ForgeHooksPlugin())
                 .put("net.minecraftforge.fluids.Fluid", new FluidPlugin())
                 .build();
 
         @Override
         public byte[] transform(String name, String transformedName, byte[] basicClass) {
-            final @Nullable IPlugin plugin = PLUGINS.get(transformedName);
+            final @Nullable IASMPlugin plugin = PLUGINS.get(transformedName);
             return plugin == null ? basicClass : plugin.transform(basicClass, !name.equals(transformedName));
         }
     }

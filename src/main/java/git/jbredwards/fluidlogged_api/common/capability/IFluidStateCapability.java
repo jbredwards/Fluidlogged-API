@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.common.capability;
 
+import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.NBTBase;
@@ -61,7 +62,9 @@ public interface IFluidStateCapability
         @Override
         public void setFluidState(@Nonnull BlockPos pos, @Nullable IBlockState fluidState) {
             if(fluidState == null) fluidStates.remove(pos);
-            else fluidStates.put(pos, fluidState);
+            //check if fluid first, better safe than sorry
+            else if(FluidloggedUtils.getFluidFromBlock(fluidState.getBlock()) != null)
+                fluidStates.put(pos, fluidState);
         }
 
         //========

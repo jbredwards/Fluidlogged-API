@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm.replacements;
 
-import git.jbredwards.fluidlogged_api.asm.ASMHooks;
+import git.jbredwards.fluidlogged_api.asm.plugins.ASMHooks;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
@@ -17,6 +17,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
@@ -55,6 +56,13 @@ public abstract class BlockLiquidBase extends BlockLiquid
     @Override
     public BlockRenderLayer getBlockLayer() {
         return blockMaterial == Material.WATER ? BlockRenderLayer.TRANSLUCENT : BlockRenderLayer.SOLID;
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    public boolean shouldSideBeRendered(@Nonnull IBlockState blockState, @Nonnull IBlockAccess blockAccess, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
+        if(FluidloggedUtils.getFluidFromBlock(FluidloggedUtils.getFluidOrReal(blockAccess, pos.offset(side)).getBlock()) == FluidloggedUtils.getFluidFromBlock(this)) return false;
+        else return side == EnumFacing.UP || !blockAccess.getBlockState(pos.offset(side)).doesSideBlockRendering(blockAccess, pos.offset(side), side.getOpposite());
     }
 
     @Override
@@ -118,8 +126,83 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
     @Nonnull
     @Override
-    public IBlockState getExtendedState(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        return super.getExtendedState(state, world, pos);
+    public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        if(!(oldState instanceof IExtendedBlockState)) return oldState;
+        //fluid var used later
+        final Fluid fluid = (blockMaterial == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA);
+
+        //covert to extended state
+        IExtendedBlockState state = (IExtendedBlockState)oldState;
+        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, (float)getFlowDirection(oldState, world, pos));
+
+        //corner height variables
+        final IBlockState[][] upBlockState = new IBlockState[3][3];
+        final float[][] height = new float[3][3];
+        final float[][] corner = new float[2][2];
+
+        upBlockState[1][1] = FluidloggedUtils.getFluidOrReal(world, pos.up());
+        height[1][1] = ASMHooks.getFluidHeightForRender(fluid, world, pos, upBlockState[1][1], 1, 1);
+
+        //fluid block above this
+        if(height[1][1] == 1) {
+            for(int i = 0; i < 2; i++) {
+                for(int j = 0; j < 2; j++) {
+                    corner[i][j] = 1;
+                }
+            }
+        }
+        //no fluid block above this
+        else {
+            //get corner heights from all 8 sides
+            for(int i = 0; i < 3; i++) {
+                for(int j = 0; j < 3; j++) {
+                    if(i != 1 || j != 1) {
+                        upBlockState[i][j] = FluidloggedUtils.getFluidOrReal(world, pos.add(i - 1, 0, j - 1).up());
+                        height[i][j] = ASMHooks.getFluidHeightForRender(fluid, world, pos.add(i - 1, 0, j - 1), upBlockState[i][j], i, j);
+                    }
+                }
+            }
+            //find average of all heights for each corner
+            for(int i = 0; i < 2; i++) {
+                for(int j = 0; j < 2; j++) {
+                    corner[i][j] = ASMHooks.getFluidHeightAverage(8f/9, i, j, height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
+                }
+            }
+
+            //check for downflow above corners
+            boolean n =  ASMHooks.isFluid(upBlockState[0][1], fluid, world, pos.north());
+            boolean s =  ASMHooks.isFluid(upBlockState[2][1], fluid, world, pos.south());
+            boolean w =  ASMHooks.isFluid(upBlockState[1][0], fluid, world, pos.west());
+            boolean e =  ASMHooks.isFluid(upBlockState[1][2], fluid, world, pos.east());
+            boolean nw = ASMHooks.isFluid(upBlockState[0][0], fluid, world, pos.north().west());
+            boolean ne = ASMHooks.isFluid(upBlockState[0][2], fluid, world, pos.north().east());
+            boolean sw = ASMHooks.isFluid(upBlockState[2][0], fluid, world, pos.south().west());
+            boolean se = ASMHooks.isFluid(upBlockState[2][2], fluid, world, pos.south().east());
+            if(nw || n || w) corner[0][0] = 1;
+            if(ne || n || e) corner[0][1] = 1;
+            if(sw || s || w) corner[1][0] = 1;
+            if(se || s || e) corner[1][1] = 1;
+        }
+
+        //side overlays
+        for(int i = 0; i < 4; i++) {
+            EnumFacing facing = EnumFacing.getHorizontal(i);
+            BlockPos offset = pos.offset(facing);
+            boolean useOverlay = world.getBlockState(offset).getBlockFaceShape(world, offset, facing.getOpposite()) == BlockFaceShape.SOLID;
+            state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], useOverlay);
+        }
+
+        //sets the corner props
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[0], corner[0][0], 8f/9);
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[1], corner[0][1], 8f/9);
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[2], corner[1][1], 8f/9);
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[3], corner[1][0], 8f/9);
+        return state;
+    }
+
+    //fixes crash when trying to render invalid state (temporary fix)
+    public <V> IExtendedBlockState withPropertyFallback(IExtendedBlockState state, IUnlistedProperty<V> property, @Nullable V value, V fallback) {
+        return state.withProperty(property, property.isValid(value) ? value : fallback);
     }
 
     public double getFlowDirection(IBlockState state, IBlockAccess world, BlockPos pos) {

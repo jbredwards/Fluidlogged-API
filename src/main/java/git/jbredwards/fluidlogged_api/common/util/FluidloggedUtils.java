@@ -1,11 +1,13 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
+import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -14,6 +16,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
@@ -47,7 +50,8 @@ public enum FluidloggedUtils
         else return convertToFluidState(world.getBlockState(pos));
     }
 
-    //tries to get the fluid at the pos, if none return world#getBlockState
+    //tries to get the fluid at the pos (prioritizing ones physically in the world, then the fluid capability),
+    //if none return world#getBlockState
     @Nonnull
     public static IBlockState getFluidOrReal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         //if instanceof World, check the chunk capability for a stored fluid
@@ -55,7 +59,7 @@ public enum FluidloggedUtils
             final Chunk chunk = ((World)world).getChunkFromBlockCoords(pos);
             final IBlockState state = chunk.getBlockState(pos);
             //get from capability
-            if(convertToFluidState(state) == null) {
+            if(getFluidFromBlock(state.getBlock()) == null) {
                 final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
                 final @Nullable IBlockState fluid = cap == null ? null : cap.getFluidState(pos);
                 return fluid == null ? state : fluid;
@@ -78,7 +82,7 @@ public enum FluidloggedUtils
                 //if the block here matches the fluid block
                 if(block.equals(state.getBlock())
                         || state.getBlock() instanceof BlockLiquid
-                        && block.equals(BlockLiquid.getStaticBlock(state.getMaterial()))) return state;
+                        && block.equals(BlockLiquid.getFlowingBlock(state.getMaterial()))) return state;
                 //fix the level property
                 return block.getDefaultState().withProperty(BlockLiquid.LEVEL, state.getValue(BlockLiquid.LEVEL));
             }
@@ -97,26 +101,28 @@ public enum FluidloggedUtils
         if(fluidState == old) return false;
 
         if(state == null) state = chunk.getBlockState(pos);
-        Fluid fluid = fluidState == null ? null : getFluidFromBlock(fluidState.getBlock());
-        if(isStateFluidloggable(state, fluid)) {
-            final FluidloggedEvent.Fluidlog.Pre event = new FluidloggedEvent.Fluidlog.Pre(world, pos, state, fluidState, notify, sendToClient, ignoreVaporize);
-            //event did stuff
-            if(MinecraftForge.EVENT_BUS.post(event)) return false;
-            else if(event.getResult() == Event.Result.DENY) return false;
-            else if(event.getResult() == Event.Result.ALLOW) return true;
-            //default
-            else {
-                //sync possible event changes
-                fluidState = event.fluidState;
-                fluid = event.getFluid();
-                ignoreVaporize = event.ignoreVaporize;
-
-
-            }
-        }
-
+        final FluidloggedEvent.Fluidlog.Pre event = new FluidloggedEvent.Fluidlog.Pre(world, pos, state, fluidState, notify, sendToClient, ignoreVaporize);
+        //event did stuff
+        if(MinecraftForge.EVENT_BUS.post(event)) return false;
+        else if(event.getResult() == Event.Result.DENY) return false;
+        else if(event.getResult() == Event.Result.ALLOW) return true;
         //default
-        return true;
+        else {
+            //sync possible event changes
+            final @Nullable Fluid fluid = event.getFluid();
+            fluidState = event.fluidState;
+
+            //if the world is to warm for the fluid, vaporize it
+            if(fluid != null && !event.ignoreVaporize && world.provider.doesWaterVaporize() && fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME))) {
+                fluid.vaporize(null, world, pos, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
+                return false;
+            }
+
+
+
+            //default
+            return false;
+        }
     }
 
     //gets the fluid from the world or the capability
@@ -124,7 +130,7 @@ public enum FluidloggedUtils
     public static Fluid getFluid(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         if(world instanceof World) {
             final Chunk chunk = ((World)world).getChunkFromBlockCoords(pos);
-            final IBlockState state = world.getBlockState(pos);
+            final IBlockState state = chunk.getBlockState(pos);
             final @Nullable Fluid fluid = getFluidFromBlock(state.getBlock());
             if(fluid == null) {
                 final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
@@ -150,13 +156,14 @@ public enum FluidloggedUtils
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
         //TODO add config whitelist & blocklist here
-        final FluidloggedEvent.Fluidloggable event = new FluidloggedEvent.Fluidloggable(state, fluid);
+        //REMOVED EVENT DUE TO PERFORMANCE HIT
+        /*final FluidloggedEvent.Fluidloggable event = new FluidloggedEvent.Fluidloggable(state, fluid);
         //event did stuff
         if(MinecraftForge.EVENT_BUS.post(event)) return false;
         else if(event.getResult() == Event.Result.DENY) return false;
         else if(event.getResult() == Event.Result.ALLOW) return true;
         //default
-        else {
+        else {*/
             final Block block = state.getBlock();
             //modded
             if(block instanceof IFluidloggable) {
@@ -174,11 +181,10 @@ public enum FluidloggedUtils
                         || block instanceof BlockLeaves
                         || block instanceof BlockFenceGate
                         || block instanceof BlockTrapDoor
-                        || block instanceof BlockLadder
                         || block instanceof BlockRailBase
                         || block instanceof BlockHopper
                         || block instanceof BlockChest
                         || block instanceof BlockEnderChest;
-        }
+        //}
     }
 }

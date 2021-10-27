@@ -88,10 +88,18 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
         return world.getBlockState(pos).getBlock().isReplaceable(world, pos);
     }
 
+    @Override
+    public boolean isSourceBlock(IBlockAccess world, BlockPos pos) { return true; }
+
     @Nullable
     @Override
     public FluidStack drain(@Nonnull World world, @Nonnull BlockPos pos, boolean doDrain) {
-        return canDrain(world, pos) ? super.drain(world, pos, doDrain) : null;
+        if(canDrain(world, pos) && isSourceBlock(world, pos)) {
+            if(doDrain) world.setBlockToAir(pos);
+            return stack.copy();
+        }
+        //default
+        return null;
     }
 
     //============================================================

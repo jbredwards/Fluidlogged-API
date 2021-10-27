@@ -64,7 +64,7 @@ public abstract class FluidloggedEvent extends Event
         }
     }
 
-    //fired by FluidloggedUtils#isStateFluidloggable
+    //CURRENTLY USED, DUE TO PERFORMANCE IMPACT
     //if cancelled, the block can't be fluidlogged
     //result default = default checker; result allow = block is fluidloggable; result deny = block can't be fluidlogged
     @Cancelable

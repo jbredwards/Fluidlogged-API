@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm.plugins.forge;
 
-import git.jbredwards.fluidlogged_api.asm.plugins.IPlugin;
+import git.jbredwards.fluidlogged_api.asm.plugins.IASMPlugin;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -10,7 +10,7 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-public final class FluidPlugin implements IPlugin
+public final class FluidPlugin implements IASMPlugin
 {
     private boolean doFirst = true;
 
@@ -25,6 +25,11 @@ public final class FluidPlugin implements IPlugin
         if(doFirst && insn.getOpcode() == ALOAD && ((VarInsnNode)insn).var == 1) {
             instructions.insert(insn, genMethodNode("updateIfNotFluidloggable", "(Lnet/minecraft/block/Block;Lnet/minecraft/block/Block;)Z"));
             doFirst = false;
+        }
+        //line 186
+        else if(insn.getOpcode() == IF_ACMPNE) {
+            instructions.insert(insn, new JumpInsnNode(IFEQ, ((JumpInsnNode)insn).label));
+            instructions.remove(insn);
         }
         //line 192
         else if(insn.getOpcode() == INVOKEINTERFACE) {
