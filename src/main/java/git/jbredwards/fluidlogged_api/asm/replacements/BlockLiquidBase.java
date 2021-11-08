@@ -34,7 +34,6 @@ import javax.annotation.Nullable;
  * @author jbred
  *
  */
-@SuppressWarnings("unused")
 public abstract class BlockLiquidBase extends BlockLiquid
 {
     protected BlockLiquidBase(Material materialIn) { super(materialIn); }
@@ -47,9 +46,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
     @Nonnull
     @Override
-    public EnumBlockRenderType getRenderType(@Nonnull IBlockState state) {
-        return EnumBlockRenderType.MODEL;
-    }
+    public EnumBlockRenderType getRenderType(@Nonnull IBlockState state) { return EnumBlockRenderType.MODEL; }
 
     @SideOnly(Side.CLIENT)
     @Nonnull

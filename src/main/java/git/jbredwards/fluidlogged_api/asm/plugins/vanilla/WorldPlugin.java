@@ -1,9 +1,7 @@
 package git.jbredwards.fluidlogged_api.asm.plugins.vanilla;
 
 import git.jbredwards.fluidlogged_api.asm.plugins.IASMPlugin;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 
@@ -20,6 +18,11 @@ public class WorldPlugin implements IASMPlugin
         if(checkMethod(method, obfuscated ? "func_180501_a" : "setBlockState", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z")) {
             return 1;
         }
+        //setBlockToAir, line 456
+        if(checkMethod(method, obfuscated ? "setBlockToAir" : "", null)) return 2;
+        //destroyBlock, line 480
+        if(checkMethod(method, obfuscated ? "destroyBlock" : "", null)) return 2;
+
         //neighborChanged
 
         //changes some methods to use FluidloggedUtils#getFluidOrReal
@@ -27,7 +30,7 @@ public class WorldPlugin implements IASMPlugin
         || checkMethod(method, obfuscated ? "func_147470_e" : "isFlammableWithin", null)
         || checkMethod(method, obfuscated ? "func_72918_a" : "handleMaterialAcceleration", null)
         || checkMethod(method, obfuscated ? "func_72875_a" : "isMaterialInBB", null)
-        || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null)) return 3;
+        || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null)) return 4;
 
         return 0;
     }
@@ -35,6 +38,19 @@ public class WorldPlugin implements IASMPlugin
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
         //setBlockState, line 401
+
+        //setBlockToAir & destroyBlock
+        if(index == 2 && checkMethod(insn, obfuscated ? "func_176223_P" : "getDefaultState", "()Lnet/minecraft/block/state/IBlockState;")) {
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new VarInsnNode(ALOAD, 1));
+            list.add(genMethodNode("getFluidState", ""));
+
+            instructions.insert(insn, list);
+            instructions.remove(insn.getPrevious());
+            instructions.remove(insn);
+            return true;
+        }
 
         return false;
     }

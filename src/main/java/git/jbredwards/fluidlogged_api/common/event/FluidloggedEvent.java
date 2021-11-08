@@ -26,16 +26,16 @@ public abstract class FluidloggedEvent extends Event
         @Nullable public IBlockState fluidState;
         public final boolean notify;
         public final boolean sendToClient;
-        public boolean ignoreVaporize;
+        public boolean checkVaporize;
 
-        public Fluidlog(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable IBlockState fluidState, boolean notify, boolean sendToClient, boolean ignoreVaporize) {
+        public Fluidlog(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable IBlockState fluidState, boolean notify, boolean sendToClient, boolean checkVaporize) {
             this.world = world;
             this.pos = pos;
             this.state = state;
             this.fluidState = fluidState;
             this.notify = notify;
             this.sendToClient = sendToClient;
-            this.ignoreVaporize = ignoreVaporize;
+            this.checkVaporize = checkVaporize;
         }
 
         @Nullable
@@ -48,8 +48,8 @@ public abstract class FluidloggedEvent extends Event
         @HasResult
         public static class Pre extends Fluidlog
         {
-            public Pre(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable IBlockState fluidState, boolean notify, boolean sendToClient, boolean ignoreVaporize) {
-                super(world, pos, state, fluidState, notify, sendToClient, ignoreVaporize);
+            public Pre(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable IBlockState fluidState, boolean notify, boolean sendToClient, boolean checkVaporize) {
+                super(world, pos, state, fluidState, notify, sendToClient, checkVaporize);
             }
         }
 
@@ -58,8 +58,8 @@ public abstract class FluidloggedEvent extends Event
         @Cancelable
         public static class Post extends Fluidlog
         {
-            public Post(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable IBlockState fluidState, boolean notify, boolean sendToClient, boolean ignoreVaporize) {
-                super(world, pos, state, fluidState, notify, sendToClient, ignoreVaporize);
+            public Post(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable IBlockState fluidState, boolean notify, boolean sendToClient, boolean checkVaporize) {
+                super(world, pos, state, fluidState, notify, sendToClient, checkVaporize);
             }
         }
     }

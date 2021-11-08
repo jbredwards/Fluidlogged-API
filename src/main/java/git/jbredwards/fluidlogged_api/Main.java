@@ -24,7 +24,7 @@ public final class Main
     //register this mod's capability & packet
     @Mod.EventHandler
     public static void preInit(FMLPreInitializationEvent event) {
-        CapabilityManager.INSTANCE.register(IFluidStateCapability.class, new IFluidStateCapability.Impl(), IFluidStateCapability.Impl::new);
+        CapabilityManager.INSTANCE.register(IFluidStateCapability.class, IFluidStateCapability.Storage.INSTANCE, IFluidStateCapability.Impl::new);
         NetworkHandler.init();
     }
 

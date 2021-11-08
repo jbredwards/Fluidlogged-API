@@ -8,7 +8,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Iterator;
-import java.util.Objects;
+import java.util.Optional;
 
 /**
  * used as a base for this mod's plugins
@@ -91,14 +91,14 @@ public interface IASMPlugin extends Opcodes
     //same as the normal method, but this one can specify how many to go back
     @Nonnull
     default AbstractInsnNode getPrevious(@Nonnull AbstractInsnNode insn, int count) {
-        for(int i = 0; i < count; i++) insn = Objects.requireNonNull(insn.getPrevious());
+        for(int i = 0; i < count; i++) insn = Optional.ofNullable(insn.getPrevious()).orElse(insn);
         return insn;
     }
 
     //same as the normal method, but this one can specify how many to go forward
     @Nonnull
     default AbstractInsnNode getNext(@Nonnull AbstractInsnNode insn, int count) {
-        for(int i = 0; i < count; i++) insn = Objects.requireNonNull(insn.getNext());
+        for(int i = 0; i < count; i++) insn = Optional.ofNullable(insn.getPrevious()).orElse(insn);
         return insn;
     }
 

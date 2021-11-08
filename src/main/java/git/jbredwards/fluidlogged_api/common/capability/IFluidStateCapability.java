@@ -38,15 +38,18 @@ public interface IFluidStateCapability
         return p != null && p.hasCapability(Impl.CAPABILITY, null) ? p.getCapability(Impl.CAPABILITY, null) : null;
     }
 
+    //gets the stored state if present
+    @Nullable
+    static IBlockState get(@Nullable ICapabilityProvider p, @Nonnull BlockPos pos) {
+        final @Nullable IFluidStateCapability cap = get(p);
+        return cap == null ? null : cap.getFluidState(pos);
+    }
+
     //default implementation
-    class Impl implements IFluidStateCapability, Capability.IStorage<IFluidStateCapability>, ICapabilitySerializable<NBTBase>
+    class Impl implements IFluidStateCapability, ICapabilitySerializable<NBTBase>
     {
         @CapabilityInject(IFluidStateCapability.class)
         public static final Capability<IFluidStateCapability> CAPABILITY = null;
-
-        //=====================
-        //IFluidStateCapability
-        //=====================
 
         @Nonnull
         protected final Map<BlockPos, IBlockState> fluidStates = new HashMap<>();
@@ -67,11 +70,37 @@ public interface IFluidStateCapability
                 fluidStates.put(pos, fluidState);
         }
 
-        //========
-        //IStorage
-        //========
+        //=======================
+        //ICapabilitySerializable
+        //=======================
 
+        @SuppressWarnings("ConstantConditions")
+        @Override
+        public boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
+            return capability.equals(CAPABILITY);
+        }
+
+        @SuppressWarnings("ConstantConditions")
         @Nullable
+        @Override
+        public <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
+            return hasCapability(capability, facing) ? CAPABILITY.cast(this) : null;
+        }
+
+        @SuppressWarnings("ConstantConditions")
+        @Nullable
+        @Override
+        public NBTBase serializeNBT() { return CAPABILITY.writeNBT(this, null); }
+
+        @SuppressWarnings("ConstantConditions")
+        @Override
+        public void deserializeNBT(@Nullable NBTBase nbt) { CAPABILITY.readNBT(this, null, nbt); }
+    }
+
+    enum Storage implements Capability.IStorage<IFluidStateCapability>
+    {
+        INSTANCE;
+
         @Override
         public NBTBase writeNBT(@Nullable Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side) {
             final NBTTagList list = new NBTTagList();
@@ -103,31 +132,5 @@ public interface IFluidStateCapability
                 }
             }
         }
-
-        //=======================
-        //ICapabilitySerializable
-        //=======================
-
-        @SuppressWarnings("ConstantConditions")
-        @Override
-        public boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
-            return capability.equals(CAPABILITY);
-        }
-
-        @SuppressWarnings("ConstantConditions")
-        @Nullable
-        @Override
-        public <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
-            return hasCapability(capability, facing) ? CAPABILITY.cast(this) : null;
-        }
-
-        @SuppressWarnings("ConstantConditions")
-        @Nullable
-        @Override
-        public NBTBase serializeNBT() { return CAPABILITY.writeNBT(this, null); }
-
-        @SuppressWarnings("ConstantConditions")
-        @Override
-        public void deserializeNBT(@Nullable NBTBase nbt) { CAPABILITY.readNBT(this, null, nbt); }
     }
 }

@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.common.block;
 
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedAccessorUtils;
+import net.minecraft.block.Block;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
@@ -30,7 +31,7 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
 {
     public BlockFluidloggedClassic(@Nonnull Fluid fluid, @Nonnull Material material, @Nonnull MapColor mapColor) {
         super(fluid, material, mapColor);
-        canCreateSources = FluidloggedAccessorUtils.canCreateSources(fluid);
+        sync(fluid.getBlock(), false);
     }
 
     public BlockFluidloggedClassic(@Nonnull Fluid fluid, @Nonnull Material material) {
@@ -39,15 +40,15 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
 
     //sync some fluid variables during runtime (since mods like to set these at different times?)
     protected boolean isSyncDirty = true;
-    protected void sync(@Nonnull Fluid fluid) {
-        if(isSyncDirty && fluid.getBlock() instanceof BlockFluidClassic) {
+    protected void sync(@Nullable Block fluid, boolean remapDirty) {
+        if(isSyncDirty && fluid instanceof BlockFluidClassic) {
             quantaPerBlock      = FluidloggedAccessorUtils.quantaPerBlock(fluid);
             quantaPerBlockFloat = FluidloggedAccessorUtils.quantaPerBlockFloat(fluid);
             quantaFraction      = FluidloggedAccessorUtils.quantaFraction(fluid);
             canCreateSources    = FluidloggedAccessorUtils.canCreateSources(fluid);
         }
 
-        isSyncDirty = false;
+        if(remapDirty) isSyncDirty = false;
     }
 
     @Nonnull
@@ -89,7 +90,7 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
     }
 
     @Override
-    public boolean isSourceBlock(IBlockAccess world, BlockPos pos) { return true; }
+    public boolean isSourceBlock(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return true; }
 
     @Nullable
     @Override

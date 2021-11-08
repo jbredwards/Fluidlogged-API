@@ -45,6 +45,14 @@ processResources {
     }
 }
 
+repositories {  
+    maven { url "https://maven.tehnut.info" }
+}
+
+dependencies {
+    compile "mcp.mobius.waila:Hwyla:${hwyla_version}"
+}
+
 // Create deobf dev jars
 task deobfJar(type: Jar) {
     from sourceSets.main.output
