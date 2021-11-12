@@ -1,8 +1,7 @@
 package git.jbredwards.fluidlogged_api.common.capability;
 
-import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import com.google.common.collect.ImmutableMap;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -12,12 +11,12 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
+import net.minecraftforge.fluids.FluidRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * allows chunks to store fluid states
@@ -26,23 +25,16 @@ import java.util.Objects;
  */
 public interface IFluidStateCapability
 {
-    @Nonnull Map<BlockPos, IBlockState> getFluidStateMap();
+    @Nonnull Map<BlockPos, FluidState> getFluidStateMap();
     //don't call directly, instead use FluidloggedUtils#getFluidState please!
-    @Nullable IBlockState getFluidState(@Nonnull BlockPos pos);
+    @Nonnull FluidState getFluidState(@Nonnull BlockPos pos);
     //don't call directly, instead use FluidloggedUtils#setFluidState please!
-    void setFluidState(@Nonnull BlockPos pos, @Nullable IBlockState fluidState);
+    void setFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fluid);
     //get this from a capability provider
     @SuppressWarnings("ConstantConditions")
     @Nullable
     static IFluidStateCapability get(@Nullable ICapabilityProvider p) {
         return p != null && p.hasCapability(Impl.CAPABILITY, null) ? p.getCapability(Impl.CAPABILITY, null) : null;
-    }
-
-    //gets the stored state if present
-    @Nullable
-    static IBlockState get(@Nullable ICapabilityProvider p, @Nonnull BlockPos pos) {
-        final @Nullable IFluidStateCapability cap = get(p);
-        return cap == null ? null : cap.getFluidState(pos);
     }
 
     //default implementation
@@ -52,22 +44,23 @@ public interface IFluidStateCapability
         public static final Capability<IFluidStateCapability> CAPABILITY = null;
 
         @Nonnull
-        protected final Map<BlockPos, IBlockState> fluidStates = new HashMap<>();
+        protected final Map<BlockPos, FluidState> fluidStates = new HashMap<>();
 
         @Nonnull
         @Override
-        public Map<BlockPos, IBlockState> getFluidStateMap() { return fluidStates; }
+        public Map<BlockPos, FluidState> getFluidStateMap() { return ImmutableMap.copyOf(fluidStates); }
 
-        @Nullable
+        @Nonnull
         @Override
-        public IBlockState getFluidState(@Nonnull BlockPos pos) { return fluidStates.get(pos); }
+        public FluidState getFluidState(@Nonnull BlockPos pos) {
+            final @Nullable FluidState state = fluidStates.get(pos);
+            return state == null ? FluidState.EMPTY : state;
+        }
 
         @Override
-        public void setFluidState(@Nonnull BlockPos pos, @Nullable IBlockState fluidState) {
-            if(fluidState == null) fluidStates.remove(pos);
-            //check if fluid first, better safe than sorry
-            else if(FluidloggedUtils.getFluidFromBlock(fluidState.getBlock()) != null)
-                fluidStates.put(pos, fluidState);
+        public void setFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fluid) {
+            if(fluid.isEmpty()) fluidStates.remove(pos);
+            else fluidStates.put(pos, fluid);
         }
 
         //=======================
@@ -104,12 +97,9 @@ public interface IFluidStateCapability
         @Override
         public NBTBase writeNBT(@Nullable Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side) {
             final NBTTagList list = new NBTTagList();
-            for(Map.Entry<BlockPos, IBlockState> entry : instance.getFluidStateMap().entrySet()) {
+            for(Map.Entry<BlockPos, FluidState> entry : instance.getFluidStateMap().entrySet()) {
                 NBTTagCompound nbt = new NBTTagCompound();
-
-                IBlockState state = entry.getValue();
-                nbt.setString("id", Objects.requireNonNull(state.getBlock().getRegistryName()).toString());
-                nbt.setInteger("meta", state.getBlock().getMetaFromState(state));
+                nbt.setString("id", entry.getValue().fluid.getName());
                 nbt.setLong("pos", entry.getKey().toLong());
 
                 list.appendTag(nbt);
@@ -118,16 +108,16 @@ public interface IFluidStateCapability
             return list;
         }
 
-        @SuppressWarnings("deprecation")
         @Override
         public void readNBT(@Nullable Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side, @Nullable NBTBase nbtIn) {
             if(nbtIn instanceof NBTTagList) {
                 for(NBTBase tag : (NBTTagList)nbtIn) {
                     if(tag instanceof NBTTagCompound) {
                         NBTTagCompound nbt = (NBTTagCompound)tag;
-                        Block block = Block.getBlockFromName(nbt.getString("id"));
-                        //can be null if a stored fluid's mod has been removed
-                        if(block != null) instance.setFluidState(BlockPos.fromLong(nbt.getLong("pos")), block.getStateFromMeta(nbt.getInteger("meta")));
+                        instance.setFluidState(
+                                BlockPos.fromLong(nbt.getLong("pos")),
+                                FluidState.build(FluidRegistry.getFluid(nbt.getString("id")))
+                        );
                     }
                 }
             }

@@ -1,12 +1,13 @@
 package git.jbredwards.fluidlogged_api.common.network;
 
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.common.event.EventHandler;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -24,11 +25,11 @@ public final class FluidStateMessage implements IMessage
 {
     public boolean isValid = false;
     public BlockPos pos;
-    public IBlockState state;
+    public FluidState state;
 
     @SuppressWarnings("unused")
     public FluidStateMessage() {}
-    public FluidStateMessage(@Nonnull BlockPos pos, @Nullable IBlockState state) {
+    public FluidStateMessage(@Nonnull BlockPos pos, @Nonnull FluidState state) {
         this.isValid = true;
         this.pos = pos;
         this.state = state;
@@ -39,8 +40,8 @@ public final class FluidStateMessage implements IMessage
         isValid = buf.readBoolean();
         if(isValid) {
             pos = BlockPos.fromLong(buf.readLong());
-            int stateId = buf.readInt();
-            state = stateId < 0 ? null : Block.getStateById(stateId);
+            int id = buf.readInt();
+            state = id < 0 ? FluidState.EMPTY : FluidState.build(EventHandler.intToFluid.get(id));
         }
     }
 
@@ -49,7 +50,7 @@ public final class FluidStateMessage implements IMessage
         buf.writeBoolean(isValid);
         if(isValid) {
             buf.writeLong(pos.toLong());
-            buf.writeInt(state == null ? -1 : Block.getStateId(state));
+            buf.writeInt(state.isEmpty() ? -1 : EventHandler.fluidToInt.get(state.fluid));
         }
     }
 
@@ -63,11 +64,16 @@ public final class FluidStateMessage implements IMessage
             if(m.isValid && ctx.side == Side.CLIENT) {
                 Minecraft.getMinecraft().addScheduledTask(() -> {
                     final WorldClient world = Minecraft.getMinecraft().world;
-                    final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(world.getChunkFromBlockCoords(m.pos));
+                    final Chunk chunk = world.getChunkFromBlockCoords(m.pos);
+                    final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
 
                     if(cap != null) {
                         cap.setFluidState(m.pos, m.state);
                         world.markBlockRangeForRenderUpdate(m.pos, m.pos);
+                        //update clientside light levels
+                        world.profiler.startSection("checkLight");
+                        world.checkLight(m.pos);
+                        world.profiler.endSection();
                     }
                 });
             }

@@ -34,6 +34,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -46,9 +48,22 @@ import java.util.Optional;
 @Mod.EventBusSubscriber(modid = Constants.MODID)
 public final class EventHandler
 {
+    //used by FluidStateMessage to conserve network data while updating clientside fluidstate
+    public static final Map<Fluid, Integer> fluidToInt = new HashMap<>();
+    public static final Map<Integer, Fluid> intToFluid = new HashMap<>();
+
     @SubscribeEvent
     public static void attachCapability(@Nonnull AttachCapabilitiesEvent<Chunk> event) {
         event.addCapability(new ResourceLocation(Constants.MODID, "fluid_states"), new IFluidStateCapability.Impl());
+    }
+
+    @SubscribeEvent
+    public static void cacheFluidNumIds(@Nonnull FluidRegistry.FluidRegisterEvent event) {
+        final @Nullable Fluid fluid = FluidRegistry.getFluid(event.getFluidName());
+        if(fluid != null && fluid.getBlock() != null) {
+            fluidToInt.put(fluid, event.getFluidID());
+            intToFluid.put(event.getFluidID(), fluid);
+        }
     }
 
     @SideOnly(Side.CLIENT)

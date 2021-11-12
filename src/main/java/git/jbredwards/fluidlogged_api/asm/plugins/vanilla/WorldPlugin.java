@@ -19,9 +19,9 @@ public class WorldPlugin implements IASMPlugin
             return 1;
         }
         //setBlockToAir, line 456
-        if(checkMethod(method, obfuscated ? "setBlockToAir" : "", null)) return 2;
+        if(checkMethod(method, obfuscated ? "func_175698_g" : "setBlockToAir", null)) return 2;
         //destroyBlock, line 480
-        if(checkMethod(method, obfuscated ? "destroyBlock" : "", null)) return 2;
+        if(checkMethod(method, obfuscated ? "func_175655_b" :  "destroyBlock", null)) return 2;
 
         //neighborChanged
 
@@ -44,7 +44,7 @@ public class WorldPlugin implements IASMPlugin
             final InsnList list = new InsnList();
             list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ALOAD, 1));
-            list.add(genMethodNode("getFluidState", ""));
+            list.add(genMethodNode("getFluidState", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
 
             instructions.insert(insn, list);
             instructions.remove(insn.getPrevious());

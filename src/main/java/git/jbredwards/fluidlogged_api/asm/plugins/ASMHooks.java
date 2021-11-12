@@ -1,7 +1,7 @@
 package git.jbredwards.fluidlogged_api.asm.plugins;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
-import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -17,11 +17,8 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fluids.Fluid;
 import org.apache.logging.log4j.Logger;
 
-import javax.annotation.Nullable;
-
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import static net.minecraft.util.EnumFacing.*;
 
@@ -132,10 +129,10 @@ public enum ASMHooks
         //catch loop
         if(FluidloggedUtils.getFluidFromBlock(block) != null) return here;
         //no fluid here, return old value
-        final @Nullable IBlockState fluidState = IFluidStateCapability.get(world.getChunkFromBlockCoords(pos), pos);
-        if(fluidState == null) return here;
+        final FluidState fluidState = FluidState.get(world, pos);
+        if(fluidState.isEmpty()) return here;
         //compare the fluid & old values, and return the greater of the two
-        else return Math.max(here, fluidState.getBlock().getExplosionResistance(world, pos, entity, explosion));
+        else return Math.max(here, fluidState.state.getBlock().getExplosionResistance(world, pos, entity, explosion));
     }
 
     //BlockPlugin
@@ -145,10 +142,10 @@ public enum ASMHooks
         //catch loop
         if(FluidloggedUtils.getFluidFromBlock(state.getBlock()) != null) return here;
         //no fluid here, return old value
-        final @Nullable IBlockState fluidState = FluidloggedUtils.getFluidState(world, pos);
-        if(fluidState == null) return here;
+        final FluidState fluidState = FluidState.get(world, pos);
+        if(fluidState.isEmpty()) return here;
         //compare the fluid & old values, and return the greater of the two
-        else return Math.max(here, fluidState.getLightOpacity(world, pos));
+        else return Math.max(here, fluidState.state.getLightOpacity(world, pos));
     }
 
     //BlockPlugin
@@ -158,34 +155,27 @@ public enum ASMHooks
         //catch loop
         if(FluidloggedUtils.getFluidFromBlock(state.getBlock()) != null) return here;
         //no fluid here, return old value
-        final @Nullable IBlockState fluidState = FluidloggedUtils.getFluidState(world, pos);
-        if(fluidState == null) return here;
+        final FluidState fluidState = FluidState.get(world, pos);
+        if(fluidState.isEmpty()) return here;
         //compare the fluid & old values, and return the greater of the two
-        else return Math.max(here, fluidState.getLightValue(world, pos));
+        else return Math.max(here, fluidState.state.getLightValue(world, pos));
     }
 
     //WorldPlugin
     public static IBlockState getFluidState(World world, BlockPos pos) {
-        final @Nullable IBlockState fluidState = IFluidStateCapability.get(world.getChunkFromBlockCoords(pos), pos);
-        return fluidState == null ? Blocks.AIR.getDefaultState() :
-                Optional.ofNullable(FluidloggedUtils.convertToFluidState(fluidState, true)).orElse(fluidState);
+        final FluidState fluidState = FluidState.get(world, pos);
+        return fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.state;
     }
 
     //WorldPlugin
     public static IBlockState setBlockState(Chunk chunk, BlockPos pos, IBlockState state, IBlockState oldState, World world, int flags) {
-        final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
-
-        if(FluidloggedUtils.isStateFluidloggable(oldState, FluidloggedUtils.getFluidFromBlock(state.getBlock()))) {
-            if(cap != null && FluidloggedUtils.setFluidState(world, pos, oldState, state, true, !world.isRemote, true)) {
-
-            }
-
-            return state;
+        if(!world.isRemote) {
+            final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
+            if(!fluidState.isEmpty() && !FluidloggedUtils.isStateFluidloggable(state, fluidState.fluid))
+                FluidloggedUtils.setFluidState(world, pos, oldState, FluidState.EMPTY, false, flags);
         }
-        else {
-            if(cap != null && cap.getFluidState(pos) != null) FluidloggedUtils.setFluidState(world, pos, oldState, null, true, !world.isRemote, false);
-            return chunk.setBlockState(pos, state);
-        }
+
+        return chunk.setBlockState(pos, state);
     }
 
     //WorldServerPlugin
@@ -194,8 +184,8 @@ public enum ASMHooks
         //actual block
         if(Block.isEqualTo(compare, here.getBlock())) return here;
         //fluid
-        final @Nullable IBlockState fluidState = IFluidStateCapability.get(world.getChunkFromBlockCoords(pos), pos);
-        if(fluidState != null && Block.isEqualTo(compare, fluidState.getBlock())) return fluidState;
+        final FluidState fluidState = FluidState.get(world, pos);
+        if(!fluidState.isEmpty() && Block.isEqualTo(compare, fluidState.state.getBlock())) return fluidState.state;
         //default
         return here;
     }

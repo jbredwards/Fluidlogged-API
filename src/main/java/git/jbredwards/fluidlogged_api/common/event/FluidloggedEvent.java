@@ -1,12 +1,14 @@
 package git.jbredwards.fluidlogged_api.common.event;
 
-import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fml.common.eventhandler.Cancelable;
 import net.minecraftforge.fml.common.eventhandler.Event;
+import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -18,49 +20,34 @@ import javax.annotation.Nullable;
  */
 public abstract class FluidloggedEvent extends Event
 {
-    public static abstract class Fluidlog extends FluidloggedEvent
+    //fired when trying to fluidlog/unfluidlog a block
+    //if cancelled, the block will not become fluidlogged
+    //result default = default code gets ran; result allow = block was fluidlogged; result deny = block was not fluidlogged
+    @Cancelable
+    @HasResult
+    public static class Fluidlog extends FluidloggedEvent
     {
         @Nonnull  public final World world;
         @Nonnull  public final BlockPos pos;
         @Nonnull  public final IBlockState state;
-        @Nullable public IBlockState fluidState;
-        public final boolean notify;
-        public final boolean sendToClient;
+        @Nonnull public FluidState fluidState;
+        public int flags;
         public boolean checkVaporize;
 
-        public Fluidlog(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable IBlockState fluidState, boolean notify, boolean sendToClient, boolean checkVaporize) {
+        public Fluidlog(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
             this.world = world;
             this.pos = pos;
             this.state = state;
             this.fluidState = fluidState;
-            this.notify = notify;
-            this.sendToClient = sendToClient;
             this.checkVaporize = checkVaporize;
+            this.flags = flags;
         }
 
-        @Nullable
-        public Fluid getFluid() { return fluidState == null ? null : FluidloggedUtils.getFluidFromBlock(fluidState.getBlock()); }
-
-        //fired when trying to fluidlog a block
-        //if cancelled, the block will not become fluidlogged
-        //result default = default code gets ran; result allow = block was fluidlogged; result deny = block was not fluidlogged
-        @Cancelable
-        @HasResult
-        public static class Pre extends Fluidlog
-        {
-            public Pre(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable IBlockState fluidState, boolean notify, boolean sendToClient, boolean checkVaporize) {
-                super(world, pos, state, fluidState, notify, sendToClient, checkVaporize);
-            }
-        }
-
-        //fired after a block is fluidlogged
-        //if cancelled, the bucket will not be drained
-        @Cancelable
-        public static class Post extends Fluidlog
-        {
-            public Post(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable IBlockState fluidState, boolean notify, boolean sendToClient, boolean checkVaporize) {
-                super(world, pos, state, fluidState, notify, sendToClient, checkVaporize);
-            }
+        @Nonnull
+        public static Pair<Fluidlog, Result> post(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
+            final Fluidlog event = new Fluidlog(world, pos, state, fluidState, checkVaporize, flags);
+            if(MinecraftForge.EVENT_BUS.post(event)) return Pair.of(event, Result.DENY);
+            else return Pair.of(event, event.getResult());
         }
     }
 
