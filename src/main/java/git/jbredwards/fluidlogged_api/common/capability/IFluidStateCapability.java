@@ -116,7 +116,7 @@ public interface IFluidStateCapability
                         NBTTagCompound nbt = (NBTTagCompound)tag;
                         instance.setFluidState(
                                 BlockPos.fromLong(nbt.getLong("pos")),
-                                FluidState.build(FluidRegistry.getFluid(nbt.getString("id")))
+                                FluidState.of(FluidRegistry.getFluid(nbt.getString("id")))
                         );
                     }
                 }

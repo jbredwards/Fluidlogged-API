@@ -2,6 +2,7 @@ package git.jbredwards.fluidlogged_api.common.util;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.common.config.FluidloggedConfig;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
 import git.jbredwards.fluidlogged_api.common.network.NetworkHandler;
@@ -16,6 +17,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -23,7 +25,6 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
-import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -88,10 +89,9 @@ public enum FluidloggedUtils
         final Chunk chunk = world.getChunkFromBlockCoords(pos);
         if(state == null) state = chunk.getBlockState(pos);
 
-        final Pair<FluidloggedEvent.Fluidlog, Event.Result> pair = FluidloggedEvent.Fluidlog.post(world, pos, state, fluidState, checkVaporize, flags);
-        final FluidloggedEvent.Fluidlog event = pair.getKey();
+        final FluidloggedEvent event = new FluidloggedEvent(world, pos, state, fluidState, checkVaporize, flags);
         //event did stuff
-        if(pair.getValue() != Event.Result.DEFAULT) return pair.getValue() == Event.Result.ALLOW;
+        if(MinecraftForge.EVENT_BUS.post(event) || event.getResult() != Event.Result.DEFAULT) return event.getResult() == Event.Result.ALLOW;
         //default
         else {
             //sync possible event changes
@@ -104,31 +104,35 @@ public enum FluidloggedUtils
                 return true;
             }
 
-            if(!world.isRemote) {
-                @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
-                if(cap != null) {
-                    //preserve old fluid state prior to updating
-                    final FluidState oldFluidState = cap.getFluidState(pos);
+            @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
+            if(cap != null) {
+                //preserve old fluid state prior to updating
+                final FluidState oldFluidState = cap.getFluidState(pos);
 
-                    //check for IFluidloggable
-                    if(state instanceof IFluidloggable) {
-                        final Event.Result result = ((IFluidloggable)state).onFluidChange(world, pos, state, oldFluidState.fluid, fluid);
-                        if(result != Event.Result.DEFAULT) return result == Event.Result.ALLOW;
-                    }
+                //check for IFluidloggable
+                if(state.getBlock() instanceof IFluidloggable) {
+                    final Event.Result result = ((IFluidloggable)state.getBlock()).onFluidChange(world, pos, state, oldFluidState.fluid, fluid);
+                    if(result != Event.Result.DEFAULT) return result == Event.Result.ALLOW;
+                }
 
+                //only do these on server
+                if(!world.isRemote) {
                     //send changes to server
                     cap.setFluidState(pos, fluidState);
 
                     //send changes to client
-                    if((event.flags & Constants.BlockFlags.SEND_TO_CLIENTS) == 0)
+                    if((event.flags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {
                         NetworkHandler.WRAPPER.sendToAllAround(new FluidStateMessage(pos, fluidState),
-                                new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64));
-
-                    //update world properly
-                    world.markAndNotifyBlock(pos, chunk,
-                            Optional.ofNullable(oldFluidState.state).orElse(Blocks.AIR.getDefaultState()),
-                            Optional.ofNullable(fluidState.state).orElse(Blocks.AIR.getDefaultState()), event.flags);
+                                new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
+                        );
+                    }
                 }
+
+                //update world properly
+                world.markAndNotifyBlock(pos, chunk,
+                        Optional.ofNullable(oldFluidState.state).orElse(Blocks.AIR.getDefaultState()),
+                        Optional.ofNullable(fluidState.state).orElse(Blocks.AIR.getDefaultState()), event.flags
+                );
             }
 
             //default
@@ -156,9 +160,10 @@ public enum FluidloggedUtils
         catch(Throwable throwable) {
             if(world instanceof World) return ((World)world).getChunkFromBlockCoords(pos);
             else if(world instanceof ChunkCache) return ((ChunkCache)world).world.getChunkFromBlockCoords(pos);
+            else if(world instanceof IChunkProvider) return ((IChunkProvider)world).getChunkFromBlockCoords(pos);
             else return null;
         }
-     }
+    }
 
     //gets the fluid from the block (null if there is no fluid)
     @Nullable
@@ -171,27 +176,32 @@ public enum FluidloggedUtils
     }
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
-        //TODO add config whitelist & blocklist here
-        final Block block = state.getBlock();
-        //modded
-        if(block instanceof IFluidloggable) {
-            if(fluid == null) return ((IFluidloggable)block).isFluidloggable(state);
-            else              return ((IFluidloggable)block).isFluidValid(state, fluid);
+        //config
+        final Event.Result configResult = FluidloggedConfig.isStateFluidloggable(state, fluid);
+        if(configResult != Event.Result.DEFAULT) return configResult == Event.Result.ALLOW;
+        //defaults
+        else {
+            //modded
+            final Block block = state.getBlock();
+            if(block instanceof IFluidloggable) {
+                if(fluid == null) return ((IFluidloggable)block).isFluidloggable(state);
+                else              return ((IFluidloggable)block).isFluidValid(state, fluid);
+            }
+            //vanilla
+            else return (block instanceof BlockSlab && !((BlockSlab)block).isDouble())
+                    || block instanceof BlockStairs
+                    || block instanceof BlockPane
+                    || block instanceof BlockFence
+                    || block instanceof BlockEndRod
+                    || block instanceof BlockWall
+                    || block instanceof BlockBarrier
+                    || block instanceof BlockLeaves
+                    || block instanceof BlockFenceGate
+                    || block instanceof BlockTrapDoor
+                    || block instanceof BlockRailBase
+                    || block instanceof BlockHopper
+                    || block instanceof BlockChest
+                    || block instanceof BlockEnderChest;
         }
-        //vanilla supported blocks
-        else return (block instanceof BlockSlab && !((BlockSlab)block).isDouble())
-                || block instanceof BlockStairs
-                || block instanceof BlockPane
-                || block instanceof BlockFence
-                || block instanceof BlockEndRod
-                || block instanceof BlockWall
-                || block instanceof BlockBarrier
-                || block instanceof BlockLeaves
-                || block instanceof BlockFenceGate
-                || block instanceof BlockTrapDoor
-                || block instanceof BlockRailBase
-                || block instanceof BlockHopper
-                || block instanceof BlockChest
-                || block instanceof BlockEnderChest;
     }
 }

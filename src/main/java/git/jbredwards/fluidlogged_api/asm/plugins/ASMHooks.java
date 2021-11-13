@@ -4,7 +4,9 @@ import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
@@ -17,8 +19,10 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fluids.Fluid;
 import org.apache.logging.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import static net.minecraft.util.EnumFacing.*;
 
@@ -161,6 +165,16 @@ public enum ASMHooks
         else return Math.max(here, fluidState.state.getLightValue(world, pos));
     }
 
+    //WorldClientPlugin
+    public static void showBarrierParticles(WorldClient world, int x, int y, int z, int offset, Random random, BlockPos.MutableBlockPos pos) {
+        x += world.rand.nextInt(offset) - world.rand.nextInt(offset);
+        y += world.rand.nextInt(offset) - world.rand.nextInt(offset);
+        z += world.rand.nextInt(offset) - world.rand.nextInt(offset);
+
+        final FluidState fluidState = FluidState.get(world, pos.setPos(x, y, z));
+        if(!fluidState.isEmpty()) fluidState.state.getBlock().randomDisplayTick(fluidState.state, world, pos, random);
+    }
+
     //WorldPlugin
     public static IBlockState getFluidState(World world, BlockPos pos) {
         final FluidState fluidState = FluidState.get(world, pos);
@@ -169,10 +183,15 @@ public enum ASMHooks
 
     //WorldPlugin
     public static IBlockState setBlockState(Chunk chunk, BlockPos pos, IBlockState state, IBlockState oldState, World world, int flags) {
-        if(!world.isRemote) {
-            final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
-            if(!fluidState.isEmpty() && !FluidloggedUtils.isStateFluidloggable(state, fluidState.fluid))
-                FluidloggedUtils.setFluidState(world, pos, oldState, FluidState.EMPTY, false, flags);
+        final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
+        //replace with empty fluid
+        if(!fluidState.isEmpty() && !FluidloggedUtils.isStateFluidloggable(state, fluidState.fluid))
+            FluidloggedUtils.setFluidState(world, pos, state, FluidState.EMPTY, false, flags);
+
+        //save old state as FluidState
+        final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(oldState.getBlock());
+        if(fluid != null && oldState.getValue(BlockLiquid.LEVEL) == 0 && FluidloggedUtils.isStateFluidloggable(state, fluid)) {
+            FluidloggedUtils.setFluidState(world, pos, state, FluidState.of(fluid), false, flags);
         }
 
         return chunk.setBlockState(pos, state);

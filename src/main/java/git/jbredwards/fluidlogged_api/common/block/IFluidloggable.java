@@ -33,7 +33,7 @@ public interface IFluidloggable extends IFluidloggableBase
         return newFluid == null ? onFluidDrain(world, pos, state, oldFluid) : onFluidFill(world, pos, state, oldFluid, newFluid);
     }
 
-    //called when the fluid is placed into this
+    //called by IFluidloggable#onFluidChange
     //DEFAULT = run & return result of the default fill action
     //DENY    = think the fill never happened
     //ALLOW   = think the fill happened
@@ -42,7 +42,7 @@ public interface IFluidloggable extends IFluidloggableBase
         return Event.Result.DEFAULT;
     }
 
-    //called when the fluid is drained from this
+    //called by IFluidloggable#onFluidChange
     //DEFAULT = run & return result of the default drain action
     //DENY    = think the drain never happened
     //ALLOW   = think the drain happened

@@ -41,7 +41,7 @@ public final class FluidStateMessage implements IMessage
         if(isValid) {
             pos = BlockPos.fromLong(buf.readLong());
             int id = buf.readInt();
-            state = id < 0 ? FluidState.EMPTY : FluidState.build(EventHandler.intToFluid.get(id));
+            state = id < 0 ? FluidState.EMPTY : FluidState.of(EventHandler.intToFluid.get(id));
         }
     }
 

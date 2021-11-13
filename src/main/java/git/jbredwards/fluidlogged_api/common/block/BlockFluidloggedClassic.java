@@ -51,6 +51,11 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
         if(remapDirty) isSyncDirty = false;
     }
 
+    //fluids for IFluidloggableBase blocks are rendered through ASMHooks
+    @Nonnull
+    @Override
+    public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return oldState; }
+
     @Nonnull
     @Override
     public BlockFaceShape getBlockFaceShape(@Nonnull IBlockAccess worldIn, @Nonnull IBlockState state, @Nonnull BlockPos pos, @Nonnull EnumFacing face) {
