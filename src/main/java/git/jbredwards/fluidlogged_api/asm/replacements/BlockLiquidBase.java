@@ -41,7 +41,10 @@ public abstract class BlockLiquidBase extends BlockLiquid
     @Nonnull
     @Override
     protected BlockStateContainer createBlockState() {
-        return new BlockStateContainer.Builder(this).add(LEVEL).add(BlockFluidBase.FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0])).build();
+        return new BlockStateContainer.Builder(this)
+                .add(LEVEL)
+                .add(BlockFluidBase.FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0]))
+                .build();
     }
 
     @Nonnull

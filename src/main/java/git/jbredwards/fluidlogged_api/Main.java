@@ -28,7 +28,7 @@ public final class Main
         NetworkHandler.init();
     }
 
-    //fixes the vanilla bucket dispenser action by using the forge one instead
+    //fixes the vanilla bucket dispenser actions by using the forge one instead
     @Mod.EventHandler
     public static void init(FMLInitializationEvent event) {
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());

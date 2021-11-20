@@ -5,13 +5,17 @@ import net.minecraft.block.Block;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
+import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.common.property.IUnlistedProperty;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
@@ -51,7 +55,16 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
         if(remapDirty) isSyncDirty = false;
     }
 
-    //fluids for IFluidloggableBase blocks are rendered through ASMHooks
+    @Nonnull
+    @Override
+    protected BlockStateContainer createBlockState() { return blockStateBuilder().build(); }
+
+    //exists so you don't have to add the annoying fluid properties for every block that extends this, yay
+    protected BlockStateContainer.Builder blockStateBuilder() {
+        return new BlockStateContainer.Builder(this).add(LEVEL).add(FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0]));
+    }
+
+    //fluids for IFluidloggableBase blocks are rendered through ASMHooks, and should not be managed through this method
     @Nonnull
     @Override
     public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return oldState; }
@@ -101,7 +114,14 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
     @Override
     public FluidStack drain(@Nonnull World world, @Nonnull BlockPos pos, boolean doDrain) {
         if(canDrain(world, pos) && isSourceBlock(world, pos)) {
-            if(doDrain) world.setBlockToAir(pos);
+            if(doDrain) {
+                final IBlockState state = world.getBlockState(pos);
+
+                world.playEvent(Constants.WorldEvents.BREAK_BLOCK_EFFECTS, pos, Block.getStateId(state));
+                state.getBlock().dropBlockAsItem(world, pos, state, 0);
+                world.setBlockState(pos, Blocks.AIR.getDefaultState());
+            }
+
             return stack.copy();
         }
         //default

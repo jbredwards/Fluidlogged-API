@@ -46,7 +46,7 @@ public enum FluidloggedUtils
         if(chunk == null) return convertToFluidState(world.getBlockState(pos), false);
         //if the chunk is accessible, get the capability if state isn't fluid
         final @Nullable IBlockState state = convertToFluidState(chunk.getBlockState(pos), false);
-        return state == null ? FluidState.getFromProvider(chunk, pos).state : state;
+        return state == null ? FluidState.getFromProvider(chunk, pos).getState() : state;
     }
 
     //tries to get the fluid at the pos (prioritizing ones physically in the world, then the fluid capability),
@@ -60,7 +60,7 @@ public enum FluidloggedUtils
             final IBlockState state = chunk.getBlockState(pos);
             //return fluid if present, else return state
             return getFluidFromBlock(state.getBlock()) == null ?
-                    Optional.ofNullable(FluidState.getFromProvider(chunk, pos).state).orElse(state)
+                    Optional.ofNullable(FluidState.getFromProvider(chunk, pos).getState()).orElse(state)
                     : state;
         }
         //default
@@ -96,7 +96,7 @@ public enum FluidloggedUtils
         else {
             //sync possible event changes
             fluidState = event.fluidState;
-            final @Nullable Fluid fluid = fluidState.fluid;
+            final @Nullable Fluid fluid = fluidState.getFluid();
 
             //if the world is to warm for the fluid, vaporize it
             if(event.checkVaporize && fluid != null && world.provider.doesWaterVaporize() && fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME))) {
@@ -111,7 +111,7 @@ public enum FluidloggedUtils
 
                 //check for IFluidloggable
                 if(state.getBlock() instanceof IFluidloggable) {
-                    final Event.Result result = ((IFluidloggable)state.getBlock()).onFluidChange(world, pos, state, oldFluidState.fluid, fluid);
+                    final Event.Result result = ((IFluidloggable)state.getBlock()).onFluidChange(world, pos, state, oldFluidState.getFluid(), fluid);
                     if(result != Event.Result.DEFAULT) return result == Event.Result.ALLOW;
                 }
 
@@ -126,30 +126,22 @@ public enum FluidloggedUtils
                                 new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
                         );
                     }
+
+                    //post fluid added
+                    if(!fluidState.isEmpty())
+                        fluidState.getState().getBlock().onBlockAdded(world, pos, fluidState.getState());
                 }
 
                 //update world properly
                 world.markAndNotifyBlock(pos, chunk,
-                        Optional.ofNullable(oldFluidState.state).orElse(Blocks.AIR.getDefaultState()),
-                        Optional.ofNullable(fluidState.state).orElse(Blocks.AIR.getDefaultState()), event.flags
+                        Optional.ofNullable(oldFluidState.getState()).orElse(Blocks.AIR.getDefaultState()),
+                        Optional.ofNullable(fluidState.getState()).orElse(Blocks.AIR.getDefaultState()), event.flags
                 );
             }
 
             //default
             return true;
         }
-    }
-
-    //gets the fluid from the world or the capability
-    @Nullable
-    public static Fluid getFluid(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        final @Nullable Chunk chunk = getChunk(world, pos);
-        if(chunk != null) {
-            return Optional.ofNullable(getFluidFromBlock(chunk.getBlockState(pos).getBlock()))
-                    .orElse(FluidState.getFromProvider(chunk, pos).fluid);
-        }
-        //default
-        return getFluidFromBlock(world.getBlockState(pos).getBlock());
     }
 
     //tries to get the chunk from IBlockAccess

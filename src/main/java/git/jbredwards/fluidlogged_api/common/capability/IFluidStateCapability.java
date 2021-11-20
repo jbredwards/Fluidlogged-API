@@ -99,7 +99,7 @@ public interface IFluidStateCapability
             final NBTTagList list = new NBTTagList();
             for(Map.Entry<BlockPos, FluidState> entry : instance.getFluidStateMap().entrySet()) {
                 NBTTagCompound nbt = new NBTTagCompound();
-                nbt.setString("id", entry.getValue().fluid.getName());
+                nbt.setString("id", entry.getValue().getFluid().getName());
                 nbt.setLong("pos", entry.getKey().toLong());
 
                 list.appendTag(nbt);

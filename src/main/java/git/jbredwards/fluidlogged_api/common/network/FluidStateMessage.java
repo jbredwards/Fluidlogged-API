@@ -50,7 +50,7 @@ public final class FluidStateMessage implements IMessage
         buf.writeBoolean(isValid);
         if(isValid) {
             buf.writeLong(pos.toLong());
-            buf.writeInt(state.isEmpty() ? -1 : EventHandler.fluidToInt.get(state.fluid));
+            buf.writeInt(state.isEmpty() ? -1 : EventHandler.fluidToInt.get(state.getFluid()));
         }
     }
 

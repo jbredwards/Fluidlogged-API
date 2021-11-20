@@ -24,8 +24,8 @@ public class FluidState extends Pair<Fluid, IBlockState>
     //always use instead of a null value
     public static final FluidState EMPTY = new FluidState(null, null);
 
-    public final Fluid fluid;
-    public final IBlockState state;
+    protected final Fluid fluid;
+    protected final IBlockState state;
 
     protected FluidState(Fluid fluidIn, IBlockState stateIn) {
         fluid = fluidIn;
@@ -37,6 +37,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
     public static FluidState of(@Nullable Fluid fluidIn) {
         final @Nullable Block block = fluidIn == null ? null : fluidIn.getBlock();
         return block == null ? EMPTY : new FluidState(fluidIn, block instanceof BlockLiquid
+                //use flowing block for vanilla fluids, as to fix issue#
                 ? BlockLiquid.getFlowingBlock(block.getDefaultState().getMaterial()).getDefaultState()
                 : block.getDefaultState());
     }
@@ -57,15 +58,27 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     public boolean isEmpty() { return this == EMPTY; }
 
-    @Override
-    @Nonnull
-    public Fluid getLeft() { return fluid; }
+    public Fluid getFluid() { return fluid; }
+
+    public IBlockState getState() { return state; }
+
+    public Block getBlock() { return state.getBlock(); }
+
+    //implemented from Pair
 
     @Override
     @Nonnull
-    public IBlockState getRight() { return state; }
+    public final Fluid getLeft() { return getFluid(); }
 
     @Override
     @Nonnull
-    public IBlockState setValue(IBlockState value) { throw new UnsupportedOperationException(); }
+    public final IBlockState getRight() { return getState(); }
+
+    @Override
+    @Nonnull
+    public final IBlockState getValue() { return super.getValue(); }
+
+    @Override
+    @Nonnull
+    public final IBlockState setValue(@Nullable IBlockState value) { throw new UnsupportedOperationException(); }
 }

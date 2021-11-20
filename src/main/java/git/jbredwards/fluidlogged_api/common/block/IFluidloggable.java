@@ -38,7 +38,7 @@ public interface IFluidloggable extends IFluidloggableBase
     //DENY    = think the fill never happened
     //ALLOW   = think the fill happened
     @Nonnull
-    default Event.Result onFluidFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid oldFluid, @Nullable Fluid newFluid) {
+    default Event.Result onFluidFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid oldFluid, @Nonnull Fluid newFluid) {
         return Event.Result.DEFAULT;
     }
 

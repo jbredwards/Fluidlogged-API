@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged_api.common.event;
 import git.jbredwards.fluidlogged_api.Constants;
 import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -107,10 +108,10 @@ public final class EventHandler
         final @Nullable RayTraceResult trace = Minecraft.getMinecraft().objectMouseOver;
 
         if(world != null && trace != null && trace.getBlockPos() != null && !event.getLeft().isEmpty() && !event.getRight().isEmpty()) {
-            @Nullable Fluid fluid = FluidloggedUtils.getFluid(world, trace.getBlockPos());
-            if(fluid != null) {
+            final FluidState fluidState = FluidState.get(world, trace.getBlockPos());
+            if(!fluidState.isEmpty()) {
                 event.getRight().add("");
-                event.getRight().add("fluid:" + fluid.getName());
+                event.getRight().add("fluid:" + fluidState.getFluid().getName());
             }
         }
     }

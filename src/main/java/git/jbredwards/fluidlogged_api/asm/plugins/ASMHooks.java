@@ -5,6 +5,7 @@ import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.Entity;
@@ -98,6 +99,17 @@ public enum ASMHooks
                 && IFluidloggableBase.canFluidFlow(world, pos, up, fluid, DOWN);
     }
 
+    //BlockFluidBasePlugin
+    public static Material shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
+        final BlockPos offset = pos.offset(side);
+        final FluidState fluidState = FluidState.get(world, offset);
+        final @Nullable Fluid hereFluid = fluidState.isEmpty() ? FluidloggedUtils.getFluidFromBlock(state.getBlock()) : fluidState.getFluid();
+        final boolean canSideFlow = IFluidloggableBase.canFluidFlow(world, offset, state, hereFluid, side.getOpposite());
+
+        if(fluidState.isEmpty()) return state.getMaterial();
+        else return canSideFlow ? fluidState.getState().getMaterial() : null;
+    }
+
     //FluidPlugin
     public static boolean updateIfNotFluidloggable(Block blockOld, Block blockNew) {
         return blockOld == blockNew && !(blockNew instanceof IFluidloggableBase);
@@ -136,7 +148,7 @@ public enum ASMHooks
         final FluidState fluidState = FluidState.get(world, pos);
         if(fluidState.isEmpty()) return here;
         //compare the fluid & old values, and return the greater of the two
-        else return Math.max(here, fluidState.state.getBlock().getExplosionResistance(world, pos, entity, explosion));
+        else return Math.max(here, fluidState.getBlock().getExplosionResistance(world, pos, entity, explosion));
     }
 
     //BlockPlugin
@@ -149,7 +161,7 @@ public enum ASMHooks
         final FluidState fluidState = FluidState.get(world, pos);
         if(fluidState.isEmpty()) return here;
         //compare the fluid & old values, and return the greater of the two
-        else return Math.max(here, fluidState.state.getLightOpacity(world, pos));
+        else return Math.max(here, fluidState.getState().getLightOpacity(world, pos));
     }
 
     //BlockPlugin
@@ -162,7 +174,7 @@ public enum ASMHooks
         final FluidState fluidState = FluidState.get(world, pos);
         if(fluidState.isEmpty()) return here;
         //compare the fluid & old values, and return the greater of the two
-        else return Math.max(here, fluidState.state.getLightValue(world, pos));
+        else return Math.max(here, fluidState.getState().getLightValue(world, pos));
     }
 
     //WorldClientPlugin
@@ -172,20 +184,20 @@ public enum ASMHooks
         z += world.rand.nextInt(offset) - world.rand.nextInt(offset);
 
         final FluidState fluidState = FluidState.get(world, pos.setPos(x, y, z));
-        if(!fluidState.isEmpty()) fluidState.state.getBlock().randomDisplayTick(fluidState.state, world, pos, random);
+        if(!fluidState.isEmpty()) fluidState.getBlock().randomDisplayTick(fluidState.getState(), world, pos, random);
     }
 
     //WorldPlugin
     public static IBlockState getFluidState(World world, BlockPos pos) {
         final FluidState fluidState = FluidState.get(world, pos);
-        return fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.state;
+        return fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.getState();
     }
 
     //WorldPlugin
     public static IBlockState setBlockState(Chunk chunk, BlockPos pos, IBlockState state, IBlockState oldState, World world, int flags) {
         final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
         //replace with empty fluid
-        if(!fluidState.isEmpty() && !FluidloggedUtils.isStateFluidloggable(state, fluidState.fluid))
+        if(!fluidState.isEmpty() && !FluidloggedUtils.isStateFluidloggable(state, fluidState.getFluid()))
             FluidloggedUtils.setFluidState(world, pos, state, FluidState.EMPTY, false, flags);
 
         //save old state as FluidState
@@ -204,7 +216,7 @@ public enum ASMHooks
         if(Block.isEqualTo(compare, here.getBlock())) return here;
         //fluid
         final FluidState fluidState = FluidState.get(world, pos);
-        if(!fluidState.isEmpty() && Block.isEqualTo(compare, fluidState.state.getBlock())) return fluidState.state;
+        if(!fluidState.isEmpty() && Block.isEqualTo(compare, fluidState.getBlock())) return fluidState.getState();
         //default
         return here;
     }
