@@ -24,11 +24,13 @@ public enum FluidloggedAccessorUtils
     public static final Field quantaPerBlockFloat = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlockFloat");
     public static final Field quantaPerBlock      = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlock");
     public static final Field quantaFraction      = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaFraction");
+    public static final Field densityDir          = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "densityDir");
     static {
         canCreateSources.setAccessible(true);
         quantaPerBlockFloat.setAccessible(true);
         quantaPerBlock.setAccessible(true);
         quantaFraction.setAccessible(true);
+        densityDir.setAccessible(true);
     }
 
     public static boolean canCreateSources(@Nullable Block fluid) {
@@ -52,5 +54,10 @@ public enum FluidloggedAccessorUtils
     public static float quantaFraction(@Nullable Block fluid) {
         try { return quantaFraction.getFloat(fluid); }
         catch(Throwable t) { return 8f / 9; }
+    }
+
+    public static int densityDir(@Nullable Block fluid) {
+        try { return densityDir.getInt(fluid); }
+        catch(Throwable t) { return -1; }
     }
 }

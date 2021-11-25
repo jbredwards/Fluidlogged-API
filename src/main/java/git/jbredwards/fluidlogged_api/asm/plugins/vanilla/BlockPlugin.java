@@ -19,15 +19,19 @@ public final class BlockPlugin implements IASMPlugin
             setMaxLocals(method, 3);
             return 1;
         }
+        //removedByPlayer, line 1422
+        if(checkMethod(method, "removedByPlayer", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/entity/player/EntityPlayer;Z)Z")) {
+            return 2;
+        }
         //getExplosionResistance, line 1766
         if(checkMethod(method, "getExplosionResistance", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;Lnet/minecraft/world/Explosion;)F")) {
             setMaxLocals(method, 5);
-            return 2;
+            return 3;
         }
         //getLightOpacity, line 2030
         if(checkMethod(method, "getLightOpacity", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I")) {
             setMaxLocals(method, 3);
-            return 3;
+            return 4;
         }
 
         return 0;
@@ -47,8 +51,21 @@ public final class BlockPlugin implements IASMPlugin
             instructions.remove(insn);
             return true;
         }
+        //removedByPlayer, line 1422
+        else if(index == 2 && checkField(insn, obfuscated ? "field_150350_a" : "AIR", "Lnet/minecraft/block/Block;")) {
+            final InsnList list = new InsnList();
+            //parameters
+            list.add(new VarInsnNode(ALOAD, 2));
+            list.add(new VarInsnNode(ALOAD, 3));
+            //adds new code
+            list.add(genMethodNode("getFluidState", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
+            instructions.insert(insn, list);
+            instructions.remove(insn.getPrevious());
+            instructions.remove(insn);
+            return true;
+        }
         //getExplosionResistance, line 1766
-        if(index == 2 && checkMethod(insn, obfuscated ? "func_149638_a" : "getExplosionResistance", "(Lnet/minecraft/entity/Entity;)F")) {
+        else if(index == 3 && checkMethod(insn, obfuscated ? "func_149638_a" : "getExplosionResistance", "(Lnet/minecraft/entity/Entity;)F")) {
             final InsnList list = new InsnList();
             //parameters
             list.add(new VarInsnNode(ALOAD, 1));
@@ -61,7 +78,7 @@ public final class BlockPlugin implements IASMPlugin
             return true;
         }
         //getLightOpacity, line 2030
-        if(index == 3 && checkMethod(insn, obfuscated ? "func_149717_k" : "getLightOpacity", "(Lnet/minecraft/block/state/IBlockState;)I")) {
+        else if(index == 4 && checkMethod(insn, obfuscated ? "func_149717_k" : "getLightOpacity", "(Lnet/minecraft/block/state/IBlockState;)I")) {
             final InsnList list = new InsnList();
             //parameters
             list.add(new VarInsnNode(ALOAD, 2));

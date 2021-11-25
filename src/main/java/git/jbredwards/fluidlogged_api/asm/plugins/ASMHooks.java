@@ -1,22 +1,31 @@
 package git.jbredwards.fluidlogged_api.asm.plugins;
 
+import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidloggedAccessorUtils;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.client.renderer.chunk.ChunkCompileTaskGenerator;
+import net.minecraft.client.renderer.chunk.CompiledChunk;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.Explosion;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.client.ForgeHooksClient;
+import net.minecraftforge.common.property.IExtendedBlockState;
+import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
 import org.apache.logging.log4j.Logger;
 
@@ -175,6 +184,62 @@ public enum ASMHooks
         if(fluidState.isEmpty()) return here;
         //compare the fluid & old values, and return the greater of the two
         else return Math.max(here, fluidState.getState().getLightValue(world, pos));
+    }
+
+    //RenderChunkPlugin
+    public static void renderChunk(boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, Block block, IBlockState state, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
+        final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(block);
+        final FluidState fluidState = fluid == null ? FluidState.get(world, pos) :
+                //only render fluid built into here if block instanceof IFluidloggableBase
+                block instanceof IFluidloggableBase ? FluidState.of(fluid) : FluidState.EMPTY;
+
+        if(!fluidState.isEmpty() && IFluidloggableBase.shouldFluidRender(world, pos, state, fluidState.getFluid())) {
+            //renders the fluid in each layer
+            for(BlockRenderLayer layer : BlockRenderLayer.values()) {
+                if(!fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer))
+                    continue;
+
+                BufferBuilder buffer = generator.getRegionRenderCacheBuilder().getWorldRendererByLayer(layer);
+                ForgeHooksClient.setRenderLayer(layer);
+
+                if(!compiledChunk.isLayerStarted(layer)) {
+                    compiledChunk.setLayerStarted(layer);
+                    buffer.begin(7, DefaultVertexFormats.BLOCK);
+                    buffer.setTranslation(-chunkPos.getX(), -chunkPos.getY(), -chunkPos.getZ());
+                }
+
+                //give mods a chance to change something about the rendered fluid
+                IBlockState extendedFluidState = world.getWorldType() != WorldType.DEBUG_ALL_BLOCK_STATES ?
+                        fluidState.getState().getActualState(world, pos) : fluidState.getState();
+
+                //use fluid vertices specific to fluidlogged fluid state
+                extendedFluidState = getExtendedState(extendedFluidState, world, pos, fluidState.getFluid());
+
+                IBakedModel model = Minecraft.getMinecraft().getBlockRendererDispatcher().getModelForState(extendedFluidState);
+                array[layer.ordinal()] |= Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer()
+                        .renderModel(world, model, extendedFluidState, pos, buffer, true);
+            }
+        }
+
+        //reset current render layer
+        ForgeHooksClient.setRenderLayer(null);
+    }
+
+    //RenderChunkPlugin helper
+    public static IBlockState getExtendedState(IBlockState oldState, IBlockAccess world, BlockPos pos, Fluid fluid) {
+        final Block block = oldState.getBlock();
+        final int densityDir = FluidloggedAccessorUtils.densityDir(block);
+        IExtendedBlockState state = (IExtendedBlockState)oldState;
+        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, (float)BlockLiquidBase.getFlowDirection(state, world, pos));
+
+        final IBlockState[][] upBlockState = new IBlockState[3][3];
+        upBlockState[1][1] = FluidloggedUtils.getFluidOrReal(world, pos.down(densityDir));
+
+        final float[][] corner = new float[2][2];
+        final float[][] height = new float[3][3];
+        height[1][1] = getFluidHeightForRender(world, pos, upBlockState[1][1]);
+
+
     }
 
     //WorldClientPlugin

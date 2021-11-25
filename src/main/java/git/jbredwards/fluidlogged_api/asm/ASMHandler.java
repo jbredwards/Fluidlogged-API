@@ -29,11 +29,21 @@ public final class ASMHandler implements IFMLLoadingPlugin
         @Nonnull
         public static Map<String, IASMPlugin> PLUGINS = new ImmutableMap.Builder<String, IASMPlugin>()
                 //vanilla
+                .put("net.minecraft.client.multiplayer.WorldClient", new WorldClientPlugin())
+                .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin())
                 .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
+                .put("net.minecraft.block.BlockBush", new BlockBushPlugin())
+                .put("net.minecraft.block.BlockCocoa", new BlockCocoaPlugin())
+                .put("net.minecraft.block.BlockFarmland", new BlockFarmlandPlugin())
+                .put("net.minecraft.block.Block", new BlockPlugin())
+                .put("net.minecraft.block.BlockReed", new BlockReedPlugin())
+                .put("net.minecraft.block.BlockSkullPlugin", new BlockSkullPlugin())
                 .put("net.minecraft.world.World", new WorldPlugin())
                 .put("net.minecraft.world.WorldServer", new WorldServerPlugin())
                 //forge
+                .put("net.minecraftforge.client.model.ModelFluid", new ModelFluidPlugin())
                 .put("net.minecraftforge.common.ForgeHooks", new ForgeHooksPlugin())
+                .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin())
                 .put("net.minecraftforge.fluids.Fluid", new FluidPlugin())
                 .build();
 

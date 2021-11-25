@@ -70,9 +70,9 @@ public interface IASMPlugin extends Opcodes
         return writer.toByteArray();
     }
 
-    //==============================================================
-    //utility methods that are helpful when applying transformations
-    //==============================================================
+    //=============================================================================================================
+    //utility methods that are helpful when applying transformations (prior to v1.6.2 these were found in ASMUtils)
+    //=============================================================================================================
 
     default void informConsole(ClassReader reader, MethodNode method) {
         System.out.printf("Fluidlogged API Plugin: transforming... %s.%s%s%n", reader.getClassName(), method.name, method.desc);

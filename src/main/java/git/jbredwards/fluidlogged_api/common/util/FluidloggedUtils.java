@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
+import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.config.FluidloggedConfig;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
@@ -19,10 +20,7 @@ import net.minecraft.world.WorldType;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidBlock;
+import net.minecraftforge.fluids.*;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
@@ -41,12 +39,12 @@ public enum FluidloggedUtils
 
     @Nullable
     public static IBlockState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        //if the chuck isn't accessible, get the fluid from the world
         final @Nullable Chunk chunk = getChunk(world, pos);
-        if(chunk == null) return convertToFluidState(world.getBlockState(pos), false);
-        //if the chunk is accessible, get the capability if state isn't fluid
-        final @Nullable IBlockState state = convertToFluidState(chunk.getBlockState(pos), false);
-        return state == null ? FluidState.getFromProvider(chunk, pos).getState() : state;
+        final IBlockState here = chunk == null ? world.getBlockState(pos) : chunk.getBlockState(pos);
+        //if block here is a fluid, return it
+        if(getFluidFromBlock(here.getBlock()) != null) return here;
+        //else return stored FluidState if present
+        else return chunk == null ? null : FluidState.getFromProvider(chunk, pos).getState();
     }
 
     //tries to get the fluid at the pos (prioritizing ones physically in the world, then the fluid capability),
@@ -65,22 +63,6 @@ public enum FluidloggedUtils
         }
         //default
         else return world.getBlockState(pos);
-    }
-
-    //converts the input state into the parent's fluid state (with the level prop carried over)
-    //returns null if the state is not a fluid
-    @Nullable
-    public static IBlockState convertToFluidState(@Nonnull IBlockState state, boolean ignoreFluidLevel) {
-        final @Nullable Fluid fluid = getFluidFromBlock(state.getBlock());
-        if(fluid != null) {
-            final @Nullable Block block = state.getBlock() instanceof BlockLiquid ?
-                    BlockLiquid.getFlowingBlock(state.getMaterial()) : fluid.getBlock();
-
-            if(block != null) return ignoreFluidLevel ? block.getDefaultState() :
-                    block.getDefaultState().withProperty(BlockLiquid.LEVEL, state.getValue(BlockLiquid.LEVEL));
-        }
-        //default
-        return null;
     }
 
     public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState state, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
@@ -147,7 +129,7 @@ public enum FluidloggedUtils
     //tries to get the chunk from IBlockAccess
     @Nullable
     public static Chunk getChunk(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        //client instance is always used by the client
+        //WorldClient instance is always used if clientside, since that's what the packet updates
         try { return Minecraft.getMinecraft().world.getChunkFromBlockCoords(pos); }
         catch(Throwable throwable) {
             if(world instanceof World) return ((World)world).getChunkFromBlockCoords(pos);
@@ -165,6 +147,13 @@ public enum FluidloggedUtils
         //vanilla
         else if(fluid.getDefaultState().getMaterial() == Material.WATER) return FluidRegistry.WATER;
         else return fluid.getDefaultState().getMaterial() == Material.LAVA ? FluidRegistry.LAVA : null;
+    }
+
+    public static boolean isFluidFluidloggable(@Nonnull Block fluid) {
+        //if the block is already occupied it's not fluidloggable
+        if(fluid instanceof IFluidloggableBase) return false;
+        //allow any vanilla fluid block while restricting forge fluids only to BlockFluidClassic
+        else return (fluid instanceof BlockLiquid || fluid instanceof BlockFluidClassic) && getFluidFromBlock(fluid) != null;
     }
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
@@ -193,7 +182,8 @@ public enum FluidloggedUtils
                     || block instanceof BlockRailBase
                     || block instanceof BlockHopper
                     || block instanceof BlockChest
-                    || block instanceof BlockEnderChest;
+                    || block instanceof BlockEnderChest
+                    || block instanceof BlockSkull;
         }
     }
 }

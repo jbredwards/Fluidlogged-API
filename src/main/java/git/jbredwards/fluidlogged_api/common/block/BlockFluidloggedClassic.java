@@ -64,7 +64,7 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
         return new BlockStateContainer.Builder(this).add(LEVEL).add(FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0]));
     }
 
-    //fluids for IFluidloggableBase blocks are rendered through ASMHooks, and should not be managed through this method
+    //fluids for IFluidloggableBase blocks are rendered through RenderChunkPlugin, and should not be managed through this method
     @Nonnull
     @Override
     public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return oldState; }

@@ -23,7 +23,12 @@ public final class BlockFluidBasePlugin implements IASMPlugin
         //shouldSideBeRendered
         if(checkMethod(method, obfuscated ? "func_176225_a" : "shouldSideBeRendered", null))
             return 2;
-
+        //getFluid
+        if(checkMethod(method, "getFluid", null))
+            return 8;
+        //defaultDisplacements clinit
+        if(checkMethod(method, "<clinit>", "()V"))
+            return 9;
 
         //default
         return 0;
@@ -53,6 +58,19 @@ public final class BlockFluidBasePlugin implements IASMPlugin
             list.add(genMethodNode("shouldSideBeRendered", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Lnet/minecraft/block/material/Material;"));
             instructions.insert(insn, list);
             instructions.remove(insn);
+            return true;
+        }
+        //getFluid, line 792 (exposed to significantly boost performance, sorry forge devs but why'd you not want this exposed again?)
+        else if(index == 8 && checkMethod(insn, "getFluid", "(Ljava/lang/String;)Lnet/minecraftforge/fluids/Fluid;")) {
+            instructions.insert(insn, new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "definedFluid", "Lnet/minecraftforge/fluids/Fluid;"));
+            instructions.remove(insn.getPrevious());
+            instructions.remove(insn);
+            return true;
+        }
+        //clinit, line 73-113
+        else if(index == 9 && insn.getNext().getOpcode() == LDC) {
+            //removes all default entries, as the class is now loaded before they're registered
+            while(insn.getPrevious().getOpcode() != PUTSTATIC) instructions.remove(insn.getPrevious());
             return true;
         }
 

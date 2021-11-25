@@ -205,10 +205,12 @@ public abstract class BlockLiquidBase extends BlockLiquid
         return state.withProperty(property, property.isValid(value) ? value : fallback);
     }
 
-    public double getFlowDirection(IBlockState state, IBlockAccess world, BlockPos pos) {
+    public static double getFlowDirection(IBlockState state, IBlockAccess world, BlockPos pos) {
         if(!state.getMaterial().isLiquid()) return -1000;
 
-        final Vec3d vec = getFlow(world, pos, state);
+        final Vec3d vec = state.getBlock() instanceof BlockFluidBase ? ((BlockFluidBase)state.getBlock()).getFlowVector(world, pos):
+                state.getBlock() instanceof BlockLiquidBase ? ((BlockLiquidBase)state.getBlock()).getFlow(world, pos, state) : Vec3d.ZERO;
+
         return vec.x == 0 && vec.z == 0 ? -1000 : Math.atan2(vec.z, vec.x) - Math.PI / 2;
     }
 

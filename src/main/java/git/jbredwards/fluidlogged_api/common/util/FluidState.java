@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
  */
 public class FluidState extends Pair<Fluid, IBlockState>
 {
-    //always use instead of a null value
+    //always used instead of a null value
     public static final FluidState EMPTY = new FluidState(null, null);
 
     protected final Fluid fluid;
@@ -32,12 +32,12 @@ public class FluidState extends Pair<Fluid, IBlockState>
         state = stateIn;
     }
 
-    //build a new fluid state, return empty instance if fluid isn't valid for fluidlogging
+    //build a new fluid state or return empty instance, if fluid isn't valid for fluidlogging
     @Nonnull
     public static FluidState of(@Nullable Fluid fluidIn) {
         final @Nullable Block block = fluidIn == null ? null : fluidIn.getBlock();
         return block == null ? EMPTY : new FluidState(fluidIn, block instanceof BlockLiquid
-                //use flowing block for vanilla fluids, as to fix issue#
+                //ensure flowing blocks are used for vanilla fluids
                 ? BlockLiquid.getFlowingBlock(block.getDefaultState().getMaterial()).getDefaultState()
                 : block.getDefaultState());
     }
@@ -64,7 +64,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     public Block getBlock() { return state.getBlock(); }
 
-    //implemented from Pair
+    //implemented from Pair, please use methods above instead if possible
 
     @Override
     @Nonnull
