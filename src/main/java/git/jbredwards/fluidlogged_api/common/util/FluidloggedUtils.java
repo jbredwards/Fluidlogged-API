@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
+import git.jbredwards.fluidlogged_api.Main;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
@@ -10,16 +11,13 @@ import git.jbredwards.fluidlogged_api.common.network.NetworkHandler;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ChunkCache;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
@@ -42,7 +40,7 @@ public enum FluidloggedUtils
         final @Nullable Chunk chunk = getChunk(world, pos);
         final IBlockState here = chunk == null ? world.getBlockState(pos) : chunk.getBlockState(pos);
         //if block here is a fluid, return it
-        if(getFluidFromBlock(here.getBlock()) != null) return here;
+        if(getFluidFromState(here) != null) return here;
         //else return stored FluidState if present
         else return chunk == null ? null : FluidState.getFromProvider(chunk, pos).getState();
     }
@@ -57,7 +55,7 @@ public enum FluidloggedUtils
         if(chunk != null) {
             final IBlockState state = chunk.getBlockState(pos);
             //return fluid if present, else return state
-            return getFluidFromBlock(state.getBlock()) == null ?
+            return getFluidFromState(state) == null ?
                     Optional.ofNullable(FluidState.getFromProvider(chunk, pos).getState()).orElse(state)
                     : state;
         }
@@ -103,11 +101,11 @@ public enum FluidloggedUtils
                     cap.setFluidState(pos, fluidState);
 
                     //send changes to client
-                    if((event.flags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {
+                    //if((event.flags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {
                         NetworkHandler.WRAPPER.sendToAllAround(new FluidStateMessage(pos, fluidState),
                                 new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
                         );
-                    }
+                    //}
 
                     //post fluid added
                     if(!fluidState.isEmpty())
@@ -126,18 +124,13 @@ public enum FluidloggedUtils
         }
     }
 
-    //tries to get the chunk from IBlockAccess
+    //fork of Main.CommonProxy#getChunk
     @Nullable
-    public static Chunk getChunk(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        //WorldClient instance is always used if clientside, since that's what the packet updates
-        try { return Minecraft.getMinecraft().world.getChunkFromBlockCoords(pos); }
-        catch(Throwable throwable) {
-            if(world instanceof World) return ((World)world).getChunkFromBlockCoords(pos);
-            else if(world instanceof ChunkCache) return ((ChunkCache)world).world.getChunkFromBlockCoords(pos);
-            else if(world instanceof IChunkProvider) return ((IChunkProvider)world).getChunkFromBlockCoords(pos);
-            else return null;
-        }
-    }
+    public static Chunk getChunk(@Nullable IBlockAccess world, @Nonnull BlockPos pos) { return Main.proxy.getChunk(world, pos); }
+
+    //gets the fluid from the state (null if there is no fluid)
+    @Nullable
+    public static Fluid getFluidFromState(@Nonnull IBlockState fluid) { return getFluidFromBlock(fluid.getBlock()); }
 
     //gets the fluid from the block (null if there is no fluid)
     @Nullable
@@ -149,11 +142,17 @@ public enum FluidloggedUtils
         else return fluid.getDefaultState().getMaterial() == Material.LAVA ? FluidRegistry.LAVA : null;
     }
 
+    @Nullable
+    public static Fluid getFluidAt(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
+        return Optional.ofNullable(getFluidFromState(here)).orElse(FluidState.get(world, pos).getFluid());
+    }
+
+    @SuppressWarnings("deprecation")
     public static boolean isFluidFluidloggable(@Nonnull Block fluid) {
-        //if the block is already occupied it's not fluidloggable
-        if(fluid instanceof IFluidloggableBase) return false;
+        //if the block is already occupied, or has a tile entity, it's not fluidloggable
+        if(fluid instanceof IFluidloggableBase || fluid.hasTileEntity()) return false;
         //allow any vanilla fluid block while restricting forge fluids only to BlockFluidClassic
-        else return (fluid instanceof BlockLiquid || fluid instanceof BlockFluidClassic) && getFluidFromBlock(fluid) != null;
+        else return (fluid instanceof BlockLiquid || fluid instanceof BlockFluidClassic);
     }
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {

@@ -20,7 +20,7 @@ public final class RenderChunkPlugin implements IASMPlugin
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
         //VANILLA, line 187
-        if(checkMethod(insn, "canRenderInLayer", null)) {
+        if(checkMethod(insn, "canRenderInLayer", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/BlockRenderLayer;)Z")) {
             final InsnList list = new InsnList();
             //boolean array variable
             list.add(new VarInsnNode(ALOAD, 11));
@@ -36,7 +36,7 @@ public final class RenderChunkPlugin implements IASMPlugin
             //chunk position variable
             list.add(new VarInsnNode(ALOAD, 7));
             //adds the new code
-            list.add(genMethodNode("canRenderInLayer", "(Lnet/minecraft/block/Block;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/BlockRenderLayer;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z"));
+            list.add(genMethodNode("renderChunk", "(Lnet/minecraft/block/Block;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/BlockRenderLayer;[ZLnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)Z"));
             instructions.insert(insn, list);
             instructions.remove(insn);
             return false;

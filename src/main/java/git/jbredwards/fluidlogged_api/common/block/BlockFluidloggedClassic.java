@@ -60,6 +60,7 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
     protected BlockStateContainer createBlockState() { return blockStateBuilder().build(); }
 
     //exists so you don't have to add the annoying fluid properties for every block that extends this, yay
+    @Nonnull
     protected BlockStateContainer.Builder blockStateBuilder() {
         return new BlockStateContainer.Builder(this).add(LEVEL).add(FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0]));
     }
@@ -103,17 +104,17 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
     public int getMetaFromState(@Nonnull IBlockState state) { return 0; }
 
     @Override
-    public boolean canDrain(@Nonnull World world, @Nonnull BlockPos pos) {
-        return world.getBlockState(pos).getBlock().isReplaceable(world, pos);
-    }
+    public boolean isSourceBlock(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return true; }
 
     @Override
-    public boolean isSourceBlock(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return true; }
+    public boolean canDrain(@Nonnull World world, @Nonnull BlockPos pos) {
+        return isSourceBlock(world, pos) && isReplaceable(world, pos);
+    }
 
     @Nullable
     @Override
     public FluidStack drain(@Nonnull World world, @Nonnull BlockPos pos, boolean doDrain) {
-        if(canDrain(world, pos) && isSourceBlock(world, pos)) {
+        if(canDrain(world, pos)) {
             if(doDrain) {
                 final IBlockState state = world.getBlockState(pos);
 

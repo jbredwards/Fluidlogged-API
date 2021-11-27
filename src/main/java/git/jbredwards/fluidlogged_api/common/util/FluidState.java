@@ -4,11 +4,13 @@ import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
@@ -44,9 +46,15 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     //gets the stored state present in the world at the block pos
     @Nonnull
-    public static FluidState get(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        final @Nullable Chunk chunk = FluidloggedUtils.getChunk(world, pos);
-        return chunk == null ? EMPTY : getFromProvider(chunk, pos);
+    public static FluidState get(@Nullable IBlockAccess world, @Nonnull BlockPos pos) {
+        return getFromProvider(FluidloggedUtils.getChunk(world, pos), pos);
+    }
+
+    //gets the stored state present in the client world at the block pos
+    @SideOnly(Side.CLIENT)
+    @Nonnull
+    public static FluidState get(@Nonnull BlockPos pos) {
+        return getFromProvider(Minecraft.getMinecraft().world.getChunkFromBlockCoords(pos), pos);
     }
 
     //gets the stored state present in the capability provider (usually chunk) at the block pos
@@ -62,7 +70,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     public IBlockState getState() { return state; }
 
-    public Block getBlock() { return state.getBlock(); }
+    public Block getBlock() { return getState().getBlock(); }
 
     //implemented from Pair, please use methods above instead if possible
 
