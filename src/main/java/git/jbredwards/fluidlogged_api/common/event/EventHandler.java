@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.block.statemap.StateMapperBase;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.init.Items;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.chunk.Chunk;
@@ -24,7 +25,7 @@ import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.model.TRSRTransformation;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -35,8 +36,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -49,22 +48,9 @@ import java.util.Optional;
 @Mod.EventBusSubscriber(modid = Constants.MODID)
 public final class EventHandler
 {
-    //used by FluidStateMessage to conserve network data while updating clientside fluidstate
-    public static final Map<Fluid, Integer> fluidToInt = new HashMap<>();
-    public static final Map<Integer, Fluid> intToFluid = new HashMap<>();
-
     @SubscribeEvent
     public static void attachCapability(@Nonnull AttachCapabilitiesEvent<Chunk> event) {
         event.addCapability(new ResourceLocation(Constants.MODID, "fluid_states"), new IFluidStateCapability.Impl());
-    }
-
-    @SubscribeEvent
-    public static void cacheFluidNumIds(@Nonnull FluidRegistry.FluidRegisterEvent event) {
-        final @Nullable Fluid fluid = FluidRegistry.getFluid(event.getFluidName());
-        if(fluid != null && fluid.getBlock() != null) {
-            fluidToInt.put(fluid, event.getFluidID());
-            intToFluid.put(event.getFluidID(), fluid);
-        }
     }
 
     @SideOnly(Side.CLIENT)
@@ -113,6 +99,14 @@ public final class EventHandler
                 event.getRight().add("");
                 event.getRight().add("fluid:" + fluidState.getFluid().getName());
             }
+        }
+    }
+
+    //useful while debugging
+    @SubscribeEvent
+    public static void debugStick(@Nonnull PlayerInteractEvent.RightClickBlock event) {
+        if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.STICK) {
+            FluidloggedUtils.setFluidState(event.getWorld(), event.getPos(), null, FluidState.of(FluidRegistry.WATER), true, 3);
         }
     }
 }

@@ -17,16 +17,28 @@ public final class WorldServerPlugin implements IASMPlugin
         //updateBlockTick
         if(checkMethod(method, obfuscated ? "func_175654_a" : "updateBlockTick", null)) return 1;
         //tickUpdates
-        return checkMethod(method, obfuscated ? "func_72955_a" : "tickUpdates", null) ? 1 : 0;
+        return checkMethod(method, obfuscated ? "func_72955_a" : "tickUpdates", null) ? 2 : 0;
     }
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        //(updateBlockTick, line 571) & (tickUpdates, line 767)
-        if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
+        //updateBlockTick, line 571
+        if(index == 1 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
             final InsnList list = new InsnList();
-            //gets the compared block
+            //gets the compared block param
             list.add(new VarInsnNode(ALOAD, 2));
+            //adds the new code
+            list.add(genMethodNode("updateBlockTick", "(Lnet/minecraft/world/WorldServer;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;)Lnet/minecraft/block/state/IBlockState;"));
+            instructions.insert(insn, list);
+            instructions.remove(insn);
+            return true;
+        }
+        //tickUpdates, line 767
+        else if(index == 2 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
+            final InsnList list = new InsnList();
+            //gets the compared block from the NextTickListEntry
+            list.add(new VarInsnNode(ALOAD, 4));
+            list.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/world/NextTickListEntry", obfuscated ? "func_151351_a" : "getBlock", "()Lnet/minecraft/block/Block;", false));
             //adds the new code
             list.add(genMethodNode("updateBlockTick", "(Lnet/minecraft/world/WorldServer;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.insert(insn, list);

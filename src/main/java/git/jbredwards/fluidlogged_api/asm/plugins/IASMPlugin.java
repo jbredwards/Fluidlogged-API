@@ -145,5 +145,7 @@ public interface IASMPlugin extends Opcodes
     //sets the max locals while taking possible external transformers into account
     default void setMaxLocals(@Nonnull MethodNode method, int newMaxLocals) {
         if(method.maxLocals < newMaxLocals) method.maxLocals = newMaxLocals;
+        //always update the max stack size to allow for an increased local size
+        if(method.maxStack < newMaxLocals) method.maxStack = newMaxLocals;
     }
 }

@@ -115,8 +115,7 @@ public enum FluidloggedUtils
                 //update world properly
                 world.markAndNotifyBlock(pos, chunk,
                         Optional.ofNullable(oldFluidState.getState()).orElse(Blocks.AIR.getDefaultState()),
-                        Optional.ofNullable(fluidState.getState()).orElse(Blocks.AIR.getDefaultState()), event.flags
-                );
+                        Optional.ofNullable(fluidState.getState()).orElse(Blocks.AIR.getDefaultState()), event.flags);
             }
 
             //default

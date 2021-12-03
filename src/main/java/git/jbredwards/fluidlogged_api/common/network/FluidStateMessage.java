@@ -1,13 +1,13 @@
 package git.jbredwards.fluidlogged_api.common.network;
 
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
-import git.jbredwards.fluidlogged_api.common.event.EventHandler;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -39,9 +39,8 @@ public final class FluidStateMessage implements IMessage
     public void fromBytes(@Nonnull ByteBuf buf) {
         isValid = buf.readBoolean();
         if(isValid) {
-            pos = BlockPos.fromLong(buf.readLong());
-            int id = buf.readInt();
-            state = id < 0 ? FluidState.EMPTY : FluidState.of(EventHandler.intToFluid.get(id));
+            pos   = BlockPos.fromLong(buf.readLong());
+            state = FluidState.of(FluidloggedUtils.getFluidFromBlock(Block.getBlockById(buf.readInt())));
         }
     }
 
@@ -50,7 +49,7 @@ public final class FluidStateMessage implements IMessage
         buf.writeBoolean(isValid);
         if(isValid) {
             buf.writeLong(pos.toLong());
-            buf.writeInt(state.isEmpty() ? -1 : EventHandler.fluidToInt.get(state.getFluid()));
+            buf.writeInt(state.isEmpty() ? -1 : Block.getIdFromBlock(state.getBlock()));
         }
     }
 
@@ -64,16 +63,17 @@ public final class FluidStateMessage implements IMessage
             if(m.isValid && ctx.side == Side.CLIENT) {
                 Minecraft.getMinecraft().addScheduledTask(() -> {
                     final WorldClient world = Minecraft.getMinecraft().world;
-                    final Chunk chunk = world.getChunkFromBlockCoords(m.pos);
-                    final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
+                    final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(
+                            world.getChunkFromBlockCoords(m.pos));
 
                     if(cap != null) {
                         cap.setFluidState(m.pos, m.state);
-                        world.markBlockRangeForRenderUpdate(m.pos, m.pos);
                         //update clientside light levels
                         world.profiler.startSection("checkLight");
                         world.checkLight(m.pos);
                         world.profiler.endSection();
+                        //re-render block
+                        world.markBlockRangeForRenderUpdate(m.pos, m.pos);
                     }
                 });
             }

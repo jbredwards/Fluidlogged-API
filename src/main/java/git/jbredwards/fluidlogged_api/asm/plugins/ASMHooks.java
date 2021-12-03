@@ -8,7 +8,6 @@ import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -186,26 +185,39 @@ public enum ASMHooks
 
     //BlockFluidBasePlugin helper
     public static boolean canSideFlowDir(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing facing1, @Nullable EnumFacing facing2) {
-        if(block.canSideFlow(state, world, pos, facing1) && canFlowInto(fluid, block, world, pos, facing1)) return true;
-        else return facing2 != null && block.canSideFlow(state, world, pos, facing2) && canFlowInto(fluid, block, world, pos, facing2);
+        if(!IFluidloggableBase.canFluidFlow(world, pos, state, fluid, facing1) && canFlowInto(fluid, world, pos.offset(facing1))) return true;
+        else return facing2 != null && !IFluidloggableBase.canFluidFlow(world, pos, state, fluid, facing2) && canFlowInto(fluid, world, pos.offset(facing2));
     }
 
     //BlockFluidBasePlugin helper
-    public static boolean canFlowInto(Fluid fluid, IBlockAccess world, BlockPos pos, EnumFacing facing) {
-        final IBlockState state = world.getBlockState(pos);
-        final @Nullable Fluid fluidHere = FluidloggedUtils.getFluidAt(world, pos, state);
-        return fluidHere == ;
+    public static boolean canFlowInto(Fluid fluid, IBlockAccess world, BlockPos pos) {
+        final Block fluidBlock = fluid.getBlock();
+
+        return fluidBlock instanceof BlockFluidBase ?
+                ((BlockFluidBase)fluidBlock).canDisplace(world, pos) :
+                BlockLiquidBase.canDisplace(fluidBlock, fluid, world, pos);
     }
 
     //BlockFluidBasePlugin
     public static Material shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
         final BlockPos offset = pos.offset(side);
-        final FluidState fluidState = FluidState.get(world, offset);
+        final FluidState fluidState = FluidState.get(offset);
         final @Nullable Fluid hereFluid = fluidState.isEmpty() ? FluidloggedUtils.getFluidFromState(state) : fluidState.getFluid();
         final boolean canSideFlow = IFluidloggableBase.canFluidFlow(world, offset, state, hereFluid, side.getOpposite());
 
         if(fluidState.isEmpty()) return state.getMaterial();
         else return canSideFlow ? fluidState.getState().getMaterial() : null;
+    }
+
+    //BlockFluidBasePlugin
+    public static Block canDisplace(IBlockState state, Block block, Fluid fluid, IBlockAccess world, BlockPos pos) {
+        final boolean flag = FluidloggedUtils.getFluidAt(world, pos, state) == fluid;
+        return flag || !isReplaceable(state, world, pos) ? block : null;
+    }
+
+    //BlockFluidBasePlugin helper
+    public static boolean isReplaceable(IBlockState state, IBlockAccess world, BlockPos pos) {
+        return state.getBlock().isReplaceable(world, pos) || (!state.getMaterial().blocksMovement() && !state.getMaterial().isLiquid());
     }
 
     //FluidPlugin
@@ -235,6 +247,12 @@ public enum ASMHooks
     //=======
     //VANILLA
     //=======
+
+    //BlockDynamicLiquidPlugin
+    public static boolean placeStaticBlock(World world, BlockPos pos, IBlockState state, int flags) {
+        if(isReplaceable(world.getBlockState(pos), world, pos)) return world.setBlockState(pos, state, flags);
+        else return false;
+    }
 
     //BlockPlugin
     @SuppressWarnings("deprecation")
@@ -363,7 +381,7 @@ public enum ASMHooks
         y += world.rand.nextInt(offset) - world.rand.nextInt(offset);
         z += world.rand.nextInt(offset) - world.rand.nextInt(offset);
 
-        final FluidState fluidState = FluidState.get(world, pos.setPos(x, y, z));
+        final FluidState fluidState = FluidState.get(pos.setPos(x, y, z));
         if(!fluidState.isEmpty()) fluidState.getBlock().randomDisplayTick(fluidState.getState(), world, pos, random);
     }
 

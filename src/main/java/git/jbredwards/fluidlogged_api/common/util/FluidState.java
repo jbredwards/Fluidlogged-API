@@ -4,7 +4,6 @@ import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -53,9 +52,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
     //gets the stored state present in the client world at the block pos
     @SideOnly(Side.CLIENT)
     @Nonnull
-    public static FluidState get(@Nonnull BlockPos pos) {
-        return getFromProvider(Minecraft.getMinecraft().world.getChunkFromBlockCoords(pos), pos);
-    }
+    public static FluidState get(@Nonnull BlockPos pos) { return get(null, pos); }
 
     //gets the stored state present in the capability provider (usually chunk) at the block pos
     @Nonnull

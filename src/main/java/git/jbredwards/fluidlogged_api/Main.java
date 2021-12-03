@@ -5,6 +5,7 @@ import git.jbredwards.fluidlogged_api.common.network.NetworkHandler;
 import git.jbredwards.fluidlogged_api.common.util.IChunkProvider;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.init.Items;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.ChunkCache;
@@ -31,8 +32,9 @@ import static git.jbredwards.fluidlogged_api.Constants.*;
 @Mod(modid = MODID, name = NAME, version = VERSION)
 public final class Main
 {
-    @SidedProxy(clientSide = "git.jbredwards.fluidlogged_api.Main.ClientProxy", serverSide = "git.jbredwards.fluidlogged_api.Main.CommonProxy")
-    public static CommonProxy proxy;
+    @SuppressWarnings("NotNullFieldNotInitialized")
+    @SidedProxy(clientSide = "git.jbredwards.fluidlogged_api.Main$ClientProxy", serverSide = "git.jbredwards.fluidlogged_api.Main$CommonProxy")
+    @Nonnull public static CommonProxy proxy;
 
     //register this mod's capability & packet
     @SuppressWarnings("unused")
@@ -70,8 +72,9 @@ public final class Main
         //use WorldClient instance & ignore world input if clientside
         @Nullable
         @Override
-        public Chunk getChunk(@Nullable IBlockAccess world, @Nonnull BlockPos pos) {
-            return Minecraft.getMinecraft().world.getChunkFromBlockCoords(pos);
+        public Chunk getChunk(@Nullable IBlockAccess worldIn, @Nonnull BlockPos pos) {
+            final WorldClient world = Minecraft.getMinecraft().world;
+            return world == null ? null : world.getChunkFromBlockCoords(pos);
         }
     }
 }

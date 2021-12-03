@@ -34,6 +34,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
                 .put("net.minecraft.block.BlockBush", new BlockBushPlugin())
                 .put("net.minecraft.block.BlockCocoa", new BlockCocoaPlugin())
+                .put("net.minecraft.block.BlockDynamicLiquid", new BlockDynamicLiquidPlugin())
                 .put("net.minecraft.block.BlockFarmland", new BlockFarmlandPlugin())
                 .put("net.minecraft.block.Block", new BlockPlugin())
                 .put("net.minecraft.block.BlockReed", new BlockReedPlugin())

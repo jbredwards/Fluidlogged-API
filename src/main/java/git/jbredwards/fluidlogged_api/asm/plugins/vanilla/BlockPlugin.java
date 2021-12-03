@@ -25,7 +25,7 @@ public final class BlockPlugin implements IASMPlugin
         }
         //getExplosionResistance, line 1766
         if(checkMethod(method, "getExplosionResistance", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;Lnet/minecraft/world/Explosion;)F")) {
-            setMaxLocals(method, 5);
+            setMaxLocals(method, 6);
             return 3;
         }
         //getLightOpacity, line 2030

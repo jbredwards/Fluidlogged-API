@@ -1,7 +1,9 @@
 package git.jbredwards.fluidlogged_api.common.capability;
 
-import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -11,12 +13,13 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
-import net.minecraftforge.fluids.FluidRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * allows chunks to store fluid states
@@ -25,7 +28,7 @@ import java.util.Map;
  */
 public interface IFluidStateCapability
 {
-    @Nonnull Map<BlockPos, FluidState> getFluidStateMap();
+    @Nonnull Iterable<Map.Entry<BlockPos, FluidState>> getFluidStates();
     //don't call directly, instead use FluidloggedUtils#getFluidState please!
     @Nonnull FluidState getFluidState(@Nonnull BlockPos pos);
     //don't call directly, instead use FluidloggedUtils#setFluidState please!
@@ -48,7 +51,7 @@ public interface IFluidStateCapability
 
         @Nonnull
         @Override
-        public Map<BlockPos, FluidState> getFluidStateMap() { return ImmutableMap.copyOf(fluidStates); }
+        public Iterable<Map.Entry<BlockPos, FluidState>> getFluidStates() { return fluidStates.entrySet(); }
 
         @Nonnull
         @Override
@@ -97,10 +100,11 @@ public interface IFluidStateCapability
         @Override
         public NBTBase writeNBT(@Nullable Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side) {
             final NBTTagList list = new NBTTagList();
-            for(Map.Entry<BlockPos, FluidState> entry : instance.getFluidStateMap().entrySet()) {
+            for(Map.Entry<BlockPos, FluidState> entry : instance.getFluidStates()) {
                 NBTTagCompound nbt = new NBTTagCompound();
-                nbt.setString("id", entry.getValue().getFluid().getName());
                 nbt.setLong("pos", entry.getKey().toLong());
+                nbt.setString("id", Objects.requireNonNull(
+                        entry.getValue().getBlock().getRegistryName()).toString());
 
                 list.appendTag(nbt);
             }
@@ -116,7 +120,11 @@ public interface IFluidStateCapability
                         NBTTagCompound nbt = (NBTTagCompound)tag;
                         instance.setFluidState(
                                 BlockPos.fromLong(nbt.getLong("pos")),
-                                FluidState.of(FluidRegistry.getFluid(nbt.getString("id")))
+                                FluidState.of(FluidloggedUtils.getFluidFromBlock(
+                                        Optional.ofNullable(Block.getBlockFromName(nbt.getString("id")))
+                                                .orElse(Blocks.AIR)
+                                        )
+                                )
                         );
                     }
                 }

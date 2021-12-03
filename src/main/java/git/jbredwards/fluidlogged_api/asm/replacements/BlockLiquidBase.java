@@ -2,6 +2,7 @@ package git.jbredwards.fluidlogged_api.asm.replacements;
 
 import git.jbredwards.fluidlogged_api.asm.plugins.ASMHooks;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
@@ -29,6 +30,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static net.minecraft.util.EnumFacing.*;
 
@@ -96,16 +100,24 @@ public abstract class BlockLiquidBase extends BlockLiquid
     @Nonnull
     @Override
     protected Vec3d getFlow(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
+        //correct state param sometimes not being a BlockLiquid
+        if(FluidloggedUtils.getFluidFromState(state) == null) {
+            FluidState fluidState = FluidState.get(worldIn, pos);
+            if(fluidState.isEmpty()) return Vec3d.ZERO;
+            else state = fluidState.getState();
+        }
+
         Vec3d vec = new Vec3d(0, 0, 0);
+
+        final Fluid fluid = (blockMaterial == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA);
         final int level = state.getValue(LEVEL);
         int decay = (level >= 8 ? 0 : level);
 
         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
             BlockPos offset = pos.offset(facing);
-            state = FluidloggedUtils.getFluidOrReal(worldIn, offset);
-            int otherDecay = getFlowDecay(state, worldIn, offset, facing);
+            int otherDecay = getFlowDecay(FluidloggedUtils.getFluidOrReal(worldIn, offset), worldIn, offset, facing);
             if(otherDecay < 0) {
-                if(!getFlow(worldIn, pos, state, facing)) {
+                if(!getFlow(worldIn, offset, worldIn.getBlockState(offset), facing, fluid)) {
                     otherDecay = getFlowDecay(FluidloggedUtils.getFluidOrReal(worldIn, offset.down()), worldIn, offset.down(), facing);
                     if(otherDecay >= 0) {
                         int power = otherDecay - (decay - 8);
@@ -130,6 +142,16 @@ public abstract class BlockLiquidBase extends BlockLiquid
         }
 
         return vec.normalize();
+    }
+
+    protected boolean getFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing facing, @Nonnull Fluid fluidIn) {
+        final @Nullable Fluid fluid = FluidloggedUtils.getFluidAt(world, pos, state);
+        //fluidlogged block
+        if(fluid == fluidIn && !IFluidloggableBase.canFluidFlow(world, pos, state, fluid, facing.getOpposite())) return true;
+        //fluids aren't equal
+        else if(fluid != null && fluid != fluidIn) return true;
+        //default
+        return state.getMaterial().blocksMovement();
     }
 
     @Override
@@ -236,11 +258,10 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
         //side overlays
         for(int i = 0; i < 4; i++) {
-            EnumFacing facing = EnumFacing.getHorizontal(i);
-            BlockPos offset = pos.offset(facing);
-            IBlockState offState = world.getBlockState(offset);
-            state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i],
-                    !IFluidloggableBase.canFluidFlow(world, offset, offState, FluidloggedUtils.getFluidAt(world, offset, offState), facing.getOpposite()));
+            EnumFacing side = EnumFacing.getHorizontal(i);
+            BlockPos offset = pos.offset(side);
+            boolean useOverlay = world.getBlockState(offset).getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID;
+            state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], useOverlay);
         }
 
         //sets the corner props
@@ -253,25 +274,39 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
     //used by getExtendedState
     public float getFluidHeightForRender(Fluid fluid, IBlockAccess world, BlockPos pos, IBlockState up, Fluid upFluid, int i, int j) {
+        IBlockState here = world.getBlockState(pos);
+        if (here.getMaterial().isLiquid() && here.getMaterial() == up.getMaterial()) {
+            return 1;
+        }
+
+        if (here.getBlock() == this && here.getBlock().getMetaFromState(here) == 0) {
+            return 8f/9;
+        }
+
+        if (here.getBlock() instanceof BlockLiquid) {
+            return Math.min(1 - BlockLiquid.getLiquidHeightPercent(here.getValue(BlockLiquid.LEVEL)), 8f/9);
+        }
+
+        return (here.getBlock().isAir(here, world, pos) ? 0 : (-8f/9));
+
         //check block above
-        if(isFluid(up, upFluid, fluid, world, pos.up(), UP)) return 1;
+        /*if(isFluid(up, upFluid, fluid, world, pos.up(), UP)) return 1;
         final IBlockState state = world.getBlockState(pos);
 
         //is air
         if(state.getBlock().isAir(state, world, pos)) return 0;
 
         final boolean canSideFlow = ASMHooks.canSideFlow(fluid, state, world, pos, i, j);
-        final boolean fluidMatches = (FluidloggedUtils.getFluidFromState(state) == fluid);
+        final boolean fluidMatches = (FluidloggedUtils.getFluidAt(world, pos, state) == fluid);
 
         if(fluidMatches && canSideFlow) {
-            //max render height
             if(state.getValue(BlockLiquid.LEVEL) == 0) return 8f / 9;
         }
 
         //not fluid
-        if(!fluidMatches|| !canSideFlow) return (-1 / 8f) * (8f / 9);
+        if(!fluidMatches || !canSideFlow) return (-1 / 8f) * (8f / 9);
         //fluid
-        else return ((8 - state.getValue(BlockLiquid.LEVEL)) / 8f) * (8f / 9);
+        else return ((8 - state.getValue(BlockLiquid.LEVEL)) / 8f) * (8f / 9);*/
     }
 
     //used by getExtendedState
@@ -305,7 +340,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
     public boolean isFluid(IBlockState up, Fluid upFluid, Fluid fluid, IBlockAccess world, BlockPos pos, EnumFacing...faces) {
         if(fluid == upFluid) {
             for(EnumFacing facing : faces) {
-                if(!IFluidloggableBase.canFluidFlow(world, pos, up, fluid, facing.getOpposite())) return false;
+                if(!IFluidloggableBase.canFluidFlow(world, pos, up, upFluid, facing.getOpposite())) return false;
             }
 
             return true;
@@ -337,5 +372,32 @@ public abstract class BlockLiquidBase extends BlockLiquid
             final int level = state.getValue(LEVEL);
             return level >= 8 ? 0 : level;
         }
+    }
+
+    protected static Map<Block, Boolean> defaultDisplacements = null;
+    protected static Map<Block, Boolean> getDefaultDisplacements() {
+        if(defaultDisplacements == null) defaultDisplacements = ASMHooks.defaultDisplacements(new HashMap<>());
+        return defaultDisplacements;
+    }
+
+    //static version of BlockFluidBase#canDisplace
+    public static boolean canDisplace(@Nonnull Block fluidBlock, @Nonnull Fluid fluidIn, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        final IBlockState state = world.getBlockState(pos);
+        final Block block = state.getBlock();
+
+        if(block.isAir(state, world, pos)) return true;
+        else if(ASMHooks.canDisplace(state, fluidBlock, fluidIn, world, pos) == fluidBlock) return false;
+        else if(getDefaultDisplacements().containsKey(block)) return defaultDisplacements.get(block);
+
+        final Material material = state.getMaterial();
+        if(material.blocksMovement() || material == Material.PORTAL || material == Material.STRUCTURE_VOID) {
+            return false;
+        }
+
+        final boolean replaceable = block.isReplaceable(world, pos) || FluidloggedUtils.isStateFluidloggable(state, fluidIn);
+        final int density = BlockFluidBase.getDensity(world, pos);
+
+        if(density == Integer.MAX_VALUE) return replaceable;
+        else return replaceable && 1000 > density;
     }
 }

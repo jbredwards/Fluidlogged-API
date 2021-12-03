@@ -25,7 +25,7 @@ public interface IFluidloggableBase
     @SideOnly(Side.CLIENT)
     default boolean shouldFluidRenderInternal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Fluid fluid) {
         final @Nullable Block block = fluid.getBlock();
-        return block != null && block.getDefaultState().getRenderType() != EnumBlockRenderType.INVISIBLE;
+        return block != null && block.getDefaultState().getRenderType() == EnumBlockRenderType.MODEL;
     }
 
     //returns true if the fluid should be visible while this is fluidlogged
@@ -33,7 +33,7 @@ public interface IFluidloggableBase
     static boolean shouldFluidRender(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Fluid fluid) {
         if(state.getBlock() instanceof IFluidloggableBase) return ((IFluidloggableBase)state.getBlock()).shouldFluidRenderInternal(world, pos, state, fluid);
         final @Nullable Block block = fluid.getBlock();
-        return block != null && block.getDefaultState().getRenderType() != EnumBlockRenderType.INVISIBLE;
+        return block != null && block.getDefaultState().getRenderType() == EnumBlockRenderType.MODEL;
     }
 
     //returns true if the contained fluid can flow from the specified side

@@ -14,7 +14,12 @@ public final class RenderChunkPlugin implements IASMPlugin
 {
     @Override
     public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
-        return checkMethod(method, obfuscated ? "func_178581_b" : "rebuildChunk", null) ? 1 : 0;
+        if(checkMethod(method, obfuscated ? "func_178581_b" : "rebuildChunk", null)) {
+            setMaxLocals(method, 9);
+            return 1;
+        }
+
+        return 0;
     }
 
     @Override
