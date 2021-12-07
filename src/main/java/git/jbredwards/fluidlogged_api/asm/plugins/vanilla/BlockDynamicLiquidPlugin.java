@@ -14,8 +14,10 @@ public final class BlockDynamicLiquidPlugin implements IASMPlugin
 {
     @Override
     public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
-        if(checkMethod(method, obfuscated ? "func_180690_f" : "placeStaticBlock", null))
+        if(checkMethod(method, obfuscated ? "func_180690_f" : "placeStaticBlock", null)) {
+            setMaxLocals(method, 4);
             return 1;
+        }
 
         return 0;
     }
@@ -23,7 +25,8 @@ public final class BlockDynamicLiquidPlugin implements IASMPlugin
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
         if(index == 1 && checkMethod(insn, obfuscated ? "func_180501_a" : "setBlockState", null)) {
-            instructions.insert(insn, genMethodNode("placeStaticBlock", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"));
+            instructions.insert(insn, genMethodNode("placeStaticBlock", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;ILnet/minecraft/block/Block;)Z"));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 0));
             instructions.remove(insn);
             return true;
         }

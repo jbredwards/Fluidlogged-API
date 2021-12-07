@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
  */
 public final class FluidStateMessage implements IMessage
 {
-    public boolean isValid = false;
+    public boolean isValid;
     public BlockPos pos;
     public FluidState state;
 

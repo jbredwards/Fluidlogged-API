@@ -14,12 +14,14 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * holds a fluid & a block state
  * @author jbred
  *
  */
+@Immutable
 public class FluidState extends Pair<Fluid, IBlockState>
 {
     //always used instead of a null value
@@ -68,6 +70,14 @@ public class FluidState extends Pair<Fluid, IBlockState>
     public IBlockState getState() { return state; }
 
     public Block getBlock() { return getState().getBlock(); }
+
+    @Override
+    public String toString() { return isEmpty() ? "EMPTY" : super.toString(); }
+
+    @Override
+    public String toString(String format) {
+        return isEmpty() ? String.format(format, "EMPTY") : super.toString(format);
+    }
 
     //implemented from Pair, please use methods above instead if possible
 

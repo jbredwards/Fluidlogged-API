@@ -24,6 +24,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.ForgeHooksClient;
+import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
@@ -249,8 +250,8 @@ public enum ASMHooks
     //=======
 
     //BlockDynamicLiquidPlugin
-    public static boolean placeStaticBlock(World world, BlockPos pos, IBlockState state, int flags) {
-        if(isReplaceable(world.getBlockState(pos), world, pos)) return world.setBlockState(pos, state, flags);
+    public static boolean placeStaticBlock(World world, BlockPos pos, IBlockState state, int flags, Block block) {
+        if(world.getBlockState(pos).getBlock() == block) return world.setBlockState(pos, state, flags);
         else return false;
     }
 

@@ -13,13 +13,11 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
+import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * allows chunks to store fluid states
@@ -34,17 +32,16 @@ public interface IFluidStateCapability
     //don't call directly, instead use FluidloggedUtils#setFluidState please!
     void setFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fluid);
     //get this from a capability provider
-    @SuppressWarnings("ConstantConditions")
     @Nullable
     static IFluidStateCapability get(@Nullable ICapabilityProvider p) {
         return p != null && p.hasCapability(Impl.CAPABILITY, null) ? p.getCapability(Impl.CAPABILITY, null) : null;
     }
 
     //default implementation
-    class Impl implements IFluidStateCapability, ICapabilitySerializable<NBTBase>
+    class Impl implements IFluidStateCapability
     {
         @CapabilityInject(IFluidStateCapability.class)
-        public static final Capability<IFluidStateCapability> CAPABILITY = null;
+        public static Capability<IFluidStateCapability> CAPABILITY = null;
 
         @Nonnull
         protected final Map<BlockPos, FluidState> fluidStates = new HashMap<>();
@@ -65,38 +62,37 @@ public interface IFluidStateCapability
             if(fluid.isEmpty()) fluidStates.remove(pos);
             else fluidStates.put(pos, fluid);
         }
+    }
 
-        //=======================
-        //ICapabilitySerializable
-        //=======================
+    final class Provider implements ICapabilitySerializable<NBTBase>
+    {
+        @Nonnull public final IFluidStateCapability instance = new Impl();
 
-        @SuppressWarnings("ConstantConditions")
         @Override
-        public boolean hasCapability(@Nonnull Capability<?> capability, @Nullable EnumFacing facing) {
-            return capability.equals(CAPABILITY);
+        public boolean hasCapability(@Nullable Capability<?> capability, @Nullable EnumFacing facing) {
+            return capability == Impl.CAPABILITY;
         }
 
-        @SuppressWarnings("ConstantConditions")
         @Nullable
         @Override
-        public <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
-            return hasCapability(capability, facing) ? CAPABILITY.cast(this) : null;
+        public <T> T getCapability(@Nullable Capability<T> capability, @Nullable EnumFacing facing) {
+            if(!hasCapability(capability, facing)) return null;
+            else return Impl.CAPABILITY.cast(instance);
         }
 
-        @SuppressWarnings("ConstantConditions")
         @Nullable
         @Override
-        public NBTBase serializeNBT() { return CAPABILITY.writeNBT(this, null); }
+        public NBTBase serializeNBT() { return Impl.CAPABILITY.writeNBT(instance, null); }
 
-        @SuppressWarnings("ConstantConditions")
         @Override
-        public void deserializeNBT(@Nullable NBTBase nbt) { CAPABILITY.readNBT(this, null, nbt); }
+        public void deserializeNBT(final NBTBase nbt) { Impl.CAPABILITY.readNBT(instance, null, nbt); }
     }
 
     enum Storage implements Capability.IStorage<IFluidStateCapability>
     {
         INSTANCE;
 
+        @Nonnull
         @Override
         public NBTBase writeNBT(@Nullable Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side) {
             final NBTTagList list = new NBTTagList();
@@ -118,14 +114,13 @@ public interface IFluidStateCapability
                 for(NBTBase tag : (NBTTagList)nbtIn) {
                     if(tag instanceof NBTTagCompound) {
                         NBTTagCompound nbt = (NBTTagCompound)tag;
-                        instance.setFluidState(
-                                BlockPos.fromLong(nbt.getLong("pos")),
-                                FluidState.of(FluidloggedUtils.getFluidFromBlock(
-                                        Optional.ofNullable(Block.getBlockFromName(nbt.getString("id")))
-                                                .orElse(Blocks.AIR)
-                                        )
-                                )
-                        );
+                        if(nbt.hasKey("pos", Constants.NBT.TAG_LONG) && nbt.hasKey("id", Constants.NBT.TAG_STRING)) {
+                            BlockPos pos = BlockPos.fromLong(nbt.getLong("pos"));
+                            FluidState state = FluidState.of(FluidloggedUtils.getFluidFromBlock(
+                                    Optional.ofNullable(Block.getBlockFromName(nbt.getString("id"))).orElse(Blocks.AIR)));
+
+                            instance.setFluidState(pos, state);
+                        }
                     }
                 }
             }

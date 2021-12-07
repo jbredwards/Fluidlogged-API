@@ -50,7 +50,7 @@ public final class EventHandler
 {
     @SubscribeEvent
     public static void attachCapability(@Nonnull AttachCapabilitiesEvent<Chunk> event) {
-        event.addCapability(new ResourceLocation(Constants.MODID, "fluid_states"), new IFluidStateCapability.Impl());
+        event.addCapability(new ResourceLocation(Constants.MODID, "fluid_states"), new IFluidStateCapability.Provider());
     }
 
     @SideOnly(Side.CLIENT)
@@ -107,6 +107,11 @@ public final class EventHandler
     public static void debugStick(@Nonnull PlayerInteractEvent.RightClickBlock event) {
         if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.STICK) {
             FluidloggedUtils.setFluidState(event.getWorld(), event.getPos(), null, FluidState.of(FluidRegistry.WATER), true, 3);
+        }
+
+        else if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.BLAZE_ROD) {
+            System.out.println(FluidState.get(event.getWorld(), event.getPos()));
+            System.out.println(event.getWorld().isRemote);
         }
     }
 }
