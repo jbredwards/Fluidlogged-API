@@ -21,10 +21,10 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.ForgeHooksClient;
-import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
@@ -322,10 +322,10 @@ public enum ASMHooks
                     IBlockState extendedFluidState = world.getWorldType() != WorldType.DEBUG_ALL_BLOCK_STATES ?
                             fluidState.getState().getActualState(world, pos) : fluidState.getState();
 
-                    //use fluid vertices specific to fluidlogged fluid state
+                    IBakedModel model = Minecraft.getMinecraft().getBlockRendererDispatcher().getModelForState(extendedFluidState);
                     extendedFluidState = getExtendedState(extendedFluidState, world, pos, fluidState.getFluid());
 
-                    IBakedModel model = Minecraft.getMinecraft().getBlockRendererDispatcher().getModelForState(extendedFluidState);
+                    //render the fluid
                     array[layer.ordinal()] |= Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer()
                             .renderModel(world, model, extendedFluidState, pos, buffer, true);
                 }
@@ -341,26 +341,31 @@ public enum ASMHooks
 
     //RenderChunkPlugin helper
     public static IBlockState getExtendedState(IBlockState oldState, IBlockAccess world, BlockPos pos, Fluid fluid) {
-        IExtendedBlockState state = (IExtendedBlockState)oldState.getBlock().getExtendedState(oldState, world, pos);
-        final float corner0 = state.getValue(BlockFluidBase.LEVEL_CORNERS[0]);
-        final float corner1 = state.getValue(BlockFluidBase.LEVEL_CORNERS[1]);
-        final float corner2 = state.getValue(BlockFluidBase.LEVEL_CORNERS[2]);
-        final float corner3 = state.getValue(BlockFluidBase.LEVEL_CORNERS[3]);
-        //make sure there's not a fluid block above this prior to performing fixes
-        if(corner0 != 1 || corner1 != 1 || corner2 != 1 || corner3 != 1) {
-            final float quantaFraction = FluidloggedAccessorUtils.quantaFraction(oldState.getBlock());
+        oldState = oldState.getBlock().getExtendedState(oldState, world, pos);
+        if(oldState instanceof IExtendedBlockState) {
+            IExtendedBlockState state = (IExtendedBlockState)oldState;
+            final float corner0 = state.getValue(BlockFluidBase.LEVEL_CORNERS[0]);
+            final float corner1 = state.getValue(BlockFluidBase.LEVEL_CORNERS[1]);
+            final float corner2 = state.getValue(BlockFluidBase.LEVEL_CORNERS[2]);
+            final float corner3 = state.getValue(BlockFluidBase.LEVEL_CORNERS[3]);
+            //make sure there's not a fluid block above this prior to performing fixes
+            if(corner0 != 1 || corner1 != 1 || corner2 != 1 || corner3 != 1) {
+                final float quantaFraction = FluidloggedAccessorUtils.quantaFraction(oldState.getBlock());
 
-            if(fixCorner(oldState, world, pos, fluid, NORTH, EAST) || fixCorner(oldState, world, pos, fluid, WEST, SOUTH))
-                state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[0], quantaFraction);
-            if(fixCorner(oldState, world, pos, fluid, SOUTH, EAST) || fixCorner(oldState, world, pos, fluid, WEST, NORTH))
-                state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[1], quantaFraction);
-            if(fixCorner(oldState, world, pos, fluid, SOUTH, WEST) || fixCorner(oldState, world, pos, fluid, EAST, NORTH))
-                state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[2], quantaFraction);
-            if(fixCorner(oldState, world, pos, fluid, NORTH, WEST) || fixCorner(oldState, world, pos, fluid, EAST, SOUTH))
-                state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[3], quantaFraction);
+                if(fixCorner(oldState, world, pos, fluid, NORTH, EAST) || fixCorner(oldState, world, pos, fluid, WEST, SOUTH))
+                    state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[0], quantaFraction);
+                if(fixCorner(oldState, world, pos, fluid, SOUTH, EAST) || fixCorner(oldState, world, pos, fluid, WEST, NORTH))
+                    state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[1], quantaFraction);
+                if(fixCorner(oldState, world, pos, fluid, SOUTH, WEST) || fixCorner(oldState, world, pos, fluid, EAST, NORTH))
+                    state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[2], quantaFraction);
+                if(fixCorner(oldState, world, pos, fluid, NORTH, WEST) || fixCorner(oldState, world, pos, fluid, EAST, SOUTH))
+                    state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[3], quantaFraction);
+            }
+
+            return state;
         }
 
-        return state;
+        return oldState;
     }
 
     //RenderChunkPlugin helper
@@ -390,6 +395,41 @@ public enum ASMHooks
     public static IBlockState getFluidState(World world, BlockPos pos) {
         final FluidState fluidState = FluidState.get(world, pos);
         return fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.getState();
+    }
+
+    //WorldPlugin
+    public static boolean handleMaterialAcceleration(BlockPos.PooledMutableBlockPos pos, World world, Material material, Entity entity, Vec3d vec3d, boolean flagIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+        boolean flag = flagIn;
+
+        for(int x = minX; x < maxX; x++) {
+            for(int y = minY; y < maxY; y++) {
+                for(int z = minZ; z < maxZ; z++) {
+                    FluidState fluidState = FluidState.get(world, pos.setPos(x, y, z));
+                    if(!fluidState.isEmpty()) {
+                        IBlockState state = fluidState.getState();
+                        Block block = fluidState.getBlock();
+
+                        @Nullable Boolean result = block.isEntityInsideMaterial(world, pos, state, entity, maxY, material, false);
+                        if(Boolean.TRUE.equals(result)) {
+                            vec3d = block.modifyAcceleration(world, pos, entity, vec3d);
+                            flag = true;
+                        }
+
+                        else if(!Boolean.FALSE.equals(result) && state.getMaterial() == material) {
+                            //check for fluid height
+                            double fluidHeight = y + 1 - (1 / 9.0f);
+                            if(maxY >= fluidHeight) {
+                                flag = true;
+                                vec3d = block.modifyAcceleration(world, pos, entity, vec3d);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        pos.release();
+        return flag;
     }
 
     //WorldPlugin

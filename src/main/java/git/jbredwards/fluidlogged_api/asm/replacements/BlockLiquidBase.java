@@ -274,7 +274,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
     //used by getExtendedState
     public float getFluidHeightForRender(Fluid fluid, IBlockAccess world, BlockPos pos, IBlockState up, Fluid upFluid, int i, int j) {
-        IBlockState here = world.getBlockState(pos);
+        /*IBlockState here = world.getBlockState(pos);
         if (here.getMaterial().isLiquid() && here.getMaterial() == up.getMaterial()) {
             return 1;
         }
@@ -287,10 +287,10 @@ public abstract class BlockLiquidBase extends BlockLiquid
             return Math.min(1 - BlockLiquid.getLiquidHeightPercent(here.getValue(BlockLiquid.LEVEL)), 8f/9);
         }
 
-        return (here.getBlock().isAir(here, world, pos) ? 0 : (-8f/9));
+        return (here.getBlock().isAir(here, world, pos) ? 0 : (-8f/9));*/
 
         //check block above
-        /*if(isFluid(up, upFluid, fluid, world, pos.up(), UP)) return 1;
+        if(isFluid(up, upFluid, fluid, world, pos.up(), UP)) return 1;
         final IBlockState state = world.getBlockState(pos);
 
         //is air
@@ -300,13 +300,13 @@ public abstract class BlockLiquidBase extends BlockLiquid
         final boolean fluidMatches = (FluidloggedUtils.getFluidAt(world, pos, state) == fluid);
 
         if(fluidMatches && canSideFlow) {
-            if(state.getValue(BlockLiquid.LEVEL) == 0) return 8f / 9;
+            if(FluidloggedUtils.getFluidOrReal(world, pos, state).getValue(BlockLiquid.LEVEL) == 0) return 8f / 9;
         }
 
         //not fluid
         if(!fluidMatches || !canSideFlow) return (-1 / 8f) * (8f / 9);
         //fluid
-        else return ((8 - state.getValue(BlockLiquid.LEVEL)) / 8f) * (8f / 9);*/
+        else return ((8 - FluidloggedUtils.getFluidOrReal(world, pos, state).getValue(BlockLiquid.LEVEL)) / 8f) * (8f / 9);
     }
 
     //used by getExtendedState

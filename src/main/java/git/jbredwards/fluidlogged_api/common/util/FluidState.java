@@ -72,10 +72,12 @@ public class FluidState extends Pair<Fluid, IBlockState>
     public Block getBlock() { return getState().getBlock(); }
 
     @Override
+    @Nonnull
     public String toString() { return isEmpty() ? "EMPTY" : super.toString(); }
 
     @Override
-    public String toString(String format) {
+    @Nonnull
+    public String toString(@Nonnull String format) {
         return isEmpty() ? String.format(format, "EMPTY") : super.toString(format);
     }
 

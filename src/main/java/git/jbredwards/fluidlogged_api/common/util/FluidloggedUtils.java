@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
 import git.jbredwards.fluidlogged_api.Main;
+import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
@@ -35,6 +36,7 @@ public enum FluidloggedUtils
 {
     ;
 
+    //if you want the FluidState directly, use FluidState#get
     @Nullable
     public static IBlockState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         final @Nullable Chunk chunk = getChunk(world, pos);
@@ -49,18 +51,14 @@ public enum FluidloggedUtils
     //if none return world#getBlockState
     @Nonnull
     public static IBlockState getFluidOrReal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        //if instanceof World, check the chunk capability for a stored fluid
-        final @Nullable Chunk chunk = getChunk(world, pos);
+        return getFluidOrReal(world, pos, world.getBlockState(pos));
+    }
 
-        if(chunk != null) {
-            final IBlockState state = chunk.getBlockState(pos);
-            //return fluid if present, else return state
-            return getFluidFromState(state) == null ?
-                    Optional.ofNullable(FluidState.getFromProvider(chunk, pos).getState()).orElse(state)
-                    : state;
-        }
-        //default
-        else return world.getBlockState(pos);
+    //same as above method, but takes in the here state rather than getting it from the world
+    //(useful for avoiding unnecessary lookups)
+    @Nonnull
+    public static IBlockState getFluidOrReal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
+        return getFluidFromState(here) != null ? here : Optional.ofNullable(FluidState.get(world, pos).getState()).orElse(here);
     }
 
     public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState state, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
@@ -141,6 +139,7 @@ public enum FluidloggedUtils
         else return fluid.getDefaultState().getMaterial() == Material.LAVA ? FluidRegistry.LAVA : null;
     }
 
+    //helpful utility function to get the fluid from the state, but fallback on the possible FluidState here
     @Nullable
     public static Fluid getFluidAt(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
         return Optional.ofNullable(getFluidFromState(here)).orElse(FluidState.get(world, pos).getFluid());
@@ -151,7 +150,7 @@ public enum FluidloggedUtils
         //if the block is already occupied, or has a tile entity, it's not fluidloggable
         if(fluid instanceof IFluidloggableBase || fluid.hasTileEntity()) return false;
         //allow any vanilla fluid block while restricting forge fluids only to BlockFluidClassic
-        else return (fluid instanceof BlockLiquid || fluid instanceof BlockFluidClassic);
+        else return (fluid instanceof BlockLiquidBase || fluid instanceof BlockFluidClassic);
     }
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
