@@ -34,7 +34,7 @@ public enum FluidloggedConfig
 
     public static final Map<Block, BiPredicate<IBlockState, Fluid>> WHITELIST = new HashMap<>();
     public static final Map<Block, BiPredicate<IBlockState, Fluid>> BLACKLIST = new HashMap<>();
-    public static boolean applyDefaults;
+    public static boolean applyDefaults = true;
 
     public static Event.Result isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
         //check whitelist

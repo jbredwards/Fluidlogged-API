@@ -274,21 +274,6 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
     //used by getExtendedState
     public float getFluidHeightForRender(Fluid fluid, IBlockAccess world, BlockPos pos, IBlockState up, Fluid upFluid, int i, int j) {
-        /*IBlockState here = world.getBlockState(pos);
-        if (here.getMaterial().isLiquid() && here.getMaterial() == up.getMaterial()) {
-            return 1;
-        }
-
-        if (here.getBlock() == this && here.getBlock().getMetaFromState(here) == 0) {
-            return 8f/9;
-        }
-
-        if (here.getBlock() instanceof BlockLiquid) {
-            return Math.min(1 - BlockLiquid.getLiquidHeightPercent(here.getValue(BlockLiquid.LEVEL)), 8f/9);
-        }
-
-        return (here.getBlock().isAir(here, world, pos) ? 0 : (-8f/9));*/
-
         //check block above
         if(isFluid(up, upFluid, fluid, world, pos.up(), UP)) return 1;
         final IBlockState state = world.getBlockState(pos);

@@ -20,7 +20,7 @@ public final class BlockPlugin implements IASMPlugin
             return 1;
         }
         //removedByPlayer, line 1422
-        if(checkMethod(method, "removedByPlayer", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/entity/player/EntityPlayer;Z)Z")) {
+        if(checkMethod(method, "removedByPlayer", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/player/EntityPlayer;Z)Z")) {
             return 2;
         }
         //getExplosionResistance, line 1766
@@ -59,8 +59,8 @@ public final class BlockPlugin implements IASMPlugin
             list.add(new VarInsnNode(ALOAD, 3));
             //adds new code
             list.add(genMethodNode("getFluidState", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
-            instructions.insert(insn, list);
-            instructions.remove(insn.getPrevious());
+            instructions.insertBefore(insn, list);
+            instructions.remove(insn.getNext());
             instructions.remove(insn);
             return true;
         }

@@ -18,6 +18,9 @@ public final class BlockDynamicLiquidPlugin implements IASMPlugin
             setMaxLocals(method, 4);
             return 1;
         }
+        else if(checkMethod(method, obfuscated ? "" : "updateTick", null)) {
+
+        }
 
         return 0;
     }

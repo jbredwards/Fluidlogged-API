@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged_api.common.util;
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -69,7 +70,9 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     public IBlockState getState() { return state; }
 
-    public Block getBlock() { return getState().getBlock(); }
+    public Block getBlock() { return state.getBlock(); }
+
+    public Material getMaterial() { return state.getMaterial(); }
 
     @Override
     @Nonnull

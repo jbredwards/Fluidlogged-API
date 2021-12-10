@@ -42,7 +42,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.world.World", new WorldPlugin())
                 .put("net.minecraft.world.WorldServer", new WorldServerPlugin())
                 //forge
-                .put("net.minecraftforge.client.model.ModelFluid", new ModelFluidPlugin())
+                .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new ModelFluidPlugin())
                 .put("net.minecraftforge.common.ForgeHooks", new ForgeHooksPlugin())
                 .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin())
                 .put("net.minecraftforge.fluids.Fluid", new FluidPlugin())

@@ -7,6 +7,7 @@ import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.BlockFluidFinite;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 
@@ -15,16 +16,16 @@ import java.lang.reflect.Field;
  * @author jbred
  *
  */
-public enum FluidloggedAccessorUtils
+public enum AccessorUtils
 {
     ;
 
     //private or protected fields
-    public static final Field canCreateSources    = ObfuscationReflectionHelper.findField(BlockFluidClassic.class, "canCreateSources");
-    public static final Field quantaPerBlockFloat = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlockFloat");
-    public static final Field quantaPerBlock      = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlock");
-    public static final Field quantaFraction      = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaFraction");
-    public static final Field densityDir          = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "densityDir");
+    @Nonnull public static final Field canCreateSources    = ObfuscationReflectionHelper.findField(BlockFluidClassic.class, "canCreateSources");
+    @Nonnull public static final Field quantaPerBlockFloat = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlockFloat");
+    @Nonnull public static final Field quantaPerBlock      = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlock");
+    @Nonnull public static final Field quantaFraction      = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaFraction");
+    @Nonnull public static final Field densityDir          = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "densityDir");
     static {
         canCreateSources.setAccessible(true);
         quantaPerBlockFloat.setAccessible(true);

@@ -153,6 +153,13 @@ public enum FluidloggedUtils
         else return (fluid instanceof BlockLiquidBase || fluid instanceof BlockFluidClassic);
     }
 
+    //same as above method, but also checks for fluid level
+    public static boolean isFluidFluidloggable(@Nonnull IBlockState fluid) {
+        if(!isFluidFluidloggable(fluid.getBlock())) return false;
+        final int level = fluid.getValue(BlockLiquidBase.LEVEL);
+        return level == 0 || (level >= 8 && AccessorUtils.canCreateSources(fluid.getBlock()));
+    }
+
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
         //config
         final Event.Result configResult = FluidloggedConfig.isStateFluidloggable(state, fluid);

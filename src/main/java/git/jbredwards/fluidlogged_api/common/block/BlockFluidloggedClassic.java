@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.common.block;
 
-import git.jbredwards.fluidlogged_api.common.util.FluidloggedAccessorUtils;
+import git.jbredwards.fluidlogged_api.common.util.AccessorUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
@@ -46,10 +46,10 @@ public abstract class BlockFluidloggedClassic extends BlockFluidClassic implemen
     protected boolean isSyncDirty = true;
     protected void sync(@Nullable Block fluid, boolean remapDirty) {
         if(isSyncDirty && fluid instanceof BlockFluidClassic) {
-            quantaPerBlock      = FluidloggedAccessorUtils.quantaPerBlock(fluid);
-            quantaPerBlockFloat = FluidloggedAccessorUtils.quantaPerBlockFloat(fluid);
-            quantaFraction      = FluidloggedAccessorUtils.quantaFraction(fluid);
-            canCreateSources    = FluidloggedAccessorUtils.canCreateSources(fluid);
+            quantaPerBlock      = AccessorUtils.quantaPerBlock(fluid);
+            quantaPerBlockFloat = AccessorUtils.quantaPerBlockFloat(fluid);
+            quantaFraction      = AccessorUtils.quantaFraction(fluid);
+            canCreateSources    = AccessorUtils.canCreateSources(fluid);
         }
 
         if(remapDirty) isSyncDirty = false;

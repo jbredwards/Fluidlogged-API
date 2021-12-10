@@ -14,16 +14,47 @@ public final class WorldServerPlugin implements IASMPlugin
 {
     @Override
     public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
+        //updateBlocks
+        if(checkMethod(method, obfuscated ? "func_147456_g" : "updateBlocks", null))
+            return 1;
         //updateBlockTick
-        if(checkMethod(method, obfuscated ? "func_175654_a" : "updateBlockTick", null)) return 1;
+        else if(checkMethod(method, obfuscated ? "func_175654_a" : "updateBlockTick", null))
+            return 2;
         //tickUpdates
-        return checkMethod(method, obfuscated ? "func_72955_a" : "tickUpdates", null) ? 2 : 0;
+        else if(checkMethod(method, obfuscated ? "func_72955_a" : "tickUpdates", null))
+            return 3;
+
+        else return 0;
     }
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        //updateBlocks, line 500
+        if(index == 1 && checkMethod(insn, obfuscated ? "func_76319_b" : "endSection", "()V")) {
+            final InsnList list = new InsnList();
+            //BlockPos
+            list.add(new TypeInsnNode(NEW, "net/minecraft/util/math/BlockPos"));
+            list.add(new InsnNode(DUP));
+            list.add(new VarInsnNode(ILOAD, 14));
+            list.add(new VarInsnNode(ILOAD, 6));
+            list.add(new InsnNode(IADD));
+            list.add(new VarInsnNode(ILOAD, 16));
+            list.add(new VarInsnNode(ALOAD, 11));
+            list.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/world/chunk/storage/ExtendedBlockStorage", obfuscated ? "func_76662_d" : "getYLocation", "()I", false));
+            list.add(new InsnNode(IADD));
+            list.add(new VarInsnNode(ILOAD, 15));
+            list.add(new VarInsnNode(ILOAD, 7));
+            list.add(new InsnNode(IADD));
+            list.add(new MethodInsnNode(INVOKESPECIAL, "net/minecraft/util/math/BlockPos", "<init>", "(III)V", false));
+            list.add(genMethodNode("updateBlocks", "(Lnet/minecraft/world/WorldServer;Lnet/minecraft/util/math/BlockPos;)V"));
+            //add new code
+            instructions.insert(insn, list);
+            instructions.remove(insn.getPrevious());
+            instructions.remove(insn);
+            return true;
+        }
         //updateBlockTick, line 571
-        if(index == 1 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
+        else if(index == 2 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
             final InsnList list = new InsnList();
             //gets the compared block param
             list.add(new VarInsnNode(ALOAD, 2));
@@ -34,7 +65,7 @@ public final class WorldServerPlugin implements IASMPlugin
             return true;
         }
         //tickUpdates, line 767
-        else if(index == 2 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
+        else if(index == 3 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
             final InsnList list = new InsnList();
             //gets the compared block from the NextTickListEntry
             list.add(new VarInsnNode(ALOAD, 4));

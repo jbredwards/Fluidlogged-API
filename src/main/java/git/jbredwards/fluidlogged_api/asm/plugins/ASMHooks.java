@@ -3,10 +3,9 @@ package git.jbredwards.fluidlogged_api.asm.plugins;
 import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
-import git.jbredwards.fluidlogged_api.common.util.FluidloggedAccessorUtils;
+import git.jbredwards.fluidlogged_api.common.util.AccessorUtils;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -117,7 +116,7 @@ public enum ASMHooks
         //S
         else if(i == 1  && j == 0) {
             fixS = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, SOUTH, null)) return true;
+            if(canSideFlowDir(fluid, state, world, pos, SOUTH)) return true;
 
             //fix uneven corners
             final boolean flag1 = canSideFlowDir(fluid, state, world, pos, SOUTH, EAST);
@@ -134,7 +133,7 @@ public enum ASMHooks
         //E
         else if(i == 0 && j == 1) {
             fixE = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, EAST, null)) return true;
+            if(canSideFlowDir(fluid, state, world, pos, EAST)) return true;
 
             //fix uneven corners
             final boolean flag1 = canSideFlowDir(fluid, state, world, pos, EAST, SOUTH);
@@ -149,7 +148,7 @@ public enum ASMHooks
         //W
         else if(i == 2  && j == 1) {
             fixW = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, WEST, null)) return true;
+            if(canSideFlowDir(fluid, state, world, pos, WEST)) return true;
 
             //fix uneven corners
             final boolean flag1 = canSideFlowDir(fluid, state, world, pos, WEST, SOUTH);
@@ -166,7 +165,7 @@ public enum ASMHooks
         //N
         else if(i == 1  && j == 2) {
             fixN = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, NORTH, null)) return true;
+            if(canSideFlowDir(fluid, state, world, pos, NORTH)) return true;
 
             //fix uneven corners
             final boolean flag1 = canSideFlowDir(fluid, state, world, pos, NORTH, EAST);
@@ -180,14 +179,18 @@ public enum ASMHooks
         }
         //NW
         else if(i == 2  && j == 2) return canSideFlowDir(fluid, state, world, pos, NORTH, WEST);
-        //should never pass
-        else return !state.getMaterial().isSolid();
+        //default
+        else return true;
     }
 
     //BlockFluidBasePlugin helper
-    public static boolean canSideFlowDir(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing facing1, @Nullable EnumFacing facing2) {
-        if(!IFluidloggableBase.canFluidFlow(world, pos, state, fluid, facing1) && canFlowInto(fluid, world, pos.offset(facing1))) return true;
-        else return facing2 != null && !IFluidloggableBase.canFluidFlow(world, pos, state, fluid, facing2) && canFlowInto(fluid, world, pos.offset(facing2));
+    public static boolean canSideFlowDir(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing... sides) {
+        for(EnumFacing side : sides) {
+            if(IFluidloggableBase.canFluidFlow(world, pos, state, fluid, side))// && canFlowInto(fluid, world, pos.offset(side)))
+                return true;
+        }
+
+        return false;
     }
 
     //BlockFluidBasePlugin helper
@@ -350,7 +353,7 @@ public enum ASMHooks
             final float corner3 = state.getValue(BlockFluidBase.LEVEL_CORNERS[3]);
             //make sure there's not a fluid block above this prior to performing fixes
             if(corner0 != 1 || corner1 != 1 || corner2 != 1 || corner3 != 1) {
-                final float quantaFraction = FluidloggedAccessorUtils.quantaFraction(oldState.getBlock());
+                final float quantaFraction = AccessorUtils.quantaFraction(oldState.getBlock());
 
                 if(fixCorner(oldState, world, pos, fluid, NORTH, EAST) || fixCorner(oldState, world, pos, fluid, WEST, SOUTH))
                     state = state.withProperty(BlockFluidBase.LEVEL_CORNERS[0], quantaFraction);
@@ -441,11 +444,26 @@ public enum ASMHooks
 
         //save old state as FluidState
         final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(oldState);
-        if(fluid != null && FluidloggedUtils.isFluidFluidloggable(oldState.getBlock()) && oldState.getValue(BlockLiquid.LEVEL) == 0 && FluidloggedUtils.isStateFluidloggable(state, fluid)) {
+        if(fluid != null && FluidloggedUtils.isFluidFluidloggable(oldState) && FluidloggedUtils.isStateFluidloggable(state, fluid)) {
             FluidloggedUtils.setFluidState(world, pos, state, FluidState.of(fluid), false, flags);
         }
 
         return chunk.setBlockState(pos, state);
+    }
+
+    //WorldServerPlugin
+    public static void updateBlocks(WorldServer world, BlockPos pos) {
+        final FluidState fluidState = FluidState.get(world, pos);
+        if(!fluidState.isEmpty() && fluidState.getBlock().getTickRandomly()) {
+            //special case for lava because it uses BlockStaticLiquid to cause its surroundings to burn
+            if(fluidState.getBlock() == Blocks.FLOWING_LAVA)
+                Blocks.LAVA.randomTick(world, pos, Blocks.LAVA.getDefaultState(), world.rand);
+
+            //normal cases
+            fluidState.getBlock().randomTick(world, pos, fluidState.getState(), world.rand);
+        }
+        //restore old code
+        world.profiler.endSection();
     }
 
     //WorldServerPlugin
