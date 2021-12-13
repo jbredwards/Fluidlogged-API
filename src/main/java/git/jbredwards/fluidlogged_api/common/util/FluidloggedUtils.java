@@ -8,7 +8,6 @@ import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.config.FluidloggedConfig;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
-import git.jbredwards.fluidlogged_api.common.network.NetworkHandler;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -99,11 +98,9 @@ public enum FluidloggedUtils
                     cap.setFluidState(pos, fluidState);
 
                     //send changes to client
-                    //if((event.flags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {
-                        NetworkHandler.WRAPPER.sendToAllAround(new FluidStateMessage(pos, fluidState),
-                                new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
-                        );
-                    //}
+                    Main.WRAPPER.sendToAllAround(new FluidStateMessage(pos, fluidState),
+                            new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
+                    );
 
                     //post fluid added
                     if(!fluidState.isEmpty())

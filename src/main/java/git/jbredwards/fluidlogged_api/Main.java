@@ -1,7 +1,7 @@
 package git.jbredwards.fluidlogged_api;
 
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
-import git.jbredwards.fluidlogged_api.common.network.NetworkHandler;
+import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
 import git.jbredwards.fluidlogged_api.common.util.IChunkProvider;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.client.Minecraft;
@@ -18,6 +18,9 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
+import net.minecraftforge.fml.relauncher.Side;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -36,12 +39,18 @@ public final class Main
     @SidedProxy(clientSide = "git.jbredwards.fluidlogged_api.Main$ClientProxy", serverSide = "git.jbredwards.fluidlogged_api.Main$CommonProxy")
     @Nonnull public static CommonProxy proxy;
 
+    @SuppressWarnings("NotNullFieldNotInitialized")
+    @Nonnull public static SimpleNetworkWrapper WRAPPER;
+
     //register this mod's capability & packet
     @SuppressWarnings("unused")
     @Mod.EventHandler
     public static void preInit(FMLPreInitializationEvent event) {
+        //register capability
         CapabilityManager.INSTANCE.register(IFluidStateCapability.class, IFluidStateCapability.Storage.INSTANCE, IFluidStateCapability.Impl::new);
-        NetworkHandler.init();
+        //register packet
+        WRAPPER = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
+        WRAPPER.registerMessage(FluidStateMessage.Handler.INSTANCE, FluidStateMessage.class, 1, Side.CLIENT);
     }
 
     //fixes the vanilla bucket dispenser actions by using the forge one instead
@@ -74,7 +83,7 @@ public final class Main
         @Override
         public Chunk getChunk(@Nullable IBlockAccess worldIn, @Nonnull BlockPos pos) {
             final WorldClient world = Minecraft.getMinecraft().world;
-            return world == null ? null : world.getChunkFromBlockCoords(pos);
+            return (world == null) ? null : world.getChunkFromBlockCoords(pos);
         }
     }
 }

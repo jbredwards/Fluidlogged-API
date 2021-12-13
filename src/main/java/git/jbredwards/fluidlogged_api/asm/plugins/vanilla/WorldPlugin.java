@@ -27,16 +27,19 @@ public final class WorldPlugin implements IASMPlugin
             return 2;
 
         //handleMaterialAcceleration, line 2443
-        else if(checkMethod(method, obfuscated ? "func_72918_a"  : "handleMaterialAcceleration", null)) {
+        else if(checkMethod(method, obfuscated ? "func_72918_a" : "handleMaterialAcceleration", null)) {
             setMaxLocals(method, 12);
             return 3;
         }
 
+        //isMaterialInBB, line 2493
+        else if(checkMethod(method, obfuscated ? "func_72875_a" : "isMaterialInBB", null))
+            return 4;
+
         //changes some methods to use FluidloggedUtils#getFluidOrReal
-        else if(checkMethod(method, obfuscated ? "func_72953_d"  : "containsAnyLiquid", null)
+        else if(checkMethod(method, obfuscated ? "func_72953_d" : "containsAnyLiquid", null)
         || checkMethod(method, obfuscated ? "func_147470_e" : "isFlammableWithin", null)
-        || checkMethod(method, obfuscated ? "func_72875_a"  : "isMaterialInBB", null)
-        || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null)) return 4;
+        || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null)) return 5;
 
         return 0;
     }
@@ -71,6 +74,22 @@ public final class WorldPlugin implements IASMPlugin
             return true;
         }
 
+        //handleMaterialAcceleration, line 2406
+        else if(index == 3 && checkField(insn, obfuscated ? "field_186680_a" : "ZERO", "Lnet/minecraft/util/math/Vec3d;")) {
+            final InsnList list = new InsnList();
+            //new (mutable) Vec3d instance based at the origin
+            list.add(new TypeInsnNode(NEW, "net/minecraft/util/math/Vec3d"));
+            list.add(new InsnNode(DUP));
+            list.add(new InsnNode(DCONST_0));
+            list.add(new InsnNode(DCONST_0));
+            list.add(new InsnNode(DCONST_0));
+            list.add(new MethodInsnNode(INVOKESPECIAL, "net/minecraft/util/math/Vec3d", "<init>", "(DDD)V", false));
+
+            instructions.insert(insn, list);
+            instructions.remove(insn);
+            return false;
+        }
+
         //handleMaterialAcceleration, line 2443
         else if(index == 3 && checkMethod(insn, obfuscated ? "func_185344_t" : "release", "()V")) {
             final InsnList list = new InsnList();
@@ -99,8 +118,13 @@ public final class WorldPlugin implements IASMPlugin
             return true;
         }
 
+        //isMaterialInBB, line 2493
+        else if(index == 4 && checkMethod(insn, obfuscated ? "func_185344_t" : "release", "()V")) {
+
+        }
+
         //changes some methods to use FluidloggedUtils#getFluidOrReal
-        else if(index == 4 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
+        else if(index == 5 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
             instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/common/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.remove(insn);
             return true;

@@ -32,7 +32,7 @@ public final class WorldServerPlugin implements IASMPlugin
         //updateBlocks, line 500
         if(index == 1 && checkMethod(insn, obfuscated ? "func_76319_b" : "endSection", "()V")) {
             final InsnList list = new InsnList();
-            //BlockPos
+            //new BlockPos instance
             list.add(new TypeInsnNode(NEW, "net/minecraft/util/math/BlockPos"));
             list.add(new InsnNode(DUP));
             list.add(new VarInsnNode(ILOAD, 14));

@@ -36,12 +36,17 @@ public interface IFluidloggableBase
         return block != null && block.getDefaultState().getRenderType() == EnumBlockRenderType.MODEL;
     }
 
-    //returns true if the contained fluid can flow from the specified side
+    //has two purposes:
+    //1: returns true if the contained fluid can flow from the specified side
+    //2: returns true if a fluid can flow into this block from the specified side
     default boolean canFluidFlowInternal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
         return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
-    //returns true if the contained fluid can flow from the specified side
+
+    //has two purposes:
+    //1: returns true if the contained fluid can flow from the specified side
+    //2: returns true if a fluid can flow into this block from the specified side
     static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
         if(state.getBlock() instanceof IFluidloggableBase) return ((IFluidloggableBase)state.getBlock()).canFluidFlowInternal(world, pos, state, fluid, side);
         else return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;

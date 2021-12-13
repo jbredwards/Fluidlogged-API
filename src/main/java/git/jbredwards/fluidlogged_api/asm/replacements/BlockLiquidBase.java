@@ -109,34 +109,40 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
         Vec3d vec = new Vec3d(0, 0, 0);
 
+        final IBlockState here = worldIn.getBlockState(pos);
         final Fluid fluid = (blockMaterial == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA);
         final int level = state.getValue(LEVEL);
         int decay = (level >= 8 ? 0 : level);
 
         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
-            BlockPos offset = pos.offset(facing);
-            int otherDecay = getFlowDecay(FluidloggedUtils.getFluidOrReal(worldIn, offset), worldIn, offset, facing);
-            if(otherDecay < 0) {
-                if(!getFlow(worldIn, offset, worldIn.getBlockState(offset), facing, fluid)) {
-                    otherDecay = getFlowDecay(FluidloggedUtils.getFluidOrReal(worldIn, offset.down()), worldIn, offset.down(), facing);
-                    if(otherDecay >= 0) {
-                        int power = otherDecay - (decay - 8);
-                        vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
+            if(IFluidloggableBase.canFluidFlow(worldIn, pos, here, fluid, facing)) {
+                BlockPos offset = pos.offset(facing);
+                IBlockState neighbor = worldIn.getBlockState(offset);
+                int otherDecay = getFlowDecay(neighbor, worldIn, offset, facing);
+                if(otherDecay < 0) {
+                    if(!getFlow(worldIn, offset, neighbor, facing, fluid)) {
+                        otherDecay = getFlowDecay(worldIn.getBlockState(offset.down()), worldIn, offset.down(), facing);
+                        if(otherDecay >= 0) {
+                            int power = otherDecay - (decay - 8);
+                            vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
+                        }
                     }
                 }
-            }
-            else {
-                int power = otherDecay - decay;
-                vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
+                else {
+                    int power = otherDecay - decay;
+                    vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
+                }
             }
         }
 
         if(level >= 8) {
             for(EnumFacing side : EnumFacing.HORIZONTALS) {
-                BlockPos offset = pos.offset(side);
-                if(causesDownwardCurrent(worldIn, offset, side) || causesDownwardCurrent(worldIn, offset.up(), side)) {
-                    vec = vec.normalize().addVector(0.0, -6.0, 0.0);
-                    break;
+                if(IFluidloggableBase.canFluidFlow(worldIn, pos, here, fluid, side)) {
+                    BlockPos offset = pos.offset(side);
+                    if(causesDownwardCurrent(worldIn, offset, side) || causesDownwardCurrent(worldIn, offset.up(), side)) {
+                        vec = vec.normalize().addVector(0.0, -6.0, 0.0);
+                        break;
+                    }
                 }
             }
         }
@@ -350,7 +356,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
         if(FluidloggedUtils.getFluidFromBlock(this) != fluid) return -1;
         else if(!IFluidloggableBase.canFluidFlow(world, pos, state, fluid, facing.getOpposite())) return -1;
         else {
-            final int level = state.getValue(LEVEL);
+            final int level = FluidloggedUtils.getFluidOrReal(world, pos, state).getValue(LEVEL);
             return level >= 8 ? 0 : level;
         }
     }

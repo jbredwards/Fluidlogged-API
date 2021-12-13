@@ -210,7 +210,7 @@ public enum ASMHooks
         final boolean canSideFlow = IFluidloggableBase.canFluidFlow(world, offset, state, hereFluid, side.getOpposite());
 
         if(fluidState.isEmpty()) return state.getMaterial();
-        else return canSideFlow ? fluidState.getState().getMaterial() : null;
+        else return canSideFlow ? fluidState.getMaterial() : null;
     }
 
     //BlockFluidBasePlugin
@@ -401,29 +401,34 @@ public enum ASMHooks
     }
 
     //WorldPlugin
-    public static boolean handleMaterialAcceleration(BlockPos.PooledMutableBlockPos pos, World world, Material material, Entity entity, Vec3d vec3d, boolean flagIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+    public static boolean handleMaterialAcceleration(BlockPos.PooledMutableBlockPos pos, World world, Material material, Entity entity, Vec3d vec3dIn, boolean flagIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
         boolean flag = flagIn;
 
-        for(int x = minX; x < maxX; x++) {
-            for(int y = minY; y < maxY; y++) {
-                for(int z = minZ; z < maxZ; z++) {
+        for(int x = minX; x < maxX; ++x) {
+            for(int y = minY; y < maxY; ++y) {
+                for(int z = minZ; z < maxZ; ++z) {
                     FluidState fluidState = FluidState.get(world, pos.setPos(x, y, z));
                     if(!fluidState.isEmpty()) {
-                        IBlockState state = fluidState.getState();
                         Block block = fluidState.getBlock();
 
-                        @Nullable Boolean result = block.isEntityInsideMaterial(world, pos, state, entity, maxY, material, false);
+                        @Nullable Boolean result = block.isEntityInsideMaterial(world, pos, fluidState.getState(), entity, maxY, material, false);
                         if(Boolean.TRUE.equals(result)) {
-                            vec3d = block.modifyAcceleration(world, pos, entity, vec3d);
+                            Vec3d vec3d = block.modifyAcceleration(world, pos, entity, vec3dIn);
+                            vec3dIn.x = vec3d.x;
+                            vec3dIn.y = vec3d.y;
+                            vec3dIn.z = vec3d.z;
                             flag = true;
                         }
 
-                        else if(!Boolean.FALSE.equals(result) && state.getMaterial() == material) {
+                        else if(!Boolean.FALSE.equals(result) && fluidState.getMaterial() == material) {
                             //check for fluid height
                             double fluidHeight = y + 1 - (1 / 9.0f);
                             if(maxY >= fluidHeight) {
+                                Vec3d vec3d = block.modifyAcceleration(world, pos, entity, vec3dIn);
+                                vec3dIn.x = vec3d.x;
+                                vec3dIn.y = vec3d.y;
+                                vec3dIn.z = vec3d.z;
                                 flag = true;
-                                vec3d = block.modifyAcceleration(world, pos, entity, vec3d);
                             }
                         }
                     }
@@ -439,8 +444,9 @@ public enum ASMHooks
     public static IBlockState setBlockState(Chunk chunk, BlockPos pos, IBlockState state, IBlockState oldState, World world, int flags) {
         final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
         //replace with empty fluid
-        if(!fluidState.isEmpty() && !FluidloggedUtils.isStateFluidloggable(state, fluidState.getFluid()))
+        if(!fluidState.isEmpty() && !FluidloggedUtils.isStateFluidloggable(state, fluidState.getFluid())) {
             FluidloggedUtils.setFluidState(world, pos, state, FluidState.EMPTY, false, flags);
+        }
 
         //save old state as FluidState
         final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(oldState);

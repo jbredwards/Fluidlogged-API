@@ -26,7 +26,7 @@ import javax.annotation.concurrent.Immutable;
 public class FluidState extends Pair<Fluid, IBlockState>
 {
     //always used instead of a null value
-    public static final FluidState EMPTY = new FluidState(null, null);
+    @Nonnull public static final FluidState EMPTY = new FluidState(null, null);
 
     protected final Fluid fluid;
     protected final IBlockState state;
