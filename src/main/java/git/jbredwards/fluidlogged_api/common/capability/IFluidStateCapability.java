@@ -26,6 +26,9 @@ import java.util.*;
  */
 public interface IFluidStateCapability
 {
+    @CapabilityInject(IFluidStateCapability.class)
+    Capability<IFluidStateCapability> CAPABILITY = null;
+
     @Nonnull Iterable<Map.Entry<BlockPos, FluidState>> getFluidStates();
     //don't call directly, instead use FluidloggedUtils#getFluidState please!
     @Nonnull FluidState getFluidState(@Nonnull BlockPos pos);
@@ -34,15 +37,12 @@ public interface IFluidStateCapability
     //get this from a capability provider
     @Nullable
     static IFluidStateCapability get(@Nullable ICapabilityProvider p) {
-        return p != null && p.hasCapability(Impl.CAPABILITY, null) ? p.getCapability(Impl.CAPABILITY, null) : null;
+        return p != null && p.hasCapability(CAPABILITY, null) ? p.getCapability(CAPABILITY, null) : null;
     }
 
     //default implementation
     class Impl implements IFluidStateCapability
     {
-        @CapabilityInject(IFluidStateCapability.class)
-        public static Capability<IFluidStateCapability> CAPABILITY = null;
-
         @Nonnull
         protected final Map<BlockPos, FluidState> fluidStates = new HashMap<>();
 
@@ -64,28 +64,29 @@ public interface IFluidStateCapability
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     final class Provider implements ICapabilitySerializable<NBTBase>
     {
-        @Nonnull public final IFluidStateCapability instance = new Impl();
+        final IFluidStateCapability instance = CAPABILITY.getDefaultInstance();
 
         @Override
-        public boolean hasCapability(@Nullable Capability<?> capability, @Nullable EnumFacing facing) {
-            return capability == Impl.CAPABILITY;
+        public boolean hasCapability(@Nullable Capability<?> capabilityIn, @Nullable EnumFacing facing) {
+            return capabilityIn == CAPABILITY;
         }
 
         @Nullable
         @Override
-        public <T> T getCapability(@Nullable Capability<T> capability, @Nullable EnumFacing facing) {
-            if(!hasCapability(capability, facing)) return null;
-            else return Impl.CAPABILITY.cast(instance);
+        public <T> T getCapability(@Nullable Capability<T> capabilityIn, @Nullable EnumFacing facing) {
+            if(!hasCapability(capabilityIn, facing)) return null;
+            else return CAPABILITY.cast(instance);
         }
 
-        @Nullable
+        @Nonnull
         @Override
-        public NBTBase serializeNBT() { return Impl.CAPABILITY.writeNBT(instance, null); }
+        public NBTBase serializeNBT() { return CAPABILITY.writeNBT(instance, null); }
 
         @Override
-        public void deserializeNBT(final NBTBase nbt) { Impl.CAPABILITY.readNBT(instance, null, nbt); }
+        public void deserializeNBT(@Nonnull NBTBase nbt) { CAPABILITY.readNBT(instance, null, nbt); }
     }
 
     enum Storage implements Capability.IStorage<IFluidStateCapability>

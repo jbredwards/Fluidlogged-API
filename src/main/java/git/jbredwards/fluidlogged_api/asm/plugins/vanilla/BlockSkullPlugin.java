@@ -27,7 +27,7 @@ public final class BlockSkullPlugin implements IASMPlugin
             list.add(new VarInsnNode(ALOAD, 2));
             //adds new code
             list.add(genMethodNode("getFluidState", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
-            instructions.insert(insn, list);
+            instructions.insertBefore(insn, list);
             instructions.remove(insn.getNext());
             instructions.remove(insn);
             return true;

@@ -38,7 +38,10 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.BlockFarmland", new BlockFarmlandPlugin())
                 .put("net.minecraft.block.Block", new BlockPlugin())
                 .put("net.minecraft.block.BlockReed", new BlockReedPlugin())
-                .put("net.minecraft.block.BlockSkullPlugin", new BlockSkullPlugin())
+                .put("net.minecraft.block.BlockSkull", new BlockSkullPlugin())
+                .put("net.minecraft.block.BlockSponge", new BlockSpongePlugin())
+                .put("net.minecraft.world.end.DragonSpawnManager$3", new DragonSpawnManagerPlugin())
+                .put("net.minecraft.world.gen.feature.WorldGenDungeons", new WorldGenDungeonsPlugin())
                 .put("net.minecraft.world.World", new WorldPlugin())
                 .put("net.minecraft.world.WorldServer", new WorldServerPlugin())
                 //forge

@@ -64,16 +64,14 @@ public final class WorldServerPlugin implements IASMPlugin
             instructions.remove(insn);
             return true;
         }
-        //tickUpdates, line 767
-        else if(index == 3 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
+        //tickUpdates, line 769
+        else if(index == 3 && checkMethod(insn, obfuscated ? "func_149680_a" : "isEqualTo", null)) {
             final InsnList list = new InsnList();
-            //gets the compared block from the NextTickListEntry
+            list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ALOAD, 4));
-            list.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/world/NextTickListEntry", obfuscated ? "func_151351_a" : "getBlock", "()Lnet/minecraft/block/Block;", false));
-            //adds the new code
-            list.add(genMethodNode("updateBlockTick", "(Lnet/minecraft/world/WorldServer;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;)Lnet/minecraft/block/state/IBlockState;"));
+            list.add(genMethodNode("tickUpdates", "(ZLnet/minecraft/world/WorldServer;Lnet/minecraft/world/NextTickListEntry;)Z"));
+
             instructions.insert(insn, list);
-            instructions.remove(insn);
             return true;
         }
 

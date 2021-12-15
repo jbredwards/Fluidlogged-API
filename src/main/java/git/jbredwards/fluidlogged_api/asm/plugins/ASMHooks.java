@@ -15,10 +15,13 @@ import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.chunk.ChunkCompileTaskGenerator;
 import net.minecraft.client.renderer.chunk.CompiledChunk;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.crash.CrashReport;
+import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ReportedException;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.*;
@@ -441,6 +444,12 @@ public enum ASMHooks
     }
 
     //WorldPlugin
+    public static void neighborChanged(World world, BlockPos pos, Block blockIn, BlockPos fromPos) {
+        final FluidState fluidState = FluidState.get(world, pos);
+        if(!fluidState.isEmpty()) fluidState.getState().neighborChanged(world, pos, blockIn, fromPos);
+    }
+
+    //WorldPlugin
     public static IBlockState setBlockState(Chunk chunk, BlockPos pos, IBlockState state, IBlockState oldState, World world, int flags) {
         final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
         //replace with empty fluid
@@ -482,6 +491,22 @@ public enum ASMHooks
         if(!fluidState.isEmpty() && Block.isEqualTo(compare, fluidState.getBlock())) return fluidState.getState();
         //default
         return here;
+    }
+
+    //WorldServerPlugin
+    public static boolean tickUpdates(boolean flag, WorldServer world, NextTickListEntry entry) {
+        final FluidState fluidState = FluidState.get(world, entry.position);
+        if(!fluidState.isEmpty() && Block.isEqualTo(fluidState.getBlock(), entry.getBlock())) {
+            try { fluidState.getBlock().updateTick(world, entry.position, fluidState.getState(), world.rand); }
+            catch(Throwable throwable) {
+                final CrashReport report = CrashReport.makeCrashReport(throwable, "Exception while ticking a fluid");
+                CrashReportCategory.addBlockInfo(report.makeCategory("Fluid being ticked"), entry.position, fluidState.getState());
+
+                throw new ReportedException(report);
+            }
+        }
+
+        return flag;
     }
 
     //======
