@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.asm.plugins.vanilla;
+package git.jbredwards.fluidlogged_api.asm.plugins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.asm.plugins.IASMPlugin;
 import org.objectweb.asm.tree.*;
@@ -36,18 +36,16 @@ public final class WorldPlugin implements IASMPlugin
             return 4;
         }
 
-        //isMaterialInBB, line 2493
-        else if(checkMethod(method, obfuscated ? "func_72875_a" : "isMaterialInBB", null))
+        //isMaterialInBB, line 2494
+        else if(checkMethod(method, obfuscated ? "func_72875_a" : "isMaterialInBB", null)) {
+            setMaxLocals(method, 9);
             return 5;
-
-        //immediateBlockTick, line 2917
-        else if(checkMethod(method, obfuscated ? "func_189507_a" : "immediateBlockTick", null))
-            return 6;
+        }
 
         //changes some methods to use FluidloggedUtils#getFluidOrReal
         else if(checkMethod(method, obfuscated ? "func_72953_d" : "containsAnyLiquid", null)
         || checkMethod(method, obfuscated ? "func_147470_e" : "isFlammableWithin", null)
-        || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null)) return 7;
+        || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null)) return 6;
 
         return 0;
     }
@@ -139,18 +137,30 @@ public final class WorldPlugin implements IASMPlugin
             return true;
         }
 
-        //isMaterialInBB, line 2493
-        else if(index == 5 && checkMethod(insn, obfuscated ? "func_185344_t" : "release", "()V")) {
+        //isMaterialInBB, line 2494
+        else if(index == 5 && insn.getOpcode() == ICONST_0) {
+            final InsnList list = new InsnList();
+            //params
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new VarInsnNode(ALOAD, 1));
+            list.add(new VarInsnNode(ALOAD, 2));
+            //aabb positions
+            list.add(new VarInsnNode(ILOAD, 3));
+            list.add(new VarInsnNode(ILOAD, 4));
+            list.add(new VarInsnNode(ILOAD, 5));
+            list.add(new VarInsnNode(ILOAD, 6));
+            list.add(new VarInsnNode(ILOAD, 7));
+            list.add(new VarInsnNode(ILOAD, 8));
+            //adds new code
+            list.add(genMethodNode("isMaterialInBB", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/AxisAlignedBB;Lnet/minecraft/block/material/Material;IIIIII)Z"));
 
-        }
-
-        //immediateBlockTick, line 2917
-        else if(index == 6 && checkMethod(insn, obfuscated ? "func_180650_b" : "updateTick", null)) {
-
+            instructions.insert(insn, list);
+            instructions.remove(insn);
+            return true;
         }
 
         //changes some methods to use FluidloggedUtils#getFluidOrReal
-        else if(index == 7 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
+        else if(index == 6 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
             instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/common/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.remove(insn);
             return true;

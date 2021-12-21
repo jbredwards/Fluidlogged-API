@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.asm.plugins.vanilla;
+package git.jbredwards.fluidlogged_api.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.asm.plugins.IASMPlugin;
 import net.minecraft.block.BlockSponge;

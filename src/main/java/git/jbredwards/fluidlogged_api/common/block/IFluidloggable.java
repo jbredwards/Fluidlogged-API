@@ -29,8 +29,8 @@ public interface IFluidloggable extends IFluidloggableBase
     //DENY    = think the change never happened
     //ALLOW   = think the change happened
     @Nonnull
-    default Event.Result onFluidChange(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid oldFluid, @Nullable Fluid newFluid) {
-        return newFluid == null ? onFluidDrain(world, pos, state, oldFluid) : onFluidFill(world, pos, state, oldFluid, newFluid);
+    default Event.Result onFluidChange(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid oldFluid, @Nullable Fluid newFluid, int flags) {
+        return newFluid == null ? onFluidDrain(world, pos, state, oldFluid, flags) : onFluidFill(world, pos, state, oldFluid, newFluid, flags);
     }
 
     //called by IFluidloggable#onFluidChange
@@ -38,7 +38,7 @@ public interface IFluidloggable extends IFluidloggableBase
     //DENY    = think the fill never happened
     //ALLOW   = think the fill happened
     @Nonnull
-    default Event.Result onFluidFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid oldFluid, @Nonnull Fluid newFluid) {
+    default Event.Result onFluidFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid oldFluid, @Nonnull Fluid newFluid, int flags) {
         return Event.Result.DEFAULT;
     }
 
@@ -47,7 +47,7 @@ public interface IFluidloggable extends IFluidloggableBase
     //DENY    = think the drain never happened
     //ALLOW   = think the drain happened
     @Nonnull
-    default Event.Result onFluidDrain(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid oldFluid) {
+    default Event.Result onFluidDrain(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid oldFluid, int flags) {
         return Event.Result.DEFAULT;
     }
 }

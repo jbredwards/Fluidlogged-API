@@ -35,7 +35,7 @@ public enum FluidloggedUtils
 {
     ;
 
-    //if you want the FluidState directly, use FluidState#get
+    //if you want the FluidState directly, use FluidState#of
     @Nullable
     public static IBlockState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         final @Nullable Chunk chunk = getChunk(world, pos);
@@ -60,13 +60,13 @@ public enum FluidloggedUtils
         return getFluidFromState(here) != null ? here : Optional.ofNullable(FluidState.get(world, pos).getState()).orElse(here);
     }
 
-    public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState state, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
+    public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
         if(world.isOutsideBuildHeight(pos) || world.getWorldType() == WorldType.DEBUG_ALL_BLOCK_STATES) return false;
 
         final Chunk chunk = world.getChunkFromBlockCoords(pos);
-        if(state == null) state = chunk.getBlockState(pos);
+        if(here == null) here = chunk.getBlockState(pos);
 
-        final FluidloggedEvent event = new FluidloggedEvent(world, pos, state, fluidState, checkVaporize, flags);
+        final FluidloggedEvent event = new FluidloggedEvent(world, chunk, pos, here, fluidState, checkVaporize, flags);
         //event did stuff
         if(MinecraftForge.EVENT_BUS.post(event) || event.getResult() != Event.Result.DEFAULT) return event.getResult() == Event.Result.ALLOW;
         //default
@@ -83,39 +83,49 @@ public enum FluidloggedUtils
 
             @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
             if(cap != null) {
-                //preserve old fluid state prior to updating
-                final FluidState oldFluidState = cap.getFluidState(pos);
-
                 //check for IFluidloggable
-                if(state.getBlock() instanceof IFluidloggable) {
-                    final Event.Result result = ((IFluidloggable)state.getBlock()).onFluidChange(world, pos, state, oldFluidState.getFluid(), fluid);
+                if(here.getBlock() instanceof IFluidloggable) {
+                    final Event.Result result = ((IFluidloggable)here.getBlock()).onFluidChange(world, pos, here, cap.getFluidState(pos).getFluid(), fluid, event.flags);
                     if(result != Event.Result.DEFAULT) return result == Event.Result.ALLOW;
                 }
 
-                //only do these on server
-                if(!world.isRemote) {
-                    //send changes to server
-                    cap.setFluidState(pos, fluidState);
-
-                    //send changes to client
-                    Main.WRAPPER.sendToAllAround(new FluidStateMessage(pos, fluidState),
-                            new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
-                    );
-
-                    //post fluid added
-                    if(!fluidState.isEmpty())
-                        fluidState.getState().getBlock().onBlockAdded(world, pos, fluidState.getState());
-                }
-
-                //update world properly
-                world.markAndNotifyBlock(pos, chunk,
-                        Optional.ofNullable(oldFluidState.getState()).orElse(Blocks.AIR.getDefaultState()),
-                        Optional.ofNullable(fluidState.getState()).orElse(Blocks.AIR.getDefaultState()), event.flags);
+                //moved to separate function, as to allow easy calling by event instances, and IFluidloggable instances using IFluidloggable#onFluidChange
+                setFluidState_Internal(world, chunk, here, cap, pos, fluidState, event.flags);
             }
 
             //default
             return true;
         }
+    }
+
+    //if you're not an event instance or a IFluidloggable instance, use setFluidState instead!
+    //moved to separate function, as to allow easy calling by event instances, and IFluidloggable instances using IFluidloggable#onFluidChange
+    public static void setFluidState_Internal(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull IBlockState here, @Nonnull IFluidStateCapability cap, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, int flags) {
+        //fix small graphical flicker with blocks placed inside fluids
+        if(world.isRemote && !fluidState.isEmpty()) cap.setFluidState(pos, fluidState);
+
+        //only do these on server
+        if(!world.isRemote) {
+            //send changes to server
+            cap.setFluidState(pos, fluidState);
+
+            //send changes to client
+            Main.wrapper.sendToAllAround(new FluidStateMessage(pos, fluidState),
+                    new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
+            );
+
+            //update light levels
+            world.profiler.startSection("checkLight");
+            world.checkLight(pos);
+            world.profiler.endSection();
+
+            //post fluid added
+            if(!fluidState.isEmpty())
+                fluidState.getState().getBlock().onBlockAdded(world, pos, fluidState.getState());
+        }
+
+        //update world
+        world.markAndNotifyBlock(pos, chunk, here, here, flags);
     }
 
     //fork of Main.CommonProxy#getChunk

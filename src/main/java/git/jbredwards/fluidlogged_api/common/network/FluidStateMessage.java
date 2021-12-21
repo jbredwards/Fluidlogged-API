@@ -2,9 +2,7 @@ package git.jbredwards.fluidlogged_api.common.network;
 
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
-import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.util.math.BlockPos;
@@ -24,23 +22,23 @@ import javax.annotation.Nullable;
 public final class FluidStateMessage implements IMessage
 {
     public boolean isValid;
-    public BlockPos pos;
-    public FluidState state;
+    public long pos;
+    public int state;
 
     @SuppressWarnings("unused")
     public FluidStateMessage() {}
     public FluidStateMessage(@Nonnull BlockPos pos, @Nonnull FluidState state) {
         this.isValid = true;
-        this.pos = pos;
-        this.state = state;
+        this.pos = pos.toLong();
+        this.state = state.serialize();
     }
 
     @Override
     public void fromBytes(@Nonnull ByteBuf buf) {
         isValid = buf.readBoolean();
         if(isValid) {
-            pos   = BlockPos.fromLong(buf.readLong());
-            state = FluidState.of(FluidloggedUtils.getFluidFromBlock(Block.getBlockById(buf.readInt())));
+            pos = buf.readLong();
+            state = buf.readInt();
         }
     }
 
@@ -48,8 +46,8 @@ public final class FluidStateMessage implements IMessage
     public void toBytes(@Nonnull ByteBuf buf) {
         buf.writeBoolean(isValid);
         if(isValid) {
-            buf.writeLong(pos.toLong());
-            buf.writeInt(state.isEmpty() ? -1 : Block.getIdFromBlock(state.getBlock()));
+            buf.writeLong(pos);
+            buf.writeInt(state);
         }
     }
 
@@ -59,21 +57,26 @@ public final class FluidStateMessage implements IMessage
 
         @Nullable
         @Override
-        public IMessage onMessage(@Nonnull FluidStateMessage m, @Nonnull MessageContext ctx) {
-            if(m.isValid && ctx.side == Side.CLIENT) {
+        public IMessage onMessage(@Nonnull FluidStateMessage message, @Nonnull MessageContext ctx) {
+            if(message.isValid && ctx.side == Side.CLIENT) {
                 Minecraft.getMinecraft().addScheduledTask(() -> {
                     final WorldClient world = Minecraft.getMinecraft().world;
+                    final BlockPos pos = BlockPos.fromLong(message.pos);
+
                     final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(
-                            world.getChunkFromBlockCoords(m.pos));
+                            world.getChunkFromBlockCoords(pos));
 
                     if(cap != null) {
-                        cap.setFluidState(m.pos, m.state);
-                        //update clientside light levels
+                        //send changes to client
+                        cap.setFluidState(pos, FluidState.deserialize(message.state));
+
+                        //update light levels
                         world.profiler.startSection("checkLight");
-                        world.checkLight(m.pos);
+                        world.checkLight(pos);
                         world.profiler.endSection();
+
                         //re-render block
-                        world.markBlockRangeForRenderUpdate(m.pos, m.pos);
+                        world.markBlockRangeForRenderUpdate(pos, pos);
                     }
                 });
             }

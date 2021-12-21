@@ -1,8 +1,10 @@
 package git.jbredwards.fluidlogged_api.common.event;
 
 import git.jbredwards.fluidlogged_api.Constants;
+import git.jbredwards.fluidlogged_api.Main;
 import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.common.network.SyncFluidStatesMessage;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
@@ -17,15 +19,13 @@ import net.minecraft.init.Items;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.client.event.ModelBakeEvent;
-import net.minecraftforge.client.event.ModelRegistryEvent;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.client.event.TextureStitchEvent;
+import net.minecraftforge.client.event.*;
 import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.model.TRSRTransformation;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.world.ChunkWatchEvent;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -51,6 +51,13 @@ public final class EventHandler
     @SubscribeEvent
     public static void attachCapability(@Nonnull AttachCapabilitiesEvent<Chunk> event) {
         event.addCapability(new ResourceLocation(Constants.MODID, "fluid_states"), new IFluidStateCapability.Provider());
+    }
+
+    @SuppressWarnings("deprecation")
+    @SubscribeEvent
+    public static void sendToPlayer(@Nonnull ChunkWatchEvent.Watch event) {
+        final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(event.getChunkInstance());
+        if(cap != null) Main.wrapper.sendTo(new SyncFluidStatesMessage(event.getChunk(), cap.getFluidStates()), event.getPlayer());
     }
 
     @SideOnly(Side.CLIENT)
@@ -105,13 +112,10 @@ public final class EventHandler
     //useful while debugging
     @SubscribeEvent
     public static void debugStick(@Nonnull PlayerInteractEvent.RightClickBlock event) {
-        if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.STICK) {
+        if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.STICK)
             FluidloggedUtils.setFluidState(event.getWorld(), event.getPos(), null, FluidState.of(FluidRegistry.WATER), true, 3);
-        }
 
-        else if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.BLAZE_ROD) {
+        else if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.BLAZE_ROD)
             System.out.println(FluidState.get(event.getWorld(), event.getPos()));
-            System.out.println(event.getWorld().isRemote);
-        }
     }
 }

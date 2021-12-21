@@ -4,6 +4,7 @@ import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fml.common.eventhandler.Cancelable;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
@@ -21,16 +22,18 @@ import javax.annotation.Nonnull;
 public class FluidloggedEvent extends Event
 {
     @Nonnull public final World world;
+    @Nonnull public final Chunk chunk;
     @Nonnull public final BlockPos pos;
-    @Nonnull public final IBlockState state;
+    @Nonnull public final IBlockState here;
     @Nonnull public FluidState fluidState;
     public boolean checkVaporize;
     public int flags;
 
-    public FluidloggedEvent(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
+    public FluidloggedEvent(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
         this.world = world;
+        this.chunk = chunk;
         this.pos = pos;
-        this.state = state;
+        this.here = here;
         this.fluidState = fluidState;
         this.checkVaporize = checkVaporize;
         this.flags = flags;

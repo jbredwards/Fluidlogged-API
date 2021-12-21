@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.asm.plugins.vanilla;
+package git.jbredwards.fluidlogged_api.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.asm.plugins.IASMPlugin;
 import org.objectweb.asm.tree.*;
@@ -10,11 +10,11 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-public final class BlockSkullPlugin implements IASMPlugin
+public final class BlockCocoaPlugin implements IASMPlugin
 {
     @Override
     public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
-        return checkMethod(method, obfuscated ? "func_176500_f" : "checkWitherSpawn", null) ? 1 : 0;
+        return checkMethod(method, obfuscated ? "func_176500_f" : "dropBlock", null) ? 1 : 0;
     }
 
     @Override

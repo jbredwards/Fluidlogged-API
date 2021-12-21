@@ -6,6 +6,8 @@ import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.AccessorUtils;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockBush;
+import net.minecraft.block.BlockLilyPad;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -22,6 +24,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ReportedException;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.*;
@@ -30,6 +33,8 @@ import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
@@ -255,10 +260,39 @@ public enum ASMHooks
     //VANILLA
     //=======
 
+    //BlockConcretePowderPlugin
+    public static boolean tryTouchWater(World world, BlockPos pos, EnumFacing facing) {
+        final IBlockState state = world.getBlockState(pos);
+        final IBlockState fluidState = FluidloggedUtils.getFluidOrReal(world, pos, state);
+
+        return fluidState.getMaterial() == Material.WATER &&
+                IFluidloggableBase.canFluidFlow(world, pos, state, FluidloggedUtils.getFluidFromState(fluidState), facing.getOpposite());
+    }
+
     //BlockDynamicLiquidPlugin
     public static boolean placeStaticBlock(World world, BlockPos pos, IBlockState state, int flags, Block block) {
         if(world.getBlockState(pos).getBlock() == block) return world.setBlockState(pos, state, flags);
         else return false;
+    }
+
+    //BlockLilyPadPlugin
+    public static IBlockState canBlockStay(World world, BlockPos pos) {
+        final IBlockState state = world.getBlockState(pos);
+        final @Nullable AxisAlignedBB aabb = state.getCollisionBoundingBox(world, pos);
+        return aabb == null || aabb.maxY != 1 ? FluidloggedUtils.getFluidOrReal(world, pos, state) : state;
+    }
+
+    //BlockPlugin
+    public static boolean canSustainPlant(BlockBush bush, IBlockState state, IBlockAccess world, BlockPos pos) {
+        //add special case for lily pads
+        if(bush instanceof BlockLilyPad) {
+            if(state.getMaterial() == Material.ICE) return true;
+            final @Nullable AxisAlignedBB aabb = state.getCollisionBoundingBox(world, pos);
+            return (aabb == null || aabb.maxY != 1) && FluidloggedUtils.getFluidOrReal(world, pos, state).getMaterial() == Material.WATER;
+        }
+
+        //old code
+        return bush.canSustainBush(state);
     }
 
     //BlockPlugin
@@ -388,13 +422,35 @@ public enum ASMHooks
     }
 
     //WorldClientPlugin
-    public static void showBarrierParticles(WorldClient world, int x, int y, int z, int offset, Random random, BlockPos.MutableBlockPos pos) {
+    @SideOnly(Side.CLIENT)
+    public static void showBarrierParticles(@Nonnull WorldClient world, int x, int y, int z, int offset, Random random, @Nonnull BlockPos.MutableBlockPos pos) {
         x += world.rand.nextInt(offset) - world.rand.nextInt(offset);
         y += world.rand.nextInt(offset) - world.rand.nextInt(offset);
         z += world.rand.nextInt(offset) - world.rand.nextInt(offset);
 
         final FluidState fluidState = FluidState.get(pos.setPos(x, y, z));
         if(!fluidState.isEmpty()) fluidState.getBlock().randomDisplayTick(fluidState.getState(), world, pos, random);
+    }
+
+    //WorldPlugin
+    public static boolean isMaterialInBB(World world, AxisAlignedBB bb, Material materialIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+        for(int x = minX; x < maxX; ++x) {
+            for(int y = minY; y < maxY; ++y) {
+                for(int z = minZ; z < maxZ; ++z) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    FluidState fluidState = FluidState.get(world, pos);
+
+                    if(!fluidState.isEmpty()) {
+                        @Nullable Boolean result = fluidState.getBlock().isAABBInsideMaterial(world, pos, bb, materialIn);
+
+                        if(Boolean.TRUE.equals(result)) return true;
+                        else if(fluidState.getMaterial() == materialIn) return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     //WorldPlugin

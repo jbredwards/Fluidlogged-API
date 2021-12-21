@@ -2,6 +2,7 @@ package git.jbredwards.fluidlogged_api;
 
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
+import git.jbredwards.fluidlogged_api.common.network.SyncFluidStatesMessage;
 import git.jbredwards.fluidlogged_api.common.util.IChunkProvider;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.client.Minecraft;
@@ -40,7 +41,7 @@ public final class Main
     @Nonnull public static CommonProxy proxy;
 
     @SuppressWarnings("NotNullFieldNotInitialized")
-    @Nonnull public static SimpleNetworkWrapper WRAPPER;
+    @Nonnull public static SimpleNetworkWrapper wrapper;
 
     //register this mod's capability & packet
     @SuppressWarnings("unused")
@@ -48,9 +49,10 @@ public final class Main
     public static void preInit(FMLPreInitializationEvent event) {
         //register capability
         CapabilityManager.INSTANCE.register(IFluidStateCapability.class, IFluidStateCapability.Storage.INSTANCE, IFluidStateCapability.Impl::new);
-        //register packet
-        WRAPPER = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
-        WRAPPER.registerMessage(FluidStateMessage.Handler.INSTANCE, FluidStateMessage.class, 1, Side.CLIENT);
+        //register packets
+        wrapper = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
+        wrapper.registerMessage(FluidStateMessage.Handler.INSTANCE, FluidStateMessage.class, 1, Side.CLIENT);
+        wrapper.registerMessage(SyncFluidStatesMessage.Handler.INSTANCE, SyncFluidStatesMessage.class, 2, Side.CLIENT);
     }
 
     //fixes the vanilla bucket dispenser actions by using the forge one instead
@@ -81,7 +83,7 @@ public final class Main
         //use WorldClient instance & ignore world input if clientside
         @Nullable
         @Override
-        public Chunk getChunk(@Nullable IBlockAccess worldIn, @Nonnull BlockPos pos) {
+        public Chunk getChunk(@Nullable IBlockAccess ignored, @Nonnull BlockPos pos) {
             final WorldClient world = Minecraft.getMinecraft().world;
             return (world == null) ? null : world.getChunkFromBlockCoords(pos);
         }

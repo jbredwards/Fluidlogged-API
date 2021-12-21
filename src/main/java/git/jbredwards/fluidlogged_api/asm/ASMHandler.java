@@ -3,7 +3,10 @@ package git.jbredwards.fluidlogged_api.asm;
 import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.asm.plugins.IASMPlugin;
 import git.jbredwards.fluidlogged_api.asm.plugins.forge.*;
-import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.*;
+import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.block.*;
+import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.client.*;
+import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.entity.*;
+import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.world.*;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
@@ -28,18 +31,31 @@ public final class ASMHandler implements IFMLLoadingPlugin
         //plugin registry
         @Nonnull
         public static Map<String, IASMPlugin> PLUGINS = new ImmutableMap.Builder<String, IASMPlugin>()
-                //vanilla
+                //vanilla (client)
                 .put("net.minecraft.client.multiplayer.WorldClient", new WorldClientPlugin())
+                .put("net.minecraft.client.particle.ParticleSuspend", new ParticleSuspendPlugin())
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin())
+                .put("net.minecraft.client.renderer.ActiveRenderInfo", new ActiveRenderInfoPlugin())
                 .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin())
+                //vanilla (blocks)
+                .put("net.minecraft.block.Block", new BlockPlugin())
                 .put("net.minecraft.block.BlockBush", new BlockBushPlugin())
                 .put("net.minecraft.block.BlockCocoa", new BlockCocoaPlugin())
+                .put("net.minecraft.block.BlockConcretePowder", new BlockConcretePowderPlugin())
                 .put("net.minecraft.block.BlockDynamicLiquid", new BlockDynamicLiquidPlugin())
                 .put("net.minecraft.block.BlockFarmland", new BlockFarmlandPlugin())
-                .put("net.minecraft.block.Block", new BlockPlugin())
+                .put("net.minecraft.block.BlockLilyPad", new BlockLilyPadPlugin())
                 .put("net.minecraft.block.BlockReed", new BlockReedPlugin())
                 .put("net.minecraft.block.BlockSkull", new BlockSkullPlugin())
                 .put("net.minecraft.block.BlockSponge", new BlockSpongePlugin())
+                //vanilla (entities)
+                .put("net.minecraft.entity.ai.EntityAIPanic", new EntityAIPanicPlugin())
+                .put("net.minecraft.entity.ai.RandomPositionGenerator", new RandomPositionGeneratorPlugin())
+                .put("net.minecraft.entity.item.EntityItem", new EntityItemPlugin())
+                .put("net.minecraft.entity.item.EntityXPOrb", new EntityItemPlugin())
+                .put("net.minecraft.entity.projectile.EntityFishHook", new EntityFishHookPlugin())
+                .put("net.minecraft.entity.Entity", new EntityPlugin())
+                //vanilla (world)
                 .put("net.minecraft.world.end.DragonSpawnManager$3", new DragonSpawnManagerPlugin())
                 .put("net.minecraft.world.gen.feature.WorldGenDungeons", new WorldGenDungeonsPlugin())
                 .put("net.minecraft.world.World", new WorldPlugin())

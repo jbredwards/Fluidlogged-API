@@ -84,6 +84,13 @@ public class FluidState extends Pair<Fluid, IBlockState>
         return isEmpty() ? String.format(format, "EMPTY") : super.toString(format);
     }
 
+    @Nonnull
+    public static FluidState deserialize(int serialized) {
+        return of(FluidloggedUtils.getFluidFromBlock(Block.getBlockById(serialized)));
+    }
+
+    public int serialize() { return isEmpty() ? 0 : Block.getIdFromBlock(getBlock()); }
+
     //implemented from Pair, please use methods above instead if possible
 
     @Override
