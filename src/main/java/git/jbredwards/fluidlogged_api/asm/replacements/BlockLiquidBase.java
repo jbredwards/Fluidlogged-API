@@ -387,4 +387,10 @@ public abstract class BlockLiquidBase extends BlockLiquid
         if(density == Integer.MAX_VALUE) return replaceable;
         else return replaceable && 1000 > density;
     }
+
+    //FluidStates update properly
+    @Override
+    public void neighborChanged(@Nonnull IBlockState state, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos) {
+        if(!FluidState.get(worldIn, pos).isEmpty()) worldIn.scheduleUpdate(pos, this, tickRate(worldIn));
+    }
 }

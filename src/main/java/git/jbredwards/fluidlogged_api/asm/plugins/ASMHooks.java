@@ -8,6 +8,7 @@ import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBush;
 import net.minecraft.block.BlockLilyPad;
+import net.minecraft.block.BlockSponge;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -21,6 +22,8 @@ import net.minecraft.crash.CrashReport;
 import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ReportedException;
@@ -31,17 +34,18 @@ import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.property.IExtendedBlockState;
-import net.minecraftforge.fluids.BlockFluidBase;
-import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.*;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.wrappers.BlockLiquidWrapper;
+import net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 import static net.minecraft.util.EnumFacing.*;
 
@@ -232,9 +236,52 @@ public enum ASMHooks
         return state.getBlock().isReplaceable(world, pos) || (!state.getMaterial().blocksMovement() && !state.getMaterial().isLiquid());
     }
 
+    //BlockLiquidWrapperPlugin
+    public static boolean drainBlockLiquid(World world, BlockPos pos, IBlockState air, int flags) {
+        if(!FluidState.get(world, pos).isEmpty())
+            return FluidloggedUtils.setFluidState(world, pos, world.getBlockState(pos), FluidState.EMPTY, false, flags);
+
+        //default
+        return world.setBlockState(pos, air, flags);
+    }
+
+    //BlockLiquidWrapperPlugin
+    public static boolean fillBlockLiquid(World world, BlockPos pos, IBlockState state, int flags) {
+        final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(state);
+        final IBlockState here = world.getBlockState(pos);
+
+        if(FluidloggedUtils.isStateFluidloggable(here, fluid))
+            return FluidloggedUtils.setFluidState(world, pos, here, FluidState.of(fluid), false, flags);
+
+        //default
+        return world.setBlockState(pos, state, flags);
+    }
+
     //FluidPlugin
     public static boolean updateIfNotFluidloggable(Block blockOld, Block blockNew) {
         return blockOld == blockNew && !(blockNew instanceof IFluidloggableBase);
+    }
+
+    //FluidUtilPlugin
+    public static IFluidHandler getFluidHandler(World world, BlockPos pos) {
+        final FluidState fluidState = FluidState.get(world, pos);
+
+        if(!fluidState.isEmpty()) {
+            final Block block = fluidState.getBlock();
+
+            if(block instanceof IFluidBlock)
+                return new FluidBlockWrapper((IFluidBlock)block, world, pos);
+
+            else if(block instanceof BlockLiquidBase)
+                return new BlockLiquidWrapper((BlockLiquidBase)block, world, pos);
+        }
+
+        return null;
+    }
+
+    //FluidUtilPlugin
+    public static boolean tryPlaceFluid(World world, BlockPos pos, Fluid fluid, IBlockState destBlockState) {
+        return world.isAirBlock(pos) || FluidloggedUtils.isStateFluidloggable(destBlockState, fluid);
     }
 
     //FluidPlugin
@@ -332,6 +379,44 @@ public enum ASMHooks
         if(fluidState.isEmpty()) return here;
         //compare the fluid & old values, and return the greater of the two
         else return Math.max(here, fluidState.getState().getLightValue(world, pos));
+    }
+
+    //BlockSpongePlugin
+    public static boolean canAbsorb = true;
+    public static boolean absorb(BlockSponge block, World world, BlockPos origin) {
+        if(canAbsorb) {
+            canAbsorb = false;
+
+            final List<BlockPos> notifyList = new ArrayList<>();
+            final Queue<Pair<BlockPos, Integer>> queue = new LinkedList<>();
+            queue.add(Pair.of(origin, 0));
+
+            while(!queue.isEmpty()) {
+                Pair<BlockPos, Integer> entry = queue.poll();
+                BlockPos pos = entry.getKey();
+                int distance = entry.getValue();
+
+                for(EnumFacing facing : EnumFacing.values()) {
+                    BlockPos offset = pos.offset(facing);
+
+                    if(FluidloggedUtils.getFluidOrReal(world, offset).getMaterial() == Material.WATER) {
+                        if(FluidUtil.tryPickUpFluid(new ItemStack(Items.BUCKET), null, world, offset, facing.getOpposite()).isSuccess()) {
+                            if(distance < 6) queue.add(Pair.of(offset, ++distance));
+                            notifyList.add(offset);
+                        }
+                    }
+                }
+
+                if(notifyList.size() > 64) break;
+            }
+
+            notifyList.forEach(pos -> world.notifyNeighborsOfStateChange(pos, Blocks.AIR, false));
+            canAbsorb = true;
+
+            return notifyList.size() > 0;
+        }
+
+        return false;
     }
 
     //RenderChunkPlugin

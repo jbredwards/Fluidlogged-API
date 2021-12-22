@@ -6,7 +6,8 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * breaking this no longer voids the FluidState here
+ * this asm plugin exists just in case anyone decides to add one of these types of plants to this mod's cfg
  * @author jbred
  *
  */

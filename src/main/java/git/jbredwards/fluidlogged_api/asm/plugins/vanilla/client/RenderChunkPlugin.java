@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * allows the game to render FluidStates
  * @author jbred
  *
  */

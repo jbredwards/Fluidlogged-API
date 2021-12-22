@@ -10,7 +10,6 @@ import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.block.statemap.StateMapperBase;
@@ -97,11 +96,10 @@ public final class EventHandler
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public static void improveDebugScreen(@Nonnull RenderGameOverlayEvent.Text event) {
-        final @Nullable WorldClient world = Minecraft.getMinecraft().world;
         final @Nullable RayTraceResult trace = Minecraft.getMinecraft().objectMouseOver;
 
-        if(world != null && trace != null && trace.getBlockPos() != null && !event.getLeft().isEmpty() && !event.getRight().isEmpty()) {
-            final FluidState fluidState = FluidState.get(world, trace.getBlockPos());
+        if(trace != null && trace.getBlockPos() != null && !event.getRight().isEmpty()) {
+            final FluidState fluidState = FluidState.get(trace.getBlockPos());
             if(!fluidState.isEmpty()) {
                 event.getRight().add("");
                 event.getRight().add("fluid:" + fluidState.getFluid().getName());

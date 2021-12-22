@@ -35,7 +35,7 @@ public interface IFluidStateCapability
     @Nonnull Map<BlockPos, FluidState> getFluidStates();
     //don't call directly, instead use FluidloggedUtils#getFluidState for IBlockState sensitivity!
     @Nonnull FluidState getFluidState(@Nonnull BlockPos pos);
-    //don't call directly, instead use FluidloggedUtils#setFluidState for client/server sync!
+    //don't call directly, instead use FluidloggedUtils#setFluidState for the config, and event & IFluidloggable implementations!
     void setFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fluid);
     //get this from a capability provider
     @SuppressWarnings("ConstantConditions")

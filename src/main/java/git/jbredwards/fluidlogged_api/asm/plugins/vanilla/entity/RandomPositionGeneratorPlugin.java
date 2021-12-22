@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * water FluidStates are now seen as water blocks
  * @author jbred
  *
  */

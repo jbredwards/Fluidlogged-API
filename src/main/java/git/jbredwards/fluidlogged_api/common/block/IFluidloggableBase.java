@@ -23,7 +23,7 @@ public interface IFluidloggableBase
 {
     //returns true if the fluid should be visible while this is fluidlogged
     @SideOnly(Side.CLIENT)
-    default boolean shouldFluidRenderInternal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Fluid fluid) {
+    default boolean shouldFluidRender_Internal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Fluid fluid) {
         final @Nullable Block block = fluid.getBlock();
         return block != null && block.getDefaultState().getRenderType() == EnumBlockRenderType.MODEL;
     }
@@ -31,7 +31,7 @@ public interface IFluidloggableBase
     //returns true if the fluid should be visible while this is fluidlogged
     @SideOnly(Side.CLIENT)
     static boolean shouldFluidRender(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Fluid fluid) {
-        if(state.getBlock() instanceof IFluidloggableBase) return ((IFluidloggableBase)state.getBlock()).shouldFluidRenderInternal(world, pos, state, fluid);
+        if(state.getBlock() instanceof IFluidloggableBase) return ((IFluidloggableBase)state.getBlock()).shouldFluidRender_Internal(world, pos, state, fluid);
         final @Nullable Block block = fluid.getBlock();
         return block != null && block.getDefaultState().getRenderType() == EnumBlockRenderType.MODEL;
     }
@@ -39,16 +39,15 @@ public interface IFluidloggableBase
     //has two purposes:
     //1: returns true if the contained fluid can flow from the specified side
     //2: returns true if a fluid can flow into this block from the specified side
-    default boolean canFluidFlowInternal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
+    default boolean canFluidFlow_Internal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
         return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
-
 
     //has two purposes:
     //1: returns true if the contained fluid can flow from the specified side
     //2: returns true if a fluid can flow into this block from the specified side
     static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
-        if(state.getBlock() instanceof IFluidloggableBase) return ((IFluidloggableBase)state.getBlock()).canFluidFlowInternal(world, pos, state, fluid, side);
+        if(state.getBlock() instanceof IFluidloggableBase) return ((IFluidloggableBase)state.getBlock()).canFluidFlow_Internal(world, pos, state, fluid, side);
         else return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 }

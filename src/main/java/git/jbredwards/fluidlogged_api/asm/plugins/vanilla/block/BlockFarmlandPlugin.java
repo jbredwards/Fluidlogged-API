@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * farmland blocks now recognise water FluidStates
  * @author jbred
  *
  */

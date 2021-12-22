@@ -6,7 +6,8 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * wither skulls no longer void the FluidState here when summoning the wither
+ * lots of people totally knew this was a problem, trust me ;)
  * @author jbred
  *
  */

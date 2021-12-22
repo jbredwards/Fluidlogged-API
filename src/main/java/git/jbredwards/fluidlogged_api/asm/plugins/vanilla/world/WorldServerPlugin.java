@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- * properly updates fluidlogged blocks
+ * FluidStates now get ticked
  * @author jbred
  *
  */

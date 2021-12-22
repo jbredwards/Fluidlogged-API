@@ -11,7 +11,6 @@ import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -98,7 +97,7 @@ public enum FluidloggedUtils
         }
     }
 
-    //if you're not an event instance or a IFluidloggable instance, use setFluidState instead!
+    //if you're not an event instance or an IFluidloggable instance, use setFluidState instead!
     //moved to separate function, as to allow easy calling by event instances, and IFluidloggable instances using IFluidloggable#onFluidChange
     public static void setFluidState_Internal(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull IBlockState here, @Nonnull IFluidStateCapability cap, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, int flags) {
         //fix small graphical flicker with blocks placed inside fluids

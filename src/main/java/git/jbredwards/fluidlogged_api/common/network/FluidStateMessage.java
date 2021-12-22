@@ -15,7 +15,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- *
+ * send a FluidState to the client
  * @author jbred
  *
  */

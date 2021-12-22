@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * lily pads can stay on certain water FluidStates
  * @author jbred
  *
  */

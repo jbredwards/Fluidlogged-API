@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * this particle doesn't instantly disappear while inside water FluidStates
  * @author jbred
  *
  */

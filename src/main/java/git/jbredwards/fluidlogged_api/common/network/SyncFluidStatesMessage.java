@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.common.network;
 
+import com.google.common.collect.ImmutableSet;
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import io.netty.buffer.ByteBuf;
@@ -20,43 +21,42 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * syncs all fluid states in a chunk
+ * syncs all FluidStates in a chunk
  * @author jbred
  *
  */
 public final class SyncFluidStatesMessage implements IMessage
 {
     @Nonnull public Set<Pair<Long, Integer>> data = new HashSet<>();
+    public boolean isValid;
     public int x, z;
 
     @SuppressWarnings("unused")
     public SyncFluidStatesMessage() {}
-    public SyncFluidStatesMessage(ChunkPos pos, @Nonnull Map<BlockPos, FluidState> fluidStateMap) {
-        x = pos.x;
-        z = pos.z;
-
-        for(Map.Entry<BlockPos, FluidState> entry : fluidStateMap.entrySet()) {
-            data.add(Pair.of(entry.getKey().toLong(), entry.getValue().serialize()));
-        }
+    public SyncFluidStatesMessage(ChunkPos posIn, @Nonnull Map<BlockPos, FluidState> fluidStateMap) {
+        fluidStateMap.forEach((pos, fluidState) -> data.add(Pair.of(pos.toLong(), fluidState.serialize())));
+        x = posIn.x;
+        z = posIn.z;
+        isValid = true;
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        if(buf.readBoolean()) {
+        isValid = buf.readBoolean();
+        if(isValid) {
             //read pos
             x = buf.readInt();
             z = buf.readInt();
             //read data
-            int size = buf.readInt();
+            final int size = buf.readInt();
             for(int i = 0; i < size; i++) data.add(Pair.of(buf.readLong(), buf.readInt()));
         }
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
-        if(data.isEmpty()) buf.writeBoolean(false);
-        else {
-            buf.writeBoolean(true);
+        buf.writeBoolean(isValid);
+        if(isValid) {
             //write pos
             buf.writeInt(x);
             buf.writeInt(z);
@@ -76,18 +76,19 @@ public final class SyncFluidStatesMessage implements IMessage
         @Nullable
         @Override
         public IMessage onMessage(SyncFluidStatesMessage message, MessageContext ctx) {
-            if(!message.data.isEmpty() && ctx.side == Side.CLIENT) {
+            if(message.isValid && ctx.side == Side.CLIENT) {
                 Minecraft.getMinecraft().addScheduledTask(() -> {
                     final WorldClient world = Minecraft.getMinecraft().world;
                     final IFluidStateCapability cap = IFluidStateCapability.get(
                             world.getChunkFromChunkCoords(message.x, message.z));
 
                     if(cap != null) {
-                        //clear all old fluid states
+                        //clear any old fluid states
+                        final Set<BlockPos> removed = ImmutableSet.copyOf(cap.getFluidStates().keySet());
                         cap.getFluidStates().clear();
 
-                        //set all new fluid states
-                        for(Pair<Long, Integer> entry : message.data) {
+                        //add any new fluid states
+                        message.data.forEach(entry -> {
                             BlockPos pos = BlockPos.fromLong(entry.getKey());
 
                             //send changes to client
@@ -100,7 +101,20 @@ public final class SyncFluidStatesMessage implements IMessage
 
                             //re-render block
                             world.markBlockRangeForRenderUpdate(pos, pos);
-                        }
+                        });
+
+                        //update removed light levels & renders
+                        removed.forEach(pos -> {
+                            if(!cap.getFluidStates().containsKey(pos)) {
+                                //update light levels
+                                world.profiler.startSection("checkLight");
+                                world.checkLight(pos);
+                                world.profiler.endSection();
+
+                                //re-render block
+                                world.markBlockRangeForRenderUpdate(pos, pos);
+                            }
+                        });
                     }
                 });
             }

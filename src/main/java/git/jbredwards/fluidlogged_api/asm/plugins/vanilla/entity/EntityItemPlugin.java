@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * items generate the burn effects when in a lava FluidState
  * @author jbred
  *
  */

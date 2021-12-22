@@ -7,7 +7,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * allows modded IBlockAccess instances provide chunks in a way that this mod can access them
+ * allows modded IBlockAccess instances the option to provide chunks in a way that this mod can access them.
  * this is called by FluidloggedUtils#getChunk
  * @author jbred
  *

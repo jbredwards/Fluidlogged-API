@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * summoning the ender dragon will now void FluidStates at the pillar locations
  * @author jbred
  *
  */

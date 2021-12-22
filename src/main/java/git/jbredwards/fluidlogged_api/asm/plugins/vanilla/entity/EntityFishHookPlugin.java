@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * fishhook entities generate the fishing particles at water FluidStates
  * @author jbred
  *
  */

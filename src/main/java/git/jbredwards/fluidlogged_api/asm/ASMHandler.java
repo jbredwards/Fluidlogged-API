@@ -63,8 +63,10 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 //forge
                 .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new ModelFluidPlugin())
                 .put("net.minecraftforge.common.ForgeHooks", new ForgeHooksPlugin())
+                .put("net.minecraftforge.fluids.capability.wrappers.BlockLiquidWrapper", new BlockLiquidWrapperPlugin())
                 .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin())
                 .put("net.minecraftforge.fluids.Fluid", new FluidPlugin())
+                .put("net.minecraftforge.fluids.FluidUtil", new FluidUtilPlugin())
                 .build();
 
         @Override
