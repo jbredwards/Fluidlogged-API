@@ -1,14 +1,11 @@
 package git.jbredwards.fluidlogged_api.asm.plugins;
 
 import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
-import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
+import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.AccessorUtils;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockBush;
-import net.minecraft.block.BlockLilyPad;
-import net.minecraft.block.BlockSponge;
+import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -41,7 +38,6 @@ import net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -198,7 +194,7 @@ public enum ASMHooks
     //BlockFluidBasePlugin helper
     public static boolean canSideFlowDir(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing... sides) {
         for(EnumFacing side : sides) {
-            if(IFluidloggableBase.canFluidFlow(world, pos, state, fluid, side))// && canFlowInto(fluid, world, pos.offset(side)))
+            if(FluidloggedUtils.canFluidFlow(world, pos, state, fluid, side))// && canFlowInto(fluid, world, pos.offset(side)))
                 return true;
         }
 
@@ -219,7 +215,7 @@ public enum ASMHooks
         final BlockPos offset = pos.offset(side);
         final FluidState fluidState = FluidState.get(offset);
         final @Nullable Fluid hereFluid = fluidState.isEmpty() ? FluidloggedUtils.getFluidFromState(state) : fluidState.getFluid();
-        final boolean canSideFlow = IFluidloggableBase.canFluidFlow(world, offset, state, hereFluid, side.getOpposite());
+        final boolean canSideFlow = FluidloggedUtils.canFluidFlow(world, offset, state, hereFluid, side.getOpposite());
 
         if(fluidState.isEmpty()) return state.getMaterial();
         else return canSideFlow ? fluidState.getMaterial() : null;
@@ -257,11 +253,6 @@ public enum ASMHooks
         return world.setBlockState(pos, state, flags);
     }
 
-    //FluidPlugin
-    public static boolean updateIfNotFluidloggable(Block blockOld, Block blockNew) {
-        return blockOld == blockNew && !(blockNew instanceof IFluidloggableBase);
-    }
-
     //FluidUtilPlugin
     public static IFluidHandler getFluidHandler(World world, BlockPos pos) {
         final FluidState fluidState = FluidState.get(world, pos);
@@ -282,11 +273,6 @@ public enum ASMHooks
     //FluidUtilPlugin
     public static boolean tryPlaceFluid(World world, BlockPos pos, Fluid fluid, IBlockState destBlockState) {
         return world.isAirBlock(pos) || FluidloggedUtils.isStateFluidloggable(destBlockState, fluid);
-    }
-
-    //FluidPlugin
-    public static void fluidBlockErrorSpamFix(Logger logger, String message, Block block, String fluidName, Block old) {
-        if(!(block instanceof IFluidloggableBase)) logger.warn(message, block, fluidName, old);
     }
 
     //ModelFluidPlugin
@@ -313,7 +299,47 @@ public enum ASMHooks
         final IBlockState fluidState = FluidloggedUtils.getFluidOrReal(world, pos, state);
 
         return fluidState.getMaterial() == Material.WATER &&
-                IFluidloggableBase.canFluidFlow(world, pos, state, FluidloggedUtils.getFluidFromState(fluidState), facing.getOpposite());
+                FluidloggedUtils.canFluidFlow(world, pos, state, FluidloggedUtils.getFluidFromState(fluidState), facing.getOpposite());
+    }
+
+    //BlockDynamicLiquidPlugin
+    public static int checkAdjacentBlock(BlockDynamicLiquid instance, World world, BlockPos offset, int currentMinLevel, BlockPos pos, EnumFacing facing) {
+        final IBlockState here = world.getBlockState(pos);
+        final @Nullable Fluid fluidHere = FluidloggedUtils.getFluidFromBlock(instance);
+
+        if(FluidloggedUtils.canFluidFlow(world, pos, here, fluidHere, facing)) {
+            final IBlockState state = world.getBlockState(offset);
+            final FluidState fluidState = FluidState.get(world, offset);
+
+            if(fluidState.getFluid() == fluidHere && FluidloggedUtils.canFluidFlow(world, offset, state, fluidHere, facing.getOpposite())) {
+                int level = fluidState.getState().getValue(BlockLiquidBase.LEVEL);
+
+                if(level == 0) instance.adjacentSourceBlocks++;
+                else if(level >= 8) level = 0;
+
+                return currentMinLevel >= 0 && level >= currentMinLevel ? currentMinLevel : level;
+            }
+        }
+
+        //default
+        return currentMinLevel;
+    }
+
+    //BlockDynamicLiquidPlugin
+    public static int getDepth(BlockDynamicLiquid instance, IBlockState up, World world, BlockPos pos) {
+        final IBlockState here = world.getBlockState(pos);
+        final @Nullable Fluid fluidHere = FluidloggedUtils.getFluidFromBlock(instance);
+
+        if(FluidloggedUtils.canFluidFlow(world, pos, here, fluidHere, UP)) {
+            final IBlockState state = world.getBlockState(pos.up());
+            final FluidState fluidState = FluidState.get(world, pos.up());
+
+            if(fluidState.getFluid() == fluidHere && FluidloggedUtils.canFluidFlow(world, pos.up(), state, fluidHere, DOWN))
+                return state.getValue(BlockLiquidBase.LEVEL);
+        }
+
+        //default
+        return -1;
     }
 
     //BlockDynamicLiquidPlugin
@@ -423,12 +449,8 @@ public enum ASMHooks
     public static boolean renderChunk(Block block, IBlockState state, BlockRenderLayer layerIn, boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
         //only run fluid renderer once
         if(layerIn == BlockRenderLayer.SOLID) {
-            final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(block);
-            final FluidState fluidState = fluid == null ? FluidState.get(pos) :
-                    //only render fluid built into here if block instanceof IFluidloggableBase
-                    block instanceof IFluidloggableBase ? FluidState.of(fluid) : FluidState.EMPTY;
-
-            if(!fluidState.isEmpty() && IFluidloggableBase.shouldFluidRender(world, pos, state, fluidState.getFluid())) {
+            final FluidState fluidState = FluidState.get(pos);
+            if(!fluidState.isEmpty() && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState.getFluid()))) {
                 //renders the fluid in each layer
                 for(BlockRenderLayer layer : BlockRenderLayer.values()) {
                     if(!fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer))
@@ -495,15 +517,15 @@ public enum ASMHooks
 
     //RenderChunkPlugin helper
     public static boolean fixCorner(IBlockState oldState, IBlockAccess world, BlockPos pos, Fluid fluid, EnumFacing primary, EnumFacing other) {
-        if(IFluidloggableBase.canFluidFlow(world, pos, oldState, fluid, primary)) return false;
+        if(FluidloggedUtils.canFluidFlow(world, pos, oldState, fluid, primary)) return false;
 
         final BlockPos offset = pos.offset(other);
         final IBlockState neighbor = world.getBlockState(offset);
         final @Nullable Fluid neighborFluid = FluidloggedUtils.getFluidAt(world, offset, neighbor);
 
         if(neighborFluid != fluid) return true;
-        else return !IFluidloggableBase.canFluidFlow(world, offset, neighbor, neighborFluid, primary)
-                ||  !IFluidloggableBase.canFluidFlow(world, offset, neighbor, neighborFluid, other);
+        else return !FluidloggedUtils.canFluidFlow(world, offset, neighbor, neighborFluid, primary)
+                ||  !FluidloggedUtils.canFluidFlow(world, offset, neighbor, neighborFluid, other);
     }
 
     //WorldClientPlugin

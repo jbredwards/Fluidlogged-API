@@ -3,14 +3,15 @@ package git.jbredwards.fluidlogged_api.common.util;
 import git.jbredwards.fluidlogged_api.Main;
 import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
-import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.config.FluidloggedConfig;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -119,8 +120,7 @@ public enum FluidloggedUtils
             world.profiler.endSection();
 
             //post fluid added
-            if(!fluidState.isEmpty())
-                fluidState.getState().getBlock().onBlockAdded(world, pos, fluidState.getState());
+            if(!fluidState.isEmpty()) fluidState.getBlock().onBlockAdded(world, pos, fluidState.getState());
         }
 
         //update world
@@ -130,6 +130,12 @@ public enum FluidloggedUtils
     //fork of Main.CommonProxy#getChunk
     @Nullable
     public static Chunk getChunk(@Nullable IBlockAccess world, @Nonnull BlockPos pos) { return Main.proxy.getChunk(world, pos); }
+
+    //fork of IFluidloggable#canFluidFlow
+    public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
+        if(state.getBlock() instanceof IFluidloggable) return ((IFluidloggable)state.getBlock()).canFluidFlow(world, pos, state, fluid, side);
+        else return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
+    }
 
     //gets the fluid from the state (null if there is no fluid)
     @Nullable
@@ -153,10 +159,8 @@ public enum FluidloggedUtils
 
     @SuppressWarnings("deprecation")
     public static boolean isFluidFluidloggable(@Nonnull Block fluid) {
-        //if the block is already occupied, or has a tile entity, it's not fluidloggable
-        if(fluid instanceof IFluidloggableBase || fluid.hasTileEntity()) return false;
         //allow any vanilla fluid block while restricting forge fluids only to BlockFluidClassic
-        else return (fluid instanceof BlockLiquidBase || fluid instanceof BlockFluidClassic);
+        return !fluid.hasTileEntity() && (fluid instanceof BlockLiquidBase || fluid instanceof BlockFluidClassic);
     }
 
     //same as above method, but also checks for fluid level

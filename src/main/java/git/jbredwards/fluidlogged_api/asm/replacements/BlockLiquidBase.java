@@ -1,7 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm.replacements;
 
 import git.jbredwards.fluidlogged_api.asm.plugins.ASMHooks;
-import git.jbredwards.fluidlogged_api.common.block.IFluidloggableBase;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
@@ -68,13 +67,26 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
     @SideOnly(Side.CLIENT)
     @Override
-    public boolean shouldSideBeRendered(@Nonnull IBlockState blockState, @Nonnull IBlockAccess blockAccess, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
-        pos = pos.offset(side);
-        final IBlockState neighbor = blockAccess.getBlockState(pos);
-        final @Nullable Fluid fluid = FluidloggedUtils.getFluidAt(blockAccess, pos, neighbor);
+    public boolean shouldSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
+        final IBlockState here = world.getBlockState(pos);
+        final @Nullable Fluid fluidHere = FluidloggedUtils.getFluidFromState(state);
 
-        if(fluid == FluidloggedUtils.getFluidFromBlock(this)) return false;
-        else return side == EnumFacing.UP || !neighbor.doesSideBlockRendering(blockAccess, pos, side.getOpposite());
+        if(!FluidloggedUtils.canFluidFlow(world, pos, here, fluidHere, side))
+            return !here.doesSideBlockRendering(world, pos, side) && here.getRenderType() != EnumBlockRenderType.INVISIBLE;
+
+        else {
+            final BlockPos offset = pos.offset(side);
+            final IBlockState neighbor = world.getBlockState(offset);
+            final @Nullable Fluid fluid = FluidloggedUtils.getFluidAt(world, offset, neighbor);
+
+            if(fluid == fluidHere)
+                if(!FluidloggedUtils.canFluidFlow(world, offset, neighbor, fluidHere, side.getOpposite()))
+                    return !neighbor.doesSideBlockRendering(world, offset, side.getOpposite()) && neighbor.getRenderType() != EnumBlockRenderType.INVISIBLE;
+
+                else return false;
+
+            else return side == EnumFacing.UP || !neighbor.doesSideBlockRendering(world, offset, side.getOpposite());
+        }
     }
 
     @Override
@@ -86,7 +98,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
         final @Nullable Fluid fluid = FluidloggedUtils.getFluidAt(worldIn, pos, state);
 
         if(fluid == (blockMaterial == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA)
-                && IFluidloggableBase.canFluidFlow(worldIn, pos, state, fluid, side)) return false;
+                && FluidloggedUtils.canFluidFlow(worldIn, pos, state, fluid, side)) return false;
 
         else if(side == UP) return true;
         else if(state.getMaterial() == Material.ICE) return false;
@@ -115,7 +127,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
         int decay = (level >= 8 ? 0 : level);
 
         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
-            if(IFluidloggableBase.canFluidFlow(worldIn, pos, here, fluid, facing)) {
+            if(FluidloggedUtils.canFluidFlow(worldIn, pos, here, fluid, facing)) {
                 BlockPos offset = pos.offset(facing);
                 IBlockState neighbor = worldIn.getBlockState(offset);
                 int otherDecay = getFlowDecay(neighbor, worldIn, offset, facing);
@@ -137,7 +149,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
 
         if(level >= 8) {
             for(EnumFacing side : EnumFacing.HORIZONTALS) {
-                if(IFluidloggableBase.canFluidFlow(worldIn, pos, here, fluid, side)) {
+                if(FluidloggedUtils.canFluidFlow(worldIn, pos, here, fluid, side)) {
                     BlockPos offset = pos.offset(side);
                     if(causesDownwardCurrent(worldIn, offset, side) || causesDownwardCurrent(worldIn, offset.up(), side)) {
                         vec = vec.normalize().addVector(0.0, -6.0, 0.0);
@@ -153,7 +165,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
     protected boolean getFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing facing, @Nonnull Fluid fluidIn) {
         final @Nullable Fluid fluid = FluidloggedUtils.getFluidAt(world, pos, state);
         //fluidlogged block
-        if(fluid == fluidIn && !IFluidloggableBase.canFluidFlow(world, pos, state, fluid, facing.getOpposite())) return true;
+        if(fluid == fluidIn && !FluidloggedUtils.canFluidFlow(world, pos, state, fluid, facing.getOpposite())) return true;
         //fluids aren't equal
         else if(fluid != null && fluid != fluidIn) return true;
         //default
@@ -167,13 +179,13 @@ public abstract class BlockLiquidBase extends BlockLiquid
             final IBlockState here = worldIn.getBlockState(pos);
             if(here.getBlock().isReplaceable(worldIn, pos)) {
                 for(EnumFacing facing : EnumFacing.values()) {
-                    if(facing == DOWN || !IFluidloggableBase.canFluidFlow(worldIn, pos, here, FluidRegistry.LAVA, facing)) continue;
+                    if(facing == DOWN || !FluidloggedUtils.canFluidFlow(worldIn, pos, here, FluidRegistry.LAVA, facing)) continue;
 
                     BlockPos offset = pos.offset(facing);
                     IBlockState state = worldIn.getBlockState(offset);
                     @Nullable Fluid fluid = FluidloggedUtils.getFluidAt(worldIn, offset, state);
 
-                    if(fluid != null && fluid.getBlock().getDefaultState().getMaterial() == Material.WATER && IFluidloggableBase.canFluidFlow(worldIn, offset, state, fluid, facing.getOpposite())) {
+                    if(fluid != null && fluid.getBlock().getDefaultState().getMaterial() == Material.WATER && FluidloggedUtils.canFluidFlow(worldIn, offset, state, fluid, facing.getOpposite())) {
                         final int level = stateIn.getValue(LEVEL);
 
                         //obsidian
@@ -331,7 +343,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
     public boolean isFluid(IBlockState up, Fluid upFluid, Fluid fluid, IBlockAccess world, BlockPos pos, EnumFacing...faces) {
         if(fluid == upFluid) {
             for(EnumFacing facing : faces) {
-                if(!IFluidloggableBase.canFluidFlow(world, pos, up, upFluid, facing.getOpposite())) return false;
+                if(!FluidloggedUtils.canFluidFlow(world, pos, up, upFluid, facing.getOpposite())) return false;
             }
 
             return true;
@@ -354,7 +366,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
         final @Nullable Fluid fluid = FluidloggedUtils.getFluidAt(world, pos, state);
 
         if(FluidloggedUtils.getFluidFromBlock(this) != fluid) return -1;
-        else if(!IFluidloggableBase.canFluidFlow(world, pos, state, fluid, facing.getOpposite())) return -1;
+        else if(!FluidloggedUtils.canFluidFlow(world, pos, state, fluid, facing.getOpposite())) return -1;
         else {
             final int level = FluidloggedUtils.getFluidOrReal(world, pos, state).getValue(LEVEL);
             return level >= 8 ? 0 : level;

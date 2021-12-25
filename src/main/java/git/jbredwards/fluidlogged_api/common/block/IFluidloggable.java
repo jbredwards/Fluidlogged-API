@@ -1,28 +1,47 @@
 package git.jbredwards.fluidlogged_api.common.block;
 
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.EnumBlockRenderType;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * implement this if your block can be fluidlogged (but also can be not fluidlogged, like sea pickles)
+ * implement this if your block can be fluidlogged
  * quick reminder that all interfaces support the forge net.minecraftforge.fml.common.Optional @interfaces!
- * (using that allows your blocks to support fluidlogging while making this mod only an optional dependency!)
+ * (using them allows your blocks to support fluidlogging while making this mod only an optional dependency!)
  * @author jbred
  *
  */
-public interface IFluidloggable extends IFluidloggableBase
+public interface IFluidloggable
 {
     //return true if this is a fluidloggable block
     default boolean isFluidloggable(@Nonnull IBlockState state) { return true; }
 
     //return true if this is fluidloggable with the input fluid
     default boolean isFluidValid(@Nonnull IBlockState state, @Nonnull Fluid fluid) { return isFluidloggable(state); }
+
+    //has two purposes:
+    //1: returns true if the contained fluid can flow from the specified side
+    //2: returns true if a fluid can flow into this block from the specified side
+    default boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
+        return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
+    }
+
+    //returns true if the FluidState should be visible while this is fluidlogged
+    @SideOnly(Side.CLIENT)
+    default boolean shouldFluidRender(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Fluid fluid) {
+        return fluid.canBePlacedInWorld() && fluid.getBlock().getDefaultState().getRenderType() == EnumBlockRenderType.MODEL;
+    }
 
     //ran when FluidloggedUtils#setFluidState gets called into this
     //DEFAULT = run & return result of the default change action
