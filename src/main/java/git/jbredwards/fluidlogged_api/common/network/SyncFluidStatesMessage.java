@@ -33,10 +33,10 @@ public final class SyncFluidStatesMessage implements IMessage
 
     @SuppressWarnings("unused")
     public SyncFluidStatesMessage() {}
-    public SyncFluidStatesMessage(ChunkPos posIn, @Nonnull Map<BlockPos, FluidState> fluidStateMap) {
+    public SyncFluidStatesMessage(@Nonnull ChunkPos chunkPos, @Nonnull Map<BlockPos, FluidState> fluidStateMap) {
         fluidStateMap.forEach((pos, fluidState) -> data.add(Pair.of(pos.toLong(), fluidState.serialize())));
-        x = posIn.x;
-        z = posIn.z;
+        x = chunkPos.x;
+        z = chunkPos.z;
         isValid = true;
     }
 

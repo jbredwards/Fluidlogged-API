@@ -35,15 +35,19 @@ public enum FluidloggedUtils
 {
     ;
 
-    //if you want the FluidState directly, use FluidState#of
-    @Nullable
-    public static IBlockState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        final @Nullable Chunk chunk = getChunk(world, pos);
-        final IBlockState here = chunk == null ? world.getBlockState(pos) : chunk.getBlockState(pos);
-        //if block here is a fluid, return it
-        if(getFluidFromState(here) != null) return here;
-        //else return stored FluidState if present
-        else return chunk == null ? null : FluidState.getFromProvider(chunk, pos).getState();
+    //forms the FluidState from the IBlockState here if it's a fluid block,
+    //if not a fluid block, return FluidState stored via the capability
+    @Nonnull
+    public static FluidState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        return getFluidState(world, pos, world.getBlockState(pos));
+    }
+
+    //same as above method, but takes in the here state rather than getting it from the world
+    //(useful for avoiding unnecessary lookups)
+    @Nonnull
+    public static FluidState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
+        final @Nullable Fluid fluidHere = getFluidFromState(here);
+        return fluidHere == null ? FluidState.get(world, pos) : new FluidState(fluidHere, here);
     }
 
     //tries to get the fluid at the pos (prioritizing ones physically in the world, then the fluid capability),
@@ -68,10 +72,10 @@ public enum FluidloggedUtils
 
         final FluidloggedEvent event = new FluidloggedEvent(world, chunk, pos, here, fluidState, checkVaporize, flags);
         //event did stuff
-        if(MinecraftForge.EVENT_BUS.post(event) || event.getResult() != Event.Result.DEFAULT) return event.getResult() == Event.Result.ALLOW;
+        if(MinecraftForge.EVENT_BUS.post(event) && event.getResult() != Event.Result.DEFAULT) return event.getResult() == Event.Result.ALLOW;
         //default
         else {
-            //sync possible event changes
+            //sync possible changes caused by event
             fluidState = event.fluidState;
             final @Nullable Fluid fluid = fluidState.getFluid();
 
@@ -89,17 +93,17 @@ public enum FluidloggedUtils
                     if(result != Event.Result.DEFAULT) return result == Event.Result.ALLOW;
                 }
 
-                //moved to separate function, as to allow easy calling by event instances, and IFluidloggable instances using IFluidloggable#onFluidChange
-                setFluidState_Internal(world, chunk, here, cap, pos, fluidState, event.flags);
+                //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
+                FluidloggedUtils.setFluidState_Internal(world, chunk, here, cap, pos, fluidState, event.flags);
             }
 
             //default
-            return true;
+            return event.getResult() != Event.Result.DENY;
         }
     }
 
     //if you're not an event instance or an IFluidloggable instance, use setFluidState instead!
-    //moved to separate function, as to allow easy calling by event instances, and IFluidloggable instances using IFluidloggable#onFluidChange
+    //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
     public static void setFluidState_Internal(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull IBlockState here, @Nonnull IFluidStateCapability cap, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, int flags) {
         //fix small graphical flicker with blocks placed inside fluids
         if(world.isRemote && !fluidState.isEmpty()) cap.setFluidState(pos, fluidState);
@@ -158,9 +162,9 @@ public enum FluidloggedUtils
     }
 
     @SuppressWarnings("deprecation")
-    public static boolean isFluidFluidloggable(@Nonnull Block fluid) {
+    public static boolean isFluidFluidloggable(@Nullable Block fluid) {
         //allow any vanilla fluid block while restricting forge fluids only to BlockFluidClassic
-        return !fluid.hasTileEntity() && (fluid instanceof BlockLiquidBase || fluid instanceof BlockFluidClassic);
+        return fluid != null && !fluid.hasTileEntity() && (fluid instanceof BlockLiquidBase || fluid instanceof BlockFluidClassic);
     }
 
     //same as above method, but also checks for fluid level

@@ -119,16 +119,18 @@ public enum ASMHooks
 
     //BlockFluidBasePlugin
     public static boolean canSideFlow(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, int i, int j) {
+        final FluidState fluidState = FluidState.get(world, pos);
+
         //SE
-        if(i == 0 && j == 0) return canSideFlowDir(fluid, state, world, pos, SOUTH, EAST);
+        if(i == 0 && j == 0) return canSideFlowDir(fluid, state, world, pos, fluidState, SOUTH, EAST);
         //S
         else if(i == 1  && j == 0) {
             fixS = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, SOUTH)) return true;
+            if(canSideFlowDir(fluid, state, world, pos, fluidState, SOUTH)) return true;
 
             //fix uneven corners
-            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, SOUTH, EAST);
-            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, SOUTH, WEST);
+            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, fluidState, SOUTH, EAST);
+            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, fluidState, SOUTH, WEST);
             if(flag1 != flag2) {
                 if(flag1) fixS[0] = true;
                 else      fixS[1] = true;
@@ -137,15 +139,15 @@ public enum ASMHooks
             return flag1 || flag2;
         }
         //SW
-        else if(i == 2  && j == 0) return canSideFlowDir(fluid, state, world, pos, SOUTH, WEST);
+        else if(i == 2  && j == 0) return canSideFlowDir(fluid, state, world, pos, fluidState, SOUTH, WEST);
         //E
         else if(i == 0 && j == 1) {
             fixE = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, EAST)) return true;
+            if(canSideFlowDir(fluid, state, world, pos, fluidState, EAST)) return true;
 
             //fix uneven corners
-            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, EAST, SOUTH);
-            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, EAST, NORTH);
+            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, fluidState, EAST, SOUTH);
+            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, fluidState, EAST, NORTH);
             if(flag1 != flag2) {
                 if(flag1) fixE[0] = true;
                 else      fixE[1] = true;
@@ -156,11 +158,11 @@ public enum ASMHooks
         //W
         else if(i == 2  && j == 1) {
             fixW = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, WEST)) return true;
+            if(canSideFlowDir(fluid, state, world, pos, fluidState, WEST)) return true;
 
             //fix uneven corners
-            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, WEST, SOUTH);
-            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, WEST, NORTH);
+            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, fluidState, WEST, SOUTH);
+            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, fluidState, WEST, NORTH);
             if(flag1 != flag2) {
                 if(flag1) fixW[0] = true;
                 else      fixW[1] = true;
@@ -169,15 +171,15 @@ public enum ASMHooks
             return flag1 || flag2;
         }
         //NE
-        else if(i == 0 && j == 2) return canSideFlowDir(fluid, state, world, pos, NORTH, EAST);
+        else if(i == 0 && j == 2) return canSideFlowDir(fluid, state, world, pos, fluidState, NORTH, EAST);
         //N
         else if(i == 1  && j == 2) {
             fixN = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, NORTH)) return true;
+            if(canSideFlowDir(fluid, state, world, pos, fluidState, NORTH)) return true;
 
             //fix uneven corners
-            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, NORTH, EAST);
-            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, NORTH, WEST);
+            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, fluidState, NORTH, EAST);
+            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, fluidState, NORTH, WEST);
             if(flag1 != flag2) {
                 if(flag1) fixN[0] = true;
                 else      fixN[1] = true;
@@ -186,15 +188,15 @@ public enum ASMHooks
             return flag1 || flag2;
         }
         //NW
-        else if(i == 2  && j == 2) return canSideFlowDir(fluid, state, world, pos, NORTH, WEST);
+        else if(i == 2  && j == 2) return canSideFlowDir(fluid, state, world, pos, fluidState, NORTH, WEST);
         //default
         else return true;
     }
 
     //BlockFluidBasePlugin helper
-    public static boolean canSideFlowDir(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing... sides) {
+    public static boolean canSideFlowDir(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, FluidState fluidState, EnumFacing... sides) {
         for(EnumFacing side : sides) {
-            if(FluidloggedUtils.canFluidFlow(world, pos, state, fluid, side))// && canFlowInto(fluid, world, pos.offset(side)))
+            if(FluidloggedUtils.canFluidFlow(world, pos, state, fluid, side) && (fluidState.isEmpty() || canFlowInto(fluid, world, pos.offset(side))))
                 return true;
         }
 
@@ -203,22 +205,16 @@ public enum ASMHooks
 
     //BlockFluidBasePlugin helper
     public static boolean canFlowInto(Fluid fluid, IBlockAccess world, BlockPos pos) {
-        final Block fluidBlock = fluid.getBlock();
+        //same fluid or replaceable
+        final IBlockState here = world.getBlockState(pos);
+        final boolean matches = (FluidloggedUtils.getFluidAt(world, pos, here) == fluid);
+        if(matches && isReplaceable(here, world, pos)) return true;
 
+        //default fallback
+        final Block fluidBlock = fluid.getBlock();
         return fluidBlock instanceof BlockFluidBase ?
                 ((BlockFluidBase)fluidBlock).canDisplace(world, pos) :
                 BlockLiquidBase.canDisplace(fluidBlock, fluid, world, pos);
-    }
-
-    //BlockFluidBasePlugin
-    public static Material shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
-        final BlockPos offset = pos.offset(side);
-        final FluidState fluidState = FluidState.get(offset);
-        final @Nullable Fluid hereFluid = fluidState.isEmpty() ? FluidloggedUtils.getFluidFromState(state) : fluidState.getFluid();
-        final boolean canSideFlow = FluidloggedUtils.canFluidFlow(world, offset, state, hereFluid, side.getOpposite());
-
-        if(fluidState.isEmpty()) return state.getMaterial();
-        else return canSideFlow ? fluidState.getMaterial() : null;
     }
 
     //BlockFluidBasePlugin
@@ -230,6 +226,17 @@ public enum ASMHooks
     //BlockFluidBasePlugin helper
     public static boolean isReplaceable(IBlockState state, IBlockAccess world, BlockPos pos) {
         return state.getBlock().isReplaceable(world, pos) || (!state.getMaterial().blocksMovement() && !state.getMaterial().isLiquid());
+    }
+
+    //BlockFluidBasePlugin
+    public static Material shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
+        final BlockPos offset = pos.offset(side);
+        final FluidState fluidState = FluidState.get(offset);
+        final @Nullable Fluid hereFluid = fluidState.isEmpty() ? FluidloggedUtils.getFluidFromState(state) : fluidState.getFluid();
+        final boolean canSideFlow = FluidloggedUtils.canFluidFlow(world, offset, state, hereFluid, side.getOpposite());
+
+        if(fluidState.isEmpty()) return state.getMaterial();
+        else return canSideFlow ? fluidState.getMaterial() : null;
     }
 
     //BlockLiquidWrapperPlugin
@@ -296,10 +303,10 @@ public enum ASMHooks
     //BlockConcretePowderPlugin
     public static boolean tryTouchWater(World world, BlockPos pos, EnumFacing facing) {
         final IBlockState state = world.getBlockState(pos);
-        final IBlockState fluidState = FluidloggedUtils.getFluidOrReal(world, pos, state);
+        final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, state);
 
-        return fluidState.getMaterial() == Material.WATER &&
-                FluidloggedUtils.canFluidFlow(world, pos, state, FluidloggedUtils.getFluidFromState(fluidState), facing.getOpposite());
+        return !fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER &&
+                FluidloggedUtils.canFluidFlow(world, pos, state, fluidState.getFluid(), facing.getOpposite());
     }
 
     //BlockDynamicLiquidPlugin
@@ -309,7 +316,7 @@ public enum ASMHooks
 
         if(FluidloggedUtils.canFluidFlow(world, pos, here, fluidHere, facing)) {
             final IBlockState state = world.getBlockState(offset);
-            final FluidState fluidState = FluidState.get(world, offset);
+            final FluidState fluidState = FluidloggedUtils.getFluidState(world, offset, state);
 
             if(fluidState.getFluid() == fluidHere && FluidloggedUtils.canFluidFlow(world, offset, state, fluidHere, facing.getOpposite())) {
                 int level = fluidState.getState().getValue(BlockLiquidBase.LEVEL);
@@ -327,15 +334,12 @@ public enum ASMHooks
 
     //BlockDynamicLiquidPlugin
     public static int getDepth(BlockDynamicLiquid instance, IBlockState up, World world, BlockPos pos) {
-        final IBlockState here = world.getBlockState(pos);
         final @Nullable Fluid fluidHere = FluidloggedUtils.getFluidFromBlock(instance);
 
-        if(FluidloggedUtils.canFluidFlow(world, pos, here, fluidHere, UP)) {
-            final IBlockState state = world.getBlockState(pos.up());
-            final FluidState fluidState = FluidState.get(world, pos.up());
-
-            if(fluidState.getFluid() == fluidHere && FluidloggedUtils.canFluidFlow(world, pos.up(), state, fluidHere, DOWN))
-                return state.getValue(BlockLiquidBase.LEVEL);
+        if(FluidloggedUtils.canFluidFlow(world, pos, world.getBlockState(pos), fluidHere, UP)) {
+            final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos.up(), up);
+            if(fluidState.getFluid() == fluidHere && FluidloggedUtils.canFluidFlow(world, pos.up(), up, fluidHere, DOWN))
+                return fluidState.getState().getValue(BlockLiquidBase.LEVEL);
         }
 
         //default
@@ -382,29 +386,39 @@ public enum ASMHooks
     }
 
     //BlockPlugin
+    public static boolean checkForFluidOpacity = true;
     @SuppressWarnings("deprecation")
     public static int getLightOpacity(IBlockState state, IBlockAccess world, BlockPos pos) {
         final int here = state.getLightOpacity();
-        //catch loop
-        if(FluidloggedUtils.getFluidFromState(state) != null) return here;
-        //no fluid here, return old value
-        final FluidState fluidState = FluidState.get(world, pos);
-        if(fluidState.isEmpty()) return here;
-        //compare the fluid & old values, and return the greater of the two
-        else return Math.max(here, fluidState.getState().getLightOpacity(world, pos));
+        if(checkForFluidOpacity) {
+            //catch loop
+            if(FluidloggedUtils.getFluidFromState(state) != null) return here;
+            //no fluid here, return old value
+            final FluidState fluidState = FluidState.get(world, pos);
+            if(fluidState.isEmpty()) return here;
+            //compare the fluid & old values and return the greater of the two
+            else return Math.max(here, fluidState.getState().getLightOpacity(world, pos));
+        }
+        //return old opacity value if not checking for FluidState
+        else return here;
     }
 
     //BlockPlugin
+    public static boolean checkForFluidLight = true;
     @SuppressWarnings("deprecation")
     public static int getLightValue(IBlockState state, IBlockAccess world, BlockPos pos) {
         final int here = state.getLightValue();
-        //catch loop
-        if(FluidloggedUtils.getFluidFromState(state) != null) return here;
-        //no fluid here, return old value
-        final FluidState fluidState = FluidState.get(world, pos);
-        if(fluidState.isEmpty()) return here;
-        //compare the fluid & old values, and return the greater of the two
-        else return Math.max(here, fluidState.getState().getLightValue(world, pos));
+        if(checkForFluidLight) {
+            //catch loop
+            if(FluidloggedUtils.getFluidFromState(state) != null) return here;
+            //no fluid here, return old value
+            final FluidState fluidState = FluidState.get(world, pos);
+            if(fluidState.isEmpty()) return here;
+            //compare the fluid & old values and return the greater of the two
+            else return Math.max(here, fluidState.getState().getLightValue(world, pos));
+        }
+        //return old light value if not checking for FluidState
+        else return here;
     }
 
     //BlockSpongePlugin
@@ -442,7 +456,7 @@ public enum ASMHooks
             return notifyList.size() > 0;
         }
 
-        return false;
+        else return false;
     }
 
     //RenderChunkPlugin

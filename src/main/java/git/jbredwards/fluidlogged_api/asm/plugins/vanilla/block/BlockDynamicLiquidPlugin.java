@@ -54,7 +54,14 @@ public final class BlockDynamicLiquidPlugin implements IASMPlugin
             }
             //line 57
             else if(checkMethod(insn, obfuscated ? "func_189542_i" : "getDepth", "(Lnet/minecraft/block/state/IBlockState;)I")) {
-
+                final InsnList list = new InsnList();
+                //params
+                list.add(new VarInsnNode(ALOAD, 1));
+                list.add(new VarInsnNode(ALOAD, 2));
+                //adds new code
+                list.add(genMethodNode("getDepth", "(Lnet/minecraft/block/BlockDynamicLiquid;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)I"));
+                instructions.insert(insn, list);
+                instructions.remove(insn);
                 return false;
             }
         }

@@ -255,7 +255,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
             //find average of all heights for each corner
             for(int i = 0; i < 2; i++) {
                 for(int j = 0; j < 2; j++) {
-                    corner[i][j] = getFluidHeightAverage(8f/9, i, j, height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
+                    corner[i][j] = getFluidHeightAverage(i, j, height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
                 }
             }
 
@@ -313,7 +313,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
     }
 
     //used by getExtendedState
-    public float getFluidHeightAverage(float quantaFraction, int i, int j, float... flow) {
+    public float getFluidHeightAverage(int i, int j, @Nonnull float... flow) {
         float total = 0;
         int count = 0;
 
@@ -324,8 +324,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
             if(ASMHooks.fixE[j] && i == 0 && index < 2) continue;
             if(ASMHooks.fixW[j] && i == 1 && index > 1) continue;
 
-            //old
-            if(flow[index] >= quantaFraction) {
+            if(flow[index] >= 8f/9) {
                 total += flow[index] * 10;
                 count += 10;
             }
@@ -393,8 +392,10 @@ public abstract class BlockLiquidBase extends BlockLiquid
             return false;
         }
 
+        final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, state);
         final boolean replaceable = block.isReplaceable(world, pos) || FluidloggedUtils.isStateFluidloggable(state, fluidIn);
-        final int density = BlockFluidBase.getDensity(world, pos);
+        final int density = fluidState.isEmpty() ? Integer.MAX_VALUE : (fluidState.getBlock() instanceof BlockFluidBase) ?
+                ((BlockFluidBase)fluidState.getBlock()).getDensity() : fluidState.getFluid().getDensity();
 
         if(density == Integer.MAX_VALUE) return replaceable;
         else return replaceable && 1000 > density;

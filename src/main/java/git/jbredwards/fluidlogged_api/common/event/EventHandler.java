@@ -14,24 +14,33 @@ import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.block.statemap.StateMapperBase;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.init.Items;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.event.*;
 import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.model.TRSRTransformation;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.world.ChunkWatchEvent;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidUtil;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -107,13 +116,54 @@ public final class EventHandler
         }
     }
 
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void bucketFluidlogging(@Nonnull FillBucketEvent event) {
+        if(event.getResult() != Event.Result.DEFAULT || event.getTarget() == null) return;
+
+        final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(ItemHandlerHelper.copyStackWithSize(event.getEmptyBucket(), 1));
+        if(handler == null) return;
+
+        final @Nullable FluidStack contained = handler.drain(Fluid.BUCKET_VOLUME, false);
+        final BlockPos pos = event.getTarget().getBlockPos();
+        final World world  = event.getWorld();
+
+        final FluidState fluidState = FluidState.get(world, pos);
+        final IBlockState state = world.getBlockState(pos);
+        final EntityPlayer player = event.getEntityPlayer();
+
+        //if bucket is empty, try taking from the fluidlogged block
+        if(contained == null) {
+            if(!fluidState.isEmpty() && FluidloggedUtils.setFluidState(world, pos, state, FluidState.EMPTY, false, 3)) {
+                world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluidState.getFluid().getFillSound(), SoundCategory.BLOCKS, 1, 1);
+                handler.fill(new FluidStack(fluidState.getFluid(), Fluid.BUCKET_VOLUME), true);
+
+                //event bucket
+                event.setFilledBucket(handler.getContainer());
+                event.setResult(Event.Result.ALLOW);
+            }
+        }
+
+        //if bucket has a fluid, try fluidlogging it
+        else if(FluidloggedUtils.isFluidFluidloggable(contained.getFluid().getBlock())
+                && FluidloggedUtils.isStateFluidloggable(state, contained.getFluid())
+                && FluidloggedUtils.setFluidState(world, pos, state, FluidState.of(contained.getFluid()), true, 3)) {
+
+            world.playSound(null, player.posX, player.posY + 0.5, player.posZ, contained.getFluid().getEmptySound(), SoundCategory.BLOCKS, 1, 1);
+            handler.drain(contained, true);
+
+            //event bucket
+            event.setFilledBucket(handler.getContainer());
+            event.setResult(Event.Result.ALLOW);
+        }
+    }
+
     //useful while debugging
-    @SubscribeEvent
+    /*@SubscribeEvent
     public static void debugStick(@Nonnull PlayerInteractEvent.RightClickBlock event) {
         if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.STICK)
             FluidloggedUtils.setFluidState(event.getWorld(), event.getPos(), null, FluidState.of(FluidRegistry.WATER), true, 3);
 
         else if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.BLAZE_ROD)
             System.out.println(FluidState.get(event.getWorld(), event.getPos()));
-    }
+    }*/
 }
