@@ -3,7 +3,6 @@ package git.jbredwards.fluidlogged_api.common.util;
 import git.jbredwards.fluidlogged_api.Main;
 import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
-import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.config.FluidloggedConfig;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
@@ -11,6 +10,7 @@ import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -18,6 +18,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
@@ -45,7 +46,7 @@ public enum FluidloggedUtils
     //same as above method, but takes in the here state rather than getting it from the world
     //(useful for avoiding unnecessary lookups)
     @Nonnull
-    public static FluidState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
+    public static FluidState getFluidState(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
         final @Nullable Fluid fluidHere = getFluidFromState(here);
         return fluidHere == null ? FluidState.get(world, pos) : new FluidState(fluidHere, here);
     }
@@ -60,7 +61,7 @@ public enum FluidloggedUtils
     //same as above method, but takes in the here state rather than getting it from the world
     //(useful for avoiding unnecessary lookups)
     @Nonnull
-    public static IBlockState getFluidOrReal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
+    public static IBlockState getFluidOrReal(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
         return getFluidFromState(here) != null ? here : Optional.ofNullable(FluidState.get(world, pos).getState()).orElse(here);
     }
 
@@ -75,27 +76,21 @@ public enum FluidloggedUtils
         if(MinecraftForge.EVENT_BUS.post(event) && event.getResult() != Event.Result.DEFAULT) return event.getResult() == Event.Result.ALLOW;
         //default
         else {
-            //sync possible changes caused by event
-            fluidState = event.fluidState;
-            final @Nullable Fluid fluid = fluidState.getFluid();
-
             //if the world is to warm for the fluid, vaporize it
+            final @Nullable Fluid fluid = event.fluidState.getFluid();
             if(event.checkVaporize && fluid != null && world.provider.doesWaterVaporize() && fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME))) {
                 fluid.vaporize(null, world, pos, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
                 return true;
             }
 
-            @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
-            if(cap != null) {
-                //check for IFluidloggable
-                if(here.getBlock() instanceof IFluidloggable) {
-                    final Event.Result result = ((IFluidloggable)here.getBlock()).onFluidChange(world, pos, here, cap.getFluidState(pos).getFluid(), fluid, event.flags);
-                    if(result != Event.Result.DEFAULT) return result == Event.Result.ALLOW;
-                }
-
-                //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-                FluidloggedUtils.setFluidState_Internal(world, chunk, here, cap, pos, fluidState, event.flags);
+            //check for IFluidloggable
+            if(here.getBlock() instanceof IFluidloggable) {
+                final EnumActionResult result = ((IFluidloggable)here.getBlock()).onFluidChange(world, pos, here, event.fluidState, event.flags);
+                if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;
             }
+
+            //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
+            FluidloggedUtils.setFluidState_Internal(world, chunk, here, pos, event.fluidState, event.flags);
 
             //default
             return event.getResult() != Event.Result.DENY;
@@ -104,7 +99,10 @@ public enum FluidloggedUtils
 
     //if you're not an event instance or an IFluidloggable instance, use setFluidState instead!
     //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-    public static void setFluidState_Internal(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull IBlockState here, @Nonnull IFluidStateCapability cap, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, int flags) {
+    public static void setFluidState_Internal(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull IBlockState here, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, int flags) {
+        final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
+        if(cap == null) throw new NullPointerException("There was a critical internal error involving the Fluidlogged API mod, notify the mod author!");
+
         //fix small graphical flicker with blocks placed inside fluids
         if(world.isRemote && !fluidState.isEmpty()) cap.setFluidState(pos, fluidState);
 
@@ -114,9 +112,11 @@ public enum FluidloggedUtils
             cap.setFluidState(pos, fluidState);
 
             //send changes to client
-            Main.wrapper.sendToAllAround(new FluidStateMessage(pos, fluidState),
-                    new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
-            );
+            if((flags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {
+                Main.wrapper.sendToAllAround(new FluidStateMessage(pos, fluidState),
+                        new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
+                );
+            }
 
             //update light levels
             world.profiler.startSection("checkLight");
@@ -128,7 +128,8 @@ public enum FluidloggedUtils
         }
 
         //update world
-        world.markAndNotifyBlock(pos, chunk, here, here, flags);
+        if((flags & Constants.BlockFlags.NOTIFY_NEIGHBORS) != 0)
+            world.markAndNotifyBlock(pos, chunk, here, here, flags);
     }
 
     //fork of Main.CommonProxy#getChunk
@@ -155,12 +156,6 @@ public enum FluidloggedUtils
         else return fluid.getDefaultState().getMaterial() == Material.LAVA ? FluidRegistry.LAVA : null;
     }
 
-    //helpful utility function to get the fluid from the state, but fallback on the possible FluidState here
-    @Nullable
-    public static Fluid getFluidAt(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
-        return Optional.ofNullable(getFluidFromState(here)).orElse(FluidState.get(world, pos).getFluid());
-    }
-
     @SuppressWarnings("deprecation")
     public static boolean isFluidFluidloggable(@Nullable Block fluid) {
         //allow any vanilla fluid block while restricting forge fluids only to BlockFluidClassic
@@ -176,8 +171,8 @@ public enum FluidloggedUtils
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
         //config
-        final Event.Result configResult = FluidloggedConfig.isStateFluidloggable(state, fluid);
-        if(configResult != Event.Result.DEFAULT) return configResult == Event.Result.ALLOW;
+        final EnumActionResult result = FluidloggedConfig.isStateFluidloggable(state, fluid);
+        if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;
         //defaults
         else {
             //modded
@@ -201,7 +196,8 @@ public enum FluidloggedUtils
                     || block instanceof BlockHopper
                     || block instanceof BlockChest
                     || block instanceof BlockEnderChest
-                    || block instanceof BlockSkull;
+                    || block instanceof BlockSkull
+                    || block instanceof BlockAnvil;
         }
     }
 }

@@ -1,7 +1,5 @@
-package git.jbredwards.fluidlogged_api.common.capability;
+package git.jbredwards.fluidlogged_api.common.util;
 
-import git.jbredwards.fluidlogged_api.common.util.FluidState;
-import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTBase;

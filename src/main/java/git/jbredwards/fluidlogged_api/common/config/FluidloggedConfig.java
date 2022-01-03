@@ -8,10 +8,10 @@ import net.minecraft.block.Block;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.*;
+import net.minecraft.util.EnumActionResult;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fml.common.eventhandler.Event;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -36,17 +36,17 @@ public enum FluidloggedConfig
     public static final Map<Block, BiPredicate<IBlockState, Fluid>> BLACKLIST = new HashMap<>();
     public static boolean applyDefaults = true;
 
-    public static Event.Result isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
+    public static EnumActionResult isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
         //check whitelist
         final @Nullable BiPredicate<IBlockState, Fluid> whiteList = WHITELIST.get(state.getBlock());
-        if(whiteList != null && whiteList.test(state, fluid)) return Event.Result.ALLOW;
+        if(whiteList != null && whiteList.test(state, fluid)) return EnumActionResult.SUCCESS;
         //save some time by not checking blacklist if defaults aren't enabled in the first place
-        if(!applyDefaults) return Event.Result.DENY;
+        if(!applyDefaults) return EnumActionResult.FAIL;
         //check blacklist
         final @Nullable BiPredicate<IBlockState, Fluid> blackList = BLACKLIST.get(state.getBlock());
-        if(blackList != null && blackList.test(state, fluid)) return Event.Result.DENY;
+        if(blackList != null && blackList.test(state, fluid)) return EnumActionResult.FAIL;
         //default
-        return Event.Result.DEFAULT;
+        return EnumActionResult.PASS;
     }
 
     public static class Deserializer implements JsonDeserializer<BiPredicate<IBlockState, Fluid>>

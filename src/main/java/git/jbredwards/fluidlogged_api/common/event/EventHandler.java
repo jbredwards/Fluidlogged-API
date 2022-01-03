@@ -3,7 +3,7 @@ package git.jbredwards.fluidlogged_api.common.event;
 import git.jbredwards.fluidlogged_api.Constants;
 import git.jbredwards.fluidlogged_api.Main;
 import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
-import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.common.util.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.network.SyncFluidStatesMessage;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;

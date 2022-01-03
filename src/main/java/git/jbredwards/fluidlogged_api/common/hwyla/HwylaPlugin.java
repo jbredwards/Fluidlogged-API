@@ -2,8 +2,6 @@ package git.jbredwards.fluidlogged_api.common.hwyla;
 
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import mcp.mobius.waila.api.*;
-import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.Fluid;

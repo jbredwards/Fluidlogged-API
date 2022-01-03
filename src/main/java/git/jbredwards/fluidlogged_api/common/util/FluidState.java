@@ -1,6 +1,5 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
-import git.jbredwards.fluidlogged_api.common.capability.IFluidStateCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -74,6 +73,17 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     public Material getMaterial() { return state.getMaterial(); }
 
+    public int getLevel() { return state.getValue(BlockLiquid.LEVEL); }
+
+    //creates a new FluidState from the serialized one
+    @Nonnull
+    public static FluidState deserialize(int serialized) {
+        return of(FluidloggedUtils.getFluidFromBlock(Block.getBlockById(serialized)));
+    }
+
+    //converts this FluidState to an int, which can be used to form a new FluidState at a later time
+    public int serialize() { return isEmpty() ? 0 : Block.getIdFromBlock(getBlock()); }
+
     @Override
     @Nonnull
     public String toString() { return isEmpty() ? "EMPTY" : super.toString(); }
@@ -84,28 +94,15 @@ public class FluidState extends Pair<Fluid, IBlockState>
         return isEmpty() ? String.format(format, "EMPTY") : super.toString(format);
     }
 
-    @Nonnull
-    public static FluidState deserialize(int serialized) {
-        return of(FluidloggedUtils.getFluidFromBlock(Block.getBlockById(serialized)));
-    }
-
-    public int serialize() { return isEmpty() ? 0 : Block.getIdFromBlock(getBlock()); }
-
-    //implemented from Pair, please use methods above instead if possible
-
     @Override
-    @Nonnull
     public final Fluid getLeft() { return getFluid(); }
 
     @Override
-    @Nonnull
     public final IBlockState getRight() { return getState(); }
 
     @Override
-    @Nonnull
     public final IBlockState getValue() { return super.getValue(); }
 
     @Override
-    @Nonnull
     public final IBlockState setValue(@Nullable IBlockState value) { throw new UnsupportedOperationException(); }
 }
