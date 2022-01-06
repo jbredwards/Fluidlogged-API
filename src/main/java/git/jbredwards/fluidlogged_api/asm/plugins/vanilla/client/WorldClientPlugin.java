@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- * non-empty FluidState blocks call randomDisplayTick
+ * non-empty FluidStates call randomDisplayTick
  * @author jbred
  *
  */

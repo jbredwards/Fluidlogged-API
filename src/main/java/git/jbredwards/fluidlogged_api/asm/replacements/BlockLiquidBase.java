@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.asm.replacements;
 
 import git.jbredwards.fluidlogged_api.asm.plugins.ASMHooks;
+import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
@@ -21,9 +22,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.fluids.BlockFluidBase;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.*;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -37,11 +36,12 @@ import static net.minecraft.util.EnumFacing.*;
 
 /**
  * -allows BlockLiquid to render through the ModelFluid renderer by providing the necessary properties
+ * -makes BlockLiquid extend IFluidBlock, which makes fluid logic simpler & more unified imo
  * -all classes that extend BlockLiquid will extend this class instead during runtime automatically, through asm
  * @author jbred
  *
  */
-public abstract class BlockLiquidBase extends BlockLiquid
+public abstract class BlockLiquidBase extends BlockLiquid implements IFluidloggableFluid
 {
     protected BlockLiquidBase(Material materialIn) { super(materialIn); }
 
@@ -121,7 +121,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
         Vec3d vec = new Vec3d(0, 0, 0);
 
         final IBlockState here = worldIn.getBlockState(pos);
-        final Fluid fluid = (blockMaterial == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA);
+        final Fluid fluid = getFluid();
         final int level = state.getValue(LEVEL);
         int decay = (level >= 8 ? 0 : level);
 
@@ -215,7 +215,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
     public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         if(!(oldState instanceof IExtendedBlockState)) return oldState;
         //fluid var used later
-        final Fluid fluid = (blockMaterial == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA);
+        final Fluid fluid = getFluid();
 
         //covert to extended state
         IExtendedBlockState state = (IExtendedBlockState)oldState;
@@ -363,7 +363,7 @@ public abstract class BlockLiquidBase extends BlockLiquid
     public int getFlowDecay(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing facing) {
         final @Nullable Fluid fluid = FluidloggedUtils.getFluidState(world, pos, state).getFluid();
 
-        if(FluidloggedUtils.getFluidFromBlock(this) != fluid) return -1;
+        if(getFluid() != fluid) return -1;
         else if(!FluidloggedUtils.canFluidFlow(world, pos, state, fluid, facing.getOpposite())) return -1;
         else {
             final int level = FluidloggedUtils.getFluidOrReal(world, pos, state).getValue(LEVEL);
@@ -404,5 +404,52 @@ public abstract class BlockLiquidBase extends BlockLiquid
     @Override
     public void neighborChanged(@Nonnull IBlockState state, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos) {
         if(!FluidState.get(worldIn, pos).isEmpty()) worldIn.scheduleUpdate(pos, this, tickRate(worldIn));
+    }
+
+    @Override
+    public boolean requiresUpdates() { return false; }
+
+    @Nonnull
+    @Override
+    public Fluid getFluid() { return (blockMaterial == Material.WATER) ? FluidRegistry.WATER : FluidRegistry.LAVA; }
+
+    @Override
+    public int place(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidStack fluidStack, boolean doPlace) {
+        if(fluidStack.amount < Fluid.BUCKET_VOLUME) return 0;
+        if(doPlace) {
+            final IBlockState here = world.getBlockState(pos);
+            final Fluid fluid = getFluid();
+
+            if(!FluidloggedUtils.isStateFluidloggable(here, fluid)) world.setBlockState(pos, getDefaultState());
+            else FluidloggedUtils.setFluidState(world, pos, here, FluidState.of(fluid), true);
+        }
+
+        return Fluid.BUCKET_VOLUME;
+    }
+
+    @Nullable
+    @Override
+    public FluidStack drain(@Nonnull World world, @Nonnull BlockPos pos, boolean doDrain) {
+        final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos);
+
+        if(fluidState.isEmpty() || fluidState.getLevel() != 0) return null;
+        if(doDrain) {
+            final IBlockState here = world.getBlockState(pos);
+
+            if(fluidState.getState() == here) world.setBlockState(pos, Blocks.AIR.getDefaultState());
+            else FluidloggedUtils.setFluidState(world, pos, here, FluidState.EMPTY, false);
+        }
+
+        return new FluidStack(fluidState.getFluid(), Fluid.BUCKET_VOLUME);
+    }
+
+    @Override
+    public boolean canDrain(@Nonnull World world, @Nonnull BlockPos pos) {
+        return FluidloggedUtils.getFluidOrReal(world, pos).getValue(LEVEL) == 0;
+    }
+
+    @Override
+    public float getFilledPercentage(@Nonnull World world, @Nonnull BlockPos pos) {
+        return 1 - (getLiquidHeightPercent(getMetaFromState(FluidloggedUtils.getFluidOrReal(world, pos))) - (1f / 9));
     }
 }

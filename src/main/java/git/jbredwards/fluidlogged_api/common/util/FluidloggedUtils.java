@@ -3,11 +3,11 @@ package git.jbredwards.fluidlogged_api.common.util;
 import git.jbredwards.fluidlogged_api.Main;
 import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
+import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.common.config.FluidloggedConfig;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
 import net.minecraft.block.*;
-import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumActionResult;
@@ -63,6 +63,11 @@ public enum FluidloggedUtils
     @Nonnull
     public static IBlockState getFluidOrReal(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
         return getFluidFromState(here) != null ? here : Optional.ofNullable(FluidState.get(world, pos).getState()).orElse(here);
+    }
+
+    //convenience method
+    public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize) {
+        return setFluidState(world, pos, here, fluidState, checkVaporize, Constants.BlockFlags.DEFAULT_AND_RERENDER);
     }
 
     public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
@@ -146,20 +151,17 @@ public enum FluidloggedUtils
     @Nullable
     public static Fluid getFluidFromState(@Nonnull IBlockState fluid) { return getFluidFromBlock(fluid.getBlock()); }
 
-    //gets the fluid from the block (null if there is no fluid)
+    //fork of IFluidBlock#getFluid
+    //note that this mod has any classes that extend BlockLiquid extend BlockLiquidBase instead during runtime
     @Nullable
-    public static Fluid getFluidFromBlock(@Nonnull Block fluid) {
-        //modded
-        if(fluid instanceof IFluidBlock) return ((IFluidBlock)fluid).getFluid();
-        //vanilla
-        else if(fluid.getDefaultState().getMaterial() == Material.WATER) return FluidRegistry.WATER;
-        else return fluid.getDefaultState().getMaterial() == Material.LAVA ? FluidRegistry.LAVA : null;
-    }
+    public static Fluid getFluidFromBlock(@Nonnull Block fluid) { return (fluid instanceof IFluidBlock) ? ((IFluidBlock)fluid).getFluid() : null; }
 
     @SuppressWarnings("deprecation")
     public static boolean isFluidFluidloggable(@Nullable Block fluid) {
-        //allow any vanilla fluid block while restricting forge fluids only to BlockFluidClassic
-        return fluid != null && !fluid.hasTileEntity() && (fluid instanceof BlockLiquidBase || fluid instanceof BlockFluidClassic);
+        //allow vanilla fluid blocks & certain modded ones
+        if(fluid instanceof IFluidloggableFluid) return ((IFluidloggableFluid)fluid).isFluidloggableFluid();
+        //restrict forge fluids to BlockFluidClassic
+        else return fluid instanceof BlockFluidClassic && !fluid.hasTileEntity();
     }
 
     //same as above method, but also checks for fluid level
@@ -197,7 +199,8 @@ public enum FluidloggedUtils
                     || block instanceof BlockChest
                     || block instanceof BlockEnderChest
                     || block instanceof BlockSkull
-                    || block instanceof BlockAnvil;
+                    || block instanceof BlockSign
+                    || block instanceof BlockDoor;
         }
     }
 }

@@ -84,12 +84,12 @@ public class FluidState extends Pair<Fluid, IBlockState>
     //converts this FluidState to an int, which can be used to form a new FluidState at a later time
     public int serialize() { return isEmpty() ? 0 : Block.getIdFromBlock(getBlock()); }
 
-    @Override
     @Nonnull
+    @Override
     public String toString() { return isEmpty() ? "EMPTY" : super.toString(); }
 
-    @Override
     @Nonnull
+    @Override
     public String toString(@Nonnull String format) {
         return isEmpty() ? String.format(format, "EMPTY") : super.toString(format);
     }

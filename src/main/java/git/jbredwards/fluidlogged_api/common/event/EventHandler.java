@@ -103,16 +103,13 @@ public final class EventHandler
 
     @SuppressWarnings("ConstantConditions")
     @SideOnly(Side.CLIENT)
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public static void improveDebugScreen(@Nonnull RenderGameOverlayEvent.Text event) {
         final @Nullable RayTraceResult trace = Minecraft.getMinecraft().objectMouseOver;
 
         if(trace != null && trace.getBlockPos() != null && !event.getRight().isEmpty()) {
             final FluidState fluidState = FluidState.get(trace.getBlockPos());
-            if(!fluidState.isEmpty()) {
-                event.getRight().add("");
-                event.getRight().add("fluid:" + fluidState.getFluid().getName());
-            }
+            if(!fluidState.isEmpty()) event.getRight().add("fluid: " + fluidState.getFluid().getName());
         }
     }
 
@@ -120,50 +117,52 @@ public final class EventHandler
     public static void bucketFluidlogging(@Nonnull FillBucketEvent event) {
         if(event.getResult() != Event.Result.DEFAULT || event.getTarget() == null) return;
 
+        //don't try fluidlogging without a bucket
         final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(ItemHandlerHelper.copyStackWithSize(event.getEmptyBucket(), 1));
         if(handler == null) return;
 
         final @Nullable FluidStack contained = handler.drain(Fluid.BUCKET_VOLUME, false);
         final BlockPos pos = event.getTarget().getBlockPos();
-        final World world  = event.getWorld();
-
-        final FluidState fluidState = FluidState.get(world, pos);
-        final IBlockState state = world.getBlockState(pos);
+        final World world = event.getWorld();
         final EntityPlayer player = event.getEntityPlayer();
 
         //if bucket is empty, try taking from the fluidlogged block
         if(contained == null) {
-            if(!fluidState.isEmpty() && FluidloggedUtils.setFluidState(world, pos, state, FluidState.EMPTY, false, 3)) {
-                world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluidState.getFluid().getFillSound(), SoundCategory.BLOCKS, 1, 1);
-                handler.fill(new FluidStack(fluidState.getFluid(), Fluid.BUCKET_VOLUME), true);
-
-                //event bucket
+            if(tryBucketFill_Internal(world, pos, player, handler) || tryBucketFill_Internal(world, pos.offset(event.getTarget().sideHit), player, handler)) {
                 event.setFilledBucket(handler.getContainer());
                 event.setResult(Event.Result.ALLOW);
             }
         }
 
         //if bucket has a fluid, try fluidlogging it
-        else if(FluidloggedUtils.isFluidFluidloggable(contained.getFluid().getBlock())
-                && FluidloggedUtils.isStateFluidloggable(state, contained.getFluid())
-                && FluidloggedUtils.setFluidState(world, pos, state, FluidState.of(contained.getFluid()), true, 3)) {
-
-            world.playSound(null, player.posX, player.posY + 0.5, player.posZ, contained.getFluid().getEmptySound(), SoundCategory.BLOCKS, 1, 1);
-            handler.drain(contained, true);
-
-            //event bucket
+        else if(tryBucketDrain_Internal(world, pos, player, handler, contained.getFluid()) || tryBucketDrain_Internal(world, pos.offset(event.getTarget().sideHit), player, handler, contained.getFluid())) {
             event.setFilledBucket(handler.getContainer());
             event.setResult(Event.Result.ALLOW);
         }
     }
 
-    //useful while debugging
-    /*@SubscribeEvent
-    public static void debugStick(@Nonnull PlayerInteractEvent.RightClickBlock event) {
-        if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.STICK)
-            FluidloggedUtils.setFluidState(event.getWorld(), event.getPos(), null, FluidState.of(FluidRegistry.WATER), true, 3);
+    private static boolean tryBucketFill_Internal(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer player, @Nonnull IFluidHandlerItem handler) {
+        final FluidState fluidState = FluidState.get(world, pos);
+        final IBlockState state = world.getBlockState(pos);
 
-        else if(event.getEntityPlayer().getHeldItemMainhand().getItem() == Items.BLAZE_ROD)
-            System.out.println(FluidState.get(event.getWorld(), event.getPos()));
-    }*/
+        if(!fluidState.isEmpty() && FluidloggedUtils.setFluidState(world, pos, state, FluidState.EMPTY, false)) {
+            world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluidState.getFluid().getFillSound(), SoundCategory.BLOCKS, 1, 1);
+            handler.fill(new FluidStack(fluidState.getFluid(), Fluid.BUCKET_VOLUME), true);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean tryBucketDrain_Internal(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer player, @Nonnull IFluidHandlerItem handler, @Nonnull Fluid fluid) {
+        final IBlockState state = world.getBlockState(pos);
+
+        if(FluidloggedUtils.isFluidFluidloggable(fluid.getBlock()) && FluidloggedUtils.isStateFluidloggable(state, fluid) && FluidloggedUtils.setFluidState(world, pos, state, FluidState.of(fluid), true)) {
+            world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluid.getEmptySound(), SoundCategory.BLOCKS, 1, 1);
+            handler.drain(new FluidStack(fluid, Fluid.BUCKET_VOLUME), true);
+            return true;
+        }
+
+        return false;
+    }
 }

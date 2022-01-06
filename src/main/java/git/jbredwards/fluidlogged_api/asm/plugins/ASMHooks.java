@@ -35,7 +35,6 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.wrappers.BlockLiquidWrapper;
 import net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -256,7 +255,7 @@ public enum ASMHooks
         final IBlockState here = world.getBlockState(pos);
 
         if(FluidloggedUtils.isStateFluidloggable(here, fluid))
-            return FluidloggedUtils.setFluidState(world, pos, here, FluidState.of(fluid), false, flags);
+            return FluidloggedUtils.setFluidState(world, pos, here, FluidState.of(fluid), true, flags);
 
         //default
         return world.setBlockState(pos, state, flags);
@@ -271,9 +270,6 @@ public enum ASMHooks
 
             if(block instanceof IFluidBlock)
                 return new FluidBlockWrapper((IFluidBlock)block, world, pos);
-
-            else if(block instanceof BlockLiquidBase)
-                return new BlockLiquidWrapper((BlockLiquidBase)block, world, pos);
         }
 
         return null;
@@ -317,7 +313,7 @@ public enum ASMHooks
         if(!world.isAreaLoaded(pos, (state.getMaterial() == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 4))
             return false;
 
-        final Fluid fluid = FluidloggedUtils.getFluidFromBlock(instance);
+        final Fluid instanceFluid = FluidloggedUtils.getFluidFromBlock(instance);
         final IBlockState here = world.getBlockState(pos); //these three variables are helpful down the line & set here as to not have to call getBlockState twice
         final IBlockState down = world.getBlockState(pos.down());
 
@@ -336,7 +332,7 @@ public enum ASMHooks
                 IBlockState neighbor = world.getBlockState(offset);
                 FluidState fluidNeighbor = FluidloggedUtils.getFluidState(world, offset, neighbor);
 
-                if(fluidNeighbor.getFluid() == fluid && FluidloggedUtils.canFluidFlow(world, offset, neighbor, fluid, facing.getOpposite())) {
+                if(fluidNeighbor.getFluid() == instanceFluid && FluidloggedUtils.canFluidFlow(world, offset, neighbor, instanceFluid, facing.getOpposite())) {
                     int neighborLevel = fluidNeighbor.getLevel();
 
                     if(neighborLevel == 0) instance.adjacentSourceBlocks++;
@@ -353,7 +349,7 @@ public enum ASMHooks
             //used in place of instance#getDepth
             final IBlockState up = world.getBlockState(pos.up());
             final FluidState fluidStateUp = FluidloggedUtils.getFluidState(world, pos.up(), up);
-            final int depth = (fluidStateUp.getFluid() == fluid && FluidloggedUtils.canFluidFlow(world, pos.up(), up, fluid, DOWN)) ? fluidStateUp.getLevel() : -1;
+            final int depth = (fluidStateUp.getFluid() == instanceFluid && FluidloggedUtils.canFluidFlow(world, pos.up(), up, instanceFluid, DOWN)) ? fluidStateUp.getLevel() : -1;
             if(depth >= 0) { futureLevel = (depth >= 8) ? depth : depth + 8; }
 
             //prepare source block creation
@@ -363,7 +359,7 @@ public enum ASMHooks
                 if(down.getMaterial().isSolid())
                     futureLevel = 0;
 
-                else if(fluidStateDown.getFluid() == fluid && fluidStateDown.getLevel() == 0)
+                else if(fluidStateDown.getFluid() == instanceFluid && fluidStateDown.getLevel() == 0)
                     futureLevel = 0;
             }
 
@@ -394,15 +390,19 @@ public enum ASMHooks
         else if(state == here)
             world.setBlockState(pos, BlockLiquid.getStaticBlock(state.getMaterial()).getDefaultState().withProperty(BlockLiquid.LEVEL, state.getValue(BlockLiquid.LEVEL)));
 
+        if(canFlowInto(instance, world, pos.down(), down, DOWN, instanceFluid)) {
 
+        }
 
         //always return false to skip running the old code
         return false;
     }
 
     //BlockDynamicLiquidPlugin helper
-    public static boolean canFlowInto(World world, BlockPos pos, IBlockState state, EnumFacing facing, Fluid fluid) {
-        return false;
+    public static boolean canFlowInto(BlockDynamicLiquid instance, World world, BlockPos pos, IBlockState state, EnumFacing facing, Fluid instanceFluid) {
+        final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, state);
+        final boolean fluidCondition = fluidState.getFluid() != instanceFluid || !FluidloggedUtils.canFluidFlow(world, pos, state, instanceFluid, facing);
+        return fluidCondition ;//&& ;
     }
 
     //BlockLilyPadPlugin
@@ -510,6 +510,15 @@ public enum ASMHooks
         }
 
         else return false;
+    }
+
+    //EntityRendererPlugin
+    public static boolean addRainParticles(IBlockState here, BlockPos pos) {
+        final WorldClient world = Minecraft.getMinecraft().world;
+        final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, here);
+
+        return fluidState.isEmpty() || fluidState.getMaterial() != Material.LAVA
+            || !FluidloggedUtils.canFluidFlow(world, pos, here, fluidState.getFluid(), UP);
     }
 
     //RenderChunkPlugin
@@ -681,26 +690,29 @@ public enum ASMHooks
 
     //WorldPlugin
     public static IBlockState setBlockState(Chunk chunk, BlockPos pos, IBlockState newState, IBlockState oldState, World world, int flags) {
-        final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
-        //this mod adds a special flag (x | 32, example: Constants.BlockFlags.DEFAULT | 32) that removes any FluidState here
-        if((flags & 32) != 0) {
-            if(!fluidState.isEmpty())
-                FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
+        final @Nullable IBlockState chunkState = chunk.setBlockState(pos, newState);
+        if(chunkState != null) {
+            final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
+            //this mod adds a special flag (x | 32, example: Constants.BlockFlags.DEFAULT | 32) that removes any FluidState here
+            if((flags & 32) != 0) {
+                if(!fluidState.isEmpty())
+                    FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
+            }
+
+            //without the flag preserves FluidState / sets FluidState using oldState if it's a full fluid & if newState is fluidloggable
+            else {
+                //replace with empty fluid
+                if(!fluidState.isEmpty() && !FluidloggedUtils.isStateFluidloggable(newState, fluidState.getFluid()))
+                    FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
+
+                //save old state as FluidState
+                final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(oldState);
+                if(fluid != null && FluidloggedUtils.isFluidFluidloggable(oldState) && FluidloggedUtils.isStateFluidloggable(newState, fluid))
+                    FluidloggedUtils.setFluidState(world, pos, newState, FluidState.of(fluid), false, flags);
+            }
         }
 
-        //without the flag preserves FluidState / sets FluidState using oldState if it's a full fluid & if newState is fluidloggable
-        else {
-            //replace with empty fluid
-            if(!fluidState.isEmpty() && !FluidloggedUtils.isStateFluidloggable(newState, fluidState.getFluid()))
-                FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
-
-            //save old state as FluidState
-            final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(oldState);
-            if(fluid != null && FluidloggedUtils.isFluidFluidloggable(oldState) && FluidloggedUtils.isStateFluidloggable(newState, fluid))
-                FluidloggedUtils.setFluidState(world, pos, newState, FluidState.of(fluid), false, flags);
-        }
-
-        return chunk.setBlockState(pos, newState);
+        return chunkState;
     }
 
     //WorldServerPlugin

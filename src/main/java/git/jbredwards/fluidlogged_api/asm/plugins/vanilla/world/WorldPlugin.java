@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- * corrects a lot of fluid related interactions
+ * corrects a lot of FluidState related interactions
  * @author jbred
  *
  */

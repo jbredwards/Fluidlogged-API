@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- * spawner dungeons void FluidStates when they generate
+ * spawner dungeons now void FluidStates when they generate
  * @author jbred
  *
  */

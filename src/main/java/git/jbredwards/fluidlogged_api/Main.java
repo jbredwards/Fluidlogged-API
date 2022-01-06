@@ -6,7 +6,6 @@ import git.jbredwards.fluidlogged_api.common.network.SyncFluidStatesMessage;
 import git.jbredwards.fluidlogged_api.common.util.IChunkProvider;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.init.Items;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.ChunkCache;
@@ -84,7 +83,7 @@ public final class Main
         @Nullable
         @Override
         public Chunk getChunk(@Nullable IBlockAccess ignored, @Nonnull BlockPos pos) {
-            final WorldClient world = Minecraft.getMinecraft().world;
+            final World world = Minecraft.getMinecraft().world;
             return (world == null) ? null : world.getChunkFromBlockCoords(pos);
         }
     }

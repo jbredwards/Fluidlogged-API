@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * isInsideOfMaterial now recognises FluidStates
  * @author jbred
  *
  */
