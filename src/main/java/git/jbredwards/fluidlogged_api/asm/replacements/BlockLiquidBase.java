@@ -11,6 +11,8 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.renderer.ActiveRenderInfo;
+import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumBlockRenderType;
@@ -95,9 +97,7 @@ public abstract class BlockLiquidBase extends BlockLiquid implements IFluidlogga
     public boolean causesDownwardCurrent(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
         final IBlockState state = worldIn.getBlockState(pos);
         final @Nullable Fluid fluid = FluidloggedUtils.getFluidState(worldIn, pos, state).getFluid();
-
-        if(fluid == (blockMaterial == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA)
-                && FluidloggedUtils.canFluidFlow(worldIn, pos, state, fluid, side)) return false;
+        if(fluid == getFluid() && FluidloggedUtils.canFluidFlow(worldIn, pos, state, fluid, side)) return false;
 
         else if(side == UP) return true;
         else if(state.getMaterial() == Material.ICE) return false;
@@ -400,6 +400,25 @@ public abstract class BlockLiquidBase extends BlockLiquid implements IFluidlogga
         else return replaceable && 1000 > density;
     }
 
+    //fix small issue with getting the fog color for the block above
+    @SideOnly(Side.CLIENT)
+    @Nonnull
+    @Override
+    public Vec3d getFogColor(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, @Nonnull Vec3d originalColor, float partialTicks) {
+        if(state.getMaterial().isLiquid()) {
+            final float height = pos.getY() - (state.getBlock() instanceof BlockLiquid
+                    ? getLiquidHeightPercent(state.getValue(LEVEL)) - 0.11111111f : 0) + 1;
+
+            if(height < ActiveRenderInfo.projectViewFromEntity(entity, partialTicks).y) {
+                final BlockPos upPos = pos.up();
+                final IBlockState upState = FluidloggedUtils.getFluidOrReal(world, upPos);
+                return upState.getBlock().getFogColor(world, upPos, upState, entity, originalColor, partialTicks);
+            }
+        }
+
+        return super.getFogColor(world, pos, state, entity, originalColor, partialTicks);
+    }
+
     //FluidStates update properly
     @Override
     public void neighborChanged(@Nonnull IBlockState state, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos) {
@@ -450,6 +469,6 @@ public abstract class BlockLiquidBase extends BlockLiquid implements IFluidlogga
 
     @Override
     public float getFilledPercentage(@Nonnull World world, @Nonnull BlockPos pos) {
-        return 1 - (getLiquidHeightPercent(getMetaFromState(FluidloggedUtils.getFluidOrReal(world, pos))) - (1f / 9));
+        return 1 - (getLiquidHeightPercent(FluidloggedUtils.getFluidOrReal(world, pos).getValue(LEVEL)) - (1f / 9));
     }
 }

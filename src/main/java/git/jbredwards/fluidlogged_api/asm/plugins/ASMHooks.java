@@ -21,9 +21,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.ReportedException;
+import net.minecraft.util.*;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -313,7 +311,9 @@ public enum ASMHooks
         if(!world.isAreaLoaded(pos, (state.getMaterial() == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 4))
             return false;
 
-        final Fluid instanceFluid = FluidloggedUtils.getFluidFromBlock(instance);
+        final @Nullable Fluid instanceFluid = FluidloggedUtils.getFluidFromBlock(instance);
+        if(instanceFluid == null) throw new IllegalStateException("Fluid block is not a fluid?");
+
         final IBlockState here = world.getBlockState(pos); //these three variables are helpful down the line & set here as to not have to call getBlockState twice
         final IBlockState down = world.getBlockState(pos.down());
 
@@ -368,8 +368,7 @@ public enum ASMHooks
                 tickRate *= 4;
 
             //reduce lag by placing static block if there's no change
-            if(futureLevel == stateLevel)
-                world.setBlockState(pos, BlockLiquid.getStaticBlock(state.getMaterial()).getDefaultState().withProperty(BlockLiquid.LEVEL, state.getValue(BlockLiquid.LEVEL)));
+            if(futureLevel == stateLevel) instance.placeStaticBlock(world, pos, state);
 
             //still a flowing block
             else {
@@ -387,10 +386,25 @@ public enum ASMHooks
         }
 
         //set to static block if non-FluidState
-        else if(state == here)
-            world.setBlockState(pos, BlockLiquid.getStaticBlock(state.getMaterial()).getDefaultState().withProperty(BlockLiquid.LEVEL, state.getValue(BlockLiquid.LEVEL)));
+        else if(state == here) instance.placeStaticBlock(world, pos, state);
 
+        //flow down
         if(canFlowInto(instance, world, pos.down(), down, DOWN, instanceFluid)) {
+            if(state.getMaterial() == Material.LAVA) {
+                final FluidState downFluidState = FluidloggedUtils.getFluidState(world, pos.down(), down);
+                if(!downFluidState.isEmpty() && downFluidState.getMaterial() == Material.WATER && state.getBlock().isReplaceable(world, pos.down())) {
+                    world.setBlockState(pos.down(), ForgeEventFactory.fireFluidPlaceBlockEvent(world, pos.down(), pos, Blocks.STONE.getDefaultState()));
+                    instance.triggerMixEffects(world, pos.down());
+                    return false;
+                }
+            }
+
+            if(stateLevel >= 8) tryFlowInto(instance, world, pos.down(), down, DOWN, instanceFluid, stateLevel);
+            else tryFlowInto(instance, world, pos.down(), down, DOWN, instanceFluid, stateLevel + 8);
+        }
+
+        //flow to side
+        else if(stateLevel >= 0 && (stateLevel == 0 || instance.isBlocked(world, pos.down(), down))) {
 
         }
 
@@ -400,9 +414,9 @@ public enum ASMHooks
 
     //BlockDynamicLiquidPlugin helper
     public static boolean canFlowInto(BlockDynamicLiquid instance, World world, BlockPos pos, IBlockState state, EnumFacing facing, Fluid instanceFluid) {
+        if(instance.isBlocked(world, pos, state)) return false;
         final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, state);
-        final boolean fluidCondition = fluidState.getFluid() != instanceFluid || !FluidloggedUtils.canFluidFlow(world, pos, state, instanceFluid, facing);
-        return fluidCondition ;//&& ;
+        return fluidState.getFluid() != instanceFluid || !FluidloggedUtils.canFluidFlow(world, pos, state, instanceFluid, facing);
     }
 
     //BlockLilyPadPlugin
@@ -422,7 +436,7 @@ public enum ASMHooks
         }
 
         //old code
-        return bush.canSustainBush(state);
+        return AccessorUtils.canSustainBush(bush, state);
     }
 
     //BlockPlugin

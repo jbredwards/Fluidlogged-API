@@ -45,7 +45,7 @@ public final class Main
     //register this mod's capability & packet
     @SuppressWarnings("unused")
     @Mod.EventHandler
-    public static void preInit(FMLPreInitializationEvent event) {
+    public static void preInit(@Nullable FMLPreInitializationEvent event) {
         //register capability
         CapabilityManager.INSTANCE.register(IFluidStateCapability.class, IFluidStateCapability.Storage.INSTANCE, IFluidStateCapability.Impl::new);
         //register packets
@@ -57,7 +57,7 @@ public final class Main
     //fixes the vanilla bucket dispenser actions by using the forge one instead
     @SuppressWarnings("unused")
     @Mod.EventHandler
-    public static void init(FMLInitializationEvent event) {
+    public static void init(@Nullable FMLInitializationEvent event) {
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET,  DispenseFluidContainer.getInstance());
     }

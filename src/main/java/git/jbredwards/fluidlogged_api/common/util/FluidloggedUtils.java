@@ -36,47 +36,45 @@ public enum FluidloggedUtils
 {
     ;
 
-    //forms the FluidState from the IBlockState here if it's a fluid block,
-    //if not a fluid block, return FluidState stored via the capability
+    //convenience method
     @Nonnull
     public static FluidState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         return getFluidState(world, pos, world.getBlockState(pos));
     }
 
-    //same as above method, but takes in the here state rather than getting it from the world
-    //(useful for avoiding unnecessary lookups)
+    //forms the FluidState from the IBlockState here if it's a fluid block,
+    //if not a fluid block, return FluidState stored via the capability
     @Nonnull
     public static FluidState getFluidState(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
         final @Nullable Fluid fluidHere = getFluidFromState(here);
         return fluidHere == null ? FluidState.get(world, pos) : new FluidState(fluidHere, here);
     }
 
-    //tries to get the fluid at the pos (prioritizing ones physically in the world, then the fluid capability),
-    //if none return world#getBlockState
+    //convenience method
     @Nonnull
     public static IBlockState getFluidOrReal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         return getFluidOrReal(world, pos, world.getBlockState(pos));
     }
 
-    //same as above method, but takes in the here state rather than getting it from the world
-    //(useful for avoiding unnecessary lookups)
+    //tries to get the fluid at the pos (prioritizing ones physically in the world, then the fluid capability),
+    //if none return input state
     @Nonnull
     public static IBlockState getFluidOrReal(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
         return getFluidFromState(here) != null ? here : Optional.ofNullable(FluidState.get(world, pos).getState()).orElse(here);
     }
 
-    //convenience method
+    //convenience method that uses default block flags
     public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize) {
         return setFluidState(world, pos, here, fluidState, checkVaporize, Constants.BlockFlags.DEFAULT_AND_RERENDER);
     }
 
-    public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
+    public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, int blockFlags) {
         if(world.isOutsideBuildHeight(pos) || world.getWorldType() == WorldType.DEBUG_ALL_BLOCK_STATES) return false;
 
         final Chunk chunk = world.getChunkFromBlockCoords(pos);
         if(here == null) here = chunk.getBlockState(pos);
 
-        final FluidloggedEvent event = new FluidloggedEvent(world, chunk, pos, here, fluidState, checkVaporize, flags);
+        final FluidloggedEvent event = new FluidloggedEvent(world, chunk, pos, here, fluidState, checkVaporize, blockFlags);
         //event did stuff
         if(MinecraftForge.EVENT_BUS.post(event) && event.getResult() != Event.Result.DEFAULT) return event.getResult() == Event.Result.ALLOW;
         //default
@@ -90,12 +88,12 @@ public enum FluidloggedUtils
 
             //check for IFluidloggable
             if(here.getBlock() instanceof IFluidloggable) {
-                final EnumActionResult result = ((IFluidloggable)here.getBlock()).onFluidChange(world, pos, here, event.fluidState, event.flags);
+                final EnumActionResult result = ((IFluidloggable)here.getBlock()).onFluidChange(world, pos, here, event.fluidState, event.blockFlags);
                 if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;
             }
 
             //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-            FluidloggedUtils.setFluidState_Internal(world, chunk, here, pos, event.fluidState, event.flags);
+            FluidloggedUtils.setFluidState_Internal(world, chunk, here, pos, event.fluidState, event.blockFlags);
 
             //default
             return event.getResult() != Event.Result.DENY;
@@ -104,7 +102,7 @@ public enum FluidloggedUtils
 
     //if you're not an event instance or an IFluidloggable instance, use setFluidState instead!
     //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-    public static void setFluidState_Internal(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull IBlockState here, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, int flags) {
+    public static void setFluidState_Internal(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull IBlockState here, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, int blockFlags) {
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
         if(cap == null) throw new NullPointerException("There was a critical internal error involving the Fluidlogged API mod, notify the mod author!");
 
@@ -117,8 +115,9 @@ public enum FluidloggedUtils
             cap.setFluidState(pos, fluidState);
 
             //send changes to client
-            if((flags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {
-                Main.wrapper.sendToAllAround(new FluidStateMessage(pos, fluidState),
+            if((blockFlags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {
+                Main.wrapper.sendToAllAround(
+                        new FluidStateMessage(pos, fluidState),
                         new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
                 );
             }
@@ -133,8 +132,8 @@ public enum FluidloggedUtils
         }
 
         //update world
-        if((flags & Constants.BlockFlags.NOTIFY_NEIGHBORS) != 0)
-            world.markAndNotifyBlock(pos, chunk, here, here, flags);
+        if((blockFlags & Constants.BlockFlags.NOTIFY_NEIGHBORS) != 0)
+            world.markAndNotifyBlock(pos, chunk, here, here, blockFlags);
     }
 
     //fork of Main.CommonProxy#getChunk
@@ -147,12 +146,12 @@ public enum FluidloggedUtils
         else return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
-    //gets the fluid from the state (null if there is no fluid)
+    //convenience method that takes in an IBlockState rather than a Block
     @Nullable
     public static Fluid getFluidFromState(@Nonnull IBlockState fluid) { return getFluidFromBlock(fluid.getBlock()); }
 
     //fork of IFluidBlock#getFluid
-    //note that this mod has any classes that extend BlockLiquid extend BlockLiquidBase instead during runtime
+    //(don't worry, this mod has any classes that extend BlockLiquid extend IFluidBlock during runtime)
     @Nullable
     public static Fluid getFluidFromBlock(@Nonnull Block fluid) { return (fluid instanceof IFluidBlock) ? ((IFluidBlock)fluid).getFluid() : null; }
 

@@ -27,15 +27,15 @@ public class FluidloggedEvent extends Event
     @Nonnull public final IBlockState here;
     @Nonnull public FluidState fluidState;
     public boolean checkVaporize;
-    public int flags;
+    public int blockFlags;
 
-    public FluidloggedEvent(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, int flags) {
+    public FluidloggedEvent(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, int blockFlags) {
         this.world = world;
         this.chunk = chunk;
         this.pos = pos;
         this.here = here;
         this.fluidState = fluidState;
         this.checkVaporize = checkVaporize;
-        this.flags = flags;
+        this.blockFlags = blockFlags;
     }
 }

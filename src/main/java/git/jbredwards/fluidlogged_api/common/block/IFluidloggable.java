@@ -49,19 +49,19 @@ public interface IFluidloggable
     //FAIL = assume the change never happened
     //SUCCESS = assume the change happened
     @Nonnull
-    default EnumActionResult onFluidChange(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState newFluid, int flags) {
-        return newFluid.isEmpty() ? onFluidDrain(world, pos, here, flags) : onFluidFill(world, pos, here, newFluid, flags);
+    default EnumActionResult onFluidChange(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState newFluid, int blockFlags) {
+        return newFluid.isEmpty() ? onFluidDrain(world, pos, here, blockFlags) : onFluidFill(world, pos, here, newFluid, blockFlags);
     }
 
     //convenience method called by IFluidloggable#onFluidChange when a new FluidState is put here
     @Nonnull
-    default EnumActionResult onFluidFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState newFluid, int flags) {
+    default EnumActionResult onFluidFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState newFluid, int blockFlags) {
         return EnumActionResult.PASS;
     }
 
     //convenience method called by IFluidloggable#onFluidChange when the stored FluidState is removed
     @Nonnull
-    default EnumActionResult onFluidDrain(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, int flags) {
+    default EnumActionResult onFluidDrain(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, int blockFlags) {
         return EnumActionResult.PASS;
     }
 }
