@@ -140,25 +140,31 @@ public enum FluidloggedUtils
     @Nullable
     public static Chunk getChunk(@Nullable IBlockAccess world, @Nonnull BlockPos pos) { return Main.proxy.getChunk(world, pos); }
 
-    //fork of IFluidloggable#canFluidFlow
+    //has two purposes:
+    //1: returns true if the contained fluid can flow from the specified side
+    //2: returns true if a fluid can flow into this block from the specified side
     public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
+        //enable modded blocks to have special cases
         if(state.getBlock() instanceof IFluidloggable) return ((IFluidloggable)state.getBlock()).canFluidFlow(world, pos, state, fluid, side);
+        //special case for spawners
+        else if(state.getBlock() instanceof BlockMobSpawner) return true;
+        //default
         else return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
     //convenience method that takes in an IBlockState rather than a Block
     @Nullable
-    public static Fluid getFluidFromState(@Nonnull IBlockState fluid) { return getFluidFromBlock(fluid.getBlock()); }
+    public static Fluid getFluidFromState(@Nullable IBlockState fluid) { return (fluid != null) ? getFluidFromBlock(fluid.getBlock()) : null; }
 
     //fork of IFluidBlock#getFluid
     //(don't worry, this mod has any classes that extend BlockLiquid extend IFluidBlock during runtime)
     @Nullable
-    public static Fluid getFluidFromBlock(@Nonnull Block fluid) { return (fluid instanceof IFluidBlock) ? ((IFluidBlock)fluid).getFluid() : null; }
+    public static Fluid getFluidFromBlock(@Nullable Block fluid) { return (fluid instanceof IFluidBlock) ? ((IFluidBlock)fluid).getFluid() : null; }
 
     @SuppressWarnings("deprecation")
     public static boolean isFluidFluidloggable(@Nullable Block fluid) {
-        //allow vanilla fluid blocks & certain modded ones
-        if(fluid instanceof IFluidloggableFluid) return ((IFluidloggableFluid)fluid).isFluidloggableFluid();
+        //allow vanilla fluid blocks & possibly modded ones
+        if(fluid instanceof IFluidloggableFluid) return ((IFluidloggableFluid)fluid).isFluidFluidloggable();
         //restrict forge fluids to BlockFluidClassic
         else return fluid instanceof BlockFluidClassic && !fluid.hasTileEntity();
     }
@@ -190,7 +196,6 @@ public enum FluidloggedUtils
                     || block instanceof BlockEndRod
                     || block instanceof BlockWall
                     || block instanceof BlockBarrier
-                    || block instanceof BlockLeaves
                     || block instanceof BlockFenceGate
                     || block instanceof BlockTrapDoor
                     || block instanceof BlockRailBase
@@ -199,7 +204,8 @@ public enum FluidloggedUtils
                     || block instanceof BlockEnderChest
                     || block instanceof BlockSkull
                     || block instanceof BlockSign
-                    || block instanceof BlockDoor;
+                    || block instanceof BlockDoor
+                    || block instanceof BlockMobSpawner;
         }
     }
 }

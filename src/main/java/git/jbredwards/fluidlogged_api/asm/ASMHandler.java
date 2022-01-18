@@ -66,7 +66,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 //forge
                 .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new ModelFluidPlugin()) //fixes all issues with fluidlogged z-fighting
                 .put("net.minecraftforge.common.ForgeHooks", new ForgeHooksPlugin()) //fix ForgeHooks#isInsideOfMaterial by allowing it to access stored fluid blocks
-                .put("net.minecraftforge.fluids.capability.wrappers.BlockLiquidWrapper", new BlockLiquidWrapperPlugin()) //vanilla FluidState drain & fill interactions now behave how you'd expect
                 .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin()) //WIP
                 .put("net.minecraftforge.fluids.BlockFluidClassic", new BlockFluidClassicPlugin()) //WIP
                 .put("net.minecraftforge.fluids.FluidUtil", new FluidUtilPlugin()) //changes some of this class's util functions to be FluidState sensitive

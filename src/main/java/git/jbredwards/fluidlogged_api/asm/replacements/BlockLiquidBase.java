@@ -37,13 +37,13 @@ import java.util.Map;
 import static net.minecraft.util.EnumFacing.*;
 
 /**
- * -allows BlockLiquid to render through the ModelFluid renderer by providing the necessary properties
- * -makes BlockLiquid extend IFluidBlock, which makes fluid logic simpler & more unified imo
- * -all classes that extend BlockLiquid will extend this class instead during runtime automatically, through asm
+ * Any classes that extend {@link BlockLiquid} will extend this one instead during runtime, through asm.
+ * This class allows vanilla fluid blocks to render using the {@link net.minecraftforge.client.model.ModelFluid} renderer by providing the necessary logic.
+ * This class also extends {@link IFluidBlock} which makes fluid logic simpler & more unified imo
  * @author jbred
  *
  */
-public abstract class BlockLiquidBase extends BlockLiquid implements IFluidloggableFluid
+public abstract class BlockLiquidBase extends BlockLiquid implements IFluidloggableFluid, IFluidBlock
 {
     protected BlockLiquidBase(Material materialIn) { super(materialIn); }
 
@@ -449,12 +449,11 @@ public abstract class BlockLiquidBase extends BlockLiquid implements IFluidlogga
     @Nullable
     @Override
     public FluidStack drain(@Nonnull World world, @Nonnull BlockPos pos, boolean doDrain) {
-        final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos);
+        final IBlockState here = world.getBlockState(pos);
+        final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, here);
 
         if(fluidState.isEmpty() || fluidState.getLevel() != 0) return null;
         if(doDrain) {
-            final IBlockState here = world.getBlockState(pos);
-
             if(fluidState.getState() == here) world.setBlockState(pos, Blocks.AIR.getDefaultState());
             else FluidloggedUtils.setFluidState(world, pos, here, FluidState.EMPTY, false);
         }

@@ -8,8 +8,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
@@ -38,12 +36,20 @@ public class FluidState extends Pair<Fluid, IBlockState>
     //build a new fluid state or return empty instance, if fluid isn't valid for fluidlogging
     @Nonnull
     public static FluidState of(@Nullable Fluid fluidIn) {
-        final @Nullable Block block = fluidIn == null ? null : fluidIn.getBlock();
-        return block == null ? EMPTY : new FluidState(fluidIn, block instanceof BlockLiquid
+        final @Nullable Block block = (fluidIn == null) ? null : fluidIn.getBlock();
+        return (block == null) ? EMPTY : new FluidState(fluidIn, (block instanceof BlockLiquid)
                 //ensure flowing blocks are used for vanilla fluids
                 ? BlockLiquid.getFlowingBlock(block.getDefaultState().getMaterial()).getDefaultState()
                 : block.getDefaultState());
     }
+
+    //convenience method that takes in a Block
+    @Nonnull
+    public static FluidState of(@Nullable Block fluidIn) { return of(FluidloggedUtils.getFluidFromBlock(fluidIn)); }
+
+    //convenience method that takes in an IBlockState
+    @Nonnull
+    public static FluidState of(@Nullable IBlockState fluidIn) { return of(FluidloggedUtils.getFluidFromState(fluidIn)); }
 
     //gets the stored state present in the world at the block pos
     @Nonnull
@@ -51,8 +57,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
         return getFromProvider(FluidloggedUtils.getChunk(world, pos), pos);
     }
 
-    //gets the stored state present in the client world at the block pos
-    @SideOnly(Side.CLIENT)
+    //(intended use only by client) gets the stored state from Minecraft#world instance
     @Nonnull
     public static FluidState get(@Nonnull BlockPos pos) { return get(null, pos); }
 
@@ -77,9 +82,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     //creates a new FluidState from the serialized one
     @Nonnull
-    public static FluidState deserialize(int serialized) {
-        return of(FluidloggedUtils.getFluidFromBlock(Block.getBlockById(serialized)));
-    }
+    public static FluidState deserialize(int serialized) { return of(Block.getBlockById(serialized)); }
 
     //converts this FluidState to an int, which can be used to form a new FluidState at a later time
     public int serialize() { return isEmpty() ? 0 : Block.getIdFromBlock(getBlock()); }

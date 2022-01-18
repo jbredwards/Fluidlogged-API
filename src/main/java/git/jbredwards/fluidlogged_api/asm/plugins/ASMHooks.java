@@ -375,9 +375,9 @@ public enum ASMHooks
                 stateLevel = futureLevel;
 
                 //update state that exists in the world
-                if(futureLevel < 0) world.setBlockState(pos, Blocks.AIR.getDefaultState());
+                if(stateLevel < 0) world.setBlockState(pos, Blocks.AIR.getDefaultState());
                 else {
-                    state = state.withProperty(BlockLiquid.LEVEL, futureLevel);
+                    state = state.withProperty(BlockLiquid.LEVEL, stateLevel);
                     world.setBlockState(pos, state, Constants.BlockFlags.SEND_TO_CLIENTS);
                     world.scheduleUpdate(pos, instance, tickRate);
                     world.notifyNeighborsOfStateChange(pos, instance, false);
@@ -392,7 +392,7 @@ public enum ASMHooks
         if(canFlowInto(instance, world, pos.down(), down, DOWN, instanceFluid)) {
             if(state.getMaterial() == Material.LAVA) {
                 final FluidState downFluidState = FluidloggedUtils.getFluidState(world, pos.down(), down);
-                if(!downFluidState.isEmpty() && downFluidState.getMaterial() == Material.WATER && state.getBlock().isReplaceable(world, pos.down())) {
+                if(!downFluidState.isEmpty() && downFluidState.getMaterial() == Material.WATER && down.getBlock().isReplaceable(world, pos.down())) {
                     world.setBlockState(pos.down(), ForgeEventFactory.fireFluidPlaceBlockEvent(world, pos.down(), pos, Blocks.STONE.getDefaultState()));
                     instance.triggerMixEffects(world, pos.down());
                     return false;
@@ -422,17 +422,17 @@ public enum ASMHooks
     //BlockLilyPadPlugin
     public static IBlockState canBlockStay(World world, BlockPos pos) {
         final IBlockState state = world.getBlockState(pos);
-        final @Nullable AxisAlignedBB aabb = state.getCollisionBoundingBox(world, pos);
-        return aabb == null || aabb.maxY != 1 ? FluidloggedUtils.getFluidOrReal(world, pos, state) : state;
+        final AxisAlignedBB aabb = state.getBoundingBox(world, pos);
+        return aabb.maxY < 1 ? FluidloggedUtils.getFluidOrReal(world, pos, state) : state;
     }
 
     //BlockPlugin
     public static boolean canSustainPlant(BlockBush bush, IBlockState state, IBlockAccess world, BlockPos pos) {
         //add special case for lily pads
         if(bush instanceof BlockLilyPad) {
-            if(state.getMaterial() == Material.ICE) return true;
-            final @Nullable AxisAlignedBB aabb = state.getCollisionBoundingBox(world, pos);
-            return (aabb == null || aabb.maxY != 1) && FluidloggedUtils.getFluidOrReal(world, pos, state).getMaterial() == Material.WATER;
+            if(state.getMaterial() == Material.ICE || state.getMaterial() == Material.WATER) return true;
+            final AxisAlignedBB aabb = state.getBoundingBox(world, pos);
+            return aabb.maxY != 1 && FluidloggedUtils.getFluidOrReal(world, pos, state).getMaterial() == Material.WATER;
         }
 
         //old code

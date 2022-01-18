@@ -1,7 +1,6 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
 import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -18,7 +17,6 @@ import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * allows chunks to store fluid states
@@ -117,12 +115,9 @@ public interface IFluidStateCapability
                 for(NBTBase tag : (NBTTagList)nbtIn) {
                     if(tag instanceof NBTTagCompound) {
                         NBTTagCompound nbt = (NBTTagCompound)tag;
-                        if(nbt.hasKey("pos", Constants.NBT.TAG_LONG) && nbt.hasKey("id", Constants.NBT.TAG_STRING)) {
-                            BlockPos pos = BlockPos.fromLong(nbt.getLong("pos"));
-                            FluidState state = FluidState.of(FluidloggedUtils.getFluidFromBlock(
-                                    Optional.ofNullable(Block.getBlockFromName(nbt.getString("id"))).orElse(Blocks.AIR)));
-
-                            instance.setFluidState(pos, state);
+                        if(nbt.hasKey("id", Constants.NBT.TAG_STRING) && nbt.hasKey("pos", Constants.NBT.TAG_LONG)) {
+                            FluidState state = FluidState.of(Block.getBlockFromName(nbt.getString("id")));
+                            if(!state.isEmpty()) instance.setFluidState(BlockPos.fromLong(nbt.getLong("pos")), state);
                         }
                     }
                 }

@@ -31,7 +31,7 @@ public interface IFluidloggable
     //return true if this is fluidloggable with the input fluid
     default boolean isFluidValid(@Nonnull IBlockState state, @Nonnull Fluid fluid) { return isFluidloggable(state); }
 
-    //has two purposes:
+    //called by FluidloggedUtils#canFluidFlow, has two purposes:
     //1: returns true if the contained fluid can flow from the specified side
     //2: returns true if a fluid can flow into this block from the specified side
     default boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
