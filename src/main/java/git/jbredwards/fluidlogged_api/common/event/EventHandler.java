@@ -6,7 +6,6 @@ import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.util.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.network.SyncFluidStatesMessage;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
-import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -46,6 +45,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.Optional;
+
+import static git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils.*;
 
 /**
  *
@@ -95,7 +96,7 @@ public final class EventHandler
     public static void registerLiquidBakedModels(@Nonnull ModelBakeEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
             if(block instanceof BlockLiquidBase) {
-                IBakedModel model = new ModelFluid(Optional.ofNullable(FluidloggedUtils.getFluidFromBlock(block)).orElse(FluidRegistry.WATER)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
+                IBakedModel model = new ModelFluid(Optional.ofNullable(getFluidFromBlock(block)).orElse(FluidRegistry.WATER)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
                 event.getModelRegistry().putObject(new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid"), model);
             }
         }
@@ -145,7 +146,7 @@ public final class EventHandler
         final FluidState fluidState = FluidState.get(world, pos);
         final IBlockState state = world.getBlockState(pos);
 
-        if(!fluidState.isEmpty() && FluidloggedUtils.setFluidState(world, pos, state, FluidState.EMPTY, false)) {
+        if(!fluidState.isEmpty() && setFluidState(world, pos, state, FluidState.EMPTY, false)) {
             world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluidState.getFluid().getFillSound(), SoundCategory.BLOCKS, 1, 1);
             handler.fill(new FluidStack(fluidState.getFluid(), Fluid.BUCKET_VOLUME), true);
             return true;
@@ -157,7 +158,7 @@ public final class EventHandler
     private static boolean tryBucketDrain_Internal(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer player, @Nonnull IFluidHandlerItem handler, @Nonnull Fluid fluid) {
         final IBlockState state = world.getBlockState(pos);
 
-        if(FluidloggedUtils.isFluidFluidloggable(fluid.getBlock()) && FluidloggedUtils.isStateFluidloggable(state, fluid) && FluidloggedUtils.setFluidState(world, pos, state, FluidState.of(fluid), true)) {
+        if(isFluidloggableFluid(fluid.getBlock()) && isStateFluidloggable(state, fluid) && setFluidState(world, pos, state, FluidState.of(fluid), true)) {
             world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluid.getEmptySound(), SoundCategory.BLOCKS, 1, 1);
             handler.drain(new FluidStack(fluid, Fluid.BUCKET_VOLUME), true);
             return true;

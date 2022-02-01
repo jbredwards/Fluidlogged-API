@@ -1,7 +1,7 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
 import git.jbredwards.fluidlogged_api.Main;
-import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
+import git.jbredwards.fluidlogged_api.common.block.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.common.config.FluidloggedConfig;
@@ -47,7 +47,7 @@ public enum FluidloggedUtils
     @Nonnull
     public static FluidState getFluidState(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
         final @Nullable Fluid fluidHere = getFluidFromState(here);
-        return fluidHere == null ? FluidState.get(world, pos) : new FluidState(fluidHere, here);
+        return (fluidHere != null) ? new FluidState(fluidHere, here) : FluidState.get(world, pos);
     }
 
     //convenience method
@@ -152,6 +152,14 @@ public enum FluidloggedUtils
         else return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
+    //checks if two fluids are compatible
+    public static boolean isCompatibleFluid(@Nullable Fluid fluid1, @Nullable Fluid fluid2) {
+        if(fluid1 == null || fluid2 == null) return fluid1 == fluid2;
+        else return fluid1 == fluid2
+                || fluid1.getBlock() instanceof ICompatibleFluid && ((ICompatibleFluid)fluid1.getBlock()).isCompatibleFluid(fluid2)
+                || fluid2.getBlock() instanceof ICompatibleFluid && ((ICompatibleFluid)fluid2.getBlock()).isCompatibleFluid(fluid1);
+    }
+
     //convenience method that takes in an IBlockState rather than a Block
     @Nullable
     public static Fluid getFluidFromState(@Nullable IBlockState fluid) { return (fluid != null) ? getFluidFromBlock(fluid.getBlock()) : null; }
@@ -162,17 +170,20 @@ public enum FluidloggedUtils
     public static Fluid getFluidFromBlock(@Nullable Block fluid) { return (fluid instanceof IFluidBlock) ? ((IFluidBlock)fluid).getFluid() : null; }
 
     @SuppressWarnings("deprecation")
-    public static boolean isFluidFluidloggable(@Nullable Block fluid) {
+    public static boolean isFluidloggableFluid(@Nullable Block fluid) {
         //allow vanilla fluid blocks & possibly modded ones
-        if(fluid instanceof IFluidloggableFluid) return ((IFluidloggableFluid)fluid).isFluidFluidloggable();
+        if(fluid instanceof IFluidloggableFluid) return ((IFluidloggableFluid)fluid).isFluidloggableFluid();
         //restrict forge fluids to BlockFluidClassic
-        else return fluid instanceof BlockFluidClassic && !fluid.hasTileEntity();
+        else if(!(fluid instanceof BlockFluidClassic) || fluid.hasTileEntity()) return false;
+        //only non-duplicate fluid blocks are fluidloggable
+        final @Nullable Fluid supplier = getFluidFromBlock(fluid);
+        return supplier != null && supplier.getBlock() == fluid;
     }
 
     //same as above method, but also checks for fluid level
-    public static boolean isFluidFluidloggable(@Nonnull IBlockState fluid) {
-        if(!isFluidFluidloggable(fluid.getBlock())) return false;
-        final int level = fluid.getValue(BlockLiquidBase.LEVEL);
+    public static boolean isFluidloggableFluid(@Nonnull IBlockState fluid) {
+        if(!isFluidloggableFluid(fluid.getBlock())) return false;
+        final int level = fluid.getValue(BlockLiquid.LEVEL);
         return level == 0 || (level >= 8 && AccessorUtils.canCreateSources(fluid.getBlock()));
     }
 

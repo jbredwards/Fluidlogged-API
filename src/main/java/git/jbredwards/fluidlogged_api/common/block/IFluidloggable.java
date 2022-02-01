@@ -17,49 +17,65 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * implement this if your block can be fluidlogged
- * quick reminder that all interfaces support the forge net.minecraftforge.fml.common.Optional @interfaces!
- * (using them allows your blocks to support fluidlogging while making this mod only an optional dependency!)
+ * use this if your block can be fluidlogged.
  * @author jbred
  *
  */
 public interface IFluidloggable
 {
-    //return true if this is a fluidloggable block
+    /**
+     * @return true if the IBlockState is fluidloggable
+     */
     default boolean isFluidloggable(@Nonnull IBlockState state) { return true; }
 
-    //return true if this is fluidloggable with the input fluid
+    /**
+     * @return true if the IBlockState can be fluidlogged with the input fluid
+     */
     default boolean isFluidValid(@Nonnull IBlockState state, @Nonnull Fluid fluid) { return isFluidloggable(state); }
 
-    //called by FluidloggedUtils#canFluidFlow, has two purposes:
-    //1: returns true if the contained fluid can flow from the specified side
-    //2: returns true if a fluid can flow into this block from the specified side
+    /**
+     * called by {@link git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils#canFluidFlow},
+     * which is invoked a lot, so try to keep the code for this fairly light.
+     *
+     * @returns true if the contained fluid can flow from the specified side,
+     * or if a fluid can flow into this block from the specified side
+     */
     default boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
         return here.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
-    //returns true if the FluidState should be visible while this is fluidlogged
+    /**
+     * @return true if the FluidState should be visible while this is fluidlogged
+     */
     @SideOnly(Side.CLIENT)
     default boolean shouldFluidRender(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState fluidState) {
         return !fluidState.isEmpty() && fluidState.getState().getRenderType() == EnumBlockRenderType.MODEL;
     }
 
-    //called by FluidloggedUtils#setFluidState when the stored FluidState is changed
-    //PASS = run & return FluidloggedUtils#setFluidState_Internal
-    //FAIL = assume the change never happened
-    //SUCCESS = assume the change happened
+    /**
+     * called by {@link git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils#setFluidState}
+     * when the stored FluidState is changed
+     *
+     * @return PASS - run & return {@link git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils#setFluidState_Internal},
+     * FAIL - assume the change never happened,
+     * SUCCESS - assume the change happened
+     */
     @Nonnull
     default EnumActionResult onFluidChange(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState newFluid, int blockFlags) {
         return newFluid.isEmpty() ? onFluidDrain(world, pos, here, blockFlags) : onFluidFill(world, pos, here, newFluid, blockFlags);
     }
 
-    //convenience method called by IFluidloggable#onFluidChange when a new FluidState is put here
+    /**
+     * convenience method called by {@link IFluidloggable#onFluidChange} when a new FluidState is put here
+     */
     @Nonnull
     default EnumActionResult onFluidFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState newFluid, int blockFlags) {
         return EnumActionResult.PASS;
     }
 
-    //convenience method called by IFluidloggable#onFluidChange when the stored FluidState is removed
+    /**
+     * convenience method called by {@link IFluidloggable#onFluidChange} when the stored FluidState is removed
+     */
     @Nonnull
     default EnumActionResult onFluidDrain(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, int blockFlags) {
         return EnumActionResult.PASS;

@@ -62,29 +62,29 @@ public final class Main
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET,  DispenseFluidContainer.getInstance());
     }
 
-    //handles client-side code reliably without a try/catch
+    //handles server-side code
     public static class CommonProxy
     {
-        //tries to get the chunk stored in IBlockAccess at the given pos
+        //tries to get the chunk stored in the IBlockAccess
         @Nullable
-        public Chunk getChunk(@Nullable IBlockAccess world, @Nonnull BlockPos pos) {
-            if(world instanceof World) return ((World)world).getChunkFromBlockCoords(pos);
-            else if(world instanceof ChunkCache) return ((ChunkCache)world).world.getChunkFromBlockCoords(pos);
-            else if(world instanceof IChunkProvider) return ((IChunkProvider)world).getChunkFromBlockCoords(pos);
+        public Chunk getChunk(@Nullable IBlockAccess worldIn, @Nonnull BlockPos pos) {
+            if(worldIn instanceof World) return ((World)worldIn).getChunkFromBlockCoords(pos);
+            else if(worldIn instanceof ChunkCache) return ((ChunkCache)worldIn).world.getChunkFromBlockCoords(pos);
+            else if(worldIn instanceof IChunkProvider) return ((IChunkProvider)worldIn).getChunkFromBlockCoords(pos);
             else return null;
         }
     }
 
-    //handles client-side code reliably without a try/catch
+    //handles client-side code
     @SuppressWarnings("unused")
     public static class ClientProxy extends CommonProxy
     {
-        //use WorldClient instance & ignore world input if clientside
+        //prioritize the Minecraft#world instance, with a fallback to the input
         @Nullable
         @Override
-        public Chunk getChunk(@Nullable IBlockAccess ignored, @Nonnull BlockPos pos) {
-            final World world = Minecraft.getMinecraft().world;
-            return (world == null) ? null : world.getChunkFromBlockCoords(pos);
+        public Chunk getChunk(@Nullable IBlockAccess worldIn, @Nonnull BlockPos pos) {
+            final @Nullable World world = Minecraft.getMinecraft().world;
+            return super.getChunk(world != null ? world : worldIn, pos);
         }
     }
 }
