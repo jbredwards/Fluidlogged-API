@@ -143,13 +143,10 @@ public enum FluidloggedUtils
     //has two purposes:
     //1: returns true if the contained fluid can flow from the specified side
     //2: returns true if a fluid can flow into this block from the specified side
-    public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
-        //enable modded blocks to have special cases
-        if(state.getBlock() instanceof IFluidloggable) return ((IFluidloggable)state.getBlock()).canFluidFlow(world, pos, state, fluid, side);
-        //special case for spawners
-        else if(state.getBlock() instanceof BlockMobSpawner) return true;
-        //default
-        else return state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
+    public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing side) {
+        return (state.getBlock() instanceof IFluidloggable)
+                ? ((IFluidloggable)state.getBlock()).canFluidFlow(world, pos, state, side)
+                : state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
     //checks if two fluids are compatible
@@ -169,22 +166,20 @@ public enum FluidloggedUtils
     @Nullable
     public static Fluid getFluidFromBlock(@Nullable Block fluid) { return (fluid instanceof IFluidBlock) ? ((IFluidBlock)fluid).getFluid() : null; }
 
-    @SuppressWarnings("deprecation")
-    public static boolean isFluidloggableFluid(@Nullable Block fluid) {
-        //allow vanilla fluid blocks & possibly modded ones
-        if(fluid instanceof IFluidloggableFluid) return ((IFluidloggableFluid)fluid).isFluidloggableFluid();
-        //restrict forge fluids to BlockFluidClassic
-        else if(!(fluid instanceof BlockFluidClassic) || fluid.hasTileEntity()) return false;
-        //only non-duplicate fluid blocks are fluidloggable
-        final @Nullable Fluid supplier = getFluidFromBlock(fluid);
-        return supplier != null && supplier.getBlock() == fluid;
-    }
+    //return true if the IBlockState can be fluidlogged
+    public static boolean isFluidloggableFluid(@Nonnull IBlockState fluid, boolean checkLevel) {
+        //(BlockLiquid & BlockFluidClassic extend this through asm)
+        if(!(fluid.getBlock() instanceof IFluidloggableFluid)
+                || !((IFluidloggableFluid)fluid.getBlock()).isFluidloggableFluid(fluid)) return false;
 
-    //same as above method, but also checks for fluid level
-    public static boolean isFluidloggableFluid(@Nonnull IBlockState fluid) {
-        if(!isFluidloggableFluid(fluid.getBlock())) return false;
-        final int level = fluid.getValue(BlockLiquid.LEVEL);
-        return level == 0 || (level >= 8 && AccessorUtils.canCreateSources(fluid.getBlock()));
+        //check for fluid level
+        if(checkLevel) {
+            final int level = fluid.getValue(BlockLiquid.LEVEL);
+            return level == 0 || (level >= 8 && AccessorUtils.canCreateSources(fluid.getBlock()));
+        }
+
+        //skip level check
+        return true;
     }
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {

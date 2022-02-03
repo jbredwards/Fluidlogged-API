@@ -1,0 +1,8 @@
+{
+  "parent": "mixins.fluidlogged_api.json",
+  "package": "git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block",
+  "mixins": [
+    "BlockDynamicLiquidMixin",
+    "BlockLiquidMixin"
+  ]
+}

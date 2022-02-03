@@ -29,8 +29,6 @@ import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.property.IExtendedBlockState;
-import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper;
@@ -195,7 +193,7 @@ public enum ASMHooks
     //BlockFluidBasePlugin helper
     public static boolean canSideFlowDir(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, FluidState fluidState, EnumFacing... sides) {
         for(EnumFacing side : sides) {
-            if(FluidloggedUtils.canFluidFlow(world, pos, state, fluid, side) && (fluidState.isEmpty() || canFlowInto(fluid, world, pos.offset(side))))
+            if(FluidloggedUtils.canFluidFlow(world, pos, state, side) && (fluidState.isEmpty() || canFlowInto(fluid, world, pos.offset(side))))
                 return true;
         }
 
@@ -303,133 +301,6 @@ public enum ASMHooks
 
         return !fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER &&
                 FluidloggedUtils.canFluidFlow(world, pos, state, fluidState.getFluid(), facing.getOpposite());
-    }
-
-    //BlockDynamicLiquidPlugin
-    public static boolean updateTick(BlockDynamicLiquid instance, World world, BlockPos pos, IBlockState state, Random rand) {
-        //prevent loading unnecessary chunks
-        if(!world.isAreaLoaded(pos, (state.getMaterial() == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 4))
-            return false;
-
-        final @Nullable Fluid instanceFluid = FluidloggedUtils.getFluidFromBlock(instance);
-        if(instanceFluid == null) throw new IllegalStateException("Fluid block is not a fluid?");
-
-        final IBlockState here = world.getBlockState(pos); //these three variables are helpful down the line & set here as to not have to call getBlockState twice
-        final IBlockState down = world.getBlockState(pos.down());
-        final FluidState downFluidState = FluidloggedUtils.getFluidState(world, pos.down(), down);
-
-        final int lavaDif = (state.getMaterial() == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 1;
-        int stateLevel = state.getValue(BlockLiquid.LEVEL);
-        int tickRate = instance.tickRate(world);
-
-        //non source block & non FluidState
-        if(stateLevel > 0) {
-            int currentMinLevel = -100;
-            instance.adjacentSourceBlocks = 0;
-
-            //used in place of instance#checkAdjacentBlock
-            for(EnumFacing facing : HORIZONTALS) {
-                if(FluidloggedUtils.canFluidFlow(world, pos, here, instanceFluid, facing)) {
-                    BlockPos offset = pos.offset(facing);
-                    IBlockState neighbor = world.getBlockState(offset);
-                    FluidState fluidNeighbor = FluidloggedUtils.getFluidState(world, offset, neighbor);
-
-                    if(fluidNeighbor.getFluid() == instanceFluid && FluidloggedUtils.canFluidFlow(world, offset, neighbor, instanceFluid, facing.getOpposite())) {
-                        int neighborLevel = fluidNeighbor.getLevel();
-
-                        if(neighborLevel == 0) instance.adjacentSourceBlocks++;
-                        else if(neighborLevel >= 8) neighborLevel = 0;
-
-                        if(currentMinLevel < 0 || neighborLevel < currentMinLevel)
-                            currentMinLevel = neighborLevel;
-                    }
-                }
-            }
-
-            int futureLevel = currentMinLevel + lavaDif;
-            if(futureLevel >= 8 || currentMinLevel < 0) futureLevel = -1;
-
-            //used in place of instance#getDepth
-            final IBlockState up = world.getBlockState(pos.up());
-            final FluidState fluidStateUp = FluidloggedUtils.getFluidState(world, pos.up(), up);
-            final int depth = (fluidStateUp.getFluid() == instanceFluid && FluidloggedUtils.canFluidFlow(world, pos.up(), up, instanceFluid, DOWN)) ? fluidStateUp.getLevel() : -1;
-            if(depth >= 0) { futureLevel = (depth >= 8) ? depth : depth + 8; }
-
-            //prepare source block creation
-            if(instance.adjacentSourceBlocks >= 2 && ForgeEventFactory.canCreateFluidSource(world, pos, state, state.getMaterial() == Material.WATER)) {
-                if(down.getMaterial().isSolid())
-                    futureLevel = 0;
-
-                else if(downFluidState.getFluid() == instanceFluid && downFluidState.getLevel() == 0)
-                    futureLevel = 0;
-            }
-
-            //varies lava flow speed slightly
-            if(state.getMaterial() == Material.LAVA && futureLevel < 8 && futureLevel > stateLevel && rand.nextInt(4) != 0)
-                tickRate *= 4;
-
-            //reduce lag by placing static block if there's no change
-            if(futureLevel == stateLevel) instance.placeStaticBlock(world, pos, state);
-
-            //still a flowing block
-            else {
-                stateLevel = futureLevel;
-
-                //update state that exists in the world
-                if(stateLevel < 0) world.setBlockState(pos, Blocks.AIR.getDefaultState());
-                else {
-                    state = state.withProperty(BlockLiquid.LEVEL, stateLevel);
-                    world.setBlockState(pos, state, Constants.BlockFlags.SEND_TO_CLIENTS);
-                    world.scheduleUpdate(pos, instance, tickRate);
-                    world.notifyNeighborsOfStateChange(pos, instance, false);
-                }
-            }
-        }
-
-        //set to static block if non-FluidState
-        else if(state == here) instance.placeStaticBlock(world, pos, state);
-
-        //flow down
-        if(canFlowInto(instance, world, pos.down(), down, DOWN, instanceFluid)) {
-            if(state.getMaterial() == Material.LAVA) {
-                if(!downFluidState.isEmpty() && downFluidState.getMaterial() == Material.WATER && isReplaceable(down, world, pos.down())) {
-                    world.setBlockState(pos.down(), ForgeEventFactory.fireFluidPlaceBlockEvent(world, pos.down(), pos, Blocks.STONE.getDefaultState()));
-                    instance.triggerMixEffects(world, pos.down());
-                    return false;
-                }
-            }
-
-            tryFlowInto(instance, world, pos.down(), down, DOWN, instanceFluid, (stateLevel >= 8) ? stateLevel : stateLevel + 8);
-        }
-
-        //try flowing to the side
-        else if(stateLevel >= 0 && (stateLevel == 0 || instance.isBlocked(world, pos.down(), down))) {
-            final int flowingLevel = (stateLevel >= 8) ? 1 : stateLevel + lavaDif;
-            if(flowingLevel >= 8) return false;
-
-            int prevSlopeDistance = 1000;
-            final Set<EnumFacing> flowDirections = new HashSet<>();
-            for(EnumFacing facing : HORIZONTALS) {
-                if(FluidloggedUtils.canFluidFlow(world, pos, here, instanceFluid, facing)) {
-                    BlockPos offset = pos.offset(facing);
-                    IBlockState neighbor = world.getBlockState(offset);
-                    FluidState fluidNeighbor = FluidloggedUtils.getFluidState(world, offset, neighbor);
-
-                    if(!instance.isBlocked(world, offset, neighbor) && (fluidNeighbor.getFluid() != instanceFluid || fluidNeighbor.getLevel() > 0)) {
-                        int slopeDistance = 0;
-
-                    }
-                }
-            }
-        }
-
-        //always return false to skip running the old code
-        return false;
-    }
-
-    //BlockDynamicLiquidPlugin helper
-    public static boolean canFlowInto(BlockDynamicLiquid instance, World world, BlockPos pos, IBlockState state, EnumFacing facing, Fluid instanceFluid) {
-        return !instance.isBlocked(world, pos, state) && FluidloggedUtils.getFluidState(world, pos, state).getFluid() != instanceFluid;
     }
 
     //BlockLilyPadPlugin

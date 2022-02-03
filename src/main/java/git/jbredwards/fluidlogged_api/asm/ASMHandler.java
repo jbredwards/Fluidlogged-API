@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.asm;
 
 import com.google.common.collect.ImmutableMap;
+import git.jbredwards.fluidlogged_api.Constants;
 import git.jbredwards.fluidlogged_api.asm.plugins.IASMPlugin;
 import git.jbredwards.fluidlogged_api.asm.plugins.forge.*;
 import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.block.*;
@@ -9,6 +10,9 @@ import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.entity.*;
 import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.world.*;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
+import org.spongepowered.asm.launch.MixinBootstrap;
+import org.spongepowered.asm.mixin.MixinEnvironment;
+import org.spongepowered.asm.mixin.Mixins;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -42,10 +46,10 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.BlockBush", new BlockBushPlugin()) //breaking this block type no longer voids the possible FluidState here
                 .put("net.minecraft.block.BlockCocoa", new BlockCocoaPlugin()) //breaking this block type no longer voids the possible FluidState here
                 .put("net.minecraft.block.BlockConcretePowder", new BlockConcretePowderPlugin()) //concrete forms from concrete powder while it's next to water FluidStates
-                .put("net.minecraft.block.BlockDynamicLiquid", new BlockDynamicLiquidPlugin()) //vanilla fluids no longer do block mixing when they shouldn't; vanilla fluids now flow from fluidlogged blocks
+                //.put("net.minecraft.block.BlockDynamicLiquid", new BlockDynamicLiquidPlugin()) //vanilla fluids no longer do block mixing when they shouldn't; vanilla fluids now flow from fluidlogged blocks
                 .put("net.minecraft.block.BlockFarmland", new BlockFarmlandPlugin()) //farmland blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockLilyPad", new BlockLilyPadPlugin()) //lily pads can stay on certain water FluidStates
-                .put("net.minecraft.block.BlockLiquid", new BlockLiquidPlugin()) //fixes BlockLiquid#getBlockLiquidHeight
+                //.put("net.minecraft.block.BlockLiquid", new BlockLiquidPlugin()) //fixes BlockLiquid#getBlockLiquidHeight
                 .put("net.minecraft.block.BlockReed", new BlockReedPlugin()) //sugar cane blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockSkull", new BlockSkullPlugin()) //wither skulls no longer void the FluidState here when summoning the wither
                 .put("net.minecraft.block.BlockSponge", new BlockSpongePlugin()) //fixes drain interactions across all modded fluids & FluidStates
@@ -81,9 +85,19 @@ public final class ASMHandler implements IFMLLoadingPlugin
     @Override
     public String[] getASMTransformerClass() {
         return new String[] {
-                "git.jbredwards.fluidlogged_api.asm.ASMReplacer",
+                //"git.jbredwards.fluidlogged_api.asm.ASMReplacer",
                 "git.jbredwards.fluidlogged_api.asm.ASMHandler$Transformer"
         };
+    }
+
+    //handle mixin
+    @Override
+    public void injectData(@Nullable Map<String, Object> data) {
+        MixinBootstrap.init();
+        Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.block.fluidloggable.json");
+        Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.block.json");
+        Mixins.addConfiguration("mixins." + Constants.MODID + ".forge.json");
+        MixinEnvironment.getDefaultEnvironment().setObfuscationContext("searge");
     }
 
     @Nullable
@@ -93,9 +107,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
     @Nullable
     @Override
     public String getSetupClass() { return null; }
-
-    @Override
-    public void injectData(@Nullable Map<String, Object> data) { }
 
     @Nullable
     @Override

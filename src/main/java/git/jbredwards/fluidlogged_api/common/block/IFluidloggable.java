@@ -14,7 +14,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * use this if your block can be fluidlogged.
@@ -37,10 +36,10 @@ public interface IFluidloggable
      * called by {@link git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils#canFluidFlow},
      * which is invoked a lot, so try to keep the code for this fairly light.
      *
-     * @returns true if the contained fluid can flow from the specified side,
+     * @return true if the contained fluid can flow from the specified side,
      * or if a fluid can flow into this block from the specified side
      */
-    default boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nullable Fluid fluid, @Nonnull EnumFacing side) {
+    default boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull EnumFacing side) {
         return here.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
