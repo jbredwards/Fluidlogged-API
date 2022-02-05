@@ -2,7 +2,7 @@ package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.asm.plugins.ASMHooks;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
-import git.jbredwards.fluidlogged_api.common.util.FluidState;
+import git.jbredwards.fluidlogged_api.common.storage.FluidState;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.BlockStairs;

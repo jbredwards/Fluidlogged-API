@@ -7,7 +7,10 @@ import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.common.config.FluidloggedConfig;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
-import net.minecraft.block.*;
+import git.jbredwards.fluidlogged_api.common.storage.FluidState;
+import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumActionResult;
@@ -19,7 +22,9 @@ import net.minecraft.world.WorldType;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fluids.*;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
@@ -162,7 +167,7 @@ public enum FluidloggedUtils
     public static Fluid getFluidFromState(@Nullable IBlockState fluid) { return (fluid != null) ? getFluidFromBlock(fluid.getBlock()) : null; }
 
     //fork of IFluidBlock#getFluid
-    //(don't worry, this mod has any classes that extend BlockLiquid extend IFluidBlock during runtime)
+    //(BlockLiquid extends IFluidBlock during runtime through asm)
     @Nullable
     public static Fluid getFluidFromBlock(@Nullable Block fluid) { return (fluid instanceof IFluidBlock) ? ((IFluidBlock)fluid).getFluid() : null; }
 
@@ -187,31 +192,8 @@ public enum FluidloggedUtils
         final EnumActionResult result = FluidloggedConfig.isStateFluidloggable(state, fluid);
         if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;
         //defaults
-        else {
-            //modded
-            final Block block = state.getBlock();
-            if(block instanceof IFluidloggable) {
-                if(fluid == null) return ((IFluidloggable)block).isFluidloggable(state);
-                else              return ((IFluidloggable)block).isFluidValid(state, fluid);
-            }
-            //vanilla
-            else return (block instanceof BlockSlab && !((BlockSlab)block).isDouble())
-                    || block instanceof BlockStairs
-                    || block instanceof BlockPane
-                    || block instanceof BlockFence
-                    || block instanceof BlockEndRod
-                    || block instanceof BlockWall
-                    || block instanceof BlockBarrier
-                    || block instanceof BlockFenceGate
-                    || block instanceof BlockTrapDoor
-                    || block instanceof BlockRailBase
-                    || block instanceof BlockHopper
-                    || block instanceof BlockChest
-                    || block instanceof BlockEnderChest
-                    || block instanceof BlockSkull
-                    || block instanceof BlockSign
-                    || block instanceof BlockDoor
-                    || block instanceof BlockMobSpawner;
-        }
+        return (state.getBlock() instanceof IFluidloggable) && (fluid != null
+                ? ((IFluidloggable)state.getBlock()).isFluidValid(state, fluid)
+                : ((IFluidloggable)state.getBlock()).isFluidloggable(state));
     }
 }

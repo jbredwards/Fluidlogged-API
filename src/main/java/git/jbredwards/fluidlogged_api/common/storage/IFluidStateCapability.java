@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.common.util;
+package git.jbredwards.fluidlogged_api.common.storage;
 
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTBase;

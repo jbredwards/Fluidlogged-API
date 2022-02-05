@@ -3,12 +3,21 @@
   "package": "git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block.fluidloggable",
   "mixins": [
     "BlockBarrierMixin",
+    "BlockChestMixin",
+    "BlockDoorMixin",
+    "BlockEnderChestMixin",
     "BlockEndRodMixin",
     "BlockFenceGateMixin",
     "BlockFenceMixin",
+    "BlockHopperMixin",
+    "BlockMobSpawnerMixin",
     "BlockPaneMixin",
+    "BlockRailBaseMixin",
+    "BlockSignMixin",
+    "BlockSkullMixin",
     "BlockSlabMixin",
     "BlockStairsMixin",
+    "BlockTrapDoorMixin",
     "BlockWallMixin"
   ]
 }

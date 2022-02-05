@@ -1,8 +1,7 @@
 package git.jbredwards.fluidlogged_api.asm.plugins;
 
-import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
-import git.jbredwards.fluidlogged_api.common.util.FluidState;
+import git.jbredwards.fluidlogged_api.common.storage.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.AccessorUtils;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.*;
@@ -491,15 +490,14 @@ public enum ASMHooks
 
     //RenderChunkPlugin helper
     public static boolean fixCorner(IBlockState oldState, IBlockAccess world, BlockPos pos, Fluid fluid, EnumFacing primary, EnumFacing other) {
-        if(FluidloggedUtils.canFluidFlow(world, pos, oldState, fluid, primary)) return false;
+        if(FluidloggedUtils.canFluidFlow(world, pos, oldState, primary)) return false;
 
         final BlockPos offset = pos.offset(other);
         final IBlockState neighbor = world.getBlockState(offset);
-        final @Nullable Fluid neighborFluid = FluidloggedUtils.getFluidState(world, offset, neighbor).getFluid();
 
-        if(neighborFluid != fluid) return true;
-        else return !FluidloggedUtils.canFluidFlow(world, offset, neighbor, neighborFluid, primary)
-                ||  !FluidloggedUtils.canFluidFlow(world, offset, neighbor, neighborFluid, other);
+        if(!FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(world, offset, neighbor).getFluid(), fluid)) return true;
+        else return !FluidloggedUtils.canFluidFlow(world, offset, neighbor, primary)
+                ||  !FluidloggedUtils.canFluidFlow(world, offset, neighbor, other);
     }
 
     //WorldClientPlugin
@@ -605,7 +603,7 @@ public enum ASMHooks
 
                 //save old state as FluidState
                 final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(oldState);
-                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(oldState) && FluidloggedUtils.isStateFluidloggable(newState, fluid))
+                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(oldState, true) && FluidloggedUtils.isStateFluidloggable(newState, fluid))
                     FluidloggedUtils.setFluidState(world, pos, newState, FluidState.of(fluid), false, flags);
             }
         }

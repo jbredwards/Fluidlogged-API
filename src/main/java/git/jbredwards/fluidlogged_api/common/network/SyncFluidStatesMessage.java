@@ -1,8 +1,8 @@
 package git.jbredwards.fluidlogged_api.common.network;
 
 import com.google.common.collect.ImmutableSet;
-import git.jbredwards.fluidlogged_api.common.util.IFluidStateCapability;
-import git.jbredwards.fluidlogged_api.common.util.FluidState;
+import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.common.storage.FluidState;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;

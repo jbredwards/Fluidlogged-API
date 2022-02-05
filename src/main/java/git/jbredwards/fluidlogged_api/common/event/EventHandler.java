@@ -2,11 +2,11 @@ package git.jbredwards.fluidlogged_api.common.event;
 
 import git.jbredwards.fluidlogged_api.Constants;
 import git.jbredwards.fluidlogged_api.Main;
-import git.jbredwards.fluidlogged_api.asm.replacements.BlockLiquidBase;
-import git.jbredwards.fluidlogged_api.common.util.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.network.SyncFluidStatesMessage;
-import git.jbredwards.fluidlogged_api.common.util.FluidState;
+import git.jbredwards.fluidlogged_api.common.storage.FluidState;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.IBakedModel;
@@ -72,14 +72,14 @@ public final class EventHandler
     @SideOnly(Side.CLIENT)
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void removeBuiltInLiquidStateMappers(@Nullable TextureStitchEvent.Pre event) {
-        Minecraft.getMinecraft().modelManager.getBlockModelShapes().getBlockStateMapper().setBuiltInBlocks.removeIf(b -> b instanceof BlockLiquidBase);
+        Minecraft.getMinecraft().modelManager.getBlockModelShapes().getBlockStateMapper().setBuiltInBlocks.removeIf(b -> b instanceof BlockLiquid);
     }
 
     @SideOnly(Side.CLIENT)
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void registerLiquidStateMappers(@Nullable ModelRegistryEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
-            if(block instanceof BlockLiquidBase) {
+            if(block instanceof BlockLiquid) {
                 ModelLoader.setCustomStateMapper(block, new StateMapperBase() {
                     @Nonnull
                     @Override
@@ -95,7 +95,7 @@ public final class EventHandler
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void registerLiquidBakedModels(@Nonnull ModelBakeEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
-            if(block instanceof BlockLiquidBase) {
+            if(block instanceof BlockLiquid) {
                 IBakedModel model = new ModelFluid(Optional.ofNullable(getFluidFromBlock(block)).orElse(FluidRegistry.WATER)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
                 event.getModelRegistry().putObject(new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid"), model);
             }

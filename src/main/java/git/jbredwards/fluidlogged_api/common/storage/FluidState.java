@@ -1,5 +1,7 @@
-package git.jbredwards.fluidlogged_api.common.util;
+package git.jbredwards.fluidlogged_api.common.storage;
 
+import git.jbredwards.fluidlogged_api.asm.mixins.forge.IDefaultFluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -33,14 +35,22 @@ public class FluidState extends Pair<Fluid, IBlockState>
         state = stateIn;
     }
 
-    //build a new fluid state or return empty instance, if fluid isn't valid for fluidlogging
+    //return a FluidState with the input Fluid, or return empty instance if the fluid isn't valid for fluidlogging
     @Nonnull
     public static FluidState of(@Nullable Fluid fluidIn) {
-        final @Nullable Block block = (fluidIn == null) ? null : fluidIn.getBlock();
-        return (block == null) ? EMPTY : new FluidState(fluidIn, (block instanceof BlockLiquid)
+        if(!(fluidIn instanceof IDefaultFluidState) || !fluidIn.canBePlacedInWorld())
+            return EMPTY;
+
+        //use the fluid's default state if present
+        if(!((IDefaultFluidState)fluidIn).isEmpty()) return ((IDefaultFluidState)fluidIn).getDefaultFluidState();
+
+        //generate new instance if default not present
+        final Block block = fluidIn.getBlock();
+        return ((IDefaultFluidState)fluidIn).setDefaultFluidState(
+                new FluidState(fluidIn, (block instanceof BlockLiquid)
                 //ensure flowing blocks are used for vanilla fluids
                 ? BlockLiquid.getFlowingBlock(block.getDefaultState().getMaterial()).getDefaultState()
-                : block.getDefaultState());
+                : block.getDefaultState()));
     }
 
     //convenience method that takes in a Block
