@@ -51,7 +51,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.BlockLilyPad", new BlockLilyPadPlugin()) //lily pads can stay on certain water FluidStates
                 //.put("net.minecraft.block.BlockLiquid", new BlockLiquidPlugin()) //fixes BlockLiquid#getBlockLiquidHeight
                 .put("net.minecraft.block.BlockReed", new BlockReedPlugin()) //sugar cane blocks now recognise water FluidStates
-                .put("net.minecraft.block.BlockSkull", new BlockSkullPlugin()) //wither skulls no longer void the FluidState here when summoning the wither
+                //.put("net.minecraft.block.BlockSkull", new BlockSkullPlugin()) //wither skulls no longer void the FluidState here when summoning the wither
                 .put("net.minecraft.block.BlockSponge", new BlockSpongePlugin()) //fixes drain interactions across all modded fluids & FluidStates
                 //vanilla (entities)
                 .put("net.minecraft.entity.ai.EntityAIPanic", new EntityAIPanicPlugin()) //water FluidStates are now seen as water blocks
@@ -62,7 +62,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.entity.projectile.EntityFishHook", new EntityFishHookPlugin()) //fishhook entities generate the fishing particles at water FluidStates
                 .put("net.minecraft.entity.Entity", new EntityPlugin()) //isInsideOfMaterial now recognises FluidStates
                 //vanilla (world)
-                .put("net.minecraft.world.chunk.Chunk", new ChunkPlugin()) //WIP
+                //.put("net.minecraft.world.chunk.Chunk", new ChunkPlugin()) //WIP
                 .put("net.minecraft.world.end.DragonSpawnManager$3", new DragonSpawnManagerPlugin()) //summoning the ender dragon will now void FluidStates at the pillar locations
                 .put("net.minecraft.world.gen.feature.WorldGenDungeons", new WorldGenDungeonsPlugin()) //spawner dungeons now void FluidStates when they generate
                 .put("net.minecraft.world.World", new WorldPlugin()) //corrects a lot of FluidState related interactions

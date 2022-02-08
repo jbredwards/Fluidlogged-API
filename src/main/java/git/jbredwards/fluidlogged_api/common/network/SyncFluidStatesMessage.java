@@ -2,7 +2,8 @@ package git.jbredwards.fluidlogged_api.common.network;
 
 import com.google.common.collect.ImmutableSet;
 import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
-import git.jbredwards.fluidlogged_api.common.storage.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -90,28 +91,22 @@ public final class SyncFluidStatesMessage implements IMessage
                         //add any new fluid states
                         message.data.forEach(entry -> {
                             BlockPos pos = BlockPos.fromLong(entry.getKey());
+                            FluidState fluidState = FluidState.deserialize(entry.getValue());
 
                             //send changes to client
-                            cap.setFluidState(pos, FluidState.deserialize(entry.getValue()));
-
-                            //update light levels
-                            world.profiler.startSection("checkLight");
-                            world.checkLight(pos);
-                            world.profiler.endSection();
+                            cap.setFluidState(pos, fluidState);
 
                             //re-render block
+                            FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
                             world.markBlockRangeForRenderUpdate(pos, pos);
                         });
 
                         //update removed light levels & renders
                         removed.forEach(pos -> {
+                            //make sure the cleared pos wasn't replaced prior to re-render
                             if(!cap.getFluidStates().containsKey(pos)) {
-                                //update light levels
-                                world.profiler.startSection("checkLight");
-                                world.checkLight(pos);
-                                world.profiler.endSection();
-
                                 //re-render block
+                                FluidloggedUtils.relightFluidBlock(world, pos, FluidState.EMPTY);
                                 world.markBlockRangeForRenderUpdate(pos, pos);
                             }
                         });

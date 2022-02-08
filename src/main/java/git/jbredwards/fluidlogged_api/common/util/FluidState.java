@@ -1,7 +1,7 @@
-package git.jbredwards.fluidlogged_api.common.storage;
+package git.jbredwards.fluidlogged_api.common.util;
 
 import git.jbredwards.fluidlogged_api.asm.mixins.forge.IDefaultFluidState;
-import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;

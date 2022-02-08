@@ -1,7 +1,8 @@
 package git.jbredwards.fluidlogged_api.common.network;
 
 import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
-import git.jbredwards.fluidlogged_api.common.storage.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -67,15 +68,13 @@ public final class FluidStateMessage implements IMessage
                             world.getChunkFromBlockCoords(pos));
 
                     if(cap != null) {
-                        //send changes to client
-                        cap.setFluidState(pos, FluidState.deserialize(message.state));
+                        final FluidState fluidState = FluidState.deserialize(message.state);
 
-                        //update light levels
-                        world.profiler.startSection("checkLight");
-                        world.checkLight(pos);
-                        world.profiler.endSection();
+                        //send changes to client
+                        cap.setFluidState(pos, fluidState);
 
                         //re-render block
+                        FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
                         world.markBlockRangeForRenderUpdate(pos, pos);
                     }
                 });

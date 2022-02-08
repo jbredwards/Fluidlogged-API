@@ -1,11 +1,11 @@
 package git.jbredwards.fluidlogged_api.asm.mixins.forge;
 
-import git.jbredwards.fluidlogged_api.common.storage.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 
 import javax.annotation.Nonnull;
 
 /**
- * used by {@link FluidMixin} to reduce this mod's memory usage
+ * used by {@link FluidState} to reduce this mod's memory usage
  * @author jbred
  *
  */

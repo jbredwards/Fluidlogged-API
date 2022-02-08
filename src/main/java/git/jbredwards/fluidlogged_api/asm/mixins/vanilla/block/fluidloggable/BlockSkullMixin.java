@@ -1,7 +1,7 @@
 package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block.fluidloggable;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
-import git.jbredwards.fluidlogged_api.common.storage.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.BlockSkull;
 import net.minecraft.block.material.MapColor;
@@ -32,7 +32,6 @@ public abstract class BlockSkullMixin extends BlockContainer implements IFluidlo
         public boolean blocksLight() { return false; }
     }.setNoPushMobility();
 
-    public BlockSkullMixin(@Nonnull Material materialIn, @Nonnull MapColor colorIn) { super(materialIn, colorIn); }
     public BlockSkullMixin(@Nonnull Material materialIn) { super(materialIn); }
 
     @Nonnull
@@ -40,7 +39,7 @@ public abstract class BlockSkullMixin extends BlockContainer implements IFluidlo
     private static Material material() { return SKULL; }
 
     @Redirect(method = "checkWitherSpawn", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z", ordinal = 1))
-    private static boolean getFluidOrAir(World world, BlockPos pos, IBlockState air, int blockFlags) {
+    private boolean getFluidOrAir(World world, BlockPos pos, IBlockState air, int blockFlags) {
         final FluidState fluidState = FluidState.get(world, pos);
         return world.setBlockState(pos, fluidState.isEmpty() ? air : fluidState.getState(), blockFlags);
     }

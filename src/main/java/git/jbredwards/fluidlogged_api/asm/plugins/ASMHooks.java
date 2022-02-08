@@ -1,7 +1,7 @@
 package git.jbredwards.fluidlogged_api.asm.plugins;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
-import git.jbredwards.fluidlogged_api.common.storage.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.AccessorUtils;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.*;
@@ -210,7 +210,36 @@ public enum ASMHooks
         final Block fluidBlock = fluid.getBlock();
         return fluidBlock instanceof BlockFluidBase ?
                 ((BlockFluidBase)fluidBlock).canDisplace(world, pos) :
-                BlockLiquidBase.canDisplace(fluidBlock, fluid, world, pos);
+                canDisplace(fluidBlock, fluid, world, pos);
+    }
+
+    //BlockFluidBasePlugin helper
+    public static boolean canDisplace(@Nonnull Block fluidBlock, @Nonnull Fluid fluidIn, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        final IBlockState state = world.getBlockState(pos);
+        final Block block = state.getBlock();
+
+        if(block.isAir(state, world, pos)) return true;
+        else if(ASMHooks.canDisplace(state, fluidBlock, fluidIn, world, pos) == fluidBlock) return false;
+        else if(getDefaultDisplacements().containsKey(block)) return defaultDisplacements.get(block);
+
+        final Material material = state.getMaterial();
+        if(material.blocksMovement() || material == Material.PORTAL || material == Material.STRUCTURE_VOID) {
+            return false;
+        }
+
+        final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, state);
+        final boolean replaceable = block.isReplaceable(world, pos) || FluidloggedUtils.isStateFluidloggable(state, fluidIn);
+        final int density = fluidState.isEmpty() ? Integer.MAX_VALUE : (fluidState.getBlock() instanceof BlockFluidBase) ?
+                ((BlockFluidBase)fluidState.getBlock()).getDensity() : fluidState.getFluid().getDensity();
+
+        if(density == Integer.MAX_VALUE) return replaceable;
+        else return replaceable && 1000 > density;
+    }
+
+    static Map<Block, Boolean> defaultDisplacements = null;
+    static Map<Block, Boolean> getDefaultDisplacements() {
+        if(defaultDisplacements == null) defaultDisplacements = defaultDisplacements(new HashMap<>());
+        return defaultDisplacements;
     }
 
     //BlockFluidBasePlugin
@@ -228,8 +257,7 @@ public enum ASMHooks
     public static Material shouldSideBeRendered(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing side) {
         final BlockPos offset = pos.offset(side);
         final FluidState fluidState = FluidState.get(offset);
-        final @Nullable Fluid hereFluid = fluidState.isEmpty() ? FluidloggedUtils.getFluidFromState(state) : fluidState.getFluid();
-        final boolean canSideFlow = FluidloggedUtils.canFluidFlow(world, offset, state, hereFluid, side.getOpposite());
+        final boolean canSideFlow = FluidloggedUtils.canFluidFlow(world, offset, state, side.getOpposite());
 
         if(fluidState.isEmpty()) return state.getMaterial();
         else return canSideFlow ? fluidState.getMaterial() : null;
@@ -299,7 +327,7 @@ public enum ASMHooks
         final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, state);
 
         return !fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER &&
-                FluidloggedUtils.canFluidFlow(world, pos, state, fluidState.getFluid(), facing.getOpposite());
+                FluidloggedUtils.canFluidFlow(world, pos, state, facing.getOpposite());
     }
 
     //BlockLilyPadPlugin
@@ -415,7 +443,7 @@ public enum ASMHooks
         final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, here);
 
         return fluidState.isEmpty() || fluidState.getMaterial() != Material.LAVA
-            || !FluidloggedUtils.canFluidFlow(world, pos, here, fluidState.getFluid(), UP);
+            || !FluidloggedUtils.canFluidFlow(world, pos, here, UP);
     }
 
     //RenderChunkPlugin

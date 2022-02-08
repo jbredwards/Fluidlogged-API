@@ -28,7 +28,6 @@ public abstract class BlockRailBaseMixin extends Block implements IFluidloggable
         public boolean blocksLight() { return false; }
     }.setNoPushMobility();
 
-    public BlockRailBaseMixin(@Nonnull Material materialIn, @Nonnull MapColor colorIn) { super(materialIn, colorIn); }
     public BlockRailBaseMixin(@Nonnull Material materialIn) { super(materialIn); }
 
     @Nonnull

@@ -9,6 +9,8 @@
   "updateUrl": "",
   "authorList": ["jbredwards"],
   "credits": "jbredwards: main mod dev, asiekierka: original smoothwater dev",
+  "logoFile": "",
+  "parent": "",
   "screenshots": [],
   "dependencies": []
 }

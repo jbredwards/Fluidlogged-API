@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block;
 
-import git.jbredwards.fluidlogged_api.common.storage.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.BlockDynamicLiquid;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -29,7 +29,7 @@ import static git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils.*;
  * @author jbred
  *
  */
-@SuppressWarnings({"OverwriteAuthorRequired", "unused"})
+@SuppressWarnings("unused")
 @Mixin(BlockDynamicLiquid.class)
 public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
 {
@@ -38,6 +38,10 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
 
     protected BlockDynamicLiquidMixin(@Nonnull Material materialIn) { super(materialIn); }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Overwrite
     public void updateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
         if(!world.isAreaLoaded(pos, getSlopeFindDistance(world))) return; //prevent loading unnecessary chunks
@@ -146,6 +150,10 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
         }
     }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Overwrite
     private void tryFlowInto(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, int level) {
         if(state.getMaterial() != Material.AIR) {
@@ -157,6 +165,10 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
         worldIn.setBlockState(pos, getDefaultState().withProperty(BlockLiquid.LEVEL, level));
     }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Overwrite
     private int getSlopeDistance(@Nonnull World world, @Nonnull BlockPos pos, int distance, @Nonnull EnumFacing calculateFlowCost) {
         int shortestDistance = 1000;
@@ -180,6 +192,10 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
         return shortestDistance;
     }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Overwrite
     private Set<EnumFacing> getPossibleFlowDirections(@Nonnull World world, @Nonnull BlockPos pos) {
         int prevSlopeDistance = 1000;
@@ -212,6 +228,10 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
         return flowDirections;
     }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Overwrite
     private boolean canFlowInto(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
         return !isBlocked(world, pos, state) && !isCompatibleFluid(getFluidState(world, pos, state).getFluid(), getFluid());

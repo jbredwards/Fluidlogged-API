@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.common.storage;
 
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;

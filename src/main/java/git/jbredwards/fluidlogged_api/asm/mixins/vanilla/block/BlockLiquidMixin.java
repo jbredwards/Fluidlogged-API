@@ -2,11 +2,10 @@ package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.asm.plugins.ASMHooks;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
-import git.jbredwards.fluidlogged_api.common.storage.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.BlockStairs;
-import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
@@ -40,13 +39,16 @@ import static git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils.*;
  * @author jbred
  *
  */
-@SuppressWarnings({"OverwriteAuthorRequired", "unused"})
+@SuppressWarnings("unused")
 @Mixin(BlockLiquid.class)
 public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFluidloggableFluid
 {
-    public BlockLiquidMixin(@Nonnull Material materialIn, @Nonnull MapColor colorIn) { super(materialIn, colorIn); }
     public BlockLiquidMixin(@Nonnull Material materialIn) { super(materialIn); }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Nonnull
     @Overwrite
     protected BlockStateContainer createBlockState() {
@@ -56,10 +58,18 @@ public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFl
                 .build();
     }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Nonnull
     @Overwrite
     public EnumBlockRenderType getRenderType(@Nonnull IBlockState state) { return EnumBlockRenderType.MODEL; }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @SideOnly(Side.CLIENT)
     @Overwrite
     public boolean shouldSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
@@ -82,6 +92,10 @@ public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFl
         }
     }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Overwrite
     private boolean causesDownwardCurrent(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
         final IBlockState state = worldIn.getBlockState(pos);
@@ -97,6 +111,10 @@ public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFl
         }
     }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Nonnull
     @Overwrite
     protected Vec3d getFlow(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
@@ -170,6 +188,10 @@ public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFl
         return state.getMaterial().blocksMovement();
     }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Overwrite
     public boolean checkForMixing(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState stateIn) {
         if(blockMaterial == Material.LAVA) {
@@ -209,6 +231,10 @@ public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFl
         return false;
     }
 
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
     @Overwrite
     public static float getBlockLiquidHeight(@Nonnull IBlockState state, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
         final FluidState fluidState = getFluidState(worldIn, pos, state);

@@ -2,13 +2,11 @@ package git.jbredwards.fluidlogged_api.asm.mixins.forge;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockStairs;
-import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.BlockFluidBase;
@@ -29,18 +27,17 @@ import static git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils.*;
  * @author jbred
  *
  */
-@SuppressWarnings({"OverwriteAuthorRequired", "unused"})
+@SuppressWarnings("unused")
 @Mixin(BlockFluidBase.class)
 public abstract class BlockFluidBaseMixin extends Block
 {
-    @Shadow
+    @Shadow(remap = false)
     protected int quantaPerBlock, densityDir;
 
     @Final
-    @Shadow
+    @Shadow(remap = false)
     protected Fluid definedFluid;
 
-    public BlockFluidBaseMixin(@Nonnull Material materialIn, @Nonnull MapColor colorIn) { super(materialIn, colorIn); }
     public BlockFluidBaseMixin(@Nonnull Material materialIn) { super(materialIn); }
 
     /*@Nonnull
@@ -49,7 +46,11 @@ public abstract class BlockFluidBaseMixin extends Block
 
     }*/
 
-    @Overwrite
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
+    @Overwrite(remap = false)
     final boolean hasVerticalFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         final EnumFacing facing = (densityDir < 0) ? EnumFacing.UP : EnumFacing.DOWN;
         if(!canFluidFlow(world, pos, world.getBlockState(pos), facing)) return false;
@@ -61,7 +62,11 @@ public abstract class BlockFluidBaseMixin extends Block
                 && isCompatibleFluid(getFluidState(world, offset, state).getFluid(), getFluid());
     }
 
-    @Overwrite
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
+    @Overwrite(remap = false)
     protected boolean causesDownwardCurrent(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
         final IBlockState state = worldIn.getBlockState(pos);
         if(canFluidFlow(worldIn, pos, state, side) && isCompatibleFluid(getFluidState(worldIn, pos, state).getFluid(), getFluid())) return false;
@@ -74,41 +79,44 @@ public abstract class BlockFluidBaseMixin extends Block
         }
     }
 
-    //expose definedFluid to significantly boost performance
+    /**
+     * @reason expose definedFluid to significantly boost performance
+     * @author jbred
+     */
     @Nonnull
-    @Overwrite
+    @Overwrite(remap = false)
     public Fluid getFluid() { return definedFluid; }
 
     @Nonnull
-    @Redirect(method = "getDensity(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"))
+    @Redirect(method = "getDensity(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"), remap = false)
     private static IBlockState getDensity(@Nonnull IBlockAccess world, @Nonnull BlockPos upPos) {
         return getFluidOrReal(world, upPos);
     }
 
     @Nonnull
-    @Redirect(method = "getTemperature(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"))
+    @Redirect(method = "getTemperature(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"), remap = false)
     private static IBlockState getTemperature(@Nonnull IBlockAccess world, @Nonnull BlockPos upPos) {
         return getFluidOrReal(world, upPos);
     }
 
     @Nonnull
-    @Redirect(method = "getFlowDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"))
+    @Redirect(method = "getFlowDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"), remap = false)
     private static IBlockState getFlowDirection(@Nonnull IBlockAccess world, @Nonnull BlockPos upPos) {
         return getFluidOrReal(world, upPos);
     }
 
     @Nonnull
     @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"))
-    private static IBlockState getFogColor(@Nonnull World world, @Nonnull BlockPos upPos) {
+    private IBlockState getFogColor(@Nonnull World world, @Nonnull BlockPos upPos) {
         return getFluidOrReal(world, upPos);
     }
 
     @Nonnull
     @Redirect(method = "getStateAtViewpoint", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"))
-    private static IBlockState getFogColor(@Nonnull IBlockAccess world, @Nonnull BlockPos upPos) {
+    private IBlockState getFogColor(@Nonnull IBlockAccess world, @Nonnull BlockPos upPos) {
         return getFluidOrReal(world, upPos);
     }
 
-    @Shadow
+    @Shadow(remap = false)
     protected abstract int getFlowDecay(@Nonnull IBlockAccess world, @Nonnull BlockPos pos);
 }

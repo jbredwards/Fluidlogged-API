@@ -1,8 +1,7 @@
 package git.jbredwards.fluidlogged_api.asm.mixins.forge;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
-import git.jbredwards.fluidlogged_api.common.storage.FluidState;
-import net.minecraft.block.material.MapColor;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -22,20 +21,23 @@ import static git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils.*;
  * @author jbred
  *
  */
-@SuppressWarnings({"OverwriteAuthorRequired", "unused"})
+@SuppressWarnings("unused")
 @Mixin(BlockFluidClassic.class)
 public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin implements IFluidloggableFluid
 {
-    @Shadow
+    @Shadow(remap = false)
     protected boolean canCreateSources;
 
-    @Shadow
+    @Shadow(remap = false)
     protected FluidStack stack;
 
-    public BlockFluidClassicMixin(@Nonnull Material materialIn, @Nonnull MapColor colorIn) { super(materialIn, colorIn); }
     public BlockFluidClassicMixin(@Nonnull Material materialIn) { super(materialIn); }
 
-    @Overwrite
+    /**
+     * @reason fixes fluidlogged interactions (console warns if no author comment present)
+     * @author jbred
+     */
+    @Overwrite(remap = false)
     public int getQuantaValue(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         final IBlockState state = world.getBlockState(pos);
         if(state.getBlock().isAir(state, world, pos)) return 0;

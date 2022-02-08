@@ -1,13 +1,13 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
 import git.jbredwards.fluidlogged_api.Main;
+import git.jbredwards.fluidlogged_api.asm.mixins.vanilla.world.IRelightBlock;
 import git.jbredwards.fluidlogged_api.common.block.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.common.config.FluidloggedConfig;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
-import git.jbredwards.fluidlogged_api.common.storage.FluidState;
 import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
@@ -128,9 +128,7 @@ public enum FluidloggedUtils
             }
 
             //update light levels
-            world.profiler.startSection("checkLight");
-            world.checkLight(pos);
-            world.profiler.endSection();
+            relightFluidBlock(world, pos, fluidState);
 
             //post fluid added
             if(!fluidState.isEmpty()) fluidState.getBlock().onBlockAdded(world, pos, fluidState.getState());
@@ -139,6 +137,24 @@ public enum FluidloggedUtils
         //update world
         if((blockFlags & Constants.BlockFlags.NOTIFY_NEIGHBORS) != 0)
             world.markAndNotifyBlock(pos, chunk, here, here, blockFlags);
+    }
+
+    //forces a fluid light level update
+    public static void relightFluidBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
+        final @Nullable Chunk chunk = getChunk(world, pos);
+        if(chunk == null) return;
+
+        else if(chunk instanceof IRelightBlock) {
+            final int opacity = fluidState.isEmpty() ? 0 : fluidState.getState().getLightOpacity(world, pos);
+            final int height = ((IRelightBlock)chunk).getHeight(pos);
+
+            if(opacity > 0) { if(pos.getY() >= height) ((IRelightBlock)chunk).relightBlock(pos.up()); }
+            else if(pos.getY() == height - 1) ((IRelightBlock)chunk).relightBlock(pos);
+        }
+
+        world.profiler.startSection("checkLight");
+        world.checkLight(pos);
+        world.profiler.endSection();
     }
 
     //fork of Main.CommonProxy#getChunk

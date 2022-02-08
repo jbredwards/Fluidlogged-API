@@ -4,7 +4,7 @@ import git.jbredwards.fluidlogged_api.Constants;
 import git.jbredwards.fluidlogged_api.Main;
 import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.network.SyncFluidStatesMessage;
-import git.jbredwards.fluidlogged_api.common.storage.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
