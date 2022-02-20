@@ -49,7 +49,7 @@ public final class BlockPlugin implements IASMPlugin
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
         //getLightValue, line 1250
-        if(index == 1 && checkMethod(insn, obfuscated ? "func_149750_m" : "getLightValue", "(Lnet/minecraft/block/state/IBlockState;)I")) {
+        /*if(index == 1 && checkMethod(insn, obfuscated ? "func_149750_m" : "getLightValue", "(Lnet/minecraft/block/state/IBlockState;)I")) {
             final InsnList list = new InsnList();
             //parameters
             list.add(new VarInsnNode(ALOAD, 2));
@@ -85,9 +85,9 @@ public final class BlockPlugin implements IASMPlugin
             instructions.insert(insn, list);
             instructions.remove(insn);
             return true;
-        }
+        }*/
         //canSustainPlant
-        else if(index == 4) {
+        if(index == 4) {
             //line 1949
             if(checkMethod(insn, obfuscated ? "func_185514_i" : "canSustainBush", null)) {
                 final InsnList list = new InsnList();
@@ -108,7 +108,7 @@ public final class BlockPlugin implements IASMPlugin
             }
         }
         //getLightOpacity, line 2030
-        else if(index == 5 && checkMethod(insn, obfuscated ? "func_149717_k" : "getLightOpacity", "(Lnet/minecraft/block/state/IBlockState;)I")) {
+        /*else if(index == 5 && checkMethod(insn, obfuscated ? "func_149717_k" : "getLightOpacity", "(Lnet/minecraft/block/state/IBlockState;)I")) {
             final InsnList list = new InsnList();
             //parameters
             list.add(new VarInsnNode(ALOAD, 2));
@@ -118,7 +118,7 @@ public final class BlockPlugin implements IASMPlugin
             instructions.insert(insn, list);
             instructions.remove(insn);
             return true;
-        }
+        }*/
 
         return false;
     }

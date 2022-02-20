@@ -1,7 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block.fluidloggable;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockRailBase;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
@@ -16,9 +15,8 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-@SuppressWarnings("unused")
 @Mixin(BlockRailBase.class)
-public abstract class BlockRailBaseMixin extends Block implements IFluidloggable
+public abstract class BlockRailBaseMixin implements IFluidloggable
 {
     @Nonnull
     private static final Material RAIL = new Material(MapColor.AIR) {
@@ -27,8 +25,6 @@ public abstract class BlockRailBaseMixin extends Block implements IFluidloggable
         public boolean isSolid()     { return false; }
         public boolean blocksLight() { return false; }
     }.setNoPushMobility();
-
-    public BlockRailBaseMixin(@Nonnull Material materialIn) { super(materialIn); }
 
     @Nonnull
     @Redirect(method = "<init>", at = @At(value = "FIELD", target = "Lnet/minecraft/block/material/Material;CIRCUITS:Lnet/minecraft/block/material/Material;"))

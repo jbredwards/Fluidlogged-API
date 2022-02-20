@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.asm.mixins.forge;
+package git.jbredwards.fluidlogged_api.asm.mixins.utils;
 
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 

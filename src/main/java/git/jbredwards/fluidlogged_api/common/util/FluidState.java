@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
-import git.jbredwards.fluidlogged_api.asm.mixins.forge.IDefaultFluidState;
+import git.jbredwards.fluidlogged_api.asm.mixins.utils.IDefaultFluidState;
 import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
@@ -38,15 +38,15 @@ public class FluidState extends Pair<Fluid, IBlockState>
     //return a FluidState with the input Fluid, or return empty instance if the fluid isn't valid for fluidlogging
     @Nonnull
     public static FluidState of(@Nullable Fluid fluidIn) {
-        if(!(fluidIn instanceof IDefaultFluidState) || !fluidIn.canBePlacedInWorld())
-            return EMPTY;
+        if(fluidIn == null || !fluidIn.canBePlacedInWorld()) return EMPTY;
+        final IDefaultFluidState impl = (IDefaultFluidState)fluidIn;
 
         //use the fluid's default state if present
-        if(!((IDefaultFluidState)fluidIn).isEmpty()) return ((IDefaultFluidState)fluidIn).getDefaultFluidState();
+        if(!impl.isEmpty()) return impl.getDefaultFluidState();
 
         //generate new instance if default not present
         final Block block = fluidIn.getBlock();
-        return ((IDefaultFluidState)fluidIn).setDefaultFluidState(
+        return impl.setDefaultFluidState(
                 new FluidState(fluidIn, (block instanceof BlockLiquid)
                 //ensure flowing blocks are used for vanilla fluids
                 ? BlockLiquid.getFlowingBlock(block.getDefaultState().getMaterial()).getDefaultState()
@@ -78,6 +78,13 @@ public class FluidState extends Pair<Fluid, IBlockState>
         return cap == null ? EMPTY : cap.getFluidState(pos);
     }
 
+    //creates a new FluidState from the serialized one
+    @Nonnull
+    public static FluidState deserialize(int serialized) { return of(Block.getBlockById(serialized)); }
+
+    //converts this FluidState to an int, which can be used to form a new FluidState at a later time
+    public int serialize() { return isEmpty() ? 0 : Block.getIdFromBlock(getBlock()); }
+
     public boolean isEmpty() { return this == EMPTY; }
 
     public Fluid getFluid() { return fluid; }
@@ -89,23 +96,6 @@ public class FluidState extends Pair<Fluid, IBlockState>
     public Material getMaterial() { return state.getMaterial(); }
 
     public int getLevel() { return state.getValue(BlockLiquid.LEVEL); }
-
-    //creates a new FluidState from the serialized one
-    @Nonnull
-    public static FluidState deserialize(int serialized) { return of(Block.getBlockById(serialized)); }
-
-    //converts this FluidState to an int, which can be used to form a new FluidState at a later time
-    public int serialize() { return isEmpty() ? 0 : Block.getIdFromBlock(getBlock()); }
-
-    @Nonnull
-    @Override
-    public String toString() { return isEmpty() ? "EMPTY" : super.toString(); }
-
-    @Nonnull
-    @Override
-    public String toString(@Nonnull String format) {
-        return isEmpty() ? String.format(format, "EMPTY") : super.toString(format);
-    }
 
     @Override
     public final Fluid getLeft() { return getFluid(); }

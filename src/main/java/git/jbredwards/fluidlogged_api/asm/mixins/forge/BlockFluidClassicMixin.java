@@ -49,6 +49,6 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
 
     @Override
     public boolean isFluidloggableFluid(@Nonnull IBlockState fluidState) {
-        return !fluidState.getBlock().hasTileEntity(fluidState) && getFluid().getBlock() == fluidState.getBlock();
+        return !hasTileEntity(fluidState) && this == getFluid().getBlock();
     }
 }

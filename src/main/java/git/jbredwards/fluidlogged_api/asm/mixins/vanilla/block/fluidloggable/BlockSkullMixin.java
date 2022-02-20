@@ -2,7 +2,6 @@ package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block.fluidloggable;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
-import net.minecraft.block.BlockContainer;
 import net.minecraft.block.BlockSkull;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
@@ -20,9 +19,8 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-@SuppressWarnings("unused")
 @Mixin(BlockSkull.class)
-public abstract class BlockSkullMixin extends BlockContainer implements IFluidloggable
+public abstract class BlockSkullMixin implements IFluidloggable
 {
     @Nonnull
     private static final Material SKULL = new Material(MapColor.AIR) {
@@ -31,8 +29,6 @@ public abstract class BlockSkullMixin extends BlockContainer implements IFluidlo
         public boolean isSolid()     { return false; }
         public boolean blocksLight() { return false; }
     }.setNoPushMobility();
-
-    public BlockSkullMixin(@Nonnull Material materialIn) { super(materialIn); }
 
     @Nonnull
     @Redirect(method = "<init>", at = @At(value = "FIELD", target = "Lnet/minecraft/block/material/Material;CIRCUITS:Lnet/minecraft/block/material/Material;"))

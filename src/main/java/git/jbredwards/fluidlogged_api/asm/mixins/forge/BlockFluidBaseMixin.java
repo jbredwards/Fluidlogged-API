@@ -5,6 +5,7 @@ import net.minecraft.block.BlockStairs;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -16,9 +17,14 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Desc;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import java.util.Map;
 
 import static git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils.*;
 
@@ -88,20 +94,12 @@ public abstract class BlockFluidBaseMixin extends Block
     public Fluid getFluid() { return definedFluid; }
 
     @Nonnull
-    @Redirect(method = "getDensity(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"), remap = false)
-    private static IBlockState getDensity(@Nonnull IBlockAccess world, @Nonnull BlockPos upPos) {
-        return getFluidOrReal(world, upPos);
-    }
-
-    @Nonnull
-    @Redirect(method = "getTemperature(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"), remap = false)
-    private static IBlockState getTemperature(@Nonnull IBlockAccess world, @Nonnull BlockPos upPos) {
-        return getFluidOrReal(world, upPos);
-    }
-
-    @Nonnull
-    @Redirect(method = "getFlowDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"), remap = false)
-    private static IBlockState getFlowDirection(@Nonnull IBlockAccess world, @Nonnull BlockPos upPos) {
+    @Redirect(method = {
+            "getDensity(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I",
+            "getTemperature(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I",
+            "getFlowDirection"
+    }, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"), remap = false)
+    private static IBlockState getBlockState(@Nonnull IBlockAccess world, @Nonnull BlockPos upPos) {
         return getFluidOrReal(world, upPos);
     }
 
@@ -119,4 +117,63 @@ public abstract class BlockFluidBaseMixin extends Block
 
     @Shadow(remap = false)
     protected abstract int getFlowDecay(@Nonnull IBlockAccess world, @Nonnull BlockPos pos);
+
+    /*@Nullable
+    @ModifyArg(method = "<clinit>", at = @At(value = "FIELD", TODO = "some kind of dynamic field condition here"), remap = false)
+    private static Block fixEarlyCalls() { return null; } */
+
+    @Nullable
+    @Redirect(method = "<clinit>", at = @At(value = "INVOKE", target = "Ljava/util/Map;put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", remap = false), remap = false)
+    private static Object skipDefaultDisplacements(@Nonnull Map<?, ?> map, @Nullable Object key, @Nonnull Object value) { return null; }
+
+    //prevents crash
+    @Redirect(method = "<init>(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V", at = @At(value = "INVOKE", target = "Ljava/util/Map;putAll(Ljava/util/Map;)V", remap = false), remap = false)
+    private void test(@Nonnull Map<Block, Boolean> displacements, @Nonnull Map<Block, Boolean> defaultDisplacements) {
+        //builds the default map (moved into constructor to prevent crash)
+        if(defaultDisplacements.isEmpty()) {
+            defaultDisplacements.put(Blocks.OAK_DOOR,                       false);
+            defaultDisplacements.put(Blocks.SPRUCE_DOOR,                    false);
+            defaultDisplacements.put(Blocks.BIRCH_DOOR,                     false);
+            defaultDisplacements.put(Blocks.JUNGLE_DOOR,                    false);
+            defaultDisplacements.put(Blocks.ACACIA_DOOR,                    false);
+            defaultDisplacements.put(Blocks.DARK_OAK_DOOR,                  false);
+            defaultDisplacements.put(Blocks.TRAPDOOR,                       false);
+            defaultDisplacements.put(Blocks.IRON_TRAPDOOR,                  false);
+            defaultDisplacements.put(Blocks.OAK_FENCE,                      false);
+            defaultDisplacements.put(Blocks.SPRUCE_FENCE,                   false);
+            defaultDisplacements.put(Blocks.BIRCH_FENCE,                    false);
+            defaultDisplacements.put(Blocks.JUNGLE_FENCE,                   false);
+            defaultDisplacements.put(Blocks.DARK_OAK_FENCE,                 false);
+            defaultDisplacements.put(Blocks.ACACIA_FENCE,                   false);
+            defaultDisplacements.put(Blocks.NETHER_BRICK_FENCE,             false);
+            defaultDisplacements.put(Blocks.OAK_FENCE_GATE,                 false);
+            defaultDisplacements.put(Blocks.SPRUCE_FENCE_GATE,              false);
+            defaultDisplacements.put(Blocks.BIRCH_FENCE_GATE,               false);
+            defaultDisplacements.put(Blocks.JUNGLE_FENCE_GATE,              false);
+            defaultDisplacements.put(Blocks.DARK_OAK_FENCE_GATE,            false);
+            defaultDisplacements.put(Blocks.ACACIA_FENCE_GATE,              false);
+            defaultDisplacements.put(Blocks.WOODEN_PRESSURE_PLATE,          false);
+            defaultDisplacements.put(Blocks.STONE_PRESSURE_PLATE,           false);
+            defaultDisplacements.put(Blocks.LIGHT_WEIGHTED_PRESSURE_PLATE,  false);
+            defaultDisplacements.put(Blocks.HEAVY_WEIGHTED_PRESSURE_PLATE,  false);
+            defaultDisplacements.put(Blocks.LADDER,                         false);
+            defaultDisplacements.put(Blocks.IRON_BARS,                      false);
+            defaultDisplacements.put(Blocks.GLASS_PANE,                     false);
+            defaultDisplacements.put(Blocks.STAINED_GLASS_PANE,             false);
+            defaultDisplacements.put(Blocks.PORTAL,                         false);
+            defaultDisplacements.put(Blocks.END_PORTAL,                     false);
+            defaultDisplacements.put(Blocks.COBBLESTONE_WALL,               false);
+            defaultDisplacements.put(Blocks.BARRIER,                        false);
+            defaultDisplacements.put(Blocks.STANDING_BANNER,                false);
+            defaultDisplacements.put(Blocks.WALL_BANNER,                    false);
+            defaultDisplacements.put(Blocks.CAKE,                           false);
+
+            defaultDisplacements.put(Blocks.IRON_DOOR,     false);
+            defaultDisplacements.put(Blocks.STANDING_SIGN, false);
+            defaultDisplacements.put(Blocks.WALL_SIGN,     false);
+            defaultDisplacements.put(Blocks.REEDS,         false);
+        }
+
+        displacements.putAll(defaultDisplacements);
+    }
 }

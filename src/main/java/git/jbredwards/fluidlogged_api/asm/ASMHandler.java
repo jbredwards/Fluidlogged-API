@@ -36,7 +36,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
         @Nonnull
         public static Map<String, IASMPlugin> PLUGINS = new ImmutableMap.Builder<String, IASMPlugin>()
                 //vanilla (client)
-                .put("net.minecraft.client.multiplayer.WorldClient", new WorldClientPlugin()) //non-empty FluidStates call randomDisplayTick
                 .put("net.minecraft.client.particle.ParticleSuspend", new ParticleSuspendPlugin()) //this particle doesn't instantly disappear while inside water FluidStates
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin()) //allows the game to render FluidStates
                 .put("net.minecraft.client.renderer.ActiveRenderInfo", new ActiveRenderInfoPlugin()) //fixes FluidState fog color & fov

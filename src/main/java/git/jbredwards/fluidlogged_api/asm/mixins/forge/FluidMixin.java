@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.asm.mixins.forge;
 
+import git.jbredwards.fluidlogged_api.asm.mixins.utils.IDefaultFluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraftforge.fluids.Fluid;
 import org.apache.logging.log4j.Logger;
@@ -19,7 +20,7 @@ import javax.annotation.Nonnull;
 public abstract class FluidMixin implements IDefaultFluidState
 {
     @Nonnull
-    private FluidState defaultState = FluidState.EMPTY;
+    FluidState defaultState = FluidState.EMPTY;
 
     @Redirect(method = "setBlock", at = @At(value = "INVOKE", target = "Lorg/apache/logging/log4j/Logger;warn(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V", remap = false), remap = false)
     private void warn(@Nonnull Logger instance, @Nonnull String s, @Nonnull Object o1, @Nonnull Object o2, @Nonnull Object o3) {}

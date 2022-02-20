@@ -100,10 +100,9 @@ public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFl
     private boolean causesDownwardCurrent(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
         final IBlockState state = worldIn.getBlockState(pos);
         if(isCompatibleFluid(getFluidState(worldIn, pos, state).getFluid(), getFluid())
-                && canFluidFlow(worldIn, pos, state, side)) return false;
+                && canFluidFlow(worldIn, pos, state, side.getOpposite())) return false;
 
-        else if(side == EnumFacing.UP) return true;
-        else if(state.getMaterial() == Material.ICE) return false;
+        if(state.getMaterial() == Material.ICE) return false;
         else {
             final Block block = state.getBlock();
             boolean flag = isExceptBlockForAttachWithPiston(block) || block instanceof BlockStairs;
@@ -125,7 +124,7 @@ public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFl
             else state = fluidState.getState();
         }
 
-        Vec3d vec = new Vec3d(0, 0, 0);
+        Vec3d vec = Vec3d.ZERO;
 
         final IBlockState here = worldIn.getBlockState(pos);
         final int level = state.getValue(BlockLiquid.LEVEL);
@@ -168,12 +167,12 @@ public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFl
     }
 
     protected int getFlowDecay(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing facing) {
-        final @Nullable Fluid fluid = getFluidState(world, pos, state).getFluid();
+        final FluidState fluidState = getFluidState(world, pos, state);
 
-        if(!isCompatibleFluid(getFluid(), fluid)) return -1;
+        if(!isCompatibleFluid(getFluid(), fluidState.getFluid())) return -1;
         else if(!canFluidFlow(world, pos, state, facing.getOpposite())) return -1;
         else {
-            final int level = getFluidOrReal(world, pos, state).getValue(BlockLiquid.LEVEL);
+            final int level = fluidState.getLevel();
             return level >= 8 ? 0 : level;
         }
     }

@@ -1,7 +1,7 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
 import git.jbredwards.fluidlogged_api.Main;
-import git.jbredwards.fluidlogged_api.asm.mixins.vanilla.world.IRelightBlock;
+import git.jbredwards.fluidlogged_api.asm.mixins.utils.IRelightBlock;
 import git.jbredwards.fluidlogged_api.common.block.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
@@ -139,17 +139,18 @@ public enum FluidloggedUtils
             world.markAndNotifyBlock(pos, chunk, here, here, blockFlags);
     }
 
-    //forces a fluid light level update
+    //forces a fluid light level update (WIP)
     public static void relightFluidBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
         final @Nullable Chunk chunk = getChunk(world, pos);
         if(chunk == null) return;
 
         else if(chunk instanceof IRelightBlock) {
             final int opacity = fluidState.isEmpty() ? 0 : fluidState.getState().getLightOpacity(world, pos);
-            final int height = ((IRelightBlock)chunk).getHeight(pos);
+            final int height = chunk.getHeight(pos);
 
             if(opacity > 0) { if(pos.getY() >= height) ((IRelightBlock)chunk).relightBlock(pos.up()); }
             else if(pos.getY() == height - 1) ((IRelightBlock)chunk).relightBlock(pos);
+            ((IRelightBlock)chunk).propagateSkylightOcclusion(pos);
         }
 
         world.profiler.startSection("checkLight");

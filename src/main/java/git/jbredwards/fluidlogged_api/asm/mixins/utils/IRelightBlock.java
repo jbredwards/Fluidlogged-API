@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.world;
+package git.jbredwards.fluidlogged_api.asm.mixins.utils;
 
 import net.minecraft.util.math.BlockPos;
 
@@ -11,6 +11,6 @@ import javax.annotation.Nonnull;
  */
 public interface IRelightBlock
 {
+    void propagateSkylightOcclusion(@Nonnull BlockPos pos);
     void relightBlock(@Nonnull BlockPos pos);
-    int getHeight(@Nonnull BlockPos pos);
 }
