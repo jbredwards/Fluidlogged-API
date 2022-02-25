@@ -78,10 +78,8 @@ jar {
         attributes([
             'FMLCorePlugin': 'git.jbredwards.fluidlogged_api.asm.ASMHandler',
             'FMLCorePluginContainsFMLMod': 'true',
-            //mixin
-            'MixinConfigs': 'mixins.fluidlogged_api.json',
-            'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
-            'TweakOrder': '0',
+            "FMLAT": "fluidlogged_api_at.cfg",
+            'ForceLoadAsMod': 'true'
         ])
     }
 }

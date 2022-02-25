@@ -6,13 +6,14 @@ import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.World;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
@@ -76,45 +77,47 @@ public final class SyncFluidStatesMessage implements IMessage
 
         @Nullable
         @Override
-        public IMessage onMessage(SyncFluidStatesMessage message, MessageContext ctx) {
-            if(message.isValid && ctx.side == Side.CLIENT) {
-                Minecraft.getMinecraft().addScheduledTask(() -> {
-                    final WorldClient world = Minecraft.getMinecraft().world;
-                    final IFluidStateCapability cap = IFluidStateCapability.get(
-                            world.getChunkFromChunkCoords(message.x, message.z));
-
-                    if(cap != null) {
-                        //clear any old fluid states
-                        final Set<BlockPos> removed = ImmutableSet.copyOf(cap.getFluidStates().keySet());
-                        cap.getFluidStates().clear();
-
-                        //add any new fluid states
-                        message.data.forEach(entry -> {
-                            BlockPos pos = BlockPos.fromLong(entry.getKey());
-                            FluidState fluidState = FluidState.deserialize(entry.getValue());
-
-                            //send changes to client
-                            cap.setFluidState(pos, fluidState);
-
-                            //re-render block
-                            FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
-                            world.markBlockRangeForRenderUpdate(pos, pos);
-                        });
-
-                        //update removed light levels & renders
-                        removed.forEach(pos -> {
-                            //make sure the cleared pos wasn't replaced prior to re-render
-                            if(!cap.getFluidStates().containsKey(pos)) {
-                                //re-render block
-                                FluidloggedUtils.relightFluidBlock(world, pos, FluidState.EMPTY);
-                                world.markBlockRangeForRenderUpdate(pos, pos);
-                            }
-                        });
-                    }
-                });
-            }
-
+        public IMessage onMessage(@Nonnull SyncFluidStatesMessage message, @Nonnull MessageContext ctx) {
+            if(message.isValid && ctx.side == Side.CLIENT) addTask(message);
             return null;
+        }
+
+        @SideOnly(Side.CLIENT)
+        private void addTask(@Nonnull SyncFluidStatesMessage message) {
+            Minecraft.getMinecraft().addScheduledTask(() -> {
+                final World world = Minecraft.getMinecraft().world;
+                final IFluidStateCapability cap = IFluidStateCapability.get(
+                        world.getChunkFromChunkCoords(message.x, message.z));
+
+                if(cap != null) {
+                    //clear any old fluid states
+                    final Set<BlockPos> removed = ImmutableSet.copyOf(cap.getFluidStates().keySet());
+                    cap.getFluidStates().clear();
+
+                    //add any new fluid states
+                    message.data.forEach(entry -> {
+                        BlockPos pos = BlockPos.fromLong(entry.getKey());
+                        FluidState fluidState = FluidState.deserialize(entry.getValue());
+
+                        //send changes to client
+                        cap.setFluidState(pos, fluidState);
+
+                        //re-render block
+                        FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
+                        world.markBlockRangeForRenderUpdate(pos, pos);
+                    });
+
+                    //update removed light levels & renders
+                    removed.forEach(pos -> {
+                        //make sure the cleared pos wasn't replaced prior to re-render
+                        if(!cap.getFluidStates().containsKey(pos)) {
+                            //re-render block
+                            FluidloggedUtils.relightFluidBlock(world, pos, FluidState.EMPTY);
+                            world.markBlockRangeForRenderUpdate(pos, pos);
+                        }
+                    });
+                }
+            });
         }
     }
 }

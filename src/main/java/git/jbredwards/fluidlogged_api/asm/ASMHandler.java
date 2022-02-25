@@ -44,7 +44,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.Block", new BlockPlugin()) //fixes some lighting, canSustainPlant, and explosion related issues
                 .put("net.minecraft.block.BlockBush", new BlockBushPlugin()) //breaking this block type no longer voids the possible FluidState here
                 .put("net.minecraft.block.BlockCocoa", new BlockCocoaPlugin()) //breaking this block type no longer voids the possible FluidState here
-                .put("net.minecraft.block.BlockConcretePowder", new BlockConcretePowderPlugin()) //concrete forms from concrete powder while it's next to water FluidStates
                 //.put("net.minecraft.block.BlockDynamicLiquid", new BlockDynamicLiquidPlugin()) //vanilla fluids no longer do block mixing when they shouldn't; vanilla fluids now flow from fluidlogged blocks
                 .put("net.minecraft.block.BlockFarmland", new BlockFarmlandPlugin()) //farmland blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockLilyPad", new BlockLilyPadPlugin()) //lily pads can stay on certain water FluidStates

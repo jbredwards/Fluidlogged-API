@@ -2,6 +2,7 @@
   "parent": "mixins.fluidlogged_api.json",
   "package": "git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block",
   "mixins": [
+    "BlockConcretePowderMixin",
     "BlockDynamicLiquidMixin",
     "BlockLilyPadMixin",
     "BlockLiquidMixin",

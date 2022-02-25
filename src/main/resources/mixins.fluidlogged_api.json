@@ -1,3 +1,4 @@
 {
-  "compatibilityLevel": "JAVA_8"
+  "compatibilityLevel": "JAVA_8",
+  "minVersion": "0.7"
 }
