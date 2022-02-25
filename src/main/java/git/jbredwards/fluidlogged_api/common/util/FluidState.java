@@ -30,7 +30,8 @@ public class FluidState extends Pair<Fluid, IBlockState>
     protected final Fluid fluid;
     protected final IBlockState state;
 
-    protected FluidState(Fluid fluidIn, IBlockState stateIn) {
+    //using FluidState#of rather than the constructor directly is advised
+    public FluidState(Fluid fluidIn, IBlockState stateIn) {
         fluid = fluidIn;
         state = stateIn;
     }

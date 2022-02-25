@@ -118,14 +118,6 @@ public abstract class BlockFluidBaseMixin extends Block
     @Shadow(remap = false)
     protected abstract int getFlowDecay(@Nonnull IBlockAccess world, @Nonnull BlockPos pos);
 
-    /*@Nullable
-    @ModifyArg(method = "<clinit>", at = @At(value = "FIELD", TODO = "some kind of dynamic field condition here"), remap = false)
-    private static Block fixEarlyCalls() { return null; } */
-
-    @Nullable
-    @Redirect(method = "<clinit>", at = @At(value = "INVOKE", target = "Ljava/util/Map;put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", remap = false), remap = false)
-    private static Object skipDefaultDisplacements(@Nonnull Map<?, ?> map, @Nullable Object key, @Nonnull Object value) { return null; }
-
     //prevents crash
     @Redirect(method = "<init>(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V", at = @At(value = "INVOKE", target = "Ljava/util/Map;putAll(Ljava/util/Map;)V", remap = false), remap = false)
     private void test(@Nonnull Map<Block, Boolean> displacements, @Nonnull Map<Block, Boolean> defaultDisplacements) {

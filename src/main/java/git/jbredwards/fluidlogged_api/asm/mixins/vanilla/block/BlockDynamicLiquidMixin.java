@@ -208,7 +208,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
                 IBlockState neighbor = world.getBlockState(offset);
                 FluidState fluidNeighbor = getFluidState(world, offset, neighbor);
 
-                if(!isBlocked(world, offset, neighbor) && (!isCompatibleFluid(fluidNeighbor.getFluid(), getFluid()) || fluidNeighbor.getLevel() > 0)) {
+                if(!isBlocked(world, offset, neighbor) && !isCompatibleFluid(fluidNeighbor.getFluid(), getFluid())) {
                     int slopeDistance = 0;
 
                     if(isBlocked(world, offset.down(), world.getBlockState(offset.down()))) {

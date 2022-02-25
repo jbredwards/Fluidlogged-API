@@ -15,7 +15,7 @@ public final class BlockFluidBasePlugin implements IASMPlugin
     @Override
     public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
         //constructor
-        if(checkMethod(method, "<init>", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V"))
+        /*if(checkMethod(method, "<init>", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V"))
             return 1;
         //canDisplace
         if(checkMethod(method, "canDisplace", null))
@@ -25,7 +25,7 @@ public final class BlockFluidBasePlugin implements IASMPlugin
             return 2;
         //getFluid
         if(checkMethod(method, "getFluid", null))
-            return 8;
+            return 8;*/
         //defaultDisplacements clinit
         if(checkMethod(method, "<clinit>", "()V"))
             return 9;

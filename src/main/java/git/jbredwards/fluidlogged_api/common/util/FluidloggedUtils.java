@@ -1,7 +1,6 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
 import git.jbredwards.fluidlogged_api.Main;
-import git.jbredwards.fluidlogged_api.asm.mixins.utils.IRelightBlock;
 import git.jbredwards.fluidlogged_api.common.block.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
@@ -16,6 +15,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
@@ -139,19 +139,22 @@ public enum FluidloggedUtils
             world.markAndNotifyBlock(pos, chunk, here, here, blockFlags);
     }
 
-    //forces a fluid light level update (WIP)
+    //forces a fluid light level & light opacity update
     public static void relightFluidBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
         final @Nullable Chunk chunk = getChunk(world, pos);
         if(chunk == null) return;
 
-        else if(chunk instanceof IRelightBlock) {
-            final int opacity = fluidState.isEmpty() ? 0 : fluidState.getState().getLightOpacity(world, pos);
-            final int height = chunk.getHeight(pos);
+        final int x = pos.getX() & 15;
+        final int z = pos.getZ() & 15;
+        final int height = chunk.getHeightValue(x, z);
 
-            if(opacity > 0) { if(pos.getY() >= height) ((IRelightBlock)chunk).relightBlock(pos.up()); }
-            else if(pos.getY() == height - 1) ((IRelightBlock)chunk).relightBlock(pos);
-            ((IRelightBlock)chunk).propagateSkylightOcclusion(pos);
+        if(!fluidState.isEmpty() && fluidState.getState().getLightOpacity(world, pos) > 0) {
+            if(pos.getY() >= height) chunk.relightBlock(x, pos.getY() + 1, z);
         }
+        else if(pos.getY() == height - 1) chunk.relightBlock(x, pos.getY(), z);
+
+        if(chunk.getLightFor(EnumSkyBlock.SKY, pos) > 0 || chunk.getLightFor(EnumSkyBlock.BLOCK, pos) > 0)
+            chunk.propagateSkylightOcclusion(x, z);
 
         world.profiler.startSection("checkLight");
         world.checkLight(pos);
