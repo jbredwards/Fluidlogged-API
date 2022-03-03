@@ -33,26 +33,7 @@ public final class FluidUtilPlugin implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        //getFluidHandler, line 543
-        if(index == 1 && insn.getOpcode() == ACONST_NULL) {
-            final InsnList list = new InsnList();
-            //params
-            list.add(new VarInsnNode(ALOAD, 0));
-            list.add(new VarInsnNode(ALOAD, 1));
-            //add new code
-            list.add(genMethodNode("getFluidHandler", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraftforge/fluids/capability/IFluidHandler;"));
-            instructions.insert(insn, list);
-            instructions.remove(insn);
-            return true;
-        }
-        //tryPickUpFluid, line 565
-        else if(index == 2 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", null)) {
-            instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/common/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
-            instructions.remove(insn);
-            return true;
-        }
-        //tryPlaceFluid, line 640
-        else if(index == 3) {
+        if(index == 3) {
             if(checkMethod(insn, obfuscated ? "func_175623_d" : "isAirBlock", null)) {
                 final InsnList list = new InsnList();
                 //Fluid local var

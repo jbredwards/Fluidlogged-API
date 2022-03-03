@@ -4,6 +4,7 @@
   "mixins": [
     "BlockFluidBaseMixin",
     "BlockFluidClassicMixin",
-    "FluidMixin"
+    "FluidMixin",
+    "FluidUtilMixin"
   ]
 }

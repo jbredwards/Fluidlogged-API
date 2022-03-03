@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.common.util;
 
+import git.jbredwards.fluidlogged_api.Main;
 import git.jbredwards.fluidlogged_api.asm.mixins.utils.IDefaultFluidState;
 import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
 import net.minecraft.block.Block;
@@ -10,6 +11,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.IFluidBlock;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
@@ -34,6 +36,13 @@ public class FluidState extends Pair<Fluid, IBlockState>
     public FluidState(Fluid fluidIn, IBlockState stateIn) {
         fluid = fluidIn;
         state = stateIn;
+        validate();
+    }
+
+    //catch any illegal FluidStates early, as they'll probably cause issues down the line
+    protected void validate() {
+        if(fluid != null && state != null && (!fluid.canBePlacedInWorld() || !FluidloggedUtils.isFluidloggableFluid(state, false)))
+            throw new IllegalStateException("Tried to construct invalid FluidState: " + this);
     }
 
     //return a FluidState with the input Fluid, or return empty instance if the fluid isn't valid for fluidlogging
@@ -65,7 +74,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
     //gets the stored state present in the world at the block pos
     @Nonnull
     public static FluidState get(@Nullable IBlockAccess world, @Nonnull BlockPos pos) {
-        return getFromProvider(FluidloggedUtils.getChunk(world, pos), pos);
+        return getFromProvider(Main.proxy.getChunk(world, pos), pos);
     }
 
     //(intended use only by client) gets the stored state from Minecraft#world instance
@@ -92,7 +101,8 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     public IBlockState getState() { return state; }
 
-    public Block getBlock() { return state.getBlock(); }
+    @SuppressWarnings("unchecked")
+    public <T extends Block & IFluidBlock> T getBlock() { return (T)state.getBlock(); }
 
     public Material getMaterial() { return state.getMaterial(); }
 

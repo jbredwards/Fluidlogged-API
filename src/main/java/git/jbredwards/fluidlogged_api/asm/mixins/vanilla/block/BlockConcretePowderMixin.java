@@ -42,11 +42,11 @@ public abstract class BlockConcretePowderMixin
     protected boolean tryTouchWater(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
         for(EnumFacing facing : EnumFacing.values()) {
             if(facing != EnumFacing.DOWN) {
-                final BlockPos offset = pos.offset(facing);
-                final IBlockState neighbor = worldIn.getBlockState(offset);
+                BlockPos offset = pos.offset(facing);
+                IBlockState neighbor = worldIn.getBlockState(offset);
 
                 if(FluidloggedUtils.canFluidFlow(worldIn, offset, neighbor, facing.getOpposite())) {
-                    final FluidState fluidState = FluidloggedUtils.getFluidState(worldIn, offset, neighbor);
+                    FluidState fluidState = FluidloggedUtils.getFluidState(worldIn, offset, neighbor);
                     if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) return dry(worldIn, pos, state);
                 }
             }

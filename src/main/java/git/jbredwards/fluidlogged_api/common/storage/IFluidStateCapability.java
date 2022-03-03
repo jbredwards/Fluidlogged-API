@@ -54,14 +54,14 @@ public interface IFluidStateCapability
         @Nonnull
         @Override
         public FluidState getFluidState(@Nonnull BlockPos pos) {
-            final @Nullable FluidState state = fluidStates.get(pos);
-            return state == null ? FluidState.EMPTY : state;
+            final @Nullable FluidState fluidState = fluidStates.get(pos);
+            return fluidState == null ? FluidState.EMPTY : fluidState;
         }
 
         @Override
-        public void setFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fluid) {
-            if(fluid.isEmpty()) fluidStates.remove(pos);
-            else fluidStates.put(pos, fluid);
+        public void setFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
+            if(fluidState.isEmpty()) fluidStates.remove(pos);
+            else fluidStates.put(pos, fluidState);
         }
     }
 

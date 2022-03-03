@@ -2,11 +2,8 @@ package git.jbredwards.fluidlogged_api.common.util;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBush;
-import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraftforge.fluids.BlockFluidBase;
-import net.minecraftforge.fluids.BlockFluidClassic;
-import net.minecraftforge.fluids.BlockFluidFinite;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 
 import javax.annotation.Nonnull;
@@ -25,7 +22,6 @@ public enum AccessorUtils
     ;
 
     //private or protected fields
-    @Nonnull public static final Field canCreateSources    = ObfuscationReflectionHelper.findField(BlockFluidClassic.class, "canCreateSources");
     @Nonnull public static final Field quantaPerBlockFloat = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlockFloat");
     @Nonnull public static final Field quantaPerBlock      = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaPerBlock");
     @Nonnull public static final Field quantaFraction      = ObfuscationReflectionHelper.findField(BlockFluidBase.class, "quantaFraction");
@@ -36,21 +32,12 @@ public enum AccessorUtils
     //make everything accessible
     static {
         //fields
-        canCreateSources.setAccessible(true);
         quantaPerBlockFloat.setAccessible(true);
         quantaPerBlock.setAccessible(true);
         quantaFraction.setAccessible(true);
         densityDir.setAccessible(true);
         //methods
         canSustainBush.setAccessible(true);
-    }
-
-    public static boolean canCreateSources(@Nullable Block fluid) {
-        try { return canCreateSources.getBoolean(fluid); }
-        catch(Throwable t) {
-            if(fluid instanceof BlockFluidFinite) return false;
-            else return fluid != null && fluid.getDefaultState().getMaterial() == Material.WATER;
-        }
     }
 
     public static float quantaPerBlockFloat(@Nullable Block fluid) {

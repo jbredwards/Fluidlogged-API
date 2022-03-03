@@ -20,7 +20,10 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.fluids.*;
+import net.minecraftforge.fluids.BlockFluidBase;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.spongepowered.asm.mixin.Mixin;
@@ -41,7 +44,7 @@ import static git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils.*;
  */
 @SuppressWarnings("unused")
 @Mixin(BlockLiquid.class)
-public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFluidloggableFluid
+public abstract class BlockLiquidMixin extends Block implements IFluidloggableFluid
 {
     public BlockLiquidMixin(@Nonnull Material materialIn) { super(materialIn); }
 
@@ -411,9 +414,6 @@ public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFl
     }
 
     @Override
-    public boolean isReplaceable(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) { return true; }
-
-    @Override
     public boolean requiresUpdates() { return false; }
 
     @Nonnull
@@ -459,10 +459,18 @@ public abstract class BlockLiquidMixin extends Block implements IFluidBlock, IFl
         return 1 - (BlockLiquid.getLiquidHeightPercent(getFluidOrReal(world, pos).getValue(BlockLiquid.LEVEL)) - (1f / 9));
     }
 
-    //most modded BlockLiquid instances involve blocks that typically shouldn't be fluidloggable fluids (like coral)
     @Override
-    public boolean isFluidloggableFluid(@Nonnull IBlockState fluidState) {
-        final Block block = fluidState.getBlock();
-        return block == Blocks.FLOWING_LAVA || block == Blocks.LAVA || block == Blocks.FLOWING_WATER || block == Blocks.WATER;
+    public boolean isFluidloggableFluid(@Nonnull IBlockState fluid, boolean checkLevel) {
+        //most modded BlockLiquid instances involve blocks that typically shouldn't be fluidloggable fluids (like coral)
+        final Block block = fluid.getBlock();
+        if(block != Blocks.FLOWING_LAVA && block != Blocks.LAVA && block != Blocks.FLOWING_WATER && block != Blocks.WATER)
+            return false;
+
+        //skip level check if not required
+        if(!checkLevel) return true;
+
+        //do level check
+        final int level = fluid.getValue(BlockLiquid.LEVEL);
+        return level == 0 || level >= 8 && fluid.getMaterial() == Material.WATER;
     }
 }

@@ -32,9 +32,6 @@ public abstract class BlockMixin
     @Shadow
     protected MapColor blockMapColor;
 
-    @Shadow
-    private IBlockState defaultBlockState;
-
     /**
      * @reason allow fluidlogged blocks to show the fluid's map color instead
      * @author jbred
@@ -47,6 +44,13 @@ public abstract class BlockMixin
         final FluidState fluidState = FluidState.get(world, pos);
         return fluidState.isEmpty() ? blockMapColor : fluidState.getState().getMapColor(world, pos);
     }
+
+    /**
+     * @reason increases performance & flexibility
+     * @author jbred
+     */
+    @Overwrite
+    public boolean isReplaceable(IBlockAccess worldIn, BlockPos pos) { return getDefaultState().getMaterial().isReplaceable(); }
 
     /**
      * @reason fixes fluidlogged block lighting
@@ -78,7 +82,7 @@ public abstract class BlockMixin
      */
     @Overwrite(remap = false)
     public float getExplosionResistance(@Nonnull World world, @Nonnull BlockPos pos, @Nullable Entity exploder, @Nonnull Explosion explosion) {
-        if(FluidloggedUtils.getFluidFromState(defaultBlockState) != null) return getExplosionResistance(exploder);
+        if(FluidloggedUtils.getFluidFromState(getDefaultState()) != null) return getExplosionResistance(exploder);
         //return the greater of the two possible resistance values here
         final FluidState fluidState = FluidState.get(world, pos);
         return Math.max(fluidState.isEmpty() ? 0 : fluidState.getBlock().getExplosionResistance(world, pos, exploder, explosion), getExplosionResistance(exploder));
@@ -93,6 +97,9 @@ public abstract class BlockMixin
     @Nonnull
     @Redirect(method = "canSustainPlant", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"), remap = false)
     private IBlockState getFluidOrReal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return FluidloggedUtils.getFluidOrReal(world, pos); }
+
+    @Shadow
+    public abstract IBlockState getDefaultState();
 
     @Shadow
     public abstract float getExplosionResistance(@Nullable Entity exploder);

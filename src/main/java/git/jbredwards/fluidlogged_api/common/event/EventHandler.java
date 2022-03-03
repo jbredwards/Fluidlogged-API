@@ -159,7 +159,9 @@ public final class EventHandler
         final IBlockState state = world.getBlockState(pos);
 
         if(isFluidloggableFluid(fluid.getBlock().getDefaultState(), false) && isStateFluidloggable(state, fluid) && setFluidState(world, pos, state, FluidState.of(fluid), true)) {
-            world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluid.getEmptySound(), SoundCategory.BLOCKS, 1, 1);
+            if(!world.provider.doesWaterVaporize() || !fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME)))
+                world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluid.getEmptySound(), SoundCategory.BLOCKS, 1, 1);
+
             handler.drain(new FluidStack(fluid, Fluid.BUCKET_VOLUME), true);
             return true;
         }

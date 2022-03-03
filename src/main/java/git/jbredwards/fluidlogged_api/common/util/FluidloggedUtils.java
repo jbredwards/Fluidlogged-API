@@ -9,7 +9,6 @@ import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
 import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumActionResult;
@@ -141,9 +140,7 @@ public enum FluidloggedUtils
 
     //forces a fluid light level & light opacity update
     public static void relightFluidBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
-        final @Nullable Chunk chunk = getChunk(world, pos);
-        if(chunk == null) return;
-
+        final @Nullable Chunk chunk = world.getChunkFromBlockCoords(pos);
         final int x = pos.getX() & 15;
         final int z = pos.getZ() & 15;
         final int height = chunk.getHeightValue(x, z);
@@ -160,10 +157,6 @@ public enum FluidloggedUtils
         world.checkLight(pos);
         world.profiler.endSection();
     }
-
-    //fork of Main.CommonProxy#getChunk
-    @Nullable
-    public static Chunk getChunk(@Nullable IBlockAccess world, @Nonnull BlockPos pos) { return Main.proxy.getChunk(world, pos); }
 
     //has two purposes:
     //1: returns true if the contained fluid can flow from the specified side
@@ -194,17 +187,8 @@ public enum FluidloggedUtils
     //return true if the IBlockState can be fluidlogged
     public static boolean isFluidloggableFluid(@Nonnull IBlockState fluid, boolean checkLevel) {
         //(BlockLiquid & BlockFluidClassic extend this through asm)
-        if(!(fluid.getBlock() instanceof IFluidloggableFluid)
-                || !((IFluidloggableFluid)fluid.getBlock()).isFluidloggableFluid(fluid)) return false;
-
-        //check for fluid level
-        if(checkLevel) {
-            final int level = fluid.getValue(BlockLiquid.LEVEL);
-            return level == 0 || (level >= 8 && AccessorUtils.canCreateSources(fluid.getBlock()));
-        }
-
-        //skip level check
-        return true;
+        return fluid.getBlock() instanceof IFluidloggableFluid &&
+                ((IFluidloggableFluid)fluid.getBlock()).isFluidloggableFluid(fluid, checkLevel);
     }
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {

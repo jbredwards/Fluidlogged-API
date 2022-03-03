@@ -8,7 +8,6 @@ import net.minecraft.block.BlockDispenser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.init.Items;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ChunkCache;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -69,9 +68,7 @@ public final class Main
         @Nullable
         public Chunk getChunk(@Nullable IBlockAccess worldIn, @Nonnull BlockPos pos) {
             if(worldIn instanceof World) return ((World)worldIn).getChunkFromBlockCoords(pos);
-            else if(worldIn instanceof ChunkCache) return ((ChunkCache)worldIn).world.getChunkFromBlockCoords(pos);
-            else if(worldIn instanceof IChunkProvider) return ((IChunkProvider)worldIn).getChunkFromBlockCoords(pos);
-            else return null;
+            return (worldIn instanceof IChunkProvider) ? ((IChunkProvider)worldIn).getChunkFromBlockCoords(pos) : null;
         }
     }
 

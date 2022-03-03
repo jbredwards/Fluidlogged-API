@@ -1,8 +1,10 @@
 package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
+import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -22,7 +24,9 @@ import javax.annotation.Nullable;
 @Mixin(World.class)
 public abstract class WorldMixin implements IBlockAccess
 {
-
+    @Nonnull
+    @Redirect(method = {"getLight(Lnet/minecraft/util/math/BlockPos;Z)I", "getLightFromNeighborsFor"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"))
+    private IBlockState getFluidOrReal(@Nonnull World self, @Nonnull BlockPos pos) { return FluidloggedUtils.getFluidOrReal(self, pos); }
 
     /*@Nullable
     @Redirect(method = "isMaterialInBB", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/Block;isAABBInsideMaterial(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;Lnet/minecraft/block/material/Material;)Ljava/lang/Boolean;"))

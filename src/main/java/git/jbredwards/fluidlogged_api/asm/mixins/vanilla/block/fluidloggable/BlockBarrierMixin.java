@@ -7,8 +7,6 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -34,7 +32,7 @@ public abstract class BlockBarrierMixin extends Block implements IFluidloggable
     @Override
     public void randomDisplayTick(@Nonnull IBlockState stateIn, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull Random rand) {
         final EntityPlayer player = Minecraft.getMinecraft().player;
-        if(player.isCreative() && player.getHeldItemMainhand().getItem() == Item.getItemFromBlock(Blocks.BARRIER)) {
+        if(player.isCreative() && player.getHeldItemMainhand().getItem() == getItemDropped(stateIn, worldIn.rand, 0)) {
             worldIn.spawnParticle(EnumParticleTypes.BARRIER, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0, 0, 0);
         }
     }
