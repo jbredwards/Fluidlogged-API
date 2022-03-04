@@ -19,6 +19,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
@@ -42,7 +43,6 @@ import static git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils.*;
  * @author jbred
  *
  */
-@SuppressWarnings("unused")
 @Mixin(BlockLiquid.class)
 public abstract class BlockLiquidMixin extends Block implements IFluidloggableFluid
 {
@@ -56,9 +56,8 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     @Overwrite
     protected BlockStateContainer createBlockState() {
         return new BlockStateContainer.Builder(this)
-                .add(BlockLiquid.LEVEL)
                 .add(BlockFluidBase.FLUID_RENDER_PROPS.toArray(new IUnlistedProperty<?>[0]))
-                .build();
+                .add(BlockLiquid.LEVEL).build();
     }
 
     /**
@@ -102,10 +101,10 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     @Overwrite
     private boolean causesDownwardCurrent(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
         final IBlockState state = worldIn.getBlockState(pos);
-        if(isCompatibleFluid(getFluidState(worldIn, pos, state).getFluid(), getFluid())
-                && canFluidFlow(worldIn, pos, state, side.getOpposite())) return false;
+        if(canFluidFlow(worldIn, pos, state, side) && isCompatibleFluid(getFluidState(worldIn, pos, state).getFluid(), getFluid()))
+            return false;
 
-        if(state.getMaterial() == Material.ICE) return false;
+        else if(state.getMaterial() == Material.ICE) return false;
         else {
             final Block block = state.getBlock();
             boolean flag = isExceptBlockForAttachWithPiston(block) || block instanceof BlockStairs;
@@ -119,32 +118,21 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
      */
     @Nonnull
     @Overwrite
-    protected Vec3d getFlow(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
-        //correct state param sometimes not being a BlockLiquid
-        if(getFluidFromState(state) == null) {
-            FluidState fluidState = FluidState.get(worldIn, pos);
-            if(fluidState.isEmpty()) return Vec3d.ZERO;
-            else state = fluidState.getState();
-        }
-
+    protected Vec3d getFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
+        final int decay = getFlowDecay(world, pos);
         Vec3d vec = Vec3d.ZERO;
 
-        final IBlockState here = worldIn.getBlockState(pos);
-        final int level = state.getValue(BlockLiquid.LEVEL);
-        int decay = (level >= 8 ? 0 : level);
-
         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
-            if(canFluidFlow(worldIn, pos, here, facing)) {
+            if(canFluidFlow(world, pos, here, facing)) {
                 BlockPos offset = pos.offset(facing);
-                IBlockState neighbor = worldIn.getBlockState(offset);
-                int otherDecay = getFlowDecay(neighbor, worldIn, offset, facing);
-                if(otherDecay < 0) {
-                    if(!getFlow(worldIn, offset, neighbor, facing, getFluid())) {
-                        otherDecay = getFlowDecay(worldIn.getBlockState(offset.down()), worldIn, offset.down(), facing);
-                        if(otherDecay >= 0) {
-                            int power = otherDecay - (decay - 8);
-                            vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
-                        }
+                int otherDecay = getFlowDecayOffset(world, offset, facing.getOpposite());
+
+                if(otherDecay >= 8) {
+                    otherDecay = getFlowDecay(world, offset.down());
+
+                    if(otherDecay < 8) {
+                        int power = otherDecay - (decay - 8);
+                        vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
                     }
                 }
                 else {
@@ -154,14 +142,12 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
             }
         }
 
-        if(level >= 8) {
-            for(EnumFacing side : EnumFacing.HORIZONTALS) {
-                if(canFluidFlow(worldIn, pos, here, side)) {
-                    BlockPos offset = pos.offset(side);
-                    if(causesDownwardCurrent(worldIn, offset, side) || causesDownwardCurrent(worldIn, offset.up(), side)) {
-                        vec = vec.normalize().addVector(0.0, -6.0, 0.0);
-                        break;
-                    }
+        if(hasVerticalFlow(world, pos)) {
+            for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+                BlockPos offset = pos.offset(facing);
+                if(causesDownwardCurrent(world, offset, facing) || causesDownwardCurrent(world, offset.up(), facing)) {
+                    vec = vec.normalize().addVector(0.0, -6.0, 0.0);
+                    break;
                 }
             }
         }
@@ -169,25 +155,35 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
         return vec.normalize();
     }
 
-    protected int getFlowDecay(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing facing) {
-        final FluidState fluidState = getFluidState(world, pos, state);
-
-        if(!isCompatibleFluid(getFluid(), fluidState.getFluid())) return -1;
-        else if(!canFluidFlow(world, pos, state, facing.getOpposite())) return -1;
-        else {
-            final int level = fluidState.getLevel();
-            return level >= 8 ? 0 : level;
-        }
+    private int getFlowDecay(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        return 8 - getEffectiveQuanta(world, pos);
     }
 
-    protected boolean getFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing facing, @Nonnull Fluid fluidIn) {
-        final @Nullable Fluid fluid = getFluidState(world, pos, state).getFluid();
-        //fluidlogged block
-        if(isCompatibleFluid(fluid, fluidIn) && !canFluidFlow(world, pos, state, facing.getOpposite())) return true;
-        //fluids aren't equal
-        else if(fluid != null && !isCompatibleFluid(fluid, fluidIn)) return true;
-        //default
-        return state.getMaterial().blocksMovement();
+    private int getFlowDecayOffset(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing) {
+        if(!canFluidFlow(world, pos, world.getBlockState(pos), facing)) return 9;
+        else return getFlowDecay(world, pos);
+    }
+
+    protected int getEffectiveQuanta(IBlockAccess world, BlockPos pos) {
+        int quantaValue = getQuantaValue(world, pos);
+        return quantaValue > 0 && quantaValue < 8 && hasVerticalFlow(world, pos) ? 8 : quantaValue;
+    }
+
+    protected int getQuantaValue(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        final IBlockState state = world.getBlockState(pos);
+        if(state.getBlock().isAir(state, world, pos)) return 0;
+
+        final FluidState fluidState = getFluidState(world, pos, state);
+        if(!isCompatibleFluid(fluidState.getFluid(), getFluid())) return -1;
+        else return 8 - fluidState.getLevel();
+    }
+
+    protected boolean hasVerticalFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        if(!canFluidFlow(world, pos, world.getBlockState(pos), EnumFacing.UP)) return false;
+
+        final IBlockState up = world.getBlockState(pos.up());
+        return canFluidFlow(world, pos.up(), up, EnumFacing.DOWN)
+                && isCompatibleFluid(getFluidState(world, pos.up(), up).getFluid(), getFluid());
     }
 
     /**
@@ -205,9 +201,11 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
 
                     BlockPos offset = pos.offset(facing);
                     IBlockState state = worldIn.getBlockState(offset);
+
+                    if(!canFluidFlow(worldIn, offset, state, facing.getOpposite())) continue;
                     FluidState fluidState = getFluidState(worldIn, offset, state);
 
-                    if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER && canFluidFlow(worldIn, offset, state, facing.getOpposite())) {
+                    if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) {
                         final int level = stateIn.getValue(BlockLiquid.LEVEL);
 
                         //obsidian
@@ -269,7 +267,7 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
 
         //covert to extended state
         IExtendedBlockState state = (IExtendedBlockState)oldState;
-        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, (float)getFlowDirection(oldState, world, pos));
+        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, (float)getFlowDirection(world, pos));
 
         //corner height variables
         final IBlockState[][] upBlockState = new IBlockState[3][3];
@@ -340,7 +338,7 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     }
 
     //used by getExtendedState
-    public float getFluidHeightForRender(@Nullable Fluid fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState up, @Nullable Fluid upFluid, int i, int j) {
+    private float getFluidHeightForRender(@Nullable Fluid fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState up, @Nullable Fluid upFluid, int i, int j) {
         //check block above
         if(isFluid(up, upFluid, fluid, world, pos.up(), EnumFacing.UP)) return 1;
         final IBlockState state = world.getBlockState(pos);
@@ -362,7 +360,7 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     }
 
     //used by getExtendedState
-    public float getFluidHeightAverage(int i, int j, @Nonnull float... flow) {
+    private float getFluidHeightAverage(int i, int j, @Nonnull float... flow) {
         float total = 0;
         int count = 0;
 
@@ -388,7 +386,7 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     }
 
     //used by getExtendedState
-    public boolean isFluid(@Nonnull IBlockState up, @Nullable Fluid upFluid, @Nullable Fluid fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing...faces) {
+    private boolean isFluid(@Nonnull IBlockState up, @Nullable Fluid upFluid, @Nullable Fluid fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing...faces) {
         if(isCompatibleFluid(fluid, upFluid)) {
             for(EnumFacing facing : faces) if(!canFluidFlow(world, pos, up, facing.getOpposite())) return false;
             return true;
@@ -398,12 +396,12 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     }
 
     //fixes crash when trying to render invalid state (temporary fix)
-    public <V> IExtendedBlockState withPropertyFallback(@Nonnull IExtendedBlockState state, @Nonnull IUnlistedProperty<V> property, @Nullable V value, V fallback) {
+    private <V> IExtendedBlockState withPropertyFallback(@Nonnull IExtendedBlockState state, @Nonnull IUnlistedProperty<V> property, @Nullable V value, V fallback) {
         return state.withProperty(property, property.isValid(value) ? value : fallback);
     }
 
-    public double getFlowDirection(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        final Vec3d vec = getFlow(world, pos, state);
+    private double getFlowDirection(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        final Vec3d vec = getFlow(world, pos, world.getBlockState(pos));
         return vec.x == 0 && vec.z == 0 ? -1000 : Math.atan2(vec.z, vec.x) - Math.PI / 2;
     }
 
@@ -427,7 +425,7 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
             final IBlockState here = world.getBlockState(pos);
             final Fluid fluid = getFluid();
 
-            if(!isStateFluidloggable(here, fluid)) world.setBlockState(pos, getDefaultState());
+            if(!isStateFluidloggable(here, fluid)) world.setBlockState(pos, getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
             else setFluidState(world, pos, here, FluidState.of(fluid), true);
         }
 

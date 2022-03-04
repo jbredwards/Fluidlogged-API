@@ -123,6 +123,8 @@ public final class EventHandler
         if(handler == null) return;
 
         final @Nullable FluidStack contained = handler.drain(Fluid.BUCKET_VOLUME, false);
+        if(contained != null && !contained.getFluid().canBePlacedInWorld()) return;
+
         final BlockPos pos = event.getTarget().getBlockPos();
         final World world = event.getWorld();
         final EntityPlayer player = event.getEntityPlayer();

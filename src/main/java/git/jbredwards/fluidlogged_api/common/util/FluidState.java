@@ -36,13 +36,6 @@ public class FluidState extends Pair<Fluid, IBlockState>
     public FluidState(Fluid fluidIn, IBlockState stateIn) {
         fluid = fluidIn;
         state = stateIn;
-        validate();
-    }
-
-    //catch any illegal FluidStates early, as they'll probably cause issues down the line
-    protected void validate() {
-        if(fluid != null && state != null && (!fluid.canBePlacedInWorld() || !FluidloggedUtils.isFluidloggableFluid(state, false)))
-            throw new IllegalStateException("Tried to construct invalid FluidState: " + this);
     }
 
     //return a FluidState with the input Fluid, or return empty instance if the fluid isn't valid for fluidlogging

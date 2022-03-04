@@ -3,7 +3,6 @@
   "package": "git.jbredwards.fluidlogged_api.asm.mixins.vanilla.world",
   "mixins": [
     "ChunkCacheMixin",
-    "ChunkMixin",
     "WorldMixin"
   ]
 }
