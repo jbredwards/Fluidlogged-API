@@ -7,9 +7,6 @@ import net.minecraft.block.BlockStairs;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -84,18 +81,14 @@ public abstract class BlockFluidBaseMixin extends Block
     public boolean shouldSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
         final IBlockState here = world.getBlockState(pos);
 
-        if(!canFluidFlow(world, pos, here, side))
-            return !here.doesSideBlockRendering(world, pos, side) && here.getRenderType() != EnumBlockRenderType.INVISIBLE;
-
+        if(!canFluidFlow(world, pos, here, side)) return !here.doesSideBlockRendering(world, pos, side);
         else {
             final BlockPos offset = pos.offset(side);
             final IBlockState neighbor = world.getBlockState(offset);
 
-            if(isCompatibleFluid(getFluidState(world, offset, neighbor).getFluid(), getFluidFromState(state)))
-                if(!canFluidFlow(world, offset, neighbor, side.getOpposite()))
-                    return !neighbor.doesSideBlockRendering(world, offset, side.getOpposite()) && neighbor.getRenderType() != EnumBlockRenderType.INVISIBLE;
-
-                else return false;
+            if(isCompatibleFluid(getFluidState(world, offset, neighbor).getFluid(), getFluid()))
+                return !canFluidFlow(world, offset, neighbor, side.getOpposite())
+                        && !neighbor.doesSideBlockRendering(world, offset, side.getOpposite());
 
             else return side == (densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN)
                     || !neighbor.doesSideBlockRendering(world, offset, side.getOpposite());
@@ -234,11 +227,6 @@ public abstract class BlockFluidBaseMixin extends Block
         return false;
     }
 
-    @Override
-    public void onEntityWalk(World worldIn, BlockPos pos, Entity entityIn) {
-        super.onEntityWalk(worldIn, pos, entityIn);
-    }
-
     private IExtendedBlockState withPropertyFallback(@Nonnull IExtendedBlockState state, @Nonnull PropertyFloat property, float value) {
         return state.withProperty(property, property.isValid(value) ? value : quantaFraction);
     }
@@ -356,56 +344,6 @@ public abstract class BlockFluidBaseMixin extends Block
     @Redirect(method = "getStateAtViewpoint", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/IBlockAccess;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"))
     private IBlockState getFogColor(@Nonnull IBlockAccess world, @Nonnull BlockPos upPos) {
         return getFluidOrReal(world, upPos);
-    }
-
-    //defaults are removed via BlockFluidBasePlugin to prevent crashing on startup. this restores them, but at a better time
-    @Redirect(method = "<init>(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V", at = @At(value = "INVOKE", target = "Ljava/util/Map;putAll(Ljava/util/Map;)V", remap = false), remap = false)
-    private void restoreDefaults(@Nonnull Map<Block, Boolean> displacements, @Nonnull Map<Block, Boolean> defaultDisplacements) {
-        if(defaultDisplacements.isEmpty()) {
-            defaultDisplacements.put(Blocks.OAK_DOOR,                       false);
-            defaultDisplacements.put(Blocks.SPRUCE_DOOR,                    false);
-            defaultDisplacements.put(Blocks.BIRCH_DOOR,                     false);
-            defaultDisplacements.put(Blocks.JUNGLE_DOOR,                    false);
-            defaultDisplacements.put(Blocks.ACACIA_DOOR,                    false);
-            defaultDisplacements.put(Blocks.DARK_OAK_DOOR,                  false);
-            defaultDisplacements.put(Blocks.TRAPDOOR,                       false);
-            defaultDisplacements.put(Blocks.IRON_TRAPDOOR,                  false);
-            defaultDisplacements.put(Blocks.OAK_FENCE,                      false);
-            defaultDisplacements.put(Blocks.SPRUCE_FENCE,                   false);
-            defaultDisplacements.put(Blocks.BIRCH_FENCE,                    false);
-            defaultDisplacements.put(Blocks.JUNGLE_FENCE,                   false);
-            defaultDisplacements.put(Blocks.DARK_OAK_FENCE,                 false);
-            defaultDisplacements.put(Blocks.ACACIA_FENCE,                   false);
-            defaultDisplacements.put(Blocks.NETHER_BRICK_FENCE,             false);
-            defaultDisplacements.put(Blocks.OAK_FENCE_GATE,                 false);
-            defaultDisplacements.put(Blocks.SPRUCE_FENCE_GATE,              false);
-            defaultDisplacements.put(Blocks.BIRCH_FENCE_GATE,               false);
-            defaultDisplacements.put(Blocks.JUNGLE_FENCE_GATE,              false);
-            defaultDisplacements.put(Blocks.DARK_OAK_FENCE_GATE,            false);
-            defaultDisplacements.put(Blocks.ACACIA_FENCE_GATE,              false);
-            defaultDisplacements.put(Blocks.WOODEN_PRESSURE_PLATE,          false);
-            defaultDisplacements.put(Blocks.STONE_PRESSURE_PLATE,           false);
-            defaultDisplacements.put(Blocks.LIGHT_WEIGHTED_PRESSURE_PLATE,  false);
-            defaultDisplacements.put(Blocks.HEAVY_WEIGHTED_PRESSURE_PLATE,  false);
-            defaultDisplacements.put(Blocks.LADDER,                         false);
-            defaultDisplacements.put(Blocks.IRON_BARS,                      false);
-            defaultDisplacements.put(Blocks.GLASS_PANE,                     false);
-            defaultDisplacements.put(Blocks.STAINED_GLASS_PANE,             false);
-            defaultDisplacements.put(Blocks.PORTAL,                         false);
-            defaultDisplacements.put(Blocks.END_PORTAL,                     false);
-            defaultDisplacements.put(Blocks.COBBLESTONE_WALL,               false);
-            defaultDisplacements.put(Blocks.BARRIER,                        false);
-            defaultDisplacements.put(Blocks.STANDING_BANNER,                false);
-            defaultDisplacements.put(Blocks.WALL_BANNER,                    false);
-            defaultDisplacements.put(Blocks.CAKE,                           false);
-
-            defaultDisplacements.put(Blocks.IRON_DOOR,     false);
-            defaultDisplacements.put(Blocks.STANDING_SIGN, false);
-            defaultDisplacements.put(Blocks.WALL_SIGN,     false);
-            defaultDisplacements.put(Blocks.REEDS,         false);
-        }
-
-        displacements.putAll(defaultDisplacements);
     }
 
     @Shadow(remap = false)

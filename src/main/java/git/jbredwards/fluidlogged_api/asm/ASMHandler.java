@@ -58,7 +58,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.entity.item.EntityItem", new EntityItemPlugin()) //items generate the burn effects when in a lava FluidState
                 .put("net.minecraft.entity.item.EntityXPOrb", new EntityItemPlugin()) //xp orbs generate the burn effects when in a lava FluidState
                 .put("net.minecraft.entity.projectile.EntityFishHook", new EntityFishHookPlugin()) //fishhook entities generate the fishing particles at water FluidStates
-                .put("net.minecraft.entity.Entity", new EntityPlugin()) //isInsideOfMaterial now recognises FluidStates
                 //vanilla (world)
                 //.put("net.minecraft.world.chunk.Chunk", new ChunkPlugin()) //WIP
                 .put("net.minecraft.world.end.DragonSpawnManager$3", new DragonSpawnManagerPlugin()) //summoning the ender dragon will now void FluidStates at the pillar locations
@@ -91,6 +90,9 @@ public final class ASMHandler implements IFMLLoadingPlugin
         MixinBootstrap.init();
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.block.fluidloggable.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.block.json");
+        Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.client.json");
+        Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.entity.json");
+        Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.world.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".forge.json");
         MixinEnvironment.getDefaultEnvironment().setObfuscationContext("searge");
     }

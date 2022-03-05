@@ -260,7 +260,7 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
         else if(!checkLevel) return true;
 
         final int level = fluid.getValue(BlockLiquid.LEVEL);
-        return level == 0 || level >= 8 && canCreateSources;
+        return level == 0 || level >= quantaPerBlock && canCreateSources;
     }
 
     @Shadow(remap = false)

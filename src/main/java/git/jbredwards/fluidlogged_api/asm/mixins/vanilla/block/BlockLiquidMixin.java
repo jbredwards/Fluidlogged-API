@@ -77,18 +77,14 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     public boolean shouldSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
         final IBlockState here = world.getBlockState(pos);
 
-        if(!canFluidFlow(world, pos, here, side))
-            return !here.doesSideBlockRendering(world, pos, side) && here.getRenderType() != EnumBlockRenderType.INVISIBLE;
-
+        if(!canFluidFlow(world, pos, here, side)) return !here.doesSideBlockRendering(world, pos, side);
         else {
             final BlockPos offset = pos.offset(side);
             final IBlockState neighbor = world.getBlockState(offset);
 
-            if(isCompatibleFluid(getFluidState(world, offset, neighbor).getFluid(), getFluidFromState(state)))
-                if(!canFluidFlow(world, offset, neighbor, side.getOpposite()))
-                    return !neighbor.doesSideBlockRendering(world, offset, side.getOpposite()) && neighbor.getRenderType() != EnumBlockRenderType.INVISIBLE;
-
-                else return false;
+            if(isCompatibleFluid(getFluidState(world, offset, neighbor).getFluid(), getFluid()))
+                return !canFluidFlow(world, offset, neighbor, side.getOpposite())
+                        && !neighbor.doesSideBlockRendering(world, offset, side.getOpposite());
 
             else return side == EnumFacing.UP || !neighbor.doesSideBlockRendering(world, offset, side.getOpposite());
         }
@@ -119,8 +115,9 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     @Nonnull
     @Overwrite
     protected Vec3d getFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
-        final int decay = getFlowDecay(world, pos);
         Vec3d vec = Vec3d.ZERO;
+
+        final int decay = getFlowDecay(world, pos);
 
         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
             if(canFluidFlow(world, pos, here, facing)) {
@@ -254,9 +251,6 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     private IBlockState getFogColor(@Nonnull World world, @Nonnull BlockPos upPos) {
         return getFluidOrReal(world, upPos);
     }
-
-    @Shadow
-    protected abstract void triggerMixEffects(@Nonnull World worldIn, @Nonnull BlockPos pos);
 
     @Nonnull
     @Override
@@ -471,4 +465,7 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
         final int level = fluid.getValue(BlockLiquid.LEVEL);
         return level == 0 || level >= 8 && fluid.getMaterial() == Material.WATER;
     }
+
+    @Shadow
+    protected abstract void triggerMixEffects(@Nonnull World worldIn, @Nonnull BlockPos pos);
 }
