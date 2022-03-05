@@ -399,15 +399,6 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
         return vec.x == 0 && vec.z == 0 ? -1000 : Math.atan2(vec.z, vec.x) - Math.PI / 2;
     }
 
-    //FluidStates update properly
-    @Override
-    public void neighborChanged(@Nonnull IBlockState state, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos) {
-        if(!FluidState.get(worldIn, pos).isEmpty()) worldIn.scheduleUpdate(pos, this, tickRate(worldIn));
-    }
-
-    @Override
-    public boolean requiresUpdates() { return false; }
-
     @Nonnull
     @Override
     public Fluid getFluid() { return (blockMaterial == Material.WATER) ? FluidRegistry.WATER : FluidRegistry.LAVA; }

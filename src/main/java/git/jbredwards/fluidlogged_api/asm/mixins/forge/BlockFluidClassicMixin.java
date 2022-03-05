@@ -78,7 +78,6 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
     public void updateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
         final IBlockState here = world.getBlockState(pos); //fluidlogged fluids will have a different state here than the state input
         final EnumFacing facingDir = (densityDir < 0) ? EnumFacing.UP : EnumFacing.DOWN;
-
         int quantaRemaining = quantaPerBlock - state.getValue(BlockLiquid.LEVEL);
 
         // check adjacent block levels if non-source

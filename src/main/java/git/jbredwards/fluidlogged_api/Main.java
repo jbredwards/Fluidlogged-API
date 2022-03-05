@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api;
 
+import git.jbredwards.fluidlogged_api.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
 import git.jbredwards.fluidlogged_api.common.network.SyncFluidStatesMessage;
@@ -24,6 +25,8 @@ import net.minecraftforge.fml.relauncher.Side;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import java.io.IOException;
+
 import static git.jbredwards.fluidlogged_api.Constants.*;
 
 /**
@@ -41,7 +44,6 @@ public final class Main
     @SuppressWarnings("NotNullFieldNotInitialized")
     @Nonnull public static SimpleNetworkWrapper wrapper;
 
-    //register this mod's capability & packet
     @SuppressWarnings("unused")
     @Mod.EventHandler
     public static void preInit(@Nullable FMLPreInitializationEvent event) {
@@ -53,10 +55,13 @@ public final class Main
         wrapper.registerMessage(SyncFluidStatesMessage.Handler.INSTANCE, SyncFluidStatesMessage.class, 2, Side.CLIENT);
     }
 
-    //fixes the vanilla bucket dispenser actions by using the forge one instead
+
     @SuppressWarnings("unused")
     @Mod.EventHandler
-    public static void init(@Nullable FMLInitializationEvent event) {
+    public static void init(@Nullable FMLInitializationEvent event) throws IOException {
+        //initialize this mod's config
+        ConfigHandler.initialize();
+        //fixes the vanilla bucket dispenser actions by replacing them with the forge one
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET,  DispenseFluidContainer.getInstance());
     }

@@ -4,7 +4,7 @@ import git.jbredwards.fluidlogged_api.Main;
 import git.jbredwards.fluidlogged_api.common.block.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
-import git.jbredwards.fluidlogged_api.common.config.FluidloggedConfig;
+import git.jbredwards.fluidlogged_api.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.common.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.common.network.FluidStateMessage;
 import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
@@ -193,7 +193,7 @@ public enum FluidloggedUtils
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
         //config
-        final EnumActionResult result = FluidloggedConfig.isStateFluidloggable(state, fluid);
+        final EnumActionResult result = ConfigHandler.isStateFluidloggable(state, fluid);
         if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;
         //defaults
         return (state.getBlock() instanceof IFluidloggable) && (fluid != null

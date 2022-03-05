@@ -112,7 +112,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
         }
 
         // Flow outward if possible
-        int flowMeta = 8 - quantaRemaining + 1;
+        int flowMeta = 8 - quantaRemaining + lavaDif;
         if(flowMeta >= 8) return;
 
         if(isSourceBlock(world, pos, here, null) || !isFlowingVertically(world, pos)) {
@@ -150,10 +150,6 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
                 && canFlowInto(world, pos.down()));
     }
 
-    private boolean canFlowInto(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        return isCompatibleFluid(getFluidState(world, pos).getFluid(), getFluid()) || canDisplace(world, pos);
-    }
-
     private boolean isSourceBlock(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         return isSourceBlock(world, pos, world.getBlockState(pos), null);
     }
@@ -163,6 +159,10 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
 
         final FluidState fluidState = getFluidState(world, pos, here);
         return isCompatibleFluid(fluidState.getFluid(), getFluid()) && fluidState.getLevel() == 0;
+    }
+
+    private boolean canFlowInto(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        return isCompatibleFluid(getFluidState(world, pos).getFluid(), getFluid()) || canDisplace(world, pos);
     }
 
     private int getLargerQuanta(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, int compare) {
@@ -230,4 +230,17 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
 
         return canDisplace;
     }
+
+    @Override
+    public void onBlockAdded(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
+        worldIn.scheduleUpdate(pos, this, tickRate(worldIn));
+    }
+
+    @Override
+    public void neighborChanged(@Nonnull IBlockState state, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos) {
+        worldIn.scheduleUpdate(pos, this, tickRate(worldIn));
+    }
+
+    @Override
+    public boolean requiresUpdates() { return false; }
 }
