@@ -155,7 +155,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
     }
 
     private boolean isSourceBlock(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nullable EnumFacing facing) {
-        if(facing != null && canFluidFlow(world, pos, here, facing)) return false;
+        if(facing != null && !canFluidFlow(world, pos, here, facing)) return false;
 
         final FluidState fluidState = getFluidState(world, pos, here);
         return isCompatibleFluid(fluidState.getFluid(), getFluid()) && fluidState.getLevel() == 0;
@@ -232,13 +232,8 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
     }
 
     @Override
-    public void onBlockAdded(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
-        worldIn.scheduleUpdate(pos, this, tickRate(worldIn));
-    }
-
-    @Override
     public void neighborChanged(@Nonnull IBlockState state, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos) {
-        worldIn.scheduleUpdate(pos, this, tickRate(worldIn));
+        if(!checkForMixing(worldIn, pos, state)) worldIn.scheduleUpdate(pos, this, tickRate(worldIn));
     }
 
     @Override

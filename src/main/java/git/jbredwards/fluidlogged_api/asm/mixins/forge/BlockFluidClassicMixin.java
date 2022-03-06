@@ -174,7 +174,7 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
     }
 
     private boolean isSourceBlock(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nullable EnumFacing facing) {
-        if(facing != null && canFluidFlow(world, pos, here, facing)) return false;
+        if(facing != null && !canFluidFlow(world, pos, here, facing)) return false;
 
         final FluidState fluidState = getFluidState(world, pos, here);
         return isCompatibleFluid(fluidState.getFluid(), getFluid()) && fluidState.getLevel() == 0;

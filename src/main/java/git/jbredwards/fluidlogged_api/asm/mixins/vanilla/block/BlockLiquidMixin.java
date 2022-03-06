@@ -213,7 +213,7 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
                         }
 
                         //cobble
-                        if(level <= 4) {
+                        if(level <= 4 || facing == EnumFacing.UP) {
                             worldIn.setBlockState(pos, ForgeEventFactory.fireFluidPlaceBlockEvent(worldIn, pos, pos, Blocks.COBBLESTONE.getDefaultState()));
                             triggerMixEffects(worldIn, pos);
                             return true;
