@@ -38,19 +38,21 @@ public abstract class BlockMixin
      */
     @Deprecated
     @Overwrite
-    public MapColor getMapColor(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nullable BlockPos pos) {
-        if(pos == null || FluidloggedUtils.getFluidFromState(state) != null) return blockMapColor;
+    public MapColor getMapColor(@Nonnull IBlockState state, @Nullable IBlockAccess world, @Nullable BlockPos pos) {
+        if(pos == null || world == null || FluidloggedUtils.getFluidFromState(state) != null) return blockMapColor;
         //return fluid map color if present
         final FluidState fluidState = FluidState.get(world, pos);
         return fluidState.isEmpty() ? blockMapColor : fluidState.getState().getMapColor(world, pos);
     }
 
     /**
-     * @reason increases performance & flexibility
+     * @reason increases method performance & flexibility
      * @author jbred
      */
     @Overwrite
-    public boolean isReplaceable(IBlockAccess worldIn, BlockPos pos) { return getDefaultState().getMaterial().isReplaceable(); }
+    public boolean isReplaceable(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
+        return getDefaultState().getMaterial().isReplaceable();
+    }
 
     /**
      * @reason fixes fluidlogged block lighting

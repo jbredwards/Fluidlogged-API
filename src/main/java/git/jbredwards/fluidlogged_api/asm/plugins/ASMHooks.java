@@ -1,5 +1,7 @@
 package git.jbredwards.fluidlogged_api.asm.plugins;
 
+import git.jbredwards.fluidlogged_api.asm.plugins.modded.BFReflector;
+import git.jbredwards.fluidlogged_api.asm.plugins.modded.OFReflector;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.AccessorUtils;
@@ -13,6 +15,7 @@ import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.chunk.ChunkCompileTaskGenerator;
 import net.minecraft.client.renderer.chunk.CompiledChunk;
+import net.minecraft.client.renderer.chunk.RenderChunk;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.crash.CrashReport;
 import net.minecraft.crash.CrashReportCategory;
@@ -24,6 +27,8 @@ import net.minecraft.util.*;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.ForgeHooksClient;
@@ -37,6 +42,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 import static net.minecraft.util.EnumFacing.*;
@@ -287,15 +293,7 @@ public enum ASMHooks
     //FluidUtilPlugin
     public static IFluidHandler getFluidHandler(World world, BlockPos pos) {
         final FluidState fluidState = FluidState.get(world, pos);
-
-        if(!fluidState.isEmpty()) {
-            final Block block = fluidState.getBlock();
-
-            if(block instanceof IFluidBlock)
-                return new FluidBlockWrapper((IFluidBlock)block, world, pos);
-        }
-
-        return null;
+        return fluidState.isEmpty() ? null : new FluidBlockWrapper(fluidState.getBlock(), world, pos);
     }
 
     //FluidUtilPlugin
@@ -449,7 +447,7 @@ public enum ASMHooks
     //RenderChunkPlugin
     public static boolean renderChunk(Block block, IBlockState state, BlockRenderLayer layerIn, boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
         //only run fluid renderer once
-        if(layerIn == BlockRenderLayer.SOLID) {
+        if(layerIn.ordinal() == 0) {
             final FluidState fluidState = FluidState.get(pos);
             if(!fluidState.isEmpty() && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
                 //renders the fluid in each layer
@@ -457,8 +455,8 @@ public enum ASMHooks
                     if(!fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer))
                         continue;
 
-                    BufferBuilder buffer = generator.getRegionRenderCacheBuilder().getWorldRendererByLayer(layer);
                     ForgeHooksClient.setRenderLayer(layer);
+                    BufferBuilder buffer = generator.getRegionRenderCacheBuilder().getWorldRendererByLayer(layer);
 
                     if(!compiledChunk.isLayerStarted(layer)) {
                         compiledChunk.setLayerStarted(layer);
@@ -477,14 +475,86 @@ public enum ASMHooks
                     array[layer.ordinal()] |= Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer()
                             .renderModel(world, model, extendedFluidState, pos, buffer, true);
                 }
-            }
 
-            //reset current render layer
-            ForgeHooksClient.setRenderLayer(null);
+                //reset current render layer
+                ForgeHooksClient.setRenderLayer(null);
+            }
         }
 
         //always return old code
-        return block.canRenderInLayer(state, layerIn);
+        return canRenderBlockInLayer(block, state, layerIn);
+    }
+
+    //RenderChunkPlugin
+    public static boolean renderChunkOF(Block block, IBlockState state, BlockRenderLayer layerIn, boolean[] array, RenderChunk renderChunk, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
+        //only run fluid renderer once
+        if(layerIn.ordinal() == 0) {
+            final FluidState fluidState = FluidState.get(pos);
+            if(!fluidState.isEmpty() && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
+                //renders the fluid in each layer
+                for(BlockRenderLayer layer : BlockRenderLayer.values()) {
+                    if(!fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer))
+                        continue;
+
+                    ForgeHooksClient.setRenderLayer(layer);
+                    BufferBuilder buffer = generator.getRegionRenderCacheBuilder().getWorldRendererByLayer(layer);
+
+                    try {
+                        OFReflector.setBlockLayer.invoke(buffer, layer);
+
+                        Object renderEnv = OFReflector.getRenderEnv.invoke(buffer, fluidState.getState(), pos);
+                        OFReflector.setRegionRenderCacheBuilder.invoke(renderEnv, generator.getRegionRenderCacheBuilder());
+
+                        if(!compiledChunk.isLayerStarted(layer)) {
+                            compiledChunk.setLayerStarted(layer);
+                            buffer.begin(7, DefaultVertexFormats.BLOCK);
+                            buffer.setTranslation(-chunkPos.getX(), -chunkPos.getY(), -chunkPos.getZ());
+                        }
+
+                        //give mods a chance to change something about the rendered fluid
+                        IBlockState extendedFluidState = world.getWorldType() != WorldType.DEBUG_ALL_BLOCK_STATES ?
+                                fluidState.getState().getActualState(world, pos) : fluidState.getState();
+
+                        IBakedModel model = Minecraft.getMinecraft().getBlockRendererDispatcher().getModelForState(extendedFluidState);
+                        extendedFluidState = getExtendedState(extendedFluidState, world, pos, fluidState.getFluid());
+
+                        //render the fluid
+                        array[layer.ordinal()] |= Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelRenderer()
+                                .renderModel(world, model, extendedFluidState, pos, buffer, true);
+
+                        //post shader stuff
+                        if((boolean)OFReflector.isOverlaysRendered.invoke(renderEnv)) {
+                            OFReflector.postRenderOverlays.invoke(renderChunk, generator.getRegionRenderCacheBuilder(), compiledChunk, array);
+                            OFReflector.setOverlaysRendered.invoke(renderEnv, false);
+                        }
+                    }
+                    //shouldn't catch, but if it does, alert the player
+                    catch(Exception e) { Minecraft.getMinecraft().player.sendMessage(new TextComponentString(TextFormatting.RED + e.toString())); }
+                }
+
+                //reset current render layer
+                ForgeHooksClient.setRenderLayer(null);
+            }
+        }
+
+        return canRenderBlockInLayer(block ,state, layerIn);
+    }
+
+    //RenderChunkPlugin
+    public static boolean renderChunkOF(Object blockIn, Object ignored, Object[] args, boolean[] array, RenderChunk renderChunk, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
+        return renderChunkOF((Block)blockIn, (IBlockState)args[0], (BlockRenderLayer)args[1], array, renderChunk, generator, compiledChunk, world, pos, chunkPos);
+    }
+
+    //RenderChunkPlugin
+    public static boolean canRenderBlockInLayer(Block block, IBlockState state, BlockRenderLayer layer) {
+        try {
+            return BFReflector.canRenderBlockInLayer != null
+                    ? (boolean)BFReflector.canRenderBlockInLayer.invoke(null, block, state, layer)
+                    : block.canRenderInLayer(state, layer);
+        }
+        catch (IllegalAccessException | InvocationTargetException e) {
+            return block.canRenderInLayer(state, layer);
+        }
     }
 
     //RenderChunkPlugin helper

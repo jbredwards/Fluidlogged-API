@@ -196,7 +196,7 @@ public enum ConfigHandler
             }
 
             //invalid json, probably
-            catch (NBTException e) { throw new JsonParseException(e); }
+            catch(NBTException e) { throw new JsonParseException(e); }
         }
     }
 }

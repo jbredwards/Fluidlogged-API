@@ -44,12 +44,9 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.Block", new BlockPlugin()) //fixes some lighting, canSustainPlant, and explosion related issues
                 .put("net.minecraft.block.BlockBush", new BlockBushPlugin()) //breaking this block type no longer voids the possible FluidState here
                 .put("net.minecraft.block.BlockCocoa", new BlockCocoaPlugin()) //breaking this block type no longer voids the possible FluidState here
-                //.put("net.minecraft.block.BlockDynamicLiquid", new BlockDynamicLiquidPlugin()) //vanilla fluids no longer do block mixing when they shouldn't; vanilla fluids now flow from fluidlogged blocks
                 .put("net.minecraft.block.BlockFarmland", new BlockFarmlandPlugin()) //farmland blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockLilyPad", new BlockLilyPadPlugin()) //lily pads can stay on certain water FluidStates
-                //.put("net.minecraft.block.BlockLiquid", new BlockLiquidPlugin()) //fixes BlockLiquid#getBlockLiquidHeight
                 .put("net.minecraft.block.BlockReed", new BlockReedPlugin()) //sugar cane blocks now recognise water FluidStates
-                //.put("net.minecraft.block.BlockSkull", new BlockSkullPlugin()) //wither skulls no longer void the FluidState here when summoning the wither
                 .put("net.minecraft.block.BlockSponge", new BlockSpongePlugin()) //fixes drain interactions across all modded fluids & FluidStates
                 //vanilla (entities)
                 .put("net.minecraft.entity.ai.EntityAIPanic", new EntityAIPanicPlugin()) //water FluidStates are now seen as water blocks
@@ -59,7 +56,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.entity.item.EntityXPOrb", new EntityItemPlugin()) //xp orbs generate the burn effects when in a lava FluidState
                 .put("net.minecraft.entity.projectile.EntityFishHook", new EntityFishHookPlugin()) //fishhook entities generate the fishing particles at water FluidStates
                 //vanilla (world)
-                //.put("net.minecraft.world.chunk.Chunk", new ChunkPlugin()) //WIP
                 .put("net.minecraft.world.end.DragonSpawnManager$3", new DragonSpawnManagerPlugin()) //summoning the ender dragon will now void FluidStates at the pillar locations
                 .put("net.minecraft.world.gen.feature.WorldGenDungeons", new WorldGenDungeonsPlugin()) //spawner dungeons now void FluidStates when they generate
                 .put("net.minecraft.world.World", new WorldPlugin()) //corrects a lot of FluidState related interactions
@@ -67,8 +63,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 //forge
                 .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new ModelFluidPlugin()) //fixes all issues with fluidlogged z-fighting
                 .put("net.minecraftforge.common.ForgeHooks", new ForgeHooksPlugin()) //fix ForgeHooks#isInsideOfMaterial by allowing it to access stored fluid blocks
-                .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin()) //WIP
-                .put("net.minecraftforge.fluids.BlockFluidClassic", new BlockFluidClassicPlugin()) //WIP
+                .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin()) //prevent startup crash
                 .put("net.minecraftforge.fluids.FluidUtil", new FluidUtilPlugin()) //changes some of this class's util functions to be FluidState sensitive
                 .build();
 

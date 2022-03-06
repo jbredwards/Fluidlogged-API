@@ -45,10 +45,6 @@ public abstract class FluidUtilMixin
         return fluidState.isEmpty() ? null : new FluidBlockWrapper(fluidState.getBlock(), world, pos);
     }
 
-    /**
-     * @reason
-     * @author jbred
-     */
     @Nonnull
     @Redirect(method = "tryPickUpFluid", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;", remap = false), remap = false)
     private static IBlockState getFluidOrReal(@Nonnull World world, @Nonnull BlockPos pos) { return FluidloggedUtils.getFluidOrReal(world, pos); }
