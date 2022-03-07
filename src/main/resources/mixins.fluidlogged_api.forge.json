@@ -5,6 +5,7 @@
     "BlockFluidBaseMixin",
     "BlockFluidClassicMixin",
     "FluidMixin",
-    "FluidUtilMixin"
+    "FluidUtilMixin",
+    "ForgeHooksMixin"
   ]
 }

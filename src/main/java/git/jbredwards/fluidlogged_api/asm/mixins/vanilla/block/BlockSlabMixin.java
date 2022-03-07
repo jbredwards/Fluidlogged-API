@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block.fluidloggable;
+package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
 import net.minecraft.block.BlockSlab;

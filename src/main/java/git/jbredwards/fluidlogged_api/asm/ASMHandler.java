@@ -8,10 +8,10 @@ import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.block.*;
 import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.client.*;
 import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.entity.*;
 import git.jbredwards.fluidlogged_api.asm.plugins.vanilla.world.*;
+import git.jbredwards.fluidlogged_api.common.config.ConfigHandler;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.spongepowered.asm.launch.MixinBootstrap;
-import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
 
 import javax.annotation.Nonnull;
@@ -47,7 +47,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.BlockFarmland", new BlockFarmlandPlugin()) //farmland blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockLilyPad", new BlockLilyPadPlugin()) //lily pads can stay on certain water FluidStates
                 .put("net.minecraft.block.BlockReed", new BlockReedPlugin()) //sugar cane blocks now recognise water FluidStates
-                .put("net.minecraft.block.BlockSponge", new BlockSpongePlugin()) //fixes drain interactions across all modded fluids & FluidStates
                 //vanilla (entities)
                 .put("net.minecraft.entity.ai.EntityAIPanic", new EntityAIPanicPlugin()) //water FluidStates are now seen as water blocks
                 .put("net.minecraft.entity.ai.RandomPositionGenerator", new RandomPositionGeneratorPlugin()) //water FluidStates are now seen as water blocks
@@ -62,7 +61,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.world.WorldServer", new WorldServerPlugin()) //FluidStates now get ticked
                 //forge
                 .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new ModelFluidPlugin()) //fixes all issues with fluidlogged z-fighting
-                .put("net.minecraftforge.common.ForgeHooks", new ForgeHooksPlugin()) //fix ForgeHooks#isInsideOfMaterial by allowing it to access stored fluid blocks
                 .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin()) //prevent startup crash
                 .put("net.minecraftforge.fluids.FluidUtil", new FluidUtilPlugin()) //changes some of this class's util functions to be FluidState sensitive
                 .build();
@@ -82,14 +80,13 @@ public final class ASMHandler implements IFMLLoadingPlugin
     //handle mixin
     @Override
     public void injectData(@Nullable Map<String, Object> data) {
+        ConfigHandler.init();
         MixinBootstrap.init();
-        Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.block.fluidloggable.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.block.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.client.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.entity.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.world.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".forge.json");
-        MixinEnvironment.getDefaultEnvironment().setObfuscationContext("searge");
     }
 
     @Nullable

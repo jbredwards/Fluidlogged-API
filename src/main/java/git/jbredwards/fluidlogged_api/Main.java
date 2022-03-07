@@ -59,8 +59,8 @@ public final class Main
     @SuppressWarnings("unused")
     @Mod.EventHandler
     public static void init(@Nullable FMLInitializationEvent event) throws IOException {
-        //initialize this mod's config
-        ConfigHandler.initialize();
+        //finalize this mod's config
+        ConfigHandler.complete();
         //fixes the vanilla bucket dispenser actions by replacing them with the forge one
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET,  DispenseFluidContainer.getInstance());

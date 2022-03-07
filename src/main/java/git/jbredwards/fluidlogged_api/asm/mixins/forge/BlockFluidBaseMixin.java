@@ -79,20 +79,13 @@ public abstract class BlockFluidBaseMixin extends Block
      */
     @Overwrite
     public boolean shouldSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
-        final IBlockState here = world.getBlockState(pos);
+        final IBlockState neighbor = world.getBlockState(pos.offset(side));
+        final boolean isCompatible = isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluid());
 
-        if(!canFluidFlow(world, pos, here, side)) return !here.doesSideBlockRendering(world, pos, side);
-        else {
-            final BlockPos offset = pos.offset(side);
-            final IBlockState neighbor = world.getBlockState(offset);
+        if(side == (densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN))
+            return !isCompatible || !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite());
 
-            if(isCompatibleFluid(getFluidState(world, offset, neighbor).getFluid(), getFluid()))
-                return !canFluidFlow(world, offset, neighbor, side.getOpposite())
-                        && !neighbor.doesSideBlockRendering(world, offset, side.getOpposite());
-
-            else return side == (densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN)
-                    || !neighbor.doesSideBlockRendering(world, offset, side.getOpposite());
-        }
+        else return !isCompatible && super.shouldSideBeRendered(state, world, pos, side);
     }
 
     /**
@@ -158,6 +151,13 @@ public abstract class BlockFluidBaseMixin extends Block
             if(ne || n || e) corner[0][1] = 1;
             if(sw || s || w) corner[1][0] = 1;
             if(se || s || e) corner[1][1] = 1;
+
+            //fix corners of fluidlogged blocks
+            final IBlockState here = world.getBlockState(pos);
+            if(fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.NORTH)) corner[0][0] = quantaFraction;
+            if(fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.SOUTH)) corner[0][1] = quantaFraction;
+            if(fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.NORTH)) corner[1][0] = quantaFraction;
+            if(fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.SOUTH)) corner[1][1] = quantaFraction;
         }
 
         //side overlays
@@ -175,6 +175,18 @@ public abstract class BlockFluidBaseMixin extends Block
         return state;
     }
 
+    private boolean fixCorner(@Nonnull IBlockState here, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing primary, @Nonnull EnumFacing other) {
+        if(canFluidFlow(world, pos, here, primary)) return false;
+
+        final BlockPos offset = pos.offset(other);
+        final IBlockState neighbor = world.getBlockState(offset);
+
+        if(!canFluidFlow(world, offset, neighbor, primary) || !canFluidFlow(world, offset, neighbor, other.getOpposite()))
+            return true;
+
+        else return !isCompatibleFluid(getFluidState(world, offset, neighbor).getFluid(), getFluid());
+    }
+
     private float getFluidHeightForRender(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState up, @Nullable Fluid upFluid, int i, int j) {
         //check block above
         if(isFluid(up, upFluid, world, pos.down(densityDir), (densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN))) return 1;
@@ -186,11 +198,16 @@ public abstract class BlockFluidBaseMixin extends Block
         final boolean canSideFlow = ASMHooks.canSideFlow(getFluid(), state, world, pos, i, j);
         final boolean fluidMatches = isCompatibleFluid(fluidState.getFluid(), getFluid());
 
-        if(fluidMatches && canSideFlow && fluidState.getLevel() == getMaxRenderHeightMeta()) return quantaFraction;
-        //not fluid
-        else if(!fluidMatches || !canSideFlow) return -1f / quantaPerBlock * quantaFraction;
-        //fluid
-        else return ((quantaPerBlock - fluidState.getLevel()) / quantaPerBlockFloat) * quantaFraction;
+        //is a fluid
+        if(fluidMatches && canSideFlow) {
+            final int level = fluidState.getLevel();
+
+            if(level == getMaxRenderHeightMeta()) return quantaFraction;
+            else return ((quantaPerBlock - level) / quantaPerBlockFloat) * quantaFraction;
+        }
+
+        //not a fluid
+        else return -1f / quantaPerBlock * quantaFraction;
     }
 
     private float getFluidHeightAverage(int i, int j, @Nonnull float... flow) {

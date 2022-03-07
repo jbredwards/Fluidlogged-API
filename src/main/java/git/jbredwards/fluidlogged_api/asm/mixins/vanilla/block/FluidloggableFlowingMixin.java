@@ -1,6 +1,7 @@
-package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block.fluidloggable;
+package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggable;
+import net.minecraft.block.BlockLeaves;
 import net.minecraft.block.BlockMobSpawner;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
@@ -11,12 +12,12 @@ import org.spongepowered.asm.mixin.Mixin;
 import javax.annotation.Nonnull;
 
 /**
- * makes mob spawners fluidloggable by default
+ * for some fluidloggable blocks it makes sense to have the fluid flow from any side
  * @author jbred
  *
  */
-@Mixin(BlockMobSpawner.class)
-public abstract class BlockMobSpawnerMixin implements IFluidloggable
+@Mixin({BlockLeaves.class, BlockMobSpawner.class})
+public abstract class FluidloggableFlowingMixin implements IFluidloggable
 {
     @Override
     public boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull EnumFacing side) {
