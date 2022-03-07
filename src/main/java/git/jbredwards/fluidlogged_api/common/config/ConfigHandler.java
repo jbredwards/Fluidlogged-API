@@ -72,7 +72,7 @@ public enum ConfigHandler
                         "#setting this to true will allow worlds loaded in old versions of this mod to work with the newer versions.\n" +
                         "#(NOTE: THE OLD SYSTEM WAS TERRIBLE, BUGGY, AND FLOODED REGISTRIES! THIS SHOULD ONLY BE ENABLED TO PLAY IN OLD WORLDS!)\n" +
                         "#(NOTE: THIS IS NOT NEEDED IF YOU'RE LOADING A WORLD FROM VANILLA!)\n" +
-                        "\"enableBackwardCompat\":false\n" +
+                        "\"enableBackwardCompat\":false,\n" +
                         "\n" +
                         "#flowing fluid blocks break torches (vanilla behavior)\n" +
                         "\"fluidsBreakTorches\":true,\n" +
