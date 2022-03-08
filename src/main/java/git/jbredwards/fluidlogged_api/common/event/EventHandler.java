@@ -2,8 +2,10 @@ package git.jbredwards.fluidlogged_api.common.event;
 
 import git.jbredwards.fluidlogged_api.Constants;
 import git.jbredwards.fluidlogged_api.Main;
+import git.jbredwards.fluidlogged_api.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.common.network.SyncFluidStatesMessage;
+import git.jbredwards.fluidlogged_api.common.storage.OldWorldFixer;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
@@ -25,7 +27,9 @@ import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.model.TRSRTransformation;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
+import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ChunkWatchEvent;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -37,12 +41,14 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -62,41 +68,62 @@ public final class EventHandler
         event.addCapability(new ResourceLocation(Constants.MODID, "fluid_states"), new IFluidStateCapability.Provider());
     }
 
-    @SuppressWarnings("deprecation")
     @SubscribeEvent
     public static void sendToPlayer(@Nonnull ChunkWatchEvent.Watch event) {
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(event.getChunkInstance());
         if(cap != null) Main.wrapper.sendTo(new SyncFluidStatesMessage(event.getChunk(), cap.getFluidStates()), event.getPlayer());
     }
 
+    @SubscribeEvent
+    public static void fixOldWorlds(@Nonnull RegistryEvent.Register<Block> event) {
+        if(ConfigHandler.enableBackwardCompat) {
+            event.getRegistry().registerAll(new OldWorldFixer(FluidRegistry.WATER), new OldWorldFixer(FluidRegistry.LAVA));
+            GameRegistry.registerTileEntity(OldWorldFixer.Tile.class, new ResourceLocation(Constants.MODID, "te"));
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOW)
+    public static void notifyFluidState(@Nonnull BlockEvent.NeighborNotifyEvent event) {
+        if(getFluidFromState(event.getState()) == null) {
+            final FluidState fluidState = FluidState.get(event.getWorld(), event.getPos());
+            if(!fluidState.isEmpty()) fluidState.getState().neighborChanged(event.getWorld(), event.getPos(), event.getState().getBlock(), event.getPos());
+        }
+    }
+
     @SideOnly(Side.CLIENT)
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = EventPriority.LOW)
     public static void removeBuiltInLiquidStateMappers(@Nullable TextureStitchEvent.Pre event) {
         Minecraft.getMinecraft().modelManager.getBlockModelShapes().getBlockStateMapper().setBuiltInBlocks.removeIf(b -> b instanceof BlockLiquid);
     }
 
     @SideOnly(Side.CLIENT)
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = EventPriority.LOW)
     public static void registerLiquidStateMappers(@Nullable ModelRegistryEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
+            //allow vanilla fluid blocks to use the new fluid renderer
             if(block instanceof BlockLiquid) {
                 ModelLoader.setCustomStateMapper(block, new StateMapperBase() {
                     @Nonnull
                     @Override
-                    protected ModelResourceLocation getModelResourceLocation(@Nonnull IBlockState state) {
-                        return new ModelResourceLocation(Objects.requireNonNull(state.getBlock().getRegistryName()), "fluid");
+                    protected ModelResourceLocation getModelResourceLocation(@Nullable IBlockState state) {
+                        return new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid");
                     }
                 });
             }
+            //prevent some console errors when playing on legacy worlds
+            else if(block instanceof OldWorldFixer)
+                ModelLoader.setCustomStateMapper(block, b -> new HashMap<>());
         }
     }
 
     @SideOnly(Side.CLIENT)
-    @SubscribeEvent(priority = EventPriority.LOWEST)
+    @SubscribeEvent(priority = EventPriority.LOW)
     public static void registerLiquidBakedModels(@Nonnull ModelBakeEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
             if(block instanceof BlockLiquid) {
-                IBakedModel model = new ModelFluid(Optional.ofNullable(getFluidFromBlock(block)).orElse(FluidRegistry.WATER)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
+                IBakedModel model = new ModelFluid(Optional.ofNullable(getFluidFromBlock(block)).orElse(FluidRegistry.WATER))
+                        .bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
+
                 event.getModelRegistry().putObject(new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid"), model);
             }
         }

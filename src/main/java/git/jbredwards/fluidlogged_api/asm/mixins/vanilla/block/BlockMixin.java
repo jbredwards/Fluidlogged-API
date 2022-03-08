@@ -3,14 +3,12 @@ package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import git.jbredwards.fluidlogged_api.common.util.FluidloggedUtils;
 import net.minecraft.block.Block;
-import net.minecraft.block.material.MapColor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
@@ -28,23 +26,6 @@ import javax.annotation.Nullable;
 @Mixin(Block.class)
 public abstract class BlockMixin
 {
-    @Final
-    @Shadow
-    protected MapColor blockMapColor;
-
-    /**
-     * @reason allow fluidlogged blocks to show the fluid's map color instead
-     * @author jbred
-     */
-    @Deprecated
-    @Overwrite
-    public MapColor getMapColor(@Nonnull IBlockState state, @Nullable IBlockAccess world, @Nullable BlockPos pos) {
-        if(pos == null || world == null || FluidloggedUtils.getFluidFromState(state) != null) return blockMapColor;
-        //return fluid map color if present
-        final FluidState fluidState = FluidState.get(world, pos);
-        return fluidState.isEmpty() ? blockMapColor : fluidState.getState().getMapColor(world, pos);
-    }
-
     /**
      * @reason increases method performance & flexibility
      * @author jbred

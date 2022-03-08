@@ -21,6 +21,7 @@ import net.minecraft.world.WorldType;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidBlock;
@@ -29,6 +30,8 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Optional;
 
 /**
@@ -156,6 +159,31 @@ public enum FluidloggedUtils
         world.profiler.startSection("checkLight");
         world.checkLight(pos);
         world.profiler.endSection();
+    }
+
+    //functions the same as World#notifyNeighborsOfStateChange, but for fluids
+    public static void notifyFluids(@Nonnull World world, @Nonnull BlockPos pos, @Nullable EnumFacing... except) {
+        final FluidState fluidState = getFluidState(world, pos);
+
+        if(!fluidState.isEmpty()) {
+            final EnumSet<EnumFacing> set = EnumSet.allOf(EnumFacing.class);
+            if(except != null) Arrays.asList(except).forEach(set::remove);
+
+            if(ForgeEventFactory.onNeighborNotify(world, pos, fluidState.getState(), set, false).isCanceled())
+                return;
+
+            //update state here
+            fluidState.getState().neighborChanged(world, pos, fluidState.getBlock(), pos);
+
+            //update neighboring states
+            for(EnumFacing facing : set) {
+                BlockPos offset = pos.offset(facing);
+                FluidState neighbor = getFluidState(world, offset);
+
+                if(!neighbor.isEmpty())
+                    neighbor.getState().neighborChanged(world, offset, fluidState.getBlock(), pos);
+            }
+        }
     }
 
     //has two purposes:

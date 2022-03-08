@@ -4,6 +4,8 @@
   "mixins": [
   ],
   "client": [
+    "ActiveRenderInfoMixin",
+    "ParticleSuspendMixin",
     "WorldClientMixin"
   ]
 }

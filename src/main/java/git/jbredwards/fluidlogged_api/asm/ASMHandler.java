@@ -29,6 +29,8 @@ import java.util.Map;
 @IFMLLoadingPlugin.MCVersion("1.12.2")
 public final class ASMHandler implements IFMLLoadingPlugin
 {
+    private static boolean obfuscated;
+
     //this class exists cause the vanilla launcher needs the transformer & plugin to be different classes for reasons?
     public static final class Transformer implements IClassTransformer
     {
@@ -36,9 +38,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
         @Nonnull
         public static Map<String, IASMPlugin> PLUGINS = new ImmutableMap.Builder<String, IASMPlugin>()
                 //vanilla (client)
-                .put("net.minecraft.client.particle.ParticleSuspend", new ParticleSuspendPlugin()) //this particle doesn't instantly disappear while inside water FluidStates
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin()) //allows the game to render FluidStates
-                .put("net.minecraft.client.renderer.ActiveRenderInfo", new ActiveRenderInfoPlugin()) //fixes FluidState fog color & fov
                 .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin()) //fixes graphical underwater block selection; lava FluidStates now emit smoke while raining; fixes FluidState fog color
                 //vanilla (blocks)
                 .put("net.minecraft.block.Block", new BlockPlugin()) //fixes some lighting, canSustainPlant, and explosion related issues
@@ -46,7 +46,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.BlockCocoa", new BlockCocoaPlugin()) //breaking this block type no longer voids the possible FluidState here
                 .put("net.minecraft.block.BlockFarmland", new BlockFarmlandPlugin()) //farmland blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockLilyPad", new BlockLilyPadPlugin()) //lily pads can stay on certain water FluidStates
-                .put("net.minecraft.block.BlockReed", new BlockReedPlugin()) //sugar cane blocks now recognise water FluidStates
                 //vanilla (entities)
                 .put("net.minecraft.entity.ai.EntityAIPanic", new EntityAIPanicPlugin()) //water FluidStates are now seen as water blocks
                 .put("net.minecraft.entity.ai.RandomPositionGenerator", new RandomPositionGeneratorPlugin()) //water FluidStates are now seen as water blocks
@@ -68,7 +67,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
         @Override
         public byte[] transform(String name, String transformedName, byte[] basicClass) {
             final @Nullable IASMPlugin plugin = PLUGINS.get(transformedName);
-            return plugin == null ? basicClass : plugin.transform(basicClass, !name.equals(transformedName));
+            return plugin == null ? basicClass : plugin.transform(basicClass, obfuscated);
         }
     }
 
@@ -77,10 +76,12 @@ public final class ASMHandler implements IFMLLoadingPlugin
         return new String[] { "git.jbredwards.fluidlogged_api.asm.ASMHandler$Transformer" };
     }
 
-    //handle mixin
     @Override
-    public void injectData(@Nullable Map<String, Object> data) {
+    public void injectData(@Nonnull Map<String, Object> data) {
+        obfuscated = (boolean)data.get("runtimeDeobfuscationEnabled");
         ConfigHandler.init();
+
+        //handle mixins
         MixinBootstrap.init();
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.block.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.client.json");

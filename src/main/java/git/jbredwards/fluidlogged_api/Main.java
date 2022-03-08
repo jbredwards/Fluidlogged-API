@@ -55,7 +55,6 @@ public final class Main
         wrapper.registerMessage(SyncFluidStatesMessage.Handler.INSTANCE, SyncFluidStatesMessage.class, 2, Side.CLIENT);
     }
 
-
     @SuppressWarnings("unused")
     @Mod.EventHandler
     public static void init(@Nullable FMLInitializationEvent event) throws IOException {

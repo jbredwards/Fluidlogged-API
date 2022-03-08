@@ -2,8 +2,11 @@ package git.jbredwards.fluidlogged_api.asm.mixins.forge;
 
 import com.google.common.primitives.Ints;
 import git.jbredwards.fluidlogged_api.common.block.IFluidloggableFluid;
+import git.jbredwards.fluidlogged_api.common.config.ConfigHandler;
+import git.jbredwards.fluidlogged_api.common.storage.OldWorldFixer;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -15,11 +18,16 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -270,4 +278,14 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
 
     @Shadow(remap = false)
     protected abstract void flowIntoBlock(@Nonnull World world, @Nonnull BlockPos pos, int meta);
+
+    /**
+     * help legacy worlds with modded fluidlogged fluids work
+     */
+    @Inject(method = "<init>(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V", at = @At("RETURN"), remap = false)
+    private void registerLegacyWorldFixes(@Nonnull Fluid fluid, @Nonnull Material material, @Nonnull MapColor mapColor, @Nonnull CallbackInfo ci) {
+        if(ConfigHandler.enableBackwardCompat && fluid.getBlock() == this && FluidRegistry.isFluidRegistered(fluid)) {
+            ForgeRegistries.BLOCKS.register(new OldWorldFixer(fluid));
+        }
+    }
 }
