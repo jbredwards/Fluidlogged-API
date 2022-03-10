@@ -75,6 +75,9 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     @SideOnly(Side.CLIENT)
     @Overwrite
     public boolean shouldSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
+        final IBlockState here = world.getBlockState(pos);
+        if(!canFluidFlow(world, pos, here, side)) return true;
+
         final IBlockState neighbor = world.getBlockState(pos.offset(side));
         final boolean isCompatible = isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluid());
 

@@ -135,6 +135,40 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
             }
         }
 
+        //try flowing to nearby fluidloggable blocks
+        else if(quantaPerBlock > 0 && ConfigHandler.fluidloggedFluidSpread > 0 && canCreateSources && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, false))) {
+            for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+                if(canFluidFlow(world, pos, here, facing)) {
+                    BlockPos offset = pos.offset(facing);
+                    IBlockState neighbor = world.getBlockState(offset);
+
+                    //check if the fluid could occupy the space
+                    if(canFluidFlow(world, offset, neighbor, facing.getOpposite()) && isStateFluidloggable(neighbor, getFluid()) && FluidState.get(world, offset).isEmpty()) {
+                        //check for another source block that can flow into this
+                        for(EnumFacing adjacentFacing : EnumFacing.HORIZONTALS) {
+                            if(adjacentFacing != facing.getOpposite() && canFluidFlow(world, offset, neighbor, adjacentFacing)) {
+                                BlockPos adjacentOffset = offset.offset(adjacentFacing);
+                                IBlockState adjacent = world.getBlockState(adjacentOffset);
+
+                                if(canFluidFlow(world, adjacentOffset, adjacent, adjacentFacing.getOpposite())) {
+                                    //only allow certain FluidStates to count
+                                    FluidState adjacentFluid = ConfigHandler.fluidloggedFluidSpread == 1
+                                            ? FluidState.get(world, adjacentOffset)
+                                            : getFluidState(world, adjacentOffset, adjacent);
+
+                                    //set the FluidState in the world
+                                    if(isCompatibleFluid(adjacentFluid.getFluid(), getFluid())) {
+                                        setFluidState(world, offset, neighbor, FluidState.of(this), false);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Flow vertically if possible
         if(canFluidFlow(world, pos, here, facingDir.getOpposite()) && canDisplace(world, pos.up(densityDir))) {
             flowIntoBlock(world, pos.up(densityDir), 1);
@@ -284,7 +318,7 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
      */
     @Inject(method = "<init>(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V", at = @At("RETURN"), remap = false)
     private void registerLegacyWorldFixes(@Nonnull Fluid fluid, @Nonnull Material material, @Nonnull MapColor mapColor, @Nonnull CallbackInfo ci) {
-        if(ConfigHandler.enableBackwardCompat && fluid.getBlock() == this && FluidRegistry.isFluidRegistered(fluid)) {
+        if(ConfigHandler.enableLegacyCompat && fluid.getBlock() == this && FluidRegistry.isFluidRegistered(fluid)) {
             ForgeRegistries.BLOCKS.register(new OldWorldFixer(fluid));
         }
     }

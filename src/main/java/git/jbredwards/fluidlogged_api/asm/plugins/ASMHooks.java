@@ -446,14 +446,20 @@ public enum ASMHooks
 
             //without the flag preserves FluidState / sets FluidState using oldState if it's a full fluid & if newState is fluidloggable
             else {
-                //replace with empty fluid
-                if(!fluidState.isEmpty() && !FluidloggedUtils.isStateFluidloggable(newState, fluidState.getFluid()))
-                    FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
+                if(!fluidState.isEmpty()) {
+                    //update neighboring fluids, there's been a state change
+                    if(FluidloggedUtils.isStateFluidloggable(newState, fluidState.getFluid()))
+                        FluidloggedUtils.notifyFluids(world, pos, fluidState, true);
 
-                //save old state as FluidState
-                final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(oldState);
-                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(oldState, true) && FluidloggedUtils.isStateFluidloggable(newState, fluid))
-                    FluidloggedUtils.setFluidState(world, pos, newState, FluidState.of(fluid), false, flags);
+                    //remove fluid here, new state isn't fluidloggable
+                    else FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
+                }
+                //save oldState as FluidState
+                else {
+                    final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(oldState);
+                    if(fluid != null && FluidloggedUtils.isFluidloggableFluid(oldState, true) && FluidloggedUtils.isStateFluidloggable(newState, fluid))
+                        FluidloggedUtils.setFluidState(world, pos, newState, FluidState.of(fluid), false, flags);
+                }
             }
         }
 
@@ -463,14 +469,9 @@ public enum ASMHooks
     //WorldServerPlugin
     public static void updateBlocks(WorldServer world, BlockPos pos) {
         final FluidState fluidState = FluidState.get(world, pos);
-        if(!fluidState.isEmpty() && fluidState.getBlock().getTickRandomly()) {
-            //special case for lava because it uses BlockStaticLiquid to cause its surroundings to burn
-            if(fluidState.getBlock() == Blocks.FLOWING_LAVA)
-                Blocks.LAVA.randomTick(world, pos, Blocks.LAVA.getDefaultState(), world.rand);
-
-            //normal cases
+        if(!fluidState.isEmpty() && fluidState.getBlock().getTickRandomly())
             fluidState.getBlock().randomTick(world, pos, fluidState.getState(), world.rand);
-        }
+
         //restore old code
         world.profiler.endSection();
     }

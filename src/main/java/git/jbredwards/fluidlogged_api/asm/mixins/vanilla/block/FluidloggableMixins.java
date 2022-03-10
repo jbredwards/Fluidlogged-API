@@ -15,4 +15,4 @@ import org.spongepowered.asm.mixin.Mixin;
         BlockEndPortalFrame.class, BlockEndRod.class, BlockFenceGate.class, BlockFence.class, BlockFlowerPot.class,
         BlockHopper.class, BlockLadder.class, BlockLever.class, BlockPane.class, BlockRailBase.class,
         BlockRedstoneDiode.class, BlockSign.class, BlockStairs.class})
-public abstract class FluidloggableMixin implements IFluidloggable { }
+public abstract class FluidloggableMixins implements IFluidloggable { }

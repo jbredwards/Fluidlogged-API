@@ -13,11 +13,12 @@
     "BlockSkullMixin",
     "BlockSlabMixin",
     "BlockSpongeMixin",
+    "BlockStaticLiquidMixin",
     "BlockTorchMixin",
     "BlockTrapDoorMixin",
     "BlockWallMixin",
-    "FluidloggableFlowingMixin",
-    "FluidloggableMixin",
+    "FluidloggableFlowingMixins",
+    "FluidloggableMixins",
     "MaterialLogicMixin"
   ]
 }

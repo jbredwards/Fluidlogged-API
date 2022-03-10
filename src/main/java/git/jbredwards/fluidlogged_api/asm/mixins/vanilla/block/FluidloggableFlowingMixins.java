@@ -17,7 +17,7 @@ import javax.annotation.Nonnull;
  *
  */
 @Mixin({BlockLeaves.class, BlockMobSpawner.class})
-public abstract class FluidloggableFlowingMixin implements IFluidloggable
+public abstract class FluidloggableFlowingMixins implements IFluidloggable
 {
     @Override
     public boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull EnumFacing side) {

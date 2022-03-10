@@ -11,6 +11,7 @@ import git.jbredwards.fluidlogged_api.common.storage.IFluidStateCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -100,7 +101,7 @@ public enum FluidloggedUtils
             }
 
             //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-            FluidloggedUtils.setFluidState_Internal(world, chunk, here, pos, event.fluidState, event.blockFlags);
+            setFluidState_Internal(world, chunk, here, pos, event.fluidState, event.blockFlags);
 
             //default
             return event.getResult() != Event.Result.DENY;
@@ -136,9 +137,12 @@ public enum FluidloggedUtils
             if(!fluidState.isEmpty()) fluidState.getBlock().onBlockAdded(world, pos, fluidState.getState());
         }
 
-        //update world
+        //update blocks & fluids
         if((blockFlags & Constants.BlockFlags.NOTIFY_NEIGHBORS) != 0)
             world.markAndNotifyBlock(pos, chunk, here, here, blockFlags);
+
+        //update fluids only
+        else notifyFluids(world, pos, fluidState, false);
     }
 
     //forces a fluid light level & light opacity update
@@ -162,27 +166,25 @@ public enum FluidloggedUtils
     }
 
     //functions the same as World#notifyNeighborsOfStateChange, but for fluids
-    public static void notifyFluids(@Nonnull World world, @Nonnull BlockPos pos, @Nullable EnumFacing... except) {
-        final FluidState fluidState = getFluidState(world, pos);
+    public static void notifyFluids(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, boolean notifyHere, @Nullable EnumFacing... except) {
+        final IBlockState state = fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.getState();
+        final EnumSet<EnumFacing> set = EnumSet.allOf(EnumFacing.class);
+        if(except != null) Arrays.asList(except).forEach(set::remove);
 
-        if(!fluidState.isEmpty()) {
-            final EnumSet<EnumFacing> set = EnumSet.allOf(EnumFacing.class);
-            if(except != null) Arrays.asList(except).forEach(set::remove);
+        if(ForgeEventFactory.onNeighborNotify(world, pos, state, set, false).isCanceled())
+            return;
 
-            if(ForgeEventFactory.onNeighborNotify(world, pos, fluidState.getState(), set, false).isCanceled())
-                return;
-
-            //update state here
+        //update state here
+        if(notifyHere && !fluidState.isEmpty())
             fluidState.getState().neighborChanged(world, pos, fluidState.getBlock(), pos);
 
-            //update neighboring states
-            for(EnumFacing facing : set) {
-                BlockPos offset = pos.offset(facing);
-                FluidState neighbor = getFluidState(world, offset);
+        //update neighboring states
+        for(EnumFacing facing : set) {
+            BlockPos offset = pos.offset(facing);
+            FluidState neighbor = getFluidState(world, offset);
 
-                if(!neighbor.isEmpty())
-                    neighbor.getState().neighborChanged(world, offset, fluidState.getBlock(), pos);
-            }
+            if(!neighbor.isEmpty())
+                neighbor.getState().neighborChanged(world, offset, state.getBlock(), pos);
         }
     }
 

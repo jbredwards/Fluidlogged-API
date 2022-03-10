@@ -2,6 +2,7 @@ package git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block;
 
 import com.google.common.primitives.Ints;
 import git.jbredwards.fluidlogged_api.asm.plugins.ASMHooks;
+import git.jbredwards.fluidlogged_api.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.common.util.FluidState;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDynamicLiquid;
@@ -102,6 +103,45 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
                     world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, 8 - expQuanta), Constants.BlockFlags.SEND_TO_CLIENTS);
                     world.scheduleUpdate(pos, this, tickRate(world));
                     world.notifyNeighborsOfStateChange(pos, this, false);
+                }
+            }
+        }
+
+        else {
+            //lava does fire spreading
+            if(blockMaterial == Material.LAVA) Blocks.LAVA.updateTick(world, pos, state, rand);
+
+            //try flowing to nearby fluidloggable blocks
+            if(ConfigHandler.fluidloggedFluidSpread > 0 && blockMaterial == Material.WATER && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, false))) {
+                for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+                    if(canFluidFlow(world, pos, here, facing)) {
+                        BlockPos offset = pos.offset(facing);
+                        IBlockState neighbor = world.getBlockState(offset);
+
+                        //check if the fluid could occupy the space
+                        if(canFluidFlow(world, offset, neighbor, facing.getOpposite()) && isStateFluidloggable(neighbor, getFluid()) && FluidState.get(world, offset).isEmpty()) {
+                            //check for another source block that can flow into this
+                            for(EnumFacing adjacentFacing : EnumFacing.HORIZONTALS) {
+                                if(adjacentFacing != facing.getOpposite() && canFluidFlow(world, offset, neighbor, adjacentFacing)) {
+                                    BlockPos adjacentOffset = offset.offset(adjacentFacing);
+                                    IBlockState adjacent = world.getBlockState(adjacentOffset);
+
+                                    if(canFluidFlow(world, adjacentOffset, adjacent, adjacentFacing.getOpposite())) {
+                                        //only allow certain FluidStates to count
+                                        FluidState adjacentFluid = ConfigHandler.fluidloggedFluidSpread == 1
+                                                ? FluidState.get(world, adjacentOffset)
+                                                : getFluidState(world, adjacentOffset, adjacent);
+
+                                        //set the FluidState in the world
+                                        if(isCompatibleFluid(adjacentFluid.getFluid(), getFluid())) {
+                                            setFluidState(world, offset, neighbor, FluidState.of(this), false);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

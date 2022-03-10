@@ -20,6 +20,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.event.*;
@@ -76,7 +77,7 @@ public final class EventHandler
 
     @SubscribeEvent
     public static void fixOldWorlds(@Nonnull RegistryEvent.Register<Block> event) {
-        if(ConfigHandler.enableBackwardCompat) {
+        if(ConfigHandler.enableLegacyCompat) {
             event.getRegistry().registerAll(new OldWorldFixer(FluidRegistry.WATER), new OldWorldFixer(FluidRegistry.LAVA));
             GameRegistry.registerTileEntity(OldWorldFixer.Tile.class, new ResourceLocation(Constants.MODID, "te"));
         }
@@ -143,7 +144,15 @@ public final class EventHandler
 
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void bucketFluidlogging(@Nonnull FillBucketEvent event) {
-        if(event.getResult() != Event.Result.DEFAULT || event.getTarget() == null) return;
+        if(event.getResult() != Event.Result.DEFAULT) return;
+        final EntityPlayer player = event.getEntityPlayer();
+
+        //this does its own raytrace, because the one that comes with the event doesn't do what's need here
+        final Vec3d playerVec = new Vec3d(player.posX, player.posY + player.getEyeHeight(), player.posZ);
+        final @Nullable RayTraceResult trace = event.getWorld().rayTraceBlocks(playerVec, playerVec
+                .add(player.getLookVec().scale(player.getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue())));
+
+        if(trace == null) return;
 
         //don't try fluidlogging without a bucket
         final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(ItemHandlerHelper.copyStackWithSize(event.getEmptyBucket(), 1));
@@ -152,20 +161,19 @@ public final class EventHandler
         final @Nullable FluidStack contained = handler.drain(Fluid.BUCKET_VOLUME, false);
         if(contained != null && !contained.getFluid().canBePlacedInWorld()) return;
 
-        final BlockPos pos = event.getTarget().getBlockPos();
+        final BlockPos pos = trace.getBlockPos();
         final World world = event.getWorld();
-        final EntityPlayer player = event.getEntityPlayer();
 
         //if bucket is empty, try taking from the fluidlogged block
         if(contained == null) {
-            if(tryBucketFill_Internal(world, pos, player, handler) || tryBucketFill_Internal(world, pos.offset(event.getTarget().sideHit), player, handler)) {
+            if(tryBucketFill_Internal(world, pos, player, handler) || tryBucketFill_Internal(world, pos.offset(trace.sideHit), player, handler)) {
                 event.setFilledBucket(handler.getContainer());
                 event.setResult(Event.Result.ALLOW);
             }
         }
 
         //if bucket has a fluid, try fluidlogging it
-        else if(tryBucketDrain_Internal(world, pos, player, handler, contained.getFluid()) || tryBucketDrain_Internal(world, pos.offset(event.getTarget().sideHit), player, handler, contained.getFluid())) {
+        else if(tryBucketDrain_Internal(world, pos, player, handler, contained.getFluid()) || tryBucketDrain_Internal(world, pos.offset(trace.sideHit), player, handler, contained.getFluid())) {
             event.setFilledBucket(handler.getContainer());
             event.setResult(Event.Result.ALLOW);
         }

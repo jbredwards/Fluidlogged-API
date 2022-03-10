@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 /**
- * allows worlds with old versions of this mod to load with newer ones
+ * allows worlds with legacy versions of this mod to load with newer ones
  * @author jbred
  *
  */

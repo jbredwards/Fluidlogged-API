@@ -43,8 +43,9 @@ public enum ConfigHandler
     private static Map<Block, ConfigPredicate> BLACKLIST = ImmutableMap.of();
 
     private static boolean applyDefaults = true;
-    public static boolean enableBackwardCompat = false;
+    public static boolean enableLegacyCompat = false;
     public static boolean fluidsBreakTorches = true;
+    public static int fluidloggedFluidSpread = 2;
 
     //checks if the input state is fluidloggable, according to the config settings
     public static EnumActionResult isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
@@ -69,10 +70,16 @@ public enum ConfigHandler
             if(cfg.createNewFile()) {
                 //default config file contents
                 final String contents =
-                        "#setting this to true will allow worlds loaded in old versions of this mod to work with the newer versions.\n" +
-                        "#(NOTE: THE OLD SYSTEM WAS TERRIBLE, BUGGY, AND FLOODED REGISTRIES! THIS SHOULD ONLY BE ENABLED TO PLAY IN OLD WORLDS!)\n" +
-                        "#(NOTE: THIS IS NOT NEEDED IF YOU'RE LOADING A WORLD FROM VANILLA!)\n" +
-                        "\"enableBackwardCompat\":false,\n" +
+                        "#setting this to true will allow worlds loaded in legacy versions to work with the newer ones.\n" +
+                        "#(note: the old system was removed for a reason, and should only be enabled to play in legacy worlds!)\n" +
+                        "#(note: this doesn't have to be enabled if you're loading a vanilla world!)\n" +
+                        "\"enableLegacyCompat\":false,\n" +
+                        "\n" +
+                        "#determines how certain \"infinite\" fluids (ie. water not lava) can spread between fluidloggable blocks\n" +
+                        "#case 0: fluids cannot flow into fluidloggable blocks\n" +
+                        "#case 1: fluids can flow into fluidloggable blocks, but only from fluidlogged blocks (legacy mod behavior)\n" +
+                        "#case 2: fluids can flow into fluidloggable blocks from fluidlogged blocks & normal fluid blocks (1.13 behavior)\n" +
+                        "\"fluidloggedFluidSpread\":2,\n" +
                         "\n" +
                         "#flowing fluid blocks break torches (vanilla behavior)\n" +
                         "\"fluidsBreakTorches\":true,\n" +
@@ -96,12 +103,13 @@ public enum ConfigHandler
 
             //reads an already existing cfg file
             else {
-                final Gson gson = new GsonBuilder().registerTypeAdapter(ConfigPredicateBuilder.class, new Deserializer()).create();
-                config = gson.fromJson('{'+IOUtils.toString(new FileInputStream(cfg), Charset.defaultCharset())+'}', Config.class);
+                final Gson reader = new GsonBuilder().registerTypeAdapter(ConfigPredicateBuilder.class, new Deserializer()).create();
+                config = reader.fromJson('{'+IOUtils.toString(new FileInputStream(cfg), Charset.defaultCharset())+'}', Config.class);
 
-                enableBackwardCompat = config.enableBackwardCompat;
-                fluidsBreakTorches   = config.fluidsBreakTorches;
-                applyDefaults        = config.applyDefaults;
+                enableLegacyCompat = config.enableLegacyCompat;
+                fluidloggedFluidSpread = config.fluidloggedFluidSpread;
+                fluidsBreakTorches = config.fluidsBreakTorches;
+                applyDefaults = config.applyDefaults;
             }
         }
 
@@ -134,14 +142,16 @@ public enum ConfigHandler
     //gson
     public static class Config
     {
-        public final boolean enableBackwardCompat;
+        public final boolean enableLegacyCompat;
+        public final int fluidloggedFluidSpread;
         public final boolean fluidsBreakTorches;
         public final boolean applyDefaults;
         public final ConfigPredicateBuilder[] whitelist;
         public final ConfigPredicateBuilder[] blacklist;
 
-        public Config(boolean enableBackwardCompat, boolean fluidsBreakTorches, boolean applyDefaults, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist) {
-            this.enableBackwardCompat = enableBackwardCompat;
+        public Config(boolean enableLegacyCompat, int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist) {
+            this.enableLegacyCompat = enableLegacyCompat;
+            this.fluidloggedFluidSpread = fluidloggedFluidSpread;
             this.fluidsBreakTorches = fluidsBreakTorches;
             this.applyDefaults = applyDefaults;
             this.whitelist = whitelist;
