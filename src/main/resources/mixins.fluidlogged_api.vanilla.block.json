@@ -1,6 +1,6 @@
 {
   "parent": "mixins.fluidlogged_api.json",
-  "package": "git.jbredwards.fluidlogged_api.asm.mixins.vanilla.block",
+  "package": "git.jbredwards.fluidlogged_api.mod.asm.mixins.vanilla.block",
   "mixins": [
     "BlockBarrierMixin",
     "BlockConcretePowderMixin",

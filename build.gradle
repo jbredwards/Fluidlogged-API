@@ -39,7 +39,7 @@ minecraft {
     runs {
         client {
             workingDirectory project.file('run')
-            property 'fml.coreMods.load', 'git.jbredwards.fluidlogged_api.asm.ASMHandler'
+            property 'fml.coreMods.load', 'git.jbredwards.fluidlogged_api.mod.asm.ASMHandler'
 
             // Recommended logging data for a userdev environment
             property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
@@ -49,7 +49,7 @@ minecraft {
         }
 
         server {
-            property 'fml.coreMods.load', 'git.jbredwards.fluidlogged_api.asm.ASMHandler'
+            property 'fml.coreMods.load', 'git.jbredwards.fluidlogged_api.mod.asm.ASMHandler'
 
             // Recommended logging data for a userdev environment
             property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
@@ -76,7 +76,7 @@ dependencies {
 jar {
     manifest {
         attributes([
-            'FMLCorePlugin': 'git.jbredwards.fluidlogged_api.asm.ASMHandler',
+            'FMLCorePlugin': 'git.jbredwards.fluidlogged_api.mod.asm.ASMHandler',
             'FMLCorePluginContainsFMLMod': 'true',
             "FMLAT": "fluidlogged_api_at.cfg",
             'ForceLoadAsMod': 'true'
