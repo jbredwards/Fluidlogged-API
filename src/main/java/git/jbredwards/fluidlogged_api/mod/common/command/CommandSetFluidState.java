@@ -6,6 +6,7 @@ import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.*;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -61,6 +62,6 @@ public class CommandSetFluidState extends CommandBase
         return args.length > 4 ? Collections.emptyList() : getListOfStringsMatchingLastWord(args,
                 ImmutableList.builder().addAll(FluidRegistry.getRegisteredFluids().values().stream()
                         .filter(fluid -> fluid.canBePlacedInWorld() && FluidloggedUtils.isFluidloggableFluid(fluid.getBlock().getDefaultState(), false))
-                        .map(fluid -> fluid.getBlock().getRegistryName()).collect(Collectors.toList())).add("minecraft:air").build());
+                        .map(fluid -> fluid.getBlock().getRegistryName()).collect(Collectors.toList())).add(new ResourceLocation("air")).build());
     }
 }

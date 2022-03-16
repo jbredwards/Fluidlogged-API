@@ -145,7 +145,7 @@ public enum FluidloggedUtils
         else notifyFluids(world, pos, fluidState, false);
     }
 
-    //forces a fluid light level & light opacity update
+    //causes a light level & light opacity update
     public static void relightFluidBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
         final @Nullable Chunk chunk = world.getChunkFromBlockCoords(pos);
         final int x = pos.getX() & 15;
@@ -153,8 +153,7 @@ public enum FluidloggedUtils
         final int height = chunk.getHeightValue(x, z);
 
         if(!fluidState.isEmpty() && fluidState.getState().getLightOpacity(world, pos) > 0) {
-            if(pos.getY() >= height) chunk.relightBlock(x, pos.getY() + 1, z);
-        }
+             if(pos.getY() >= height) chunk.relightBlock(x, pos.getY() + 1, z); }
         else if(pos.getY() == height - 1) chunk.relightBlock(x, pos.getY(), z);
 
         if(chunk.getLightFor(EnumSkyBlock.SKY, pos) > 0 || chunk.getLightFor(EnumSkyBlock.BLOCK, pos) > 0)

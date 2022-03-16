@@ -26,9 +26,7 @@ public abstract class BlockDoorMixin implements IFluidloggable
     //ensure the fluids in both parts of the door are updated
     @Redirect(method = {"onBlockActivated", "toggleDoor", "neighborChanged"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;markBlockRangeForRenderUpdate(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V"))
     private void notifyFluidState(@Nonnull World world, @Nonnull BlockPos rangeMin, @Nonnull BlockPos rangeMax) {
-        if(!rangeMin.equals(rangeMax))
-            FluidloggedUtils.notifyFluids(world, rangeMin.up(), FluidState.get(world, rangeMin.up()), false, EnumFacing.DOWN);
-
+        FluidloggedUtils.notifyFluids(world, rangeMin.up(), FluidState.get(world, rangeMin.up()), false, EnumFacing.DOWN);
         world.markBlockRangeForRenderUpdate(rangeMin, rangeMax);
     }
 
@@ -40,7 +38,6 @@ public abstract class BlockDoorMixin implements IFluidloggable
         final EnumFacing facing = here.getValue(BlockDoor.FACING);
 
         return (here.getValue(BlockDoor.OPEN) ? (here.getValue(BlockDoor.HINGE) == BlockDoor.EnumHingePosition.RIGHT
-                        ? facing.rotateYCCW() : facing.rotateY())
-                : facing).getOpposite() != side;
+                        ? facing.rotateY() : facing.rotateYCCW()) : facing.getOpposite()) != side;
     }
 }

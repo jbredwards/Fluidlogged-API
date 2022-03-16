@@ -27,15 +27,6 @@ import javax.annotation.Nullable;
 public abstract class BlockMixin
 {
     /**
-     * @reason increases method performance & flexibility
-     * @author jbred
-     */
-    @Overwrite
-    public boolean isReplaceable(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
-        return getDefaultState().getMaterial().isReplaceable();
-    }
-
-    /**
      * @reason fixes fluidlogged block lighting
      * @author jbred
      */
@@ -70,6 +61,13 @@ public abstract class BlockMixin
         final FluidState fluidState = FluidState.get(world, pos);
         return Math.max(fluidState.isEmpty() ? 0 : fluidState.getBlock().getExplosionResistance(world, pos, exploder, explosion), getExplosionResistance(exploder));
     }
+
+    /**
+     * @reason increases method performance & flexibility
+     * @author jbred
+     */
+    @Overwrite
+    public boolean isReplaceable(@Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) { return getDefaultState().getMaterial().isReplaceable(); }
 
     @Redirect(method = "removedByPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"))
     private boolean getFluidOrAir(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState air, int blockFlags) {

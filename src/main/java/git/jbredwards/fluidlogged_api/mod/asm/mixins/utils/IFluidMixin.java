@@ -9,7 +9,7 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-public interface IMixinFluid
+public interface IFluidMixin
 {
     boolean isEmpty();
 

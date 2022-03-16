@@ -93,7 +93,7 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     protected Vec3d getFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
         Vec3d vec = Vec3d.ZERO;
 
-        final int decay = getFlowDecay(world, pos);
+        final int decay = getFluidState(world, pos, here).getLevel();
 
         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
             if(canFluidFlow(world, pos, here, facing)) {
@@ -101,7 +101,7 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
                 int otherDecay = getFlowDecayOffset(world, offset, facing.getOpposite());
 
                 if(otherDecay >= 8) {
-                    otherDecay = getFlowDecay(world, offset.down());
+                    otherDecay = 8 - getQuantaValue(world, offset.down());
 
                     if(otherDecay < 8) {
                         int power = otherDecay - (decay - 8);
@@ -118,18 +118,9 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
         return vec.normalize();
     }
 
-    private int getFlowDecay(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        return 8 - getEffectiveQuanta(world, pos);
-    }
-
     private int getFlowDecayOffset(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing) {
         if(!canFluidFlow(world, pos, world.getBlockState(pos), facing)) return 9;
-        else return getFlowDecay(world, pos);
-    }
-
-    protected int getEffectiveQuanta(IBlockAccess world, BlockPos pos) {
-        int quantaValue = getQuantaValue(world, pos);
-        return quantaValue > 0 && quantaValue < 8 && hasVerticalFlow(world, pos) ? 8 : quantaValue;
+        else return 8 - getQuantaValue(world, pos);
     }
 
     protected int getQuantaValue(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
@@ -201,16 +192,12 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
      */
     @Overwrite
     public static float getBlockLiquidHeight(@Nonnull IBlockState state, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
-        final FluidState fluidState = getFluidState(worldIn, pos, state);
-        if(fluidState.isEmpty()) return 1;
-
         final IBlockState up = worldIn.getBlockState(pos.up());
-        final int level = fluidState.getLevel();
-        final boolean flag = (level & 7) == 0
-                && isCompatibleFluid(getFluidState(worldIn, pos.up(), up).getFluid(), fluidState.getFluid())
-                && canFluidFlow(worldIn, pos.up(), up, EnumFacing.DOWN);
+        final boolean flag = isCompatibleFluid(getFluidState(worldIn, pos.up(), up).getFluid(), getFluidFromState(state))
+                && canFluidFlow(worldIn, pos.up(), up, EnumFacing.DOWN)
+                && canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), EnumFacing.UP);
 
-        return flag ? 1 : 1 - BlockLiquid.getLiquidHeightPercent(level);
+        return flag ? 1 : 1 - BlockLiquid.getLiquidHeightPercent(state.getValue(BlockLiquid.LEVEL));
     }
 
     @Nonnull
@@ -226,7 +213,8 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
 
         //covert to extended state
         IExtendedBlockState state = (IExtendedBlockState)oldState;
-        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, (float)getFlowDirection(world, pos));
+        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION,
+                BlockLiquid.getSlopeAngle(world, pos, blockMaterial, world.getBlockState(pos)));
 
         //corner height variables
         final IBlockState[][] upBlockState = new IBlockState[3][3];
@@ -380,11 +368,6 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
     //fixes crash when trying to render invalid state (temporary fix)
     private <V> IExtendedBlockState withPropertyFallback(@Nonnull IExtendedBlockState state, @Nonnull IUnlistedProperty<V> property, @Nullable V value, V fallback) {
         return state.withProperty(property, property.isValid(value) ? value : fallback);
-    }
-
-    private double getFlowDirection(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        final Vec3d vec = getFlow(world, pos, world.getBlockState(pos));
-        return vec.x == 0 && vec.z == 0 ? -1000 : Math.atan2(vec.z, vec.x) - Math.PI / 2;
     }
 
     @Nonnull

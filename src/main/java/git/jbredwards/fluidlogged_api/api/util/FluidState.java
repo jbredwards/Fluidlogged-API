@@ -1,7 +1,7 @@
 package git.jbredwards.fluidlogged_api.api.util;
 
 import git.jbredwards.fluidlogged_api.mod.Main;
-import git.jbredwards.fluidlogged_api.mod.asm.mixins.utils.IMixinFluid;
+import git.jbredwards.fluidlogged_api.mod.asm.mixins.utils.IFluidMixin;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
@@ -42,7 +42,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
     @Nonnull
     public static FluidState of(@Nullable Fluid fluidIn) {
         if(fluidIn == null || !fluidIn.canBePlacedInWorld()) return EMPTY;
-        final IMixinFluid impl = (IMixinFluid)fluidIn;
+        final IFluidMixin impl = (IFluidMixin)fluidIn;
 
         //use the fluid's default state if present
         if(!impl.isEmpty()) return impl.getDefaultFluidState();

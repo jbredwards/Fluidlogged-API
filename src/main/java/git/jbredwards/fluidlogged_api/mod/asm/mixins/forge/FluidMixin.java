@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.mod.asm.mixins.forge;
 
-import git.jbredwards.fluidlogged_api.mod.asm.mixins.utils.IMixinFluid;
+import git.jbredwards.fluidlogged_api.mod.asm.mixins.utils.IFluidMixin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import net.minecraftforge.fluids.Fluid;
 import org.apache.logging.log4j.Logger;
@@ -17,7 +17,7 @@ import javax.annotation.Nonnull;
  *
  */
 @Mixin(Fluid.class)
-public abstract class FluidMixin implements IMixinFluid
+public abstract class FluidMixin implements IFluidMixin
 {
     @Nonnull
     FluidState defaultState = FluidState.EMPTY;

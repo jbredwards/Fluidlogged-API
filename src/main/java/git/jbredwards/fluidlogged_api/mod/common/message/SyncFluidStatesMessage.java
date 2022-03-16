@@ -31,13 +31,13 @@ public final class SyncFluidStatesMessage implements IMessage
 {
     @Nonnull public Set<Pair<Long, Integer>> data = new HashSet<>();
     public boolean isValid;
-    public int x, z;
+    public int chunkX, chunkZ;
 
     public SyncFluidStatesMessage() {}
     public SyncFluidStatesMessage(@Nonnull ChunkPos chunkPos, @Nonnull Map<BlockPos, FluidState> fluidStateMap) {
         fluidStateMap.forEach((pos, fluidState) -> data.add(Pair.of(pos.toLong(), fluidState.serialize())));
-        x = chunkPos.x;
-        z = chunkPos.z;
+        chunkX = chunkPos.x;
+        chunkZ = chunkPos.z;
         isValid = true;
     }
 
@@ -46,8 +46,8 @@ public final class SyncFluidStatesMessage implements IMessage
         isValid = buf.readBoolean();
         if(isValid) {
             //read pos
-            x = buf.readInt();
-            z = buf.readInt();
+            chunkX = buf.readInt();
+            chunkZ = buf.readInt();
             //read data
             final int size = buf.readInt();
             for(int i = 0; i < size; i++) data.add(Pair.of(buf.readLong(), buf.readInt()));
@@ -59,8 +59,8 @@ public final class SyncFluidStatesMessage implements IMessage
         buf.writeBoolean(isValid);
         if(isValid) {
             //write pos
-            buf.writeInt(x);
-            buf.writeInt(z);
+            buf.writeInt(chunkX);
+            buf.writeInt(chunkZ);
             //write data
             buf.writeInt(data.size());
             data.forEach(entry -> {
@@ -85,8 +85,8 @@ public final class SyncFluidStatesMessage implements IMessage
         private void addTask(@Nonnull SyncFluidStatesMessage message) {
             Minecraft.getMinecraft().addScheduledTask(() -> {
                 final World world = Minecraft.getMinecraft().world;
-                final IFluidStateCapability cap = IFluidStateCapability.get(
-                        world.getChunkFromChunkCoords(message.x, message.z));
+                final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(
+                        world.getChunkFromChunkCoords(message.chunkX, message.chunkZ));
 
                 if(cap != null) {
                     //clear any old fluid states

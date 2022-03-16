@@ -63,6 +63,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
         // check adjacent block levels if non-source
         if(quantaRemaining < 8) {
             int adjacentSourceBlocks = 0;
+            boolean updateWorldQuanta = true;
             final int expQuanta;
 
             if(ForgeEventFactory.canCreateFluidSource(world, pos, state, blockMaterial == Material.WATER)) {
@@ -80,7 +81,10 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
                 expQuanta = 8;
 
             // vertical flow into block
-            else if(hasVerticalFlow(world, pos)) expQuanta = 8 - lavaDif;
+            else if(hasVerticalFlow(world, pos)) {
+                updateWorldQuanta = false;
+                expQuanta = 8;
+            }
 
             else {
                 int maxQuanta = -100;
@@ -98,8 +102,8 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
             if(expQuanta != quantaRemaining) {
                 quantaRemaining = expQuanta;
 
-                if(expQuanta <= 0) world.setBlockToAir(pos);
-                else {
+                if(expQuanta < 0) world.setBlockToAir(pos);
+                else if(updateWorldQuanta) {
                     world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, 8 - expQuanta), Constants.BlockFlags.SEND_TO_CLIENTS);
                     world.scheduleUpdate(pos, this, tickRate(world));
                     world.notifyNeighborsOfStateChange(pos, this, false);
@@ -148,17 +152,15 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
 
         // Flow vertically if possible
         if(canFluidFlow(world, pos, here, EnumFacing.DOWN) && canDisplace(world, pos.down())) {
-            flowIntoBlock(world, pos.down(), lavaDif);
+            flowIntoBlock(world, pos.down(), 8);
             return;
         }
 
         // Flow outward if possible
         int flowMeta = 8 - quantaRemaining + lavaDif;
-        if(flowMeta >= 8) return;
+        if(flowMeta >= 8 || flowMeta < 0) return;
 
-        if(isSourceBlock(world, pos, here, null) || !isFlowingVertically(world, pos)) {
-            if(hasVerticalFlow(world, pos)) flowMeta = lavaDif;
-
+        if(isSourceBlock(world, pos, here, null) || !hasVerticalFlow(world, pos.down())) {
             final boolean[] flowTo = getOptimalFlowDirections(world, pos, here);
             for(int i = 0; i < 4; i++)
                 if(flowTo[i] && canFluidFlow(world, pos, here, SIDES.get(i)))
@@ -181,16 +183,6 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
         return density == Integer.MAX_VALUE || getFluid().getDensity() > density;
     }
 
-    private boolean isFlowingVertically(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        final IBlockState here = world.getBlockState(pos);
-        if(!canFluidFlow(world, pos, here, EnumFacing.DOWN)) return false;
-
-        final IBlockState neighbor = world.getBlockState(pos.down());
-        return isCompatibleFluid(getFluidState(world, pos.down(), neighbor).getFluid(), getFluid())
-                || (isCompatibleFluid(getFluidState(world, pos, here).getFluid(), getFluid())
-                && canFlowInto(world, pos.down()));
-    }
-
     private boolean isSourceBlock(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         return isSourceBlock(world, pos, world.getBlockState(pos), null);
     }
@@ -207,7 +199,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
     }
 
     private int getLargerQuanta(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, int compare) {
-        int quantaRemaining = getEffectiveQuanta(world, pos);
+        int quantaRemaining = hasVerticalFlow(world, pos) ? 8 : getQuantaValue(world, pos);
         if(quantaRemaining <= 0) return compare;
 
         return Math.max(quantaRemaining, compare);
@@ -252,7 +244,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
     }
 
     private void flowIntoBlock(@Nonnull World world, @Nonnull BlockPos pos, int meta) {
-        if(meta >= 0 && displaceIfPossible(world, pos))
+        if(displaceIfPossible(world, pos))
             world.setBlockState(pos, BlockLiquid.getFlowingBlock(blockMaterial)
                     .getDefaultState().withProperty(BlockLiquid.LEVEL, meta));
     }
