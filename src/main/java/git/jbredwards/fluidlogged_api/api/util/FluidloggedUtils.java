@@ -1,7 +1,7 @@
 package git.jbredwards.fluidlogged_api.api.util;
 
 import git.jbredwards.fluidlogged_api.mod.Main;
-import git.jbredwards.fluidlogged_api.api.block.ICompatibleFluid;
+import git.jbredwards.fluidlogged_api.api.fluid.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
@@ -195,11 +195,11 @@ public final class FluidloggedUtils
     }
 
     //checks if two fluids are compatible
-    public static boolean isCompatibleFluid(@Nullable Fluid fluid1, @Nullable Fluid fluid2) {
+    public static boolean isCompatibleFluid(@Nonnull IBlockAccess world, @Nullable Fluid fluid1, @Nullable Fluid fluid2) {
         if(fluid1 == null || fluid2 == null) return fluid1 == fluid2;
         else return fluid1 == fluid2
-                || fluid1.getBlock() instanceof ICompatibleFluid && ((ICompatibleFluid)fluid1.getBlock()).isCompatibleFluid(fluid2)
-                || fluid2.getBlock() instanceof ICompatibleFluid && ((ICompatibleFluid)fluid2.getBlock()).isCompatibleFluid(fluid1);
+                || fluid1 instanceof ICompatibleFluid && ((ICompatibleFluid)fluid1).isCompatibleFluid(world, fluid2)
+                || fluid2 instanceof ICompatibleFluid && ((ICompatibleFluid)fluid2).isCompatibleFluid(world, fluid1);
     }
 
     //convenience method that takes in an IBlockState rather than a Block

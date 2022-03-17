@@ -74,7 +74,7 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
         if(state.getBlock().isAir(state, world, pos)) return 0;
 
         final FluidState fluidState = getFluidState(world, pos, state);
-        if(!isCompatibleFluid(fluidState.getFluid(), getFluid())) return -1;
+        if(!isCompatibleFluid(world, fluidState.getFluid(), getFluid())) return -1;
         else return quantaPerBlock - fluidState.getLevel();
     }
 
@@ -157,7 +157,7 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
                                             : getFluidState(world, adjacentOffset, adjacent);
 
                                     //set the FluidState in the world
-                                    if(isCompatibleFluid(adjacentFluid.getFluid(), getFluid())) {
+                                    if(isCompatibleFluid(world, adjacentFluid.getFluid(), getFluid())) {
                                         setFluidState(world, offset, neighbor, FluidState.of(this), false);
                                         break;
                                     }
@@ -201,8 +201,8 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
         if(!canFluidFlow(world, pos, here, facingDir.getOpposite())) return false;
 
         final IBlockState neighbor = world.getBlockState(pos.up(densityDir));
-        return isCompatibleFluid(getFluidState(world, pos.up(densityDir), neighbor).getFluid(), getFluid())
-                || (isCompatibleFluid(getFluidState(world, pos, here).getFluid(), getFluid())
+        return isCompatibleFluid(world, getFluidState(world, pos.up(densityDir), neighbor).getFluid(), getFluid())
+                || (isCompatibleFluid(world, getFluidState(world, pos, here).getFluid(), getFluid())
                 && canFlowInto(world, pos.up(densityDir)));
     }
 
@@ -219,7 +219,7 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
         if(facing != null && !canFluidFlow(world, pos, here, facing)) return false;
 
         final FluidState fluidState = getFluidState(world, pos, here);
-        return isCompatibleFluid(fluidState.getFluid(), getFluid()) && fluidState.getLevel() == 0;
+        return isCompatibleFluid(world, fluidState.getFluid(), getFluid()) && fluidState.getLevel() == 0;
     }
 
     /**
@@ -255,7 +255,7 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
      */
     @Overwrite(remap = false)
     protected boolean canFlowInto(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        return isCompatibleFluid(getFluidState(world, pos).getFluid(), getFluid()) || canDisplace(world, pos);
+        return isCompatibleFluid(world, getFluidState(world, pos).getFluid(), getFluid()) || canDisplace(world, pos);
     }
 
     /**

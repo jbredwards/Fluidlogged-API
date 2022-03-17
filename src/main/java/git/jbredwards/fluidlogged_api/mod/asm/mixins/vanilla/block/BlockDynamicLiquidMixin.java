@@ -148,7 +148,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
                                                 : getFluidState(world, adjacentOffset, adjacent);
 
                                         //set the FluidState in the world
-                                        if(isCompatibleFluid(adjacentFluid.getFluid(), getFluid())) {
+                                        if(isCompatibleFluid(world, adjacentFluid.getFluid(), getFluid())) {
                                             setFluidState(world, offset, neighbor, FluidState.of(this), false);
                                             break;
                                         }
@@ -183,7 +183,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
         final IBlockState state = world.getBlockState(pos);
         if(state.getBlock().isAir(state, world, pos)) return true;
         //checks if this & a fluid here are the same
-        else if(isCompatibleFluid(getFluid(), getFluidState(world, pos, state).getFluid())) return false;
+        else if(isCompatibleFluid(world, getFluid(), getFluidState(world, pos, state).getFluid())) return false;
         //predefined displacements
         else if(displacements().containsKey(state.getBlock())) return displacements.get(state.getBlock());
 
@@ -202,11 +202,11 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
         if(facing != null && !canFluidFlow(world, pos, here, facing)) return false;
 
         final FluidState fluidState = getFluidState(world, pos, here);
-        return isCompatibleFluid(fluidState.getFluid(), getFluid()) && fluidState.getLevel() == 0;
+        return isCompatibleFluid(world, fluidState.getFluid(), getFluid()) && fluidState.getLevel() == 0;
     }
 
     private boolean canFlowInto(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        return isCompatibleFluid(getFluidState(world, pos).getFluid(), getFluid()) || canDisplace(world, pos);
+        return isCompatibleFluid(world, getFluidState(world, pos).getFluid(), getFluid()) || canDisplace(world, pos);
     }
 
     private int getLargerQuanta(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, int compare) {

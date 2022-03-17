@@ -61,7 +61,7 @@ public abstract class BlockFluidBaseMixin extends Block
         final IBlockState state = world.getBlockState(pos);
         if(state.getBlock().isAir(state, world, pos)) return true;
         //checks if this & a fluid here are the same
-        else if(isCompatibleFluid(getFluid(), getFluidState(world, pos, state).getFluid())) return false;
+        else if(isCompatibleFluid(world, getFluid(), getFluidState(world, pos, state).getFluid())) return false;
         //predefined displacements
         else if(displacements.containsKey(state.getBlock())) return displacements.get(state.getBlock());
 
@@ -82,7 +82,7 @@ public abstract class BlockFluidBaseMixin extends Block
         if(!canFluidFlow(world, pos, here, side)) return true;
 
         final IBlockState neighbor = world.getBlockState(pos.offset(side));
-        final boolean isCompatible = isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluid());
+        final boolean isCompatible = isCompatibleFluid(world, getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluid());
 
         if(side == (densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN))
             return !isCompatible || !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite());
@@ -186,7 +186,7 @@ public abstract class BlockFluidBaseMixin extends Block
         if(!canFluidFlow(world, offset, neighbor, primary) || !canFluidFlow(world, offset, neighbor, other.getOpposite()))
             return true;
 
-        else return !isCompatibleFluid(getFluidState(world, offset, neighbor).getFluid(), getFluid());
+        else return !isCompatibleFluid(world, getFluidState(world, offset, neighbor).getFluid(), getFluid());
     }
 
     private float getFluidHeightForRender(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState up, @Nullable Fluid upFluid, int i, int j) {
@@ -198,7 +198,7 @@ public abstract class BlockFluidBaseMixin extends Block
 
         final FluidState fluidState = getFluidState(world, pos, state);
         final boolean canSideFlow = ASMHooks.canSideFlow(getFluid(), state, world, pos, i, j);
-        final boolean fluidMatches = isCompatibleFluid(fluidState.getFluid(), getFluid());
+        final boolean fluidMatches = isCompatibleFluid(world, fluidState.getFluid(), getFluid());
 
         //is a fluid
         if(fluidMatches && canSideFlow) {
@@ -238,7 +238,7 @@ public abstract class BlockFluidBaseMixin extends Block
     }
 
     private boolean isFluid(@Nonnull IBlockState neighbor, @Nullable Fluid fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing...faces) {
-        if(isCompatibleFluid(getFluid(), fluid)) {
+        if(isCompatibleFluid(world, getFluid(), fluid)) {
             for(EnumFacing facing : faces) if(!canFluidFlow(world, pos, neighbor, facing.getOpposite())) return false;
             return true;
         }
@@ -300,7 +300,7 @@ public abstract class BlockFluidBaseMixin extends Block
         final IBlockState state = world.getBlockState(offset);
 
         return canFluidFlow(world, offset, state, facing.getOpposite())
-                && isCompatibleFluid(getFluidState(world, offset, state).getFluid(), getFluid());
+                && isCompatibleFluid(world, getFluidState(world, offset, state).getFluid(), getFluid());
     }
 
     /**
