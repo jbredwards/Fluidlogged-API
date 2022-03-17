@@ -44,15 +44,19 @@ public class CommandSetFluidState extends CommandBase
         final BlockPos pos = parseBlockPos(sender, args, 0, false);
 
         final World world = sender.getEntityWorld();
-        if(!world.isBlockLoaded(pos)) throw new CommandException("commands.setblock.outOfWorld");
+        if(!world.isBlockLoaded(pos)) throw new CommandException("commands.setfluid.outOfWorld");
 
         final FluidState fluidState = FluidState.of(getBlockByText(sender, args[3]));
         final IBlockState here = world.getBlockState(pos);
 
-        if(FluidloggedUtils.isStateFluidloggable(here, fluidState.getFluid()))
-            FluidloggedUtils.setFluidState(world, pos, here, fluidState, false, 2);
+        if(FluidloggedUtils.isStateFluidloggable(here, fluidState.getFluid())) {
+            if(!FluidloggedUtils.setFluidState(world, pos, here, fluidState, false, 2))
+                throw new CommandException("commands.setfluid.noChange");
+        }
 
-        else world.setBlockState(pos, fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.getState(), 2);
+        else if(!world.setBlockState(pos, fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.getState(), 2))
+            throw new CommandException("commands.setfluid.noChange");
+
         notifyCommandListener(sender, this, "commands.setfluid.success");
     }
 

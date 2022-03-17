@@ -48,9 +48,7 @@ public interface IFluidloggable
      * @return true if the FluidState should be visible while this is fluidlogged
      */
     @SideOnly(Side.CLIENT)
-    default boolean shouldFluidRender(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState fluidState) {
-        return !fluidState.isEmpty() && fluidState.getState().getRenderType() == EnumBlockRenderType.MODEL;
-    }
+    default boolean shouldFluidRender(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState fluidState) { return true; }
 
     /**
      * called by {@link FluidloggedUtils#setFluidState}

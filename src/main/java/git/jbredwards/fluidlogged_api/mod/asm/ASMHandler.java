@@ -6,7 +6,6 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client.*;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.*;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -38,30 +37,19 @@ public final class ASMHandler implements IFMLLoadingPlugin
         @Nonnull
         public static Map<String, IASMPlugin> PLUGINS = new ImmutableMap.Builder<String, IASMPlugin>()
                 //vanilla (client)
-                .put("net.minecraft.client.renderer.chunk.RenderChunk", new RenderChunkPlugin()) //allows the game to render FluidStates
-                .put("net.minecraft.client.renderer.EntityRenderer", new EntityRendererPlugin()) //fixes graphical underwater block selection; lava FluidStates now emit smoke while raining; fixes FluidState fog color
+                .put("net.minecraft.client.renderer.chunk.RenderChunk", new PluginRenderChunk()) //allows the game to render FluidStates
+                .put("net.minecraft.client.renderer.EntityRenderer", new PluginEntityRenderer()) //fixes graphical underwater block selection; lava FluidStates now emit smoke while raining; fixes FluidState fog color
                 //vanilla (blocks)
-                .put("net.minecraft.block.Block", new BlockPlugin()) //fixes some lighting, canSustainPlant, and explosion related issues
-                .put("net.minecraft.block.BlockBush", new BlockBushPlugin()) //breaking this block type no longer voids the possible FluidState here
-                .put("net.minecraft.block.BlockCocoa", new BlockCocoaPlugin()) //breaking this block type no longer voids the possible FluidState here
-                .put("net.minecraft.block.BlockFarmland", new BlockFarmlandPlugin()) //farmland blocks now recognise water FluidStates
-                .put("net.minecraft.block.BlockLilyPad", new BlockLilyPadPlugin()) //lily pads can stay on certain water FluidStates
-                //vanilla (entities)
-                .put("net.minecraft.entity.ai.EntityAIPanic", new EntityAIPanicPlugin()) //water FluidStates are now seen as water blocks
-                .put("net.minecraft.entity.ai.RandomPositionGenerator", new RandomPositionGeneratorPlugin()) //water FluidStates are now seen as water blocks
-                .put("net.minecraft.entity.item.EntityBoat", new EntityBoatPlugin()) //boat work with water FluidStates
-                .put("net.minecraft.entity.item.EntityItem", new EntityItemPlugin()) //items generate the burn effects when in a lava FluidState
-                .put("net.minecraft.entity.item.EntityXPOrb", new EntityItemPlugin()) //xp orbs generate the burn effects when in a lava FluidState
-                .put("net.minecraft.entity.projectile.EntityFishHook", new EntityFishHookPlugin()) //fishhook entities generate the fishing particles at water FluidStates
+                .put("net.minecraft.block.Block", new PluginBlock()) //fixes some lighting, canSustainPlant, and explosion related issues
+                .put("net.minecraft.block.BlockLilyPad", new PluginBlockLilyPad()) //lily pads can stay on certain water FluidStates
                 //vanilla (world)
-                .put("net.minecraft.world.end.DragonSpawnManager$3", new DragonSpawnManagerPlugin()) //summoning the ender dragon will now void FluidStates at the pillar locations
-                .put("net.minecraft.world.gen.feature.WorldGenDungeons", new WorldGenDungeonsPlugin()) //spawner dungeons now void FluidStates when they generate
-                .put("net.minecraft.world.World", new WorldPlugin()) //corrects a lot of FluidState related interactions
-                .put("net.minecraft.world.WorldServer", new WorldServerPlugin()) //FluidStates now get ticked
+                .put("net.minecraft.world.gen.feature.WorldGenDungeons", new PluginWorldGenDungeons()) //spawner dungeons now void FluidStates when they generate
+                .put("net.minecraft.world.World", new PluginWorld()) //corrects a lot of FluidState related interactions
+                .put("net.minecraft.world.WorldServer", new PluginWorldServer()) //FluidStates now get ticked
                 //forge
-                .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new ModelFluidPlugin()) //fixes all issues with fluidlogged z-fighting
-                .put("net.minecraftforge.fluids.BlockFluidBase", new BlockFluidBasePlugin()) //prevent startup crash
-                .put("net.minecraftforge.fluids.FluidUtil", new FluidUtilPlugin()) //changes some of this class's util functions to be FluidState sensitive
+                .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new PluginModelFluid()) //fixes all issues with fluidlogged z-fighting
+                .put("net.minecraftforge.fluids.BlockFluidBase", new PluginBlockFluidBase()) //prevent startup crash
+                .put("net.minecraftforge.fluids.FluidUtil", new PluginFluidUtil()) //changes some of this class's util functions to be FluidState sensitive
                 .build();
 
         @Override

@@ -250,7 +250,9 @@ public final class ASMHooks
         //only run fluid renderer once
         if(layerIn.ordinal() == 0 && FluidloggedUtils.getFluidFromState(state) == null) {
             final FluidState fluidState = FluidState.get(pos);
-            if(!fluidState.isEmpty() && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
+            if(!fluidState.isEmpty() && fluidState.getState().getRenderType() == EnumBlockRenderType.MODEL
+                    && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
+
                 //renders the fluid in each layer
                 for(BlockRenderLayer layer : BlockRenderLayer.values()) {
                     if(!fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer))
@@ -291,7 +293,9 @@ public final class ASMHooks
         //only run fluid renderer once
         if(layerIn.ordinal() == 0 && FluidloggedUtils.getFluidFromState(state) == null) {
             final FluidState fluidState = FluidState.get(pos);
-            if(!fluidState.isEmpty() && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
+            if(!fluidState.isEmpty() && fluidState.getState().getRenderType() == EnumBlockRenderType.MODEL
+                    && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
+
                 //renders the fluid in each layer
                 for(BlockRenderLayer layer : BlockRenderLayer.values()) {
                     if(!fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer))

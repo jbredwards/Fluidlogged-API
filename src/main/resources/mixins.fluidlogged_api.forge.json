@@ -2,10 +2,10 @@
   "parent": "mixins.fluidlogged_api.json",
   "package": "git.jbredwards.fluidlogged_api.mod.asm.mixins.forge",
   "mixins": [
-    "BlockFluidBaseMixin",
-    "BlockFluidClassicMixin",
-    "FluidMixin",
-    "FluidUtilMixin",
-    "ForgeHooksMixin"
+    "MixinBlockFluidBase",
+    "MixinBlockFluidClassic",
+    "MixinFluid",
+    "MixinFluidUtil",
+    "MixinForgeHooks"
   ]
 }
