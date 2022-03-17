@@ -40,10 +40,8 @@ import java.util.Optional;
  * @author jbred
  *
  */
-public enum FluidloggedUtils
+public final class FluidloggedUtils
 {
-    ;
-
     //convenience method
     @Nonnull
     public static FluidState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {

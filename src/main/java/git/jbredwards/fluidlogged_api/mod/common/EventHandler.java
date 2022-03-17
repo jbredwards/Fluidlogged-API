@@ -52,14 +52,12 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  *
  * @author jbred
  *
  */
-@SuppressWarnings("unused")
 @Mod.EventBusSubscriber(modid = Constants.MODID)
 public final class EventHandler
 {
@@ -68,6 +66,7 @@ public final class EventHandler
         event.addCapability(new ResourceLocation(Constants.MODID, "fluid_states"), new IFluidStateCapability.Provider());
     }
 
+    @SuppressWarnings("deprecation")
     @SubscribeEvent
     public static void sendToPlayer(@Nonnull ChunkWatchEvent.Watch event) {
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(event.getChunkInstance());
@@ -75,7 +74,7 @@ public final class EventHandler
     }
 
     @SubscribeEvent
-    public static void fixOldWorlds(@Nonnull RegistryEvent.Register<Block> event) {
+    public static void fixLegacyWorlds(@Nonnull RegistryEvent.Register<Block> event) {
         if(ConfigHandler.enableLegacyCompat) {
             event.getRegistry().registerAll(new LegacyWorldFixer(FluidRegistry.WATER), new LegacyWorldFixer(FluidRegistry.LAVA));
             GameRegistry.registerTileEntity(LegacyWorldFixer.Tile.class, new ResourceLocation(Constants.MODID, "te"));
@@ -116,14 +115,13 @@ public final class EventHandler
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     @SideOnly(Side.CLIENT)
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void registerLiquidBakedModels(@Nonnull ModelBakeEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
             if(block instanceof BlockLiquid) {
-                IBakedModel model = new ModelFluid(Optional.ofNullable(FluidloggedUtils.getFluidFromBlock(block)).orElse(FluidRegistry.WATER))
-                        .bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
-
+                IBakedModel model = new ModelFluid(FluidloggedUtils.getFluidFromBlock(block)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
                 event.getModelRegistry().putObject(new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid"), model);
             }
         }
@@ -137,7 +135,16 @@ public final class EventHandler
 
         if(trace != null && trace.getBlockPos() != null && !event.getRight().isEmpty()) {
             final FluidState fluidState = FluidState.get(trace.getBlockPos());
-            if(!fluidState.isEmpty()) event.getRight().add("fluid: " + fluidState.getFluid().getName());
+            if(!fluidState.isEmpty()) {
+                //separate the fluid info from the block info
+                event.getRight().add("");
+                //fluid block id
+                event.getRight().add(String.valueOf(fluidState.getBlock() instanceof BlockLiquid
+                        ? BlockLiquid.getStaticBlock(fluidState.getMaterial()).getRegistryName()
+                        : fluidState.getBlock().getRegistryName()));
+                //fluid id
+                event.getRight().add("fluid: " + fluidState.getFluid().getName());
+            }
         }
     }
 
@@ -172,7 +179,7 @@ public final class EventHandler
         }
 
         //if bucket has a fluid, try fluidlogging it
-        else if(tryBucketDrain_Internal(world, pos, player, handler, contained.getFluid()) || tryBucketDrain_Internal(world, pos.offset(trace.sideHit), player, handler, contained.getFluid())) {
+        else if(tryBucketDrain_Internal(world, pos, player, handler, contained) || tryBucketDrain_Internal(world, pos.offset(trace.sideHit), player, handler, contained)) {
             event.setFilledBucket(handler.getContainer());
             event.setResult(Event.Result.ALLOW);
         }
@@ -181,23 +188,23 @@ public final class EventHandler
     private static boolean tryBucketFill_Internal(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer player, @Nonnull IFluidHandlerItem handler) {
         final FluidState fluidState = FluidState.get(world, pos);
 
-        if(!fluidState.isEmpty() && FluidloggedUtils.setFluidState(world, pos, null, FluidState.EMPTY, false)) {
+        if(!fluidState.isEmpty() && handler.fill(fluidState.getBlock().drain(world, pos, true), true) == Fluid.BUCKET_VOLUME) {
             world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluidState.getFluid().getFillSound(), SoundCategory.BLOCKS, 1, 1);
-            handler.fill(new FluidStack(fluidState.getFluid(), Fluid.BUCKET_VOLUME), true);
             return true;
         }
 
         return false;
     }
 
-    private static boolean tryBucketDrain_Internal(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer player, @Nonnull IFluidHandlerItem handler, @Nonnull Fluid fluid) {
+    private static boolean tryBucketDrain_Internal(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer player, @Nonnull IFluidHandlerItem handler, @Nonnull FluidStack stack) {
         final IBlockState state = world.getBlockState(pos);
+        final Fluid fluid = stack.getFluid();
 
-        if(FluidloggedUtils.isFluidloggableFluid(fluid.getBlock().getDefaultState(), false) && FluidloggedUtils.isStateFluidloggable(state, fluid) && FluidloggedUtils.setFluidState(world, pos, state, FluidState.of(fluid), true)) {
-            if(!world.provider.doesWaterVaporize() || !fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME)))
-                world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluid.getEmptySound(), SoundCategory.BLOCKS, 1, 1);
+        final boolean isFluidloggable = FluidloggedUtils.isFluidloggableFluid(fluid.getBlock().getDefaultState(), false) && FluidloggedUtils.isStateFluidloggable(state, fluid);
+        if(isFluidloggable && handler.drain(new FluidStack(stack, FluidState.of(fluid).getBlock().place(world, pos, stack.copy(), true)), true) != null) {
+            if(!world.provider.doesWaterVaporize() || !fluid.doesVaporize(stack))
+                world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluid.getEmptySound(stack), SoundCategory.BLOCKS, 1, 1);
 
-            handler.drain(new FluidStack(fluid, Fluid.BUCKET_VOLUME), true);
             return true;
         }
 

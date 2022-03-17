@@ -47,10 +47,8 @@ import static net.minecraft.util.EnumFacing.*;
  *
  */
 @SuppressWarnings("unused")
-public enum ASMHooks
+public final class ASMHooks
 {
-    ;
-
     //=====
     //FORGE
     //=====

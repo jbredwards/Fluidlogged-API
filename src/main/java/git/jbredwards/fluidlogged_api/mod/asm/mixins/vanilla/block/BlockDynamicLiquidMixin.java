@@ -33,7 +33,6 @@ import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
  * @author jbred
  *
  */
-@SuppressWarnings("unused")
 @Mixin(BlockDynamicLiquid.class)
 public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
 {
@@ -100,13 +99,25 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
 
             // decay calculation
             if(expQuanta != quantaRemaining) {
+                final boolean wasVertical = (quantaRemaining == 0);
                 quantaRemaining = expQuanta;
 
-                if(expQuanta < 0) world.setBlockToAir(pos);
-                else if(updateWorldQuanta) {
-                    world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, 8 - expQuanta), Constants.BlockFlags.SEND_TO_CLIENTS);
-                    world.scheduleUpdate(pos, this, tickRate(world));
-                    world.notifyNeighborsOfStateChange(pos, this, false);
+                if(updateWorldQuanta) {
+                    if(expQuanta <= 0 ) {
+                        world.setBlockToAir(pos);
+
+                        if(vertical.getBlock() == this && vertical.getValue(BlockLiquid.LEVEL) == 8) {
+                            world.setBlockState(pos.down(), vertical.withProperty(BlockLiquid.LEVEL, lavaDif), Constants.BlockFlags.SEND_TO_CLIENTS);
+                            world.scheduleUpdate(pos.down(), this, tickRate(world));
+                            world.notifyNeighborsOfStateChange(pos, this, false);
+                        }
+                    }
+
+                    else {
+                        world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, wasVertical ? lavaDif : (8 - expQuanta)), Constants.BlockFlags.SEND_TO_CLIENTS);
+                        world.scheduleUpdate(pos, this, tickRate(world));
+                        world.notifyNeighborsOfStateChange(pos, this, false);
+                    }
                 }
             }
         }
@@ -158,7 +169,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
 
         // Flow outward if possible
         int flowMeta = 8 - quantaRemaining + lavaDif;
-        if(flowMeta >= 8 || flowMeta < 0) return;
+        if(flowMeta >= 8 || flowMeta <= 0) return;
 
         if(isSourceBlock(world, pos, here, null) || !hasVerticalFlow(world, pos.down())) {
             final boolean[] flowTo = getOptimalFlowDirections(world, pos, here);
@@ -235,7 +246,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
 
             if(!canFlowInto(world, pos2) || isSourceBlock(world, pos2)) continue;
             else if(canFlowInto(world, pos2.down())) return recurseDepth;
-            else if(recurseDepth >= 4) continue;
+            else if(recurseDepth > 2) continue;
 
             cost = Math.min(cost, calculateFlowCost(world, pos2, recurseDepth + lavaDif, adjSide));
         }
@@ -244,9 +255,7 @@ public abstract class BlockDynamicLiquidMixin extends BlockLiquidMixin
     }
 
     private void flowIntoBlock(@Nonnull World world, @Nonnull BlockPos pos, int meta) {
-        if(displaceIfPossible(world, pos))
-            world.setBlockState(pos, BlockLiquid.getFlowingBlock(blockMaterial)
-                    .getDefaultState().withProperty(BlockLiquid.LEVEL, meta));
+        if(displaceIfPossible(world, pos)) world.setBlockState(pos, getDefaultState().withProperty(BlockLiquid.LEVEL, meta));
     }
 
     private boolean displaceIfPossible(@Nonnull World world, @Nonnull BlockPos pos) {

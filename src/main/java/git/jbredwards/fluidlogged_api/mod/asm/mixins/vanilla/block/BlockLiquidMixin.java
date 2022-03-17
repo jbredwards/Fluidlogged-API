@@ -98,29 +98,26 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
             if(canFluidFlow(world, pos, here, facing)) {
                 BlockPos offset = pos.offset(facing);
-                int otherDecay = getFlowDecayOffset(world, offset, facing.getOpposite());
+                if(canFluidFlow(world, offset, world.getBlockState(offset), facing.getOpposite())) {
+                    int otherDecay = 8 - getQuantaValue(world, offset);
 
-                if(otherDecay >= 8) {
-                    otherDecay = 8 - getQuantaValue(world, offset.down());
+                    if(otherDecay >= 8) {
+                        otherDecay = 8 - getQuantaValue(world, offset.down());
 
-                    if(otherDecay < 8) {
-                        int power = otherDecay - (decay - 8);
+                        if(otherDecay < 8) {
+                            int power = otherDecay - (decay - 8);
+                            vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
+                        }
+                    }
+                    else {
+                        int power = otherDecay - decay;
                         vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
                     }
-                }
-                else {
-                    int power = otherDecay - decay;
-                    vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
                 }
             }
         }
 
         return vec.normalize();
-    }
-
-    private int getFlowDecayOffset(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing) {
-        if(!canFluidFlow(world, pos, world.getBlockState(pos), facing)) return 9;
-        else return 8 - getQuantaValue(world, pos);
     }
 
     protected int getQuantaValue(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
@@ -202,9 +199,11 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
 
     @Nonnull
     @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"))
-    private IBlockState getFogColor(@Nonnull World world, @Nonnull BlockPos upPos) {
-        return getFluidOrReal(world, upPos);
-    }
+    private IBlockState getFogColor(@Nonnull World world, @Nonnull BlockPos upPos) { return getFluidOrReal(world, upPos); }
+
+    @Nonnull
+    @Redirect(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/BlockLiquid;setTickRandomly(Z)Lnet/minecraft/block/Block;"))
+    private Block setTickRandomly(@Nonnull BlockLiquid self, boolean shouldTick) { return self; }
 
     @Nonnull
     @Override
@@ -336,9 +335,9 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
 
         for(int index = 0; index < flow.length; index++) {
             //fix corners visually flowing into illegal sides (vanilla 1.13 bug)
-            if(ASMHooks.fixN[i] && j == 1 && index % 2 == 1) continue;
-            if(ASMHooks.fixS[i] && j == 0 && index % 2 == 0) continue;
-            if(ASMHooks.fixE[j] && i == 0 && index < 2) continue;
+            if(ASMHooks.fixN[i] && j == 1 && (index & 1) == 1) continue;
+            if(ASMHooks.fixS[i] && j == 0 && (index & 1) == 0) continue;
+            if(ASMHooks.fixE[j] && i == 0 && index <= 1) continue;
             if(ASMHooks.fixW[j] && i == 1 && index > 1) continue;
 
             if(flow[index] >= 8f/9) {
@@ -379,10 +378,9 @@ public abstract class BlockLiquidMixin extends Block implements IFluidloggableFl
         if(fluidStack.amount < Fluid.BUCKET_VOLUME) return 0;
         if(doPlace) {
             final IBlockState here = world.getBlockState(pos);
-            final Fluid fluid = getFluid();
 
-            if(!isStateFluidloggable(here, fluid)) world.setBlockState(pos, getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
-            else setFluidState(world, pos, here, FluidState.of(fluid), true);
+            if(isStateFluidloggable(here, getFluid())) setFluidState(world, pos, here, FluidState.of(this), true);
+            else world.setBlockState(pos, getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
         }
 
         return Fluid.BUCKET_VOLUME;

@@ -13,10 +13,8 @@ import java.lang.reflect.Method;
  * @author jbred
  *
  */
-public enum BFReflector
+public final class BFReflector
 {
-    ;
-
     @Nullable
     public static Method canRenderBlockInLayer;
 

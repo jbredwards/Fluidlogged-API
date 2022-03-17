@@ -16,17 +16,14 @@ import java.lang.reflect.Method;
  * @author jbred
  *
  */
-public enum OFReflector
+public final class OFReflector
 {
-    ;
-
     public static Method setBlockLayer;
     public static Method getRenderEnv;
     public static Method setRegionRenderCacheBuilder;
     public static Method isOverlaysRendered;
     public static Method postRenderOverlays;
     public static Method setOverlaysRendered;
-
 
     static {
         try {

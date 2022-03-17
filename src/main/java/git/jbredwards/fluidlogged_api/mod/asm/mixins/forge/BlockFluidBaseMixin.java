@@ -218,9 +218,9 @@ public abstract class BlockFluidBaseMixin extends Block
 
         for(int index = 0; index < flow.length; index++) {
             //fix corners visually flowing into illegal sides (vanilla 1.13 bug)
-            if(ASMHooks.fixN[i] && j == 1 && index % 2 == 1) continue;
-            if(ASMHooks.fixS[i] && j == 0 && index % 2 == 0) continue;
-            if(ASMHooks.fixE[j] && i == 0 && index < 2) continue;
+            if(ASMHooks.fixN[i] && j == 1 && (index & 1) == 1) continue;
+            if(ASMHooks.fixS[i] && j == 0 && (index & 1) == 0) continue;
+            if(ASMHooks.fixE[j] && i == 0 && index <= 1) continue;
             if(ASMHooks.fixW[j] && i == 1 && index > 1) continue;
 
             if(flow[index] >= 8f/9) {
@@ -265,29 +265,26 @@ public abstract class BlockFluidBaseMixin extends Block
         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
             if(canFluidFlow(world, pos, here, facing)) {
                 BlockPos offset = pos.offset(facing);
-                int otherDecay = getFlowDecayOffset(world, offset, facing.getOpposite());
+                if(canFluidFlow(world, offset, world.getBlockState(offset), facing.getOpposite())) {
+                    int otherDecay = getFlowDecay(world, offset);
 
-                if(otherDecay >= quantaPerBlock) {
-                    otherDecay = getFlowDecay(world, offset.up(densityDir));
+                    if(otherDecay >= quantaPerBlock) {
+                        otherDecay = getFlowDecay(world, offset.up(densityDir));
 
-                    if(otherDecay < quantaPerBlock) {
-                        int power = otherDecay - (decay - quantaPerBlock);
+                        if(otherDecay < quantaPerBlock) {
+                            int power = otherDecay - (decay - quantaPerBlock);
+                            vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
+                        }
+                    }
+                    else {
+                        int power = otherDecay - decay;
                         vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
                     }
-                }
-                else {
-                    int power = otherDecay - decay;
-                    vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
                 }
             }
         }
 
         return vec.normalize();
-    }
-
-    private int getFlowDecayOffset(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing) {
-        if(!canFluidFlow(world, pos, world.getBlockState(pos), facing)) return quantaPerBlock + 1;
-        else return getFlowDecay(world, pos);
     }
 
     /**

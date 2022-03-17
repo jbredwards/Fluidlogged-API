@@ -269,8 +269,8 @@ public abstract class BlockFluidClassicMixin extends BlockFluidBaseMixin impleme
             final IBlockState here = world.getBlockState(pos);
             final Fluid fluid = getFluid();
 
-            if(!isStateFluidloggable(here, fluid)) world.setBlockState(pos, getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
-            else setFluidState(world, pos, here, FluidState.of(fluid), true);
+            if(isStateFluidloggable(here, fluid)) setFluidState(world, pos, here, FluidState.of(fluid), true);
+            else world.setBlockState(pos, getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
         }
 
         return Fluid.BUCKET_VOLUME;
