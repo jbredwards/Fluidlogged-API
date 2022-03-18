@@ -14,5 +14,5 @@ import org.spongepowered.asm.mixin.Mixin;
         BlockButton.class, BlockChest.class, BlockDaylightDetector.class, BlockDragonEgg.class, BlockEnderChest.class,
         BlockEndPortalFrame.class, BlockEndRod.class, BlockFenceGate.class, BlockFence.class, BlockFlowerPot.class,
         BlockHopper.class, BlockLadder.class, BlockLever.class, BlockPane.class, BlockRailBase.class,
-        BlockRedstoneDiode.class, BlockSign.class, BlockStairs.class})
+        BlockRedstoneDiode.class, BlockRedstoneTorch.class, BlockRedstoneWire.class, BlockSign.class, BlockStairs.class})
 public abstract class MixinFluidloggableBlocks implements IFluidloggable { }

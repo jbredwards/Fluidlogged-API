@@ -16,7 +16,7 @@ apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = 'v1.7-mc1.12.2'
+version = 'v1.7b-mc1.12.2'
 group = 'git.jbredwards.fluidlogged_api' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'Fluidlogged-API'
 
