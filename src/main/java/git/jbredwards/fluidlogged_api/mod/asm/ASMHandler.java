@@ -11,6 +11,7 @@ import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.spongepowered.asm.launch.MixinBootstrap;
+import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
 
 import javax.annotation.Nonnull;
@@ -43,7 +44,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.Block", new PluginBlock()) //fixes some lighting, canSustainPlant, and explosion related issues
                 .put("net.minecraft.block.BlockLilyPad", new PluginBlockLilyPad()) //lily pads can stay on certain water FluidStates
                 //vanilla (world)
-                .put("net.minecraft.world.gen.feature.WorldGenDungeons", new PluginWorldGenDungeons()) //spawner dungeons now void FluidStates when they generate
                 .put("net.minecraft.world.World", new PluginWorld()) //corrects a lot of FluidState related interactions
                 .put("net.minecraft.world.WorldServer", new PluginWorldServer()) //FluidStates now get ticked
                 //forge
@@ -76,6 +76,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.entity.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.world.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".forge.json");
+        MixinEnvironment.getDefaultEnvironment().setObfuscationContext("searge");
     }
 
     @Nullable

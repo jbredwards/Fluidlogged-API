@@ -45,6 +45,7 @@ public enum ConfigHandler
     private static boolean applyDefaults = true;
     public static boolean enableLegacyCompat = false;
     public static boolean fluidsBreakTorches = true;
+    public static boolean debugASMPlugins = false;
     public static int fluidloggedFluidSpread = 2;
 
     //checks if the input state is fluidloggable, according to the config settings
@@ -93,7 +94,10 @@ public enum ConfigHandler
                         "\n" +
                         "#blacklist blocks from the defaults\n" +
                         "#info about the format for this can be found on this mod's wiki\n" +
-                        "\"blacklist\":[]";
+                        "\"blacklist\":[],\n" +
+                        "\n" +
+                        "#otuput to the console for every ASM transformation, useful for debugging\n" +
+                        "\"debugASMPlugins\":false";
 
                 //writes the default entries to the new cfg file
                 final FileWriter writer = new FileWriter(cfg);
@@ -110,6 +114,7 @@ public enum ConfigHandler
                 fluidloggedFluidSpread = config.fluidloggedFluidSpread;
                 fluidsBreakTorches = config.fluidsBreakTorches;
                 applyDefaults = config.applyDefaults;
+                debugASMPlugins = config.debugASMPlugins;
             }
         }
 
@@ -148,14 +153,16 @@ public enum ConfigHandler
         public final boolean applyDefaults;
         public final ConfigPredicateBuilder[] whitelist;
         public final ConfigPredicateBuilder[] blacklist;
+        public final boolean debugASMPlugins;
 
-        public Config(boolean enableLegacyCompat, int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist) {
+        public Config(boolean enableLegacyCompat, int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins) {
             this.enableLegacyCompat = enableLegacyCompat;
             this.fluidloggedFluidSpread = fluidloggedFluidSpread;
             this.fluidsBreakTorches = fluidsBreakTorches;
             this.applyDefaults = applyDefaults;
             this.whitelist = whitelist;
             this.blacklist = blacklist;
+            this.debugASMPlugins = debugASMPlugins;
         }
     }
 

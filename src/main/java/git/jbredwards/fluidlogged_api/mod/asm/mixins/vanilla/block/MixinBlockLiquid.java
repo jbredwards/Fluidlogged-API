@@ -202,10 +202,6 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
     private IBlockState getFogColor(@Nonnull World world, @Nonnull BlockPos upPos) { return getFluidOrReal(world, upPos); }
 
     @Nonnull
-    @Redirect(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/BlockLiquid;setTickRandomly(Z)Lnet/minecraft/block/Block;"))
-    private Block setTickRandomly(@Nonnull BlockLiquid self, boolean shouldTick) { return self; }
-
-    @Nonnull
     @Override
     public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         if(!(oldState instanceof IExtendedBlockState)) return oldState;

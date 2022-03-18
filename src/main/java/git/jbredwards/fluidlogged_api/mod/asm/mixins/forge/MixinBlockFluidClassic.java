@@ -157,7 +157,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
                                             : getFluidState(world, adjacentOffset, adjacent);
 
                                     //set the FluidState in the world
-                                    if(isCompatibleFluid(world, adjacentFluid.getFluid(), getFluid())) {
+                                    if(isCompatibleFluid(world, adjacentFluid.getFluid(), getFluid()) && adjacentFluid.getLevel() == getMaxRenderHeightMeta()) {
                                         setFluidState(world, offset, neighbor, FluidState.of(this), false);
                                         break;
                                     }
@@ -303,6 +303,9 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
         final int level = fluid.getValue(BlockLiquid.LEVEL);
         return level == 0 || level >= quantaPerBlock && canCreateSources;
     }
+
+    @Shadow(remap = false)
+    public abstract int getMaxRenderHeightMeta();
 
     @Shadow(remap = false)
     protected abstract int getLargerQuanta(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, int compare);

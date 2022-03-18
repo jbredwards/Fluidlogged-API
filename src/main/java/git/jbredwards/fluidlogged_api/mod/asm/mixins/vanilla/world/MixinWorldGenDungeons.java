@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import javax.annotation.Nonnull;
 
 /**
- * summoning the ender dragon voids FluidStates at the pillar locations
+ * spawner dungeons now void FluidStates when they generate
  * @author jbred
  *
  */

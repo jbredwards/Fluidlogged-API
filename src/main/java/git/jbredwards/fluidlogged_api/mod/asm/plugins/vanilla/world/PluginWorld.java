@@ -81,7 +81,7 @@ public final class PluginWorld implements IASMPlugin
         }
 
         //neighborChanged, line 626
-        else if(index == 3 && checkMethod(method, obfuscated ? "func_189546_a" : "neighborChanged", null)) {
+        else if(index == 3 && checkMethod(insn, obfuscated ? "func_189546_a" : "neighborChanged", null)) {
             final InsnList list = new InsnList();
             list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ALOAD, 1));

@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins;
 
+import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -35,7 +36,7 @@ public interface IASMPlugin extends Opcodes
             int index = isMethodValid(method, obfuscated);
             if(index > 0) {
                 //informs the console of the transformation
-                informConsole(reader, method);
+                if(ConfigHandler.debugASMPlugins) informConsole(reader, method);
 
                 //removes methods and skips the rest if so
                 if(removeMethod(it, obfuscated, index)) continue;

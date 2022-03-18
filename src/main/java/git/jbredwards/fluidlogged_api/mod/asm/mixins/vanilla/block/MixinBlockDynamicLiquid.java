@@ -123,9 +123,6 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
         }
 
         else {
-            //lava does fire spreading
-            if(blockMaterial == Material.LAVA) Blocks.LAVA.updateTick(world, pos, state, rand);
-
             //try flowing to nearby fluidloggable blocks
             if(ConfigHandler.fluidloggedFluidSpread > 0 && blockMaterial == Material.WATER && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, false))) {
                 for(EnumFacing facing : EnumFacing.HORIZONTALS) {
@@ -148,7 +145,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
                                                 : getFluidState(world, adjacentOffset, adjacent);
 
                                         //set the FluidState in the world
-                                        if(isCompatibleFluid(world, adjacentFluid.getFluid(), getFluid())) {
+                                        if(isCompatibleFluid(world, adjacentFluid.getFluid(), getFluid()) && adjacentFluid.getLevel() == 0) {
                                             setFluidState(world, offset, neighbor, FluidState.of(this), false);
                                             break;
                                         }
@@ -177,6 +174,15 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
                 if(flowTo[i] && canFluidFlow(world, pos, here, SIDES.get(i)))
                     flowIntoBlock(world, pos.offset(SIDES.get(i)), flowMeta);
         }
+
+        //lava does fire spreading
+        if(blockMaterial == Material.LAVA) Blocks.LAVA.updateTick(world, pos, state, rand);
+    }
+
+    //lava does fire spreading
+    @Override
+    public void randomTick(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random random) {
+        if(blockMaterial == Material.LAVA) Blocks.LAVA.updateTick(worldIn, pos, state, random);
     }
 
     private boolean canDisplace(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
