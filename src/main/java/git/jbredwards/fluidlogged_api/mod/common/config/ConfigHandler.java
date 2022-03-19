@@ -12,16 +12,15 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumActionResult;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fml.common.Loader;
 import org.apache.commons.io.IOUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -32,15 +31,14 @@ import java.util.function.BiPredicate;
  * @author jbred
  *
  */
-public enum ConfigHandler
+public final class ConfigHandler
 {
-    ;
+    @Nonnull
+    private static final Gson GSON = new GsonBuilder().registerTypeAdapter(ConfigPredicateBuilder.class, new Deserializer()).create();
 
-    @Nullable
-    private static Config config;
-
-    private static Map<Block, ConfigPredicate> WHITELIST = ImmutableMap.of();
-    private static Map<Block, ConfigPredicate> BLACKLIST = ImmutableMap.of();
+    @Nullable private static Config config;
+    @Nonnull private static Map<Block, ConfigPredicate> WHITELIST = ImmutableMap.of();
+    @Nonnull private static Map<Block, ConfigPredicate> BLACKLIST = ImmutableMap.of();
 
     private static boolean applyDefaults = true;
     public static boolean enableLegacyCompat = false;
@@ -107,8 +105,7 @@ public enum ConfigHandler
 
             //reads an already existing cfg file
             else {
-                final Gson reader = new GsonBuilder().registerTypeAdapter(ConfigPredicateBuilder.class, new Deserializer()).create();
-                config = reader.fromJson('{'+IOUtils.toString(new FileInputStream(cfg), Charset.defaultCharset())+'}', Config.class);
+                config = GSON.fromJson('{' + IOUtils.toString(new FileInputStream(cfg), Charset.defaultCharset()) + '}', Config.class);
 
                 enableLegacyCompat = config.enableLegacyCompat;
                 fluidloggedFluidSpread = config.fluidloggedFluidSpread;
@@ -123,24 +120,37 @@ public enum ConfigHandler
     }
 
     //sets up the whitelist & blacklist (internal use only!)
-    public static void complete() {
+    public static void complete() throws IOException {
+        final ImmutableMap.Builder<Block, ConfigPredicate> whitelistBuilder = ImmutableMap.builder();
+        final ImmutableMap.Builder<Block, ConfigPredicate> blacklistBuilder = ImmutableMap.builder();
+
+        //allow other mods to add to the whitelist & blacklist
+        for(String modId : Loader.instance().getIndexedModList().keySet()) {
+            //whitelist
+            final @Nullable InputStream whitelist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/whitelist.json", modId));
+            if(whitelist != null) readPredicates(whitelistBuilder, GSON.fromJson(IOUtils.toString(whitelist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
+
+            //blacklist
+            final @Nullable InputStream blacklist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/blacklist.json", modId));
+            if(blacklist != null) readPredicates(blacklistBuilder, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
+        }
+
+        //gives the user final say regarding the whitelist & blacklist
         if(config != null) {
-            final ImmutableMap.Builder<Block, ConfigPredicate> whitelistBuilder = ImmutableMap.builder();
-            for(ConfigPredicateBuilder builder : config.whitelist) {
-                ConfigPredicate predicate = builder.build();
-                whitelistBuilder.put(predicate.block, predicate);
-            }
-
-            final ImmutableMap.Builder<Block, ConfigPredicate> blacklistBuilder = ImmutableMap.builder();
-            for(ConfigPredicateBuilder builder : config.blacklist) {
-                ConfigPredicate predicate = builder.build();
-                blacklistBuilder.put(predicate.block, predicate);
-            }
-
-            WHITELIST = whitelistBuilder.build();
-            BLACKLIST = blacklistBuilder.build();
-
+            readPredicates(whitelistBuilder, config.whitelist);
+            readPredicates(blacklistBuilder, config.blacklist);
             config = null;
+        }
+
+        //finalize
+        WHITELIST = whitelistBuilder.build();
+        BLACKLIST = blacklistBuilder.build();
+    }
+
+    private static void readPredicates(ImmutableMap.Builder<Block, ConfigPredicate> listBuilder, ConfigPredicateBuilder[] builders) {
+        for(ConfigPredicateBuilder builder : builders) {
+            ConfigPredicate predicate = builder.build();
+            listBuilder.put(predicate.block, predicate);
         }
     }
 
@@ -169,41 +179,27 @@ public enum ConfigHandler
     //checks if the state & fluid match the criteria set by the cfg
     public static class ConfigPredicate implements BiPredicate<IBlockState, Fluid>
     {
-        @Nonnull protected final int[] validMeta;
-        @Nonnull protected final Fluid[] validFluids;
         @Nonnull protected final Block block;
+        @Nonnull protected final Map<Integer, Boolean> validMeta;
+        @Nonnull protected final Map<Fluid, Boolean> validFluids;
 
         public ConfigPredicate(@Nonnull Block block, @Nonnull int[] validMeta, @Nonnull Fluid[] validFluids) {
-            this.validMeta = validMeta;
-            this.validFluids = validFluids;
             this.block = block;
+            this.validMeta = new HashMap<>();
+            this.validFluids = new HashMap<>();
+
+            for(int meta : validMeta) this.validMeta.put(meta, true);
+            for(Fluid fluid : validFluids) this.validFluids.put(fluid, true);
         }
 
         @Override
         public boolean test(@Nonnull IBlockState stateIn, @Nullable Fluid fluidIn) {
             //check fluidIn
-            if(fluidIn != null && validFluids.length != 0) {
-                boolean isInvalidFluid = true;
-                for(Fluid fluid : validFluids) {
-                    if(fluid.equals(fluidIn)) {
-                        isInvalidFluid = false;
-                        break;
-                    }
-                }
-
-                if(isInvalidFluid) return false;
-            }
+            if(fluidIn != null && !validFluids.isEmpty() && !validFluids.containsKey(fluidIn))
+                return false;
 
             //check stateIn
-            if(validMeta.length == 0) return true;
-            final int blockMeta = block.getMetaFromState(stateIn);
-
-            for(int meta : validMeta) {
-                if(meta == blockMeta) return true;
-            }
-
-            //default
-            return false;
+            return validMeta.isEmpty() || validMeta.containsKey(block.getMetaFromState(stateIn));
         }
     }
 
