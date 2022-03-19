@@ -9,6 +9,7 @@ import git.jbredwards.fluidlogged_api.api.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.mod.common.message.FluidStateMessage;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -24,6 +25,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fml.common.eventhandler.Event;
@@ -209,7 +211,14 @@ public final class FluidloggedUtils
     //fork of IFluidBlock#getFluid
     //(BlockLiquid extends IFluidBlock during runtime through asm)
     @Nullable
-    public static Fluid getFluidFromBlock(@Nullable Block fluid) { return (fluid instanceof IFluidBlock) ? ((IFluidBlock)fluid).getFluid() : null; }
+    public static Fluid getFluidFromBlock(@Nullable Block fluid) {
+        if(fluid instanceof IFluidBlock) return ((IFluidBlock)fluid).getFluid();
+        else if(fluid == null) return null;
+
+        final Material material = fluid.getDefaultState().getMaterial();
+        if(material == Material.WATER) return FluidRegistry.WATER;
+        else return material == Material.LAVA ? FluidRegistry.LAVA : null;
+    }
 
     //return true if the IBlockState can be fluidlogged
     public static boolean isFluidloggableFluid(@Nonnull IBlockState fluid, boolean checkLevel) {
