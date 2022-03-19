@@ -65,7 +65,7 @@ public abstract class MixinTemplate
             method = "addBlocksToWorld(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/gen/structure/template/ITemplateProcessor;Lnet/minecraft/world/gen/structure/template/PlacementSettings;I)V",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"))
     private boolean setBlockState(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, int blockFlags) {
-        return world.setBlockState(pos, state, keepOldFluidStates ? blockFlags : blockFlags | 32);
+        return world.setBlockState(pos, state, keepOldFluidStates ? blockFlags : (blockFlags | 32));
     }
 
     @Inject(
