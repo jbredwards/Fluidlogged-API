@@ -12,6 +12,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.template.ITemplateProcessor;
 import net.minecraft.world.gen.structure.template.PlacementSettings;
 import net.minecraft.world.gen.structure.template.Template;
+import net.minecraftforge.common.util.Constants;
 import org.apache.commons.lang3.tuple.Pair;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -38,6 +39,7 @@ public abstract class MixinTemplate
     private BlockPos size;
     private FluidState entry;
     private final List<Pair<BlockPos, FluidState>> fluidStates = new ArrayList<>();
+    private boolean keepOldFluidStates = false;
 
     @Inject(method = "takeBlocksFromWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/BlockPos;add(Lnet/minecraft/util/math/Vec3i;)Lnet/minecraft/util/math/BlockPos;"))
     private void clearOldFluidStates(@Nonnull World worldIn, @Nonnull BlockPos startPos, @Nonnull BlockPos endPos, boolean takeEntities, @Nullable Block toIgnore, @Nonnull CallbackInfo ci) {
@@ -63,7 +65,7 @@ public abstract class MixinTemplate
             method = "addBlocksToWorld(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/gen/structure/template/ITemplateProcessor;Lnet/minecraft/world/gen/structure/template/PlacementSettings;I)V",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"))
     private boolean setBlockState(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, int blockFlags) {
-        return world.setBlockState(pos, state, blockFlags | 32);
+        return world.setBlockState(pos, state, keepOldFluidStates ? blockFlags : blockFlags | 32);
     }
 
     @Inject(
@@ -91,15 +93,17 @@ public abstract class MixinTemplate
             }
 
             compound.setTag("fluidStates", list);
-        }
+         }
+
+         compound.setBoolean("keepOldFluidStates", keepOldFluidStates);
     }
 
     @Inject(method = "read", at = @At(value = "INVOKE", target = "Ljava/util/List;clear()V", remap = false, ordinal = 0))
     private void readFluidStates(@Nonnull NBTTagCompound compound, @Nonnull CallbackInfo ci) {
         fluidStates.clear();
 
-        if(compound.hasKey("fluidStates")) {
-            for(NBTBase nbtBase : compound.getTagList("fluidStates", 10)) {
+        if(compound.hasKey("fluidStates", Constants.NBT.TAG_LIST)) {
+            for(NBTBase nbtBase : compound.getTagList("fluidStates", Constants.NBT.TAG_COMPOUND)) {
                 NBTTagCompound nbt = (NBTTagCompound)nbtBase;
                 FluidState fluidState = FluidState.of(Block.getBlockFromName(nbt.getString("state")));
 
@@ -107,5 +111,8 @@ public abstract class MixinTemplate
                     fluidStates.add(Pair.of(BlockPos.fromLong(nbt.getLong("pos")), fluidState));
             }
         }
+
+        if(compound.hasKey("keepOldFluidStates", Constants.NBT.TAG_BYTE))
+            keepOldFluidStates = compound.getBoolean("keepOldFluidStates");
     }
 }
