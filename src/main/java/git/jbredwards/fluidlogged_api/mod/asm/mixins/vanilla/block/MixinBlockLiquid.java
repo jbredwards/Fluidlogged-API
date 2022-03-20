@@ -13,6 +13,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -98,6 +99,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
             if(canFluidFlow(world, pos, here, facing)) {
                 BlockPos offset = pos.offset(facing);
+
                 if(canFluidFlow(world, offset, world.getBlockState(offset), facing.getOpposite())) {
                     int otherDecay = 8 - getQuantaValue(world, offset);
 
@@ -126,7 +128,9 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
 
         final FluidState fluidState = getFluidState(world, pos, state);
         if(!isCompatibleFluid(world, fluidState.getFluid(), getFluid())) return -1;
-        else return 8 - fluidState.getLevel();
+
+        final int level = fluidState.getLevel();
+        return level >= 8 ? 8 : 8 - level;
     }
 
     protected boolean hasVerticalFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
@@ -208,8 +212,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
 
         //covert to extended state
         IExtendedBlockState state = (IExtendedBlockState)oldState;
-        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION,
-                BlockLiquid.getSlopeAngle(world, pos, blockMaterial, world.getBlockState(pos)));
+        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, getSlopeAngle(world, pos));
 
         //corner height variables
         final IBlockState[][] upBlockState = new IBlockState[3][3];
@@ -264,10 +267,10 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
 
             //fix corners of fluidlogged blocks
             final IBlockState here = world.getBlockState(pos);
-            if(fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.NORTH)) corner[0][0] = 8f/9;
-            if(fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.SOUTH)) corner[0][1] = 8f/9;
-            if(fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.NORTH)) corner[1][0] = 8f/9;
-            if(fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.SOUTH)) corner[1][1] = 8f/9;
+            if(corner[0][0] < 8f/9 && (fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.NORTH))) corner[0][0] = 8f/9;
+            if(corner[0][1] < 8f/9 && (fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.SOUTH))) corner[0][1] = 8f/9;
+            if(corner[1][0] < 8f/9 && (fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.NORTH))) corner[1][0] = 8f/9;
+            if(corner[1][1] < 8f/9 && (fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.SOUTH))) corner[1][1] = 8f/9;
         }
 
         //side overlays
@@ -284,6 +287,12 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
         state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[2], corner[1][1], 8f/9);
         state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[3], corner[1][0], 8f/9);
         return state;
+    }
+
+    //fixes issue#59
+    private float getSlopeAngle(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        final Vec3d vec = getFlow(world, pos, world.getBlockState(pos));
+        return vec.x == 0 && vec.z == 0 ? -1000 : (float)MathHelper.atan2(vec.z, vec.x) - (float)(Math.PI / 2);
     }
 
     //used by getExtendedState

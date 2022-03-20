@@ -156,10 +156,10 @@ public abstract class MixinBlockFluidBase extends Block
 
             //fix corners of fluidlogged blocks
             final IBlockState here = world.getBlockState(pos);
-            if(fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.NORTH)) corner[0][0] = quantaFraction;
-            if(fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.SOUTH)) corner[0][1] = quantaFraction;
-            if(fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.NORTH)) corner[1][0] = quantaFraction;
-            if(fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.SOUTH)) corner[1][1] = quantaFraction;
+            if(corner[0][0] < quantaFraction && (fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.NORTH))) corner[0][0] = quantaFraction;
+            if(corner[0][1] < quantaFraction && (fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.SOUTH))) corner[0][1] = quantaFraction;
+            if(corner[1][0] < quantaFraction && (fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.NORTH))) corner[1][0] = quantaFraction;
+            if(corner[1][1] < quantaFraction && (fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.SOUTH))) corner[1][1] = quantaFraction;
         }
 
         //side overlays
