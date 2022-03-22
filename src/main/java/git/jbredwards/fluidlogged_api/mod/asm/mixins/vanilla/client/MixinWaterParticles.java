@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.mixins.vanilla.client;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.particle.ParticleBubble;
+import net.minecraft.client.particle.ParticleDrip;
 import net.minecraft.client.particle.ParticleSuspend;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -17,7 +18,7 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-@Mixin({ParticleBubble.class, ParticleSuspend.class})
+@Mixin({ParticleBubble.class, ParticleDrip.class, ParticleSuspend.class})
 public abstract class MixinWaterParticles
 {
     @Nonnull

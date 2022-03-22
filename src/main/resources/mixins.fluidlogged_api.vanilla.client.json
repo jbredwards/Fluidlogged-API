@@ -5,6 +5,8 @@
   ],
   "client": [
     "MixinActiveRenderInfo",
+    "MixinParticle",
+    "MixinParticleRain",
     "MixinWaterParticles",
     "MixinWorldClient"
   ]

@@ -19,6 +19,7 @@ import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.BlockFluidBase;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
+import org.spongepowered.asm.mixin.Shadow;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -97,8 +98,11 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
                 expQuanta = maxQuanta - lavaDif;
             }
 
+            //place static block
+            if(expQuanta == quantaRemaining) placeStaticBlock(world, pos, state);
+
             // decay calculation
-            if(expQuanta != quantaRemaining) {
+            else {
                 final boolean wasVertical = (quantaRemaining == 0);
                 quantaRemaining = expQuanta;
 
@@ -106,8 +110,8 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
                     if(expQuanta <= 0 ) {
                         world.setBlockToAir(pos);
 
-                        if(vertical.getBlock() == this && vertical.getValue(BlockLiquid.LEVEL) == 8) {
-                            world.setBlockState(pos.down(), vertical.withProperty(BlockLiquid.LEVEL, lavaDif), Constants.BlockFlags.SEND_TO_CLIENTS);
+                        if((vertical.getBlock() == this || vertical.getBlock() == BlockLiquid.getStaticBlock(blockMaterial)) && vertical.getValue(BlockLiquid.LEVEL) == 8) {
+                            world.setBlockState(pos.down(), state.withProperty(BlockLiquid.LEVEL, lavaDif), Constants.BlockFlags.SEND_TO_CLIENTS);
                             world.scheduleUpdate(pos.down(), this, tickRate(world));
                             world.notifyNeighborsOfStateChange(pos, this, false);
                         }
@@ -123,6 +127,9 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
         }
 
         else {
+            //place static block
+            if(state == here) placeStaticBlock(world, pos, state);
+
             //try flowing to nearby fluidloggable blocks
             if(ConfigHandler.fluidloggedFluidSpread > 0 && blockMaterial == Material.WATER && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, false))) {
                 for(EnumFacing facing : EnumFacing.HORIZONTALS) {
@@ -160,6 +167,18 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
 
         // Flow vertically if possible
         if(canFluidFlow(world, pos, here, EnumFacing.DOWN) && canDisplace(world, pos.down())) {
+            if(blockMaterial == Material.LAVA) {
+                final IBlockState down = world.getBlockState(pos.down());
+                if(down.getBlock().isReplaceable(world, pos)) {
+                    final FluidState fluidState = getFluidState(world, pos.down(), down);
+                    if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) {
+                        world.setBlockState(pos.down(), ForgeEventFactory.fireFluidPlaceBlockEvent(world, pos.down(), pos, Blocks.STONE.getDefaultState()));
+                        triggerMixEffects(world, pos.down());
+                        return;
+                    }
+                }
+            }
+
             flowIntoBlock(world, pos.down(), 8);
             return;
         }
@@ -174,15 +193,12 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
                 if(flowTo[i] && canFluidFlow(world, pos, here, SIDES.get(i)))
                     flowIntoBlock(world, pos.offset(SIDES.get(i)), flowMeta);
         }
-
-        //lava does fire spreading
-        if(blockMaterial == Material.LAVA) Blocks.LAVA.updateTick(world, pos, state, rand);
     }
 
-    //lava does fire spreading
+    //fluidlogged lava does fire spread
     @Override
     public void randomTick(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random random) {
-        if(blockMaterial == Material.LAVA) Blocks.LAVA.updateTick(worldIn, pos, state, random);
+        if(blockMaterial == Material.LAVA) Blocks.LAVA.randomTick(worldIn, pos, state, random);
     }
 
     private boolean canDisplace(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
@@ -281,4 +297,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
 
     @Override
     public boolean requiresUpdates() { return false; }
+
+    @Shadow
+    protected abstract void placeStaticBlock(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState currentState);
 }

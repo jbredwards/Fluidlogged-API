@@ -1,6 +1,5 @@
 package git.jbredwards.fluidlogged_api.mod.common.config;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.Block;
@@ -37,8 +36,8 @@ public final class ConfigHandler
     private static final Gson GSON = new GsonBuilder().registerTypeAdapter(ConfigPredicateBuilder.class, new Deserializer()).create();
 
     @Nullable private static Config config;
-    @Nonnull private static Map<Block, ConfigPredicate> WHITELIST = ImmutableMap.of();
-    @Nonnull private static Map<Block, ConfigPredicate> BLACKLIST = ImmutableMap.of();
+    @Nonnull private static final Map<Block, ConfigPredicate> WHITELIST = new HashMap<>();
+    @Nonnull private static final Map<Block, ConfigPredicate> BLACKLIST = new HashMap<>();
 
     private static boolean applyDefaults = true;
     public static boolean enableLegacyCompat = false;
@@ -121,36 +120,29 @@ public final class ConfigHandler
 
     //sets up the whitelist & blacklist (internal use only!)
     public static void complete() throws IOException {
-        final ImmutableMap.Builder<Block, ConfigPredicate> whitelistBuilder = ImmutableMap.builder();
-        final ImmutableMap.Builder<Block, ConfigPredicate> blacklistBuilder = ImmutableMap.builder();
-
         //allow other mods to add to the whitelist & blacklist
         for(String modId : Loader.instance().getIndexedModList().keySet()) {
             //whitelist
             final @Nullable InputStream whitelist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/whitelist.json", modId));
-            if(whitelist != null) readPredicates(whitelistBuilder, GSON.fromJson(IOUtils.toString(whitelist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
+            if(whitelist != null) readPredicates(WHITELIST, GSON.fromJson(IOUtils.toString(whitelist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
 
             //blacklist
             final @Nullable InputStream blacklist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/blacklist.json", modId));
-            if(blacklist != null) readPredicates(blacklistBuilder, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
+            if(blacklist != null) readPredicates(BLACKLIST, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
         }
 
         //gives the user final say regarding the whitelist & blacklist
         if(config != null) {
-            readPredicates(whitelistBuilder, config.whitelist);
-            readPredicates(blacklistBuilder, config.blacklist);
+            readPredicates(WHITELIST, config.whitelist);
+            readPredicates(BLACKLIST, config.blacklist);
             config = null;
         }
-
-        //finalize
-        WHITELIST = whitelistBuilder.build();
-        BLACKLIST = blacklistBuilder.build();
     }
 
-    private static void readPredicates(ImmutableMap.Builder<Block, ConfigPredicate> listBuilder, ConfigPredicateBuilder[] builders) {
+    private static void readPredicates(Map<Block, ConfigPredicate> map, ConfigPredicateBuilder[] builders) {
         for(ConfigPredicateBuilder builder : builders) {
             ConfigPredicate predicate = builder.build();
-            listBuilder.put(predicate.block, predicate);
+            map.put(predicate.block, predicate);
         }
     }
 

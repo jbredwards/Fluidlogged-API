@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.mod.Constants;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.*;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.*;
@@ -50,6 +51,8 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new PluginModelFluid()) //fixes all issues with fluidlogged z-fighting
                 .put("net.minecraftforge.fluids.BlockFluidBase", new PluginBlockFluidBase()) //prevent startup crash
                 .put("net.minecraftforge.fluids.FluidUtil", new PluginFluidUtil()) //changes some of this class's util functions to be FluidState sensitive
+                //modded
+                .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
                 .build();
 
         @Override
