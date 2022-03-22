@@ -209,6 +209,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
     @Override
     public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         if(!(oldState instanceof IExtendedBlockState)) return oldState;
+        final IBlockState here = world.getBlockState(pos);
 
         //covert to extended state
         IExtendedBlockState state = (IExtendedBlockState)oldState;
@@ -266,7 +267,6 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
             if(se || s || e) corner[1][1] = 1;
 
             //fix corners of fluidlogged blocks
-            final IBlockState here = world.getBlockState(pos);
             if(corner[0][0] < 8f/9 && (fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.NORTH))) corner[0][0] = 8f/9;
             if(corner[0][1] < 8f/9 && (fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.SOUTH))) corner[0][1] = 8f/9;
             if(corner[1][0] < 8f/9 && (fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.NORTH))) corner[1][0] = 8f/9;
@@ -279,6 +279,14 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
             BlockPos offset = pos.offset(side);
             boolean useOverlay = world.getBlockState(offset).getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID;
             state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], useOverlay);
+        }
+
+        //fix possible top z fighting
+        if(!canFluidFlow(world, pos, here, EnumFacing.UP)) {
+            if(corner[0][0] == 1) corner[0][0] = 0.998f;
+            if(corner[0][1] == 1) corner[0][1] = 0.998f;
+            if(corner[1][0] == 1) corner[1][0] = 0.998f;
+            if(corner[1][1] == 1) corner[1][1] = 0.998f;
         }
 
         //sets the corner props

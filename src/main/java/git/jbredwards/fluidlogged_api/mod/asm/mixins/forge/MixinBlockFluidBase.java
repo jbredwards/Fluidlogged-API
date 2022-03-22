@@ -98,6 +98,7 @@ public abstract class MixinBlockFluidBase extends Block
     @Overwrite(remap = false)
     public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         if (!(oldState instanceof IExtendedBlockState)) return oldState;
+        final IBlockState here = world.getBlockState(pos);
 
         //covert to extended state
         IExtendedBlockState state = (IExtendedBlockState) oldState;
@@ -155,7 +156,6 @@ public abstract class MixinBlockFluidBase extends Block
             if(se || s || e) corner[1][1] = 1;
 
             //fix corners of fluidlogged blocks
-            final IBlockState here = world.getBlockState(pos);
             if(corner[0][0] < quantaFraction && (fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.NORTH))) corner[0][0] = quantaFraction;
             if(corner[0][1] < quantaFraction && (fixCorner(here, world, pos, EnumFacing.SOUTH, EnumFacing.WEST) || fixCorner(here, world, pos, EnumFacing.WEST, EnumFacing.SOUTH))) corner[0][1] = quantaFraction;
             if(corner[1][0] < quantaFraction && (fixCorner(here, world, pos, EnumFacing.NORTH, EnumFacing.EAST) || fixCorner(here, world, pos, EnumFacing.EAST, EnumFacing.NORTH))) corner[1][0] = quantaFraction;
@@ -169,6 +169,15 @@ public abstract class MixinBlockFluidBase extends Block
             boolean useOverlay = world.getBlockState(offset).getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID;
             state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], useOverlay);
         }
+
+        //fix possible top z fighting
+        if(!canFluidFlow(world, pos, here, densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN)) {
+            if(corner[0][0] == 1) corner[0][0] = 0.998f;
+            if(corner[0][1] == 1) corner[0][1] = 0.998f;
+            if(corner[1][0] == 1) corner[1][0] = 0.998f;
+            if(corner[1][1] == 1) corner[1][1] = 0.998f;
+        }
+
         //sets the corner props
         state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[0], corner[0][0]);
         state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[1], corner[0][1]);
