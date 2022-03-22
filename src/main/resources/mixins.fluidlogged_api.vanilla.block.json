@@ -12,6 +12,7 @@
     "MixinBlockFarmland",
     "MixinBlockLilyPad",
     "MixinBlockLiquid",
+    "MixinBlockPistonBase",
     "MixinBlockReed",
     "MixinBlockSkull",
     "MixinBlockSlab",
