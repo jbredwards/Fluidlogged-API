@@ -9,14 +9,14 @@ buildscript {
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
     }
 }
-        
+
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.spongepowered.mixin'
 // Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = 'v1.7.1b-mc1.12.2'
+version = 'v1.7.1-mc1.12.2'
 group = 'git.jbredwards.fluidlogged_api' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'Fluidlogged-API'
 
@@ -31,7 +31,7 @@ minecraft {
     //mappings channel: 'snapshot', version: '20171003-1.12'
     mappings channel: 'snapshot', version: '20171003-1.12'
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
-    
+
     accessTransformer = file('src/main/resources/META-INF/fluidlogged_api_at.cfg')
 
     // Default run configurations.
@@ -76,25 +76,29 @@ dependencies {
 jar {
     manifest {
         attributes([
-            'FMLCorePlugin': 'git.jbredwards.fluidlogged_api.mod.asm.ASMHandler',
-            'FMLCorePluginContainsFMLMod': 'true',
-            "FMLAT": "fluidlogged_api_at.cfg",
-            'ForceLoadAsMod': 'true'
+                'FMLCorePlugin': 'git.jbredwards.fluidlogged_api.mod.asm.ASMHandler',
+                'FMLCorePluginContainsFMLMod': 'true',
+                "FMLAT": "fluidlogged_api_at.cfg",
+                'ForceLoadAsMod': 'true'
         ])
     }
 }
 
-task deobfJar(type: Jar) {
-    from sourceSets.main.output
-    classifier = 'deobf'
-}
+// Example configuration to allow publishing using the maven-publish task
+// This is the preferred method to reobfuscate your jar file
+jar.finalizedBy('reobfJar')
+// However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
+//publish.dependsOn('reobfJar')
 
-task sourcesJar(type: Jar) {
-    from sourceSets.main.allJava
-    classifier = 'sources'
-}
-
-artifacts {
-    archives deobfJar
-    archives sourcesJar
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file:///${project.projectDir}/mcmodsrepo"
+        }
+    }
 }
