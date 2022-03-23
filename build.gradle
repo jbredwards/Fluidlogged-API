@@ -13,6 +13,7 @@ buildscript {
 
 apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'org.spongepowered.mixin'
+apply plugin: 'maven-publish'
 
 version = 'v1.7.1b-mc1.12.2'
 group = 'git.jbredwards.fluidlogged_api'
@@ -97,4 +98,14 @@ runServer {
     jvmArgs [
             '-Dfml.coreMods.load=git.jbredwards.fluidlogged_api.mod.asm.ASMHandler'
     ]
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+            artifact deobfJar
+            artifact sourcesJar
+        }
+    }
 }
