@@ -40,7 +40,6 @@ public final class ConfigHandler
     @Nonnull private static final Map<Block, ConfigPredicate> BLACKLIST = new HashMap<>();
 
     private static boolean applyDefaults = true;
-    public static boolean enableLegacyCompat = false;
     public static boolean fluidsBreakTorches = true;
     public static boolean debugASMPlugins = false;
     public static int fluidloggedFluidSpread = 2;
@@ -68,11 +67,6 @@ public final class ConfigHandler
             if(cfg.createNewFile()) {
                 //default config file contents
                 final String contents =
-                        "#setting this to true will allow worlds loaded in legacy versions to work with the newer ones.\n" +
-                        "#(note: the old system was removed for a reason, and should only be enabled to play in legacy worlds!)\n" +
-                        "#(note: this doesn't have to be enabled if you're loading a vanilla world!)\n" +
-                        "\"enableLegacyCompat\":false,\n" +
-                        "\n" +
                         "#determines how certain \"infinite\" fluids (ie. water not lava) can spread between fluidloggable blocks\n" +
                         "#case 0: fluids cannot flow into fluidloggable blocks\n" +
                         "#case 1: fluids can flow into fluidloggable blocks, but only from fluidlogged blocks (legacy mod behavior)\n" +
@@ -106,7 +100,6 @@ public final class ConfigHandler
             else {
                 config = GSON.fromJson('{' + IOUtils.toString(new FileInputStream(cfg), Charset.defaultCharset()) + '}', Config.class);
 
-                enableLegacyCompat = config.enableLegacyCompat;
                 fluidloggedFluidSpread = config.fluidloggedFluidSpread;
                 fluidsBreakTorches = config.fluidsBreakTorches;
                 applyDefaults = config.applyDefaults;
@@ -149,7 +142,6 @@ public final class ConfigHandler
     //gson
     public static class Config
     {
-        public final boolean enableLegacyCompat;
         public final int fluidloggedFluidSpread;
         public final boolean fluidsBreakTorches;
         public final boolean applyDefaults;
@@ -158,7 +150,6 @@ public final class ConfigHandler
         public final boolean debugASMPlugins;
 
         public Config(boolean enableLegacyCompat, int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins) {
-            this.enableLegacyCompat = enableLegacyCompat;
             this.fluidloggedFluidSpread = fluidloggedFluidSpread;
             this.fluidsBreakTorches = fluidsBreakTorches;
             this.applyDefaults = applyDefaults;
