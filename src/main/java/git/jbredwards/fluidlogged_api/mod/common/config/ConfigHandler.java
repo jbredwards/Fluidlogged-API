@@ -149,7 +149,7 @@ public final class ConfigHandler
         public final ConfigPredicateBuilder[] blacklist;
         public final boolean debugASMPlugins;
 
-        public Config(boolean enableLegacyCompat, int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins) {
+        public Config(int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins) {
             this.fluidloggedFluidSpread = fluidloggedFluidSpread;
             this.fluidsBreakTorches = fluidsBreakTorches;
             this.applyDefaults = applyDefaults;
