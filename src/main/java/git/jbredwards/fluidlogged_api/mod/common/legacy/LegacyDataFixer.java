@@ -100,7 +100,7 @@ public class LegacyDataFixer implements IFixableData {
     }
 
     @Override
-    public int getFixVersion() { return DAVA_VERSION; }
+    public int getFixVersion() { return DATA_VERSION; }
 
     /**
      * Try to find a Forge fluid given an old TE fluid name.
