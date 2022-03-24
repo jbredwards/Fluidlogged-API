@@ -5,7 +5,6 @@ import git.jbredwards.fluidlogged_api.mod.Main;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.message.SyncFluidStatesMessage;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
-import git.jbredwards.fluidlogged_api.mod.common.legacy.LegacyWorldFixer;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.Block;
@@ -73,14 +72,6 @@ public final class EventHandler
         if(cap != null) Main.wrapper.sendTo(new SyncFluidStatesMessage(event.getChunk(), cap.getFluidStates()), event.getPlayer());
     }
 
-    @SubscribeEvent
-    public static void fixLegacyWorlds(@Nonnull RegistryEvent.Register<Block> event) {
-        if(ConfigHandler.enableLegacyCompat) {
-            event.getRegistry().registerAll(new LegacyWorldFixer(FluidRegistry.WATER), new LegacyWorldFixer(FluidRegistry.LAVA));
-            GameRegistry.registerTileEntity(LegacyWorldFixer.Tile.class, new ResourceLocation(Constants.MODID, "te"));
-        }
-    }
-
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void notifyFluidState(@Nonnull BlockEvent.NeighborNotifyEvent event) {
         if(FluidloggedUtils.getFluidFromState(event.getState()) == null) {
@@ -109,9 +100,6 @@ public final class EventHandler
                     }
                 });
             }
-            //prevent some console errors when playing on legacy worlds
-            else if(block instanceof LegacyWorldFixer)
-                ModelLoader.setCustomStateMapper(block, b -> new HashMap<>());
         }
     }
 

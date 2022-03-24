@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged_api.mod;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandSetFluidState;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.mod.common.legacy.LegacyDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.message.FluidStateMessage;
 import git.jbredwards.fluidlogged_api.mod.common.message.SyncFluidStatesMessage;
 import git.jbredwards.fluidlogged_api.api.world.IChunkProvider;
@@ -17,9 +18,7 @@ import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fluids.DispenseFluidContainer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.*;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.relauncher.Side;
@@ -63,11 +62,21 @@ public final class Main
         //fixes the vanilla bucket dispenser actions by replacing them with the forge one
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET,  DispenseFluidContainer.getInstance());
+
+        LegacyDataFixer.create();
     }
 
     //registers a new command
     @Mod.EventHandler
     public static void start(@Nonnull FMLServerStartingEvent event) { event.registerServerCommand(new CommandSetFluidState()); }
+
+    // used to reset datafixer
+    @Mod.EventHandler
+    public static void aboutToStart(@Nonnull FMLServerAboutToStartEvent event) { LegacyDataFixer.onServerAboutToStart(); }
+
+    // used to reset datafixer
+    @Mod.EventHandler
+    public static void stopped(@Nonnull FMLServerStoppedEvent event) { LegacyDataFixer.onServerStopped(); }
 
     //handles server-side code
     public static class CommonProxy

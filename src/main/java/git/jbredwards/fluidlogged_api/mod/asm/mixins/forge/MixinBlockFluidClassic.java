@@ -3,7 +3,6 @@ package git.jbredwards.fluidlogged_api.mod.asm.mixins.forge;
 import com.google.common.primitives.Ints;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
-import git.jbredwards.fluidlogged_api.mod.common.legacy.LegacyWorldFixer;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.MapColor;
@@ -315,14 +314,4 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
 
     @Shadow(remap = false)
     protected abstract void flowIntoBlock(@Nonnull World world, @Nonnull BlockPos pos, int meta);
-
-    /**
-     * help legacy worlds with modded fluidlogged fluids work
-     */
-    @Inject(method = "<init>(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V", at = @At("RETURN"), remap = false)
-    private void registerLegacyWorldFixes(@Nonnull Fluid fluid, @Nonnull Material material, @Nonnull MapColor mapColor, @Nonnull CallbackInfo ci) {
-        if(ConfigHandler.enableLegacyCompat && fluid.getBlock() == this && FluidRegistry.isFluidRegistered(fluid)) {
-            ForgeRegistries.BLOCKS.register(new LegacyWorldFixer(fluid));
-        }
-    }
 }
