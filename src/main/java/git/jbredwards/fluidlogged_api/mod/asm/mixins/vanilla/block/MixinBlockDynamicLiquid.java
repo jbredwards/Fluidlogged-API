@@ -126,46 +126,14 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
             }
         }
 
+        //place static block
         else {
-            //place static block
             if(state == here) placeStaticBlock(world, pos, state);
-
-            //try flowing to nearby fluidloggable blocks
-            if(ConfigHandler.fluidloggedFluidSpread > 0 && blockMaterial == Material.WATER && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, false))) {
-                for(EnumFacing facing : EnumFacing.HORIZONTALS) {
-                    if(canFluidFlow(world, pos, here, facing)) {
-                        BlockPos offset = pos.offset(facing);
-                        IBlockState neighbor = world.getBlockState(offset);
-
-                        //check if the fluid could occupy the space
-                        if(canFluidFlow(world, offset, neighbor, facing.getOpposite()) && isStateFluidloggable(neighbor, getFluid()) && FluidState.get(world, offset).isEmpty()) {
-                            //check for another source block that can flow into this
-                            for(EnumFacing adjacentFacing : EnumFacing.HORIZONTALS) {
-                                if(adjacentFacing != facing.getOpposite() && canFluidFlow(world, offset, neighbor, adjacentFacing)) {
-                                    BlockPos adjacentOffset = offset.offset(adjacentFacing);
-                                    IBlockState adjacent = world.getBlockState(adjacentOffset);
-
-                                    if(canFluidFlow(world, adjacentOffset, adjacent, adjacentFacing.getOpposite())) {
-                                        //only allow certain FluidStates to count
-                                        FluidState adjacentFluid = ConfigHandler.fluidloggedFluidSpread == 1
-                                                ? FluidState.get(world, adjacentOffset)
-                                                : getFluidState(world, adjacentOffset, adjacent);
-
-                                        //set the FluidState in the world
-                                        if(isCompatibleFluid(world, adjacentFluid.getFluid(), getFluid()) && adjacentFluid.getLevel() == 0) {
-                                            setFluidState(world, offset, neighbor, FluidState.of(this), false);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            tryFlowIntoFluidloggable(world, pos, state, here, EnumFacing.HORIZONTALS);
         }
 
         // Flow vertically if possible
+        tryFlowIntoFluidloggable(world, pos, state, here, EnumFacing.DOWN);
         if(canFluidFlow(world, pos, here, EnumFacing.DOWN) && canDisplace(world, pos.down())) {
             if(blockMaterial == Material.LAVA) {
                 final IBlockState down = world.getBlockState(pos.down());
@@ -199,6 +167,42 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
     @Override
     public void randomTick(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random random) {
         if(blockMaterial == Material.LAVA) Blocks.LAVA.randomTick(worldIn, pos, state, random);
+    }
+
+    //try flowing to nearby fluidloggable blocks
+    private void tryFlowIntoFluidloggable(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull IBlockState here, @Nonnull EnumFacing... flowInto) {
+        if(ConfigHandler.fluidloggedFluidSpread > 0 && blockMaterial == Material.WATER && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, false))) {
+            for(EnumFacing facing : flowInto) {
+                if(canFluidFlow(world, pos, here, facing)) {
+                    BlockPos offset = pos.offset(facing);
+                    IBlockState neighbor = world.getBlockState(offset);
+
+                    //check if the fluid could occupy the space
+                    if(canFluidFlow(world, offset, neighbor, facing.getOpposite()) && isStateFluidloggable(neighbor, getFluid()) && FluidState.get(world, offset).isEmpty()) {
+                        //check for another source block that can flow into this
+                        for(EnumFacing adjacentFacing : EnumFacing.values()) {
+                            if(adjacentFacing != EnumFacing.DOWN && adjacentFacing != facing.getOpposite() && canFluidFlow(world, offset, neighbor, adjacentFacing)) {
+                                BlockPos adjacentOffset = offset.offset(adjacentFacing);
+                                IBlockState adjacent = world.getBlockState(adjacentOffset);
+
+                                if(canFluidFlow(world, adjacentOffset, adjacent, adjacentFacing.getOpposite())) {
+                                    //only allow certain FluidStates to count
+                                    FluidState adjacentFluid = ConfigHandler.fluidloggedFluidSpread == 1
+                                            ? FluidState.get(world, adjacentOffset)
+                                            : getFluidState(world, adjacentOffset, adjacent);
+
+                                    //set the FluidState in the world
+                                    if(isCompatibleFluid(world, adjacentFluid.getFluid(), getFluid()) && isFluidloggableFluid(adjacentFluid.getState(), adjacentFacing != EnumFacing.UP)) {
+                                        setFluidState(world, offset, neighbor, FluidState.of(this), false);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private boolean canDisplace(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {

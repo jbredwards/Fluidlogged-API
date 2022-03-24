@@ -32,14 +32,15 @@ import java.util.function.BiPredicate;
  */
 public final class ConfigHandler
 {
-    @Nonnull
-    private static final Gson GSON = new GsonBuilder().registerTypeAdapter(ConfigPredicateBuilder.class, new Deserializer()).create();
+    @Nonnull private static final Gson GSON = new GsonBuilder().registerTypeAdapter(ConfigBuilder.class, new Deserializer()).create();
+    @Nonnull public static final Map<Block, ConfigPredicate> WHITELIST = new HashMap<>();
+    @Nonnull public static final Map<Block, ConfigPredicate> BLACKLIST = new HashMap<>();
+    @Nonnull public static final Map<Block, Boolean> overrideCanFluidFlow = new HashMap<>();
 
-    @Nullable private static Config config;
-    @Nonnull private static final Map<Block, ConfigPredicate> WHITELIST = new HashMap<>();
-    @Nonnull private static final Map<Block, ConfigPredicate> BLACKLIST = new HashMap<>();
+    @Nullable
+    private static Config config;
 
-    private static boolean applyDefaults = true;
+    public static boolean applyDefaults = true;
     public static boolean fluidsBreakTorches = true;
     public static boolean debugASMPlugins = false;
     public static int fluidloggedFluidSpread = 2;
@@ -117,11 +118,11 @@ public final class ConfigHandler
         for(String modId : Loader.instance().getIndexedModList().keySet()) {
             //whitelist
             final @Nullable InputStream whitelist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/whitelist.json", modId));
-            if(whitelist != null) readPredicates(WHITELIST, GSON.fromJson(IOUtils.toString(whitelist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
+            if(whitelist != null) readPredicates(WHITELIST, GSON.fromJson(IOUtils.toString(whitelist, Charset.defaultCharset()), ConfigBuilder[].class));
 
             //blacklist
             final @Nullable InputStream blacklist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/blacklist.json", modId));
-            if(blacklist != null) readPredicates(BLACKLIST, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
+            if(blacklist != null) readPredicates(BLACKLIST, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigBuilder[].class));
         }
 
         //gives the user final say regarding the whitelist & blacklist
@@ -132,10 +133,12 @@ public final class ConfigHandler
         }
     }
 
-    private static void readPredicates(Map<Block, ConfigPredicate> map, ConfigPredicateBuilder[] builders) {
-        for(ConfigPredicateBuilder builder : builders) {
+    private static void readPredicates(Map<Block, ConfigPredicate> map, ConfigBuilder[] builders) {
+        for(ConfigBuilder builder : builders) {
             ConfigPredicate predicate = builder.build();
             map.put(predicate.block, predicate);
+
+            overrideCanFluidFlow.put(predicate.block, builder.canFluidFlow);
         }
     }
 
@@ -145,11 +148,11 @@ public final class ConfigHandler
         public final int fluidloggedFluidSpread;
         public final boolean fluidsBreakTorches;
         public final boolean applyDefaults;
-        public final ConfigPredicateBuilder[] whitelist;
-        public final ConfigPredicateBuilder[] blacklist;
+        public final ConfigBuilder[] whitelist;
+        public final ConfigBuilder[] blacklist;
         public final boolean debugASMPlugins;
 
-        public Config(int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins) {
+        public Config(int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, ConfigBuilder[] whitelist, ConfigBuilder[] blacklist, boolean debugASMPlugins) {
             this.fluidloggedFluidSpread = fluidloggedFluidSpread;
             this.fluidsBreakTorches = fluidsBreakTorches;
             this.applyDefaults = applyDefaults;
@@ -187,15 +190,17 @@ public final class ConfigHandler
     }
 
     //exists to allow the config to be loaded early
-    public static class ConfigPredicateBuilder
+    public static class ConfigBuilder
     {
         @Nonnull protected final int[] validMeta;
         @Nonnull protected final String[] validFluidNames;
         @Nonnull protected final String blockName;
+        @Nullable protected final Boolean canFluidFlow;
 
-        public ConfigPredicateBuilder(@Nonnull String blockName, @Nonnull int[] validMeta, @Nonnull String[] validFluidNames) {
+        public ConfigBuilder(@Nonnull String blockName, @Nonnull int[] validMeta, @Nonnull String[] validFluidNames, @Nullable Boolean canFluidFlow) {
             this.validMeta = validMeta;
             this.validFluidNames = validFluidNames;
+            this.canFluidFlow = canFluidFlow;
             this.blockName = blockName;
         }
 
@@ -217,17 +222,18 @@ public final class ConfigHandler
     }
 
     //gson
-    public static class Deserializer implements JsonDeserializer<ConfigPredicateBuilder>
+    public static class Deserializer implements JsonDeserializer<ConfigBuilder>
     {
         @Nonnull
         @Override
-        public ConfigPredicateBuilder deserialize(@Nonnull JsonElement json, @Nullable Type typeOfT, @Nullable JsonDeserializationContext context) throws JsonParseException {
+        public ConfigBuilder deserialize(@Nonnull JsonElement json, @Nullable Type typeOfT, @Nullable JsonDeserializationContext context) throws JsonParseException {
             try {
                 final NBTTagCompound nbt = JsonToNBT.getTagFromJson(json.toString());
                 if(nbt.hasKey("blockId", Constants.NBT.TAG_STRING)) {
                     final String blockName = nbt.getString("blockId");
                     final Set<String> validFluidNames = new HashSet<>();
                     int[] validMeta = new int[0];
+                    Boolean canFluidFlow = null;
 
                     //get state meta
                     if(nbt.hasKey("metadata", Constants.NBT.TAG_INT_ARRAY)) {
@@ -240,7 +246,11 @@ public final class ConfigHandler
                         for(int i = 0; i < list.tagCount(); i++) validFluidNames.add(list.getStringTagAt(i));
                     }
 
-                    return new ConfigPredicateBuilder(blockName, validMeta, validFluidNames.toArray(new String[0]));
+                    //get canFluidFlow
+                    if(nbt.hasKey("canFluidFlow", Constants.NBT.TAG_BYTE))
+                        canFluidFlow = nbt.getBoolean("canFluidFlow");
+
+                    return new ConfigBuilder(blockName, validMeta, validFluidNames.toArray(new String[0]), canFluidFlow);
                 }
 
                 //no blockId specified

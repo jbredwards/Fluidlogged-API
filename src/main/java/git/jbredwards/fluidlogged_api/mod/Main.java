@@ -70,13 +70,13 @@ public final class Main
     @Mod.EventHandler
     public static void start(@Nonnull FMLServerStartingEvent event) { event.registerServerCommand(new CommandSetFluidState()); }
 
-    // used to reset datafixer
+    //initializes datafixer
     @Mod.EventHandler
-    public static void aboutToStart(@Nonnull FMLServerAboutToStartEvent event) { LegacyDataFixer.onServerAboutToStart(); }
+    public static void aboutToStart(@Nullable FMLServerAboutToStartEvent event) { LegacyDataFixer.onServerAboutToStart(); }
 
-    // used to reset datafixer
+    //resets datafixer
     @Mod.EventHandler
-    public static void stopped(@Nonnull FMLServerStoppedEvent event) { LegacyDataFixer.onServerStopped(); }
+    public static void stopped(@Nullable FMLServerStoppedEvent event) { LegacyDataFixer.onServerStopped(); }
 
     //handles server-side code
     public static class CommonProxy
