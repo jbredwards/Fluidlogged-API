@@ -2,6 +2,7 @@ package git.jbredwards.fluidlogged_api.mod.common.config;
 
 import com.google.gson.*;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.asm.mixins.utils.IMixinBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.JsonToNBT;
@@ -35,7 +36,6 @@ public final class ConfigHandler
     @Nonnull private static final Gson GSON = new GsonBuilder().registerTypeAdapter(ConfigBuilder.class, new Deserializer()).create();
     @Nonnull public static final Map<Block, ConfigPredicate> WHITELIST = new HashMap<>();
     @Nonnull public static final Map<Block, ConfigPredicate> BLACKLIST = new HashMap<>();
-    @Nonnull public static final Map<Block, Boolean> overrideCanFluidFlow = new HashMap<>();
 
     @Nullable
     private static Config config;
@@ -138,7 +138,7 @@ public final class ConfigHandler
             ConfigPredicate predicate = builder.build();
             map.put(predicate.block, predicate);
 
-            overrideCanFluidFlow.put(predicate.block, builder.canFluidFlow);
+            ((IMixinBlock)predicate.block).setCanFluidFlow(builder.canFluidFlow);
         }
     }
 

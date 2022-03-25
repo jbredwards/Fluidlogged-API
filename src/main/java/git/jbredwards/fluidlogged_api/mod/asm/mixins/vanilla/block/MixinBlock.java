@@ -2,6 +2,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.mixins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.asm.mixins.utils.IMixinBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -24,7 +25,7 @@ import javax.annotation.Nullable;
  *
  */
 @Mixin(Block.class)
-public abstract class MixinBlock
+public abstract class MixinBlock implements IMixinBlock
 {
     /**
      * @reason fixes fluidlogged block lighting
@@ -84,4 +85,15 @@ public abstract class MixinBlock
 
     @Shadow
     public abstract float getExplosionResistance(@Nullable Entity exploder);
+
+    //IMixinBlock
+
+    @Nullable private Boolean canFluidFlow = null;
+
+    @Nullable
+    @Override
+    public Boolean getCanFluidFlow() { return canFluidFlow; }
+
+    @Override
+    public void setCanFluidFlow(@Nullable Boolean canFluidFlowIn) { canFluidFlow = canFluidFlowIn; }
 }

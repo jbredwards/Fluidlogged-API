@@ -4,6 +4,7 @@ import git.jbredwards.fluidlogged_api.mod.Main;
 import git.jbredwards.fluidlogged_api.api.fluid.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
+import git.jbredwards.fluidlogged_api.mod.asm.mixins.utils.IMixinBlock;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.api.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.mod.common.message.FluidStateMessage;
@@ -191,7 +192,7 @@ public final class FluidloggedUtils
     //1: returns true if the contained fluid can flow from the specified side
     //2: returns true if a fluid can flow into this block from the specified side
     public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing side) {
-        final @Nullable Boolean overrideCanFluidFlow = ConfigHandler.overrideCanFluidFlow.get(state.getBlock());
+        final @Nullable Boolean overrideCanFluidFlow = ((IMixinBlock)state.getBlock()).getCanFluidFlow();
         if(overrideCanFluidFlow != null) return overrideCanFluidFlow;
 
         return (state.getBlock() instanceof IFluidloggable)

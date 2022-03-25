@@ -10,12 +10,14 @@ import git.jbredwards.fluidlogged_api.api.world.IChunkProvider;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.init.Items;
+import net.minecraft.util.datafix.FixTypes;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fluids.DispenseFluidContainer;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.*;
@@ -62,8 +64,10 @@ public final class Main
         //fixes the vanilla bucket dispenser actions by replacing them with the forge one
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET,  DispenseFluidContainer.getInstance());
-
-        LegacyDataFixer.create();
+        //fix legacy world data
+        FMLCommonHandler.instance().getDataFixer()
+                .init(MODID, LegacyDataFixer.DATA_VERSION)
+                .registerFix(FixTypes.CHUNK, new LegacyDataFixer());
     }
 
     //registers a new command
