@@ -2,7 +2,6 @@ package git.jbredwards.fluidlogged_api.mod.common;
 
 import git.jbredwards.fluidlogged_api.mod.Constants;
 import git.jbredwards.fluidlogged_api.mod.Main;
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.message.SyncFluidStatesMessage;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
@@ -28,12 +27,10 @@ import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.model.TRSRTransformation;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ChunkWatchEvent;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
@@ -42,14 +39,12 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemHandlerHelper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.Objects;
 
 /**
@@ -60,7 +55,7 @@ import java.util.Objects;
 @Mod.EventBusSubscriber(modid = Constants.MODID)
 public final class EventHandler
 {
-    @SubscribeEvent
+    @SubscribeEvent(receiveCanceled = true)
     public static void attachFluidStates(@Nonnull AttachCapabilitiesEvent<Chunk> event) {
         event.addCapability(new ResourceLocation(Constants.MODID, "fluid_states"), new IFluidStateCapability.Provider());
     }
