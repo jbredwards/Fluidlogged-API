@@ -72,11 +72,11 @@ public final class Main
 
     //initializes datafixer
     @Mod.EventHandler
-    public static void aboutToStart(@Nullable FMLServerAboutToStartEvent event) { LegacyDataFixer.onServerAboutToStart(); }
+    public static void aboutToStart(@Nullable FMLServerAboutToStartEvent event) { LegacyDataFixer.init(); }
 
     //resets datafixer
     @Mod.EventHandler
-    public static void stopped(@Nullable FMLServerStoppedEvent event) { LegacyDataFixer.onServerStopped(); }
+    public static void stopped(@Nullable FMLServerStoppedEvent event) { LegacyDataFixer.reset(); }
 
     //handles server-side code
     public static class CommonProxy

@@ -137,7 +137,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
         if(canFluidFlow(world, pos, here, EnumFacing.DOWN) && canDisplace(world, pos.down())) {
             if(blockMaterial == Material.LAVA) {
                 final IBlockState down = world.getBlockState(pos.down());
-                if(down.getBlock().isReplaceable(world, pos)) {
+                if(down.getBlock().isReplaceable(world, pos.down())) {
                     final FluidState fluidState = getFluidState(world, pos.down(), down);
                     if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) {
                         world.setBlockState(pos.down(), ForgeEventFactory.fireFluidPlaceBlockEvent(world, pos.down(), pos, Blocks.STONE.getDefaultState()));

@@ -12,7 +12,6 @@ import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import org.spongepowered.asm.launch.MixinBootstrap;
-import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
 
 import javax.annotation.Nonnull;
@@ -24,7 +23,6 @@ import java.util.Map;
  * @author jbred
  *
  */
-@SuppressWarnings("unused")
 @IFMLLoadingPlugin.SortingIndex(1401)
 @IFMLLoadingPlugin.Name("Fluidlogged API Plugin")
 @IFMLLoadingPlugin.MCVersion("1.12.2")
@@ -79,7 +77,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.entity.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.world.json");
         Mixins.addConfiguration("mixins." + Constants.MODID + ".forge.json");
-        MixinEnvironment.getDefaultEnvironment().setObfuscationContext("searge");
     }
 
     @Nullable

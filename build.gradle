@@ -87,18 +87,6 @@ jar {
     }
 }
 
-//for using asm with intellij
-runClient {
-    jvmArgs [
-            '-Dfml.coreMods.load=git.jbredwards.fluidlogged_api.mod.asm.ASMHandler'
-    ]
-}
-runServer {
-    jvmArgs [
-            '-Dfml.coreMods.load=git.jbredwards.fluidlogged_api.mod.asm.ASMHandler'
-    ]
-}
-
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -109,5 +97,6 @@ publishing {
     }
 }
 
+//for using asm with intellij
 runClient { jvmArgs '-Dfml.coreMods.load=git.jbredwards.fluidlogged_api.mod.asm.ASMHandler' }
 runServer { jvmArgs '-Dfml.coreMods.load=git.jbredwards.fluidlogged_api.mod.asm.ASMHandler' }
