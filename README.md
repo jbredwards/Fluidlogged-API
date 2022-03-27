@@ -10,7 +10,8 @@
 
 ```groovy
 dependencies {
-    deobfCompile 'com.github.jbredwards:fluidlogged-api:ccf9bba5ec'
+    provided 'com.github.jbredwards:fluidlogged-api:ccf9bba5ec'
+    compile  'com.github.jbredwards:fluidlogged-api:ccf9bba5ec'
 }
 
 repositories {
