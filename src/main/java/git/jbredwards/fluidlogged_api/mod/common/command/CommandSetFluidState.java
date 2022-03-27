@@ -26,6 +26,14 @@ import java.util.stream.Collectors;
 public class CommandSetFluidState extends CommandBase
 {
     @Nonnull
+    protected static final List<ResourceLocation> TAB_COMPLETIONS = ImmutableList.<ResourceLocation>builder()
+            .addAll(FluidRegistry.getRegisteredFluids().values().stream()
+                    .filter(fluid -> fluid.canBePlacedInWorld() && FluidloggedUtils.isFluidloggableFluid(fluid.getBlock().getDefaultState(), false))
+                    .map(fluid -> fluid.getBlock().getRegistryName()).collect(Collectors.toList()))
+            .add(new ResourceLocation("air"))
+            .build();
+
+    @Nonnull
     @Override
     public String getName() { return "setfluid"; }
 
@@ -64,9 +72,6 @@ public class CommandSetFluidState extends CommandBase
     @Override
     public List<String> getTabCompletions(@Nonnull MinecraftServer server, @Nonnull ICommandSender sender, @Nonnull String[] args, @Nullable BlockPos targetPos) {
         if(args.length > 0 && args.length <= 3) return getTabCompletionCoordinate(args, 0, targetPos);
-        return args.length > 4 ? Collections.emptyList() : getListOfStringsMatchingLastWord(args,
-                ImmutableList.builder().addAll(FluidRegistry.getRegisteredFluids().values().stream()
-                        .filter(fluid -> fluid.canBePlacedInWorld() && FluidloggedUtils.isFluidloggableFluid(fluid.getBlock().getDefaultState(), false))
-                        .map(fluid -> fluid.getBlock().getRegistryName()).collect(Collectors.toList())).add(new ResourceLocation("air")).build());
+        return args.length > 4 ? Collections.emptyList() : getListOfStringsMatchingLastWord(args, TAB_COMPLETIONS);
     }
 }

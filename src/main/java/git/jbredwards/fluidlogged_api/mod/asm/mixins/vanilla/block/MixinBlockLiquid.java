@@ -79,7 +79,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
         if(!canFluidFlow(world, pos, here, side)) return true;
 
         final IBlockState neighbor = world.getBlockState(pos.offset(side));
-        final boolean isCompatible = isCompatibleFluid(world, getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluid());
+        final boolean isCompatible = isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluid());
 
         if(side == EnumFacing.UP) return !isCompatible || !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite());
         else return !isCompatible && super.shouldSideBeRendered(state, world, pos, side);
@@ -127,7 +127,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
         if(state.getBlock().isAir(state, world, pos)) return 0;
 
         final FluidState fluidState = getFluidState(world, pos, state);
-        if(!isCompatibleFluid(world, fluidState.getFluid(), getFluid())) return -1;
+        if(!isCompatibleFluid(fluidState.getFluid(), getFluid())) return -1;
 
         final int level = fluidState.getLevel();
         return level >= 8 ? 8 : 8 - level;
@@ -138,7 +138,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
 
         final IBlockState up = world.getBlockState(pos.up());
         return canFluidFlow(world, pos.up(), up, EnumFacing.DOWN)
-                && isCompatibleFluid(world, getFluidState(world, pos.up(), up).getFluid(), getFluid());
+                && isCompatibleFluid(getFluidState(world, pos.up(), up).getFluid(), getFluid());
     }
 
     /**
@@ -194,7 +194,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
     @Overwrite
     public static float getBlockLiquidHeight(@Nonnull IBlockState state, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
         final IBlockState up = worldIn.getBlockState(pos.up());
-        final boolean flag = isCompatibleFluid(worldIn, getFluidState(worldIn, pos.up(), up).getFluid(), getFluidFromState(state))
+        final boolean flag = isCompatibleFluid(getFluidState(worldIn, pos.up(), up).getFluid(), getFluidFromState(state))
                 && canFluidFlow(worldIn, pos.up(), up, EnumFacing.DOWN)
                 && canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), EnumFacing.UP);
 
@@ -313,7 +313,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
         if(!canFluidFlow(world, offset, neighbor, primary) || !canFluidFlow(world, offset, neighbor, other.getOpposite()))
             return true;
 
-        else return !isCompatibleFluid(world, getFluidState(world, offset, neighbor).getFluid(), getFluid());
+        else return !isCompatibleFluid(getFluidState(world, offset, neighbor).getFluid(), getFluid());
     }
 
     //used by getExtendedState
@@ -327,7 +327,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
 
         final FluidState fluidState = getFluidState(world, pos, state);
         final boolean canSideFlow = ASMHooks.canSideFlow(getFluid(), state, world, pos, i, j);
-        final boolean fluidMatches = isCompatibleFluid(world, fluidState.getFluid(), getFluid());
+        final boolean fluidMatches = isCompatibleFluid(fluidState.getFluid(), getFluid());
 
         //is a fluid
         if(fluidMatches && canSideFlow) {
@@ -369,7 +369,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
 
     //used by getExtendedState
     private boolean isFluid(@Nonnull IBlockState up, @Nullable Fluid upFluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing...faces) {
-        if(isCompatibleFluid(world, getFluid(), upFluid)) {
+        if(isCompatibleFluid(getFluid(), upFluid)) {
             for(EnumFacing facing : faces) if(!canFluidFlow(world, pos, up, facing.getOpposite())) return false;
             return true;
         }

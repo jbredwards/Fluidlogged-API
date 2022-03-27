@@ -3,6 +3,10 @@ package git.jbredwards.fluidlogged_api.mod.common.config;
 import com.google.gson.*;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.mixins.utils.IMixinBlock;
+import it.unimi.dsi.fastutil.ints.Int2BooleanMap;
+import it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.JsonToNBT;
@@ -33,7 +37,12 @@ import java.util.function.BiPredicate;
  */
 public final class ConfigHandler
 {
-    @Nonnull private static final Gson GSON = new GsonBuilder().registerTypeAdapter(ConfigBuilder.class, new Deserializer()).create();
+    @Nonnull
+    private static final Gson GSON = new GsonBuilder()
+            .registerTypeAdapter(ConfigPredicateBuilder.class, new ConfigPredicateDeserializer())
+            .create();
+
+    @Nonnull private static final Map<String, Set<Fluid>> FLUID_TAGS = new HashMap<>();
     @Nonnull public static final Map<Block, ConfigPredicate> WHITELIST = new HashMap<>();
     @Nonnull public static final Map<Block, ConfigPredicate> BLACKLIST = new HashMap<>();
 
@@ -116,25 +125,57 @@ public final class ConfigHandler
     public static void complete() throws IOException {
         //allow other mods to add to the whitelist & blacklist
         for(String modId : Loader.instance().getIndexedModList().keySet()) {
+            //fluid tags
+            final @Nullable InputStream fluidTags = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/fluidTags.json", modId));
+            if(fluidTags != null) readFluidTags(GSON.fromJson(IOUtils.toString(fluidTags, Charset.defaultCharset()), FluidTag[].class));
+            
             //whitelist
             final @Nullable InputStream whitelist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/whitelist.json", modId));
-            if(whitelist != null) readPredicates(WHITELIST, GSON.fromJson(IOUtils.toString(whitelist, Charset.defaultCharset()), ConfigBuilder[].class));
+            if(whitelist != null) readPredicates(WHITELIST, GSON.fromJson(IOUtils.toString(whitelist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
 
             //blacklist
             final @Nullable InputStream blacklist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/blacklist.json", modId));
-            if(blacklist != null) readPredicates(BLACKLIST, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigBuilder[].class));
+            if(blacklist != null) readPredicates(BLACKLIST, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
+
+            //clear fluid tags, as to prevent possible mod conflicts
+            FLUID_TAGS.clear();
         }
 
         //gives the user final say regarding the whitelist & blacklist
         if(config != null) {
+            readFluidTags(config.fluidTags);
             readPredicates(WHITELIST, config.whitelist);
             readPredicates(BLACKLIST, config.blacklist);
+
+            FLUID_TAGS.clear();
             config = null;
         }
     }
 
-    private static void readPredicates(Map<Block, ConfigPredicate> map, ConfigBuilder[] builders) {
-        for(ConfigBuilder builder : builders) {
+    private static void readFluidTags(@Nullable FluidTag[] tags) {
+        //no tags defined by config
+        if(tags == null) return;
+
+        //build tags
+        for(FluidTag tag : tags) {
+            if(FLUID_TAGS.containsKey(tag.id))
+                throw new JsonParseException("Fluidlogged API Config: two fluidTags found with the same id: " + tag.id + ", please either merge them or remove the duplicate");
+
+            final Set<Fluid> fluids = new HashSet<>();
+            for(String fluidName : tag.fluids) {
+                @Nullable Block fluidBlock = Block.getBlockFromName(fluidName);
+                @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(fluidBlock);
+
+                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(fluidBlock.getDefaultState(), false)) fluids.add(fluid);
+                else throw new JsonParseException("Fluidlogged API Config: Unable to parse fluid: " + fluidName + " from fluidTag: " + tag.id);
+            }
+
+            FLUID_TAGS.put(tag.id, fluids);
+        }
+     }
+
+    private static void readPredicates(Map<Block, ConfigPredicate> map, ConfigPredicateBuilder[] builders) {
+        for(ConfigPredicateBuilder builder : builders) {
             ConfigPredicate predicate = builder.build();
             map.put(predicate.block, predicate);
 
@@ -148,17 +189,31 @@ public final class ConfigHandler
         public final int fluidloggedFluidSpread;
         public final boolean fluidsBreakTorches;
         public final boolean applyDefaults;
-        public final ConfigBuilder[] whitelist;
-        public final ConfigBuilder[] blacklist;
+        public final @Nullable FluidTag[] fluidTags;
+        public final ConfigPredicateBuilder[] whitelist;
+        public final ConfigPredicateBuilder[] blacklist;
         public final boolean debugASMPlugins;
 
-        public Config(int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, ConfigBuilder[] whitelist, ConfigBuilder[] blacklist, boolean debugASMPlugins) {
+        public Config(int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, @Nullable FluidTag[] fluidTags, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins) {
             this.fluidloggedFluidSpread = fluidloggedFluidSpread;
             this.fluidsBreakTorches = fluidsBreakTorches;
             this.applyDefaults = applyDefaults;
+            this.fluidTags = fluidTags;
             this.whitelist = whitelist;
             this.blacklist = blacklist;
             this.debugASMPlugins = debugASMPlugins;
+        }
+    }
+
+    //allows fluids to be added to the whitelist & blacklist based on fluidTags
+    public static class FluidTag
+    {
+        @Nonnull protected final String id;
+        @Nonnull protected final String[] fluids;
+
+        public FluidTag(@Nonnull String id, @Nonnull String[] fluids) {
+            this.id = id;
+            this.fluids = fluids;
         }
     }
 
@@ -166,15 +221,15 @@ public final class ConfigHandler
     public static class ConfigPredicate implements BiPredicate<IBlockState, Fluid>
     {
         @Nonnull protected final Block block;
-        @Nonnull protected final Map<Integer, Boolean> validMeta;
-        @Nonnull protected final Map<Fluid, Boolean> validFluids;
+        @Nonnull protected final Int2BooleanMap metadata;
+        @Nonnull protected final Object2BooleanMap<Fluid> validFluids;
 
-        public ConfigPredicate(@Nonnull Block block, @Nonnull int[] validMeta, @Nonnull Fluid[] validFluids) {
+        public ConfigPredicate(@Nonnull Block block, @Nonnull int[] metadata, @Nonnull Fluid[] validFluids) {
             this.block = block;
-            this.validMeta = new HashMap<>();
-            this.validFluids = new HashMap<>();
+            this.metadata = new Int2BooleanOpenHashMap();
+            this.validFluids = new Object2BooleanOpenHashMap<>();
 
-            for(int meta : validMeta) this.validMeta.put(meta, true);
+            for(int meta : metadata) this.metadata.put(meta, true);
             for(Fluid fluid : validFluids) this.validFluids.put(fluid, true);
         }
 
@@ -185,21 +240,23 @@ public final class ConfigHandler
                 return false;
 
             //check stateIn
-            return validMeta.isEmpty() || validMeta.containsKey(block.getMetaFromState(stateIn));
+            return metadata.isEmpty() || metadata.containsKey(block.getMetaFromState(stateIn));
         }
     }
 
     //exists to allow the config to be loaded early
-    public static class ConfigBuilder
+    public static class ConfigPredicateBuilder
     {
-        @Nonnull protected final int[] validMeta;
-        @Nonnull protected final String[] validFluidNames;
         @Nonnull protected final String blockName;
+        @Nonnull protected final int[] metadata;
+        @Nonnull protected final String[] fluids;
+        @Nonnull protected final String[] fluidTags;
         @Nullable protected final Boolean canFluidFlow;
 
-        public ConfigBuilder(@Nonnull String blockName, @Nonnull int[] validMeta, @Nonnull String[] validFluidNames, @Nullable Boolean canFluidFlow) {
-            this.validMeta = validMeta;
-            this.validFluidNames = validFluidNames;
+        public ConfigPredicateBuilder(@Nonnull String blockName, @Nonnull int[] metadata, @Nonnull String[] fluids, @Nonnull String[] fluidTags, @Nullable Boolean canFluidFlow) {
+            this.metadata = metadata;
+            this.fluids = fluids;
+            this.fluidTags = fluidTags;
             this.canFluidFlow = canFluidFlow;
             this.blockName = blockName;
         }
@@ -208,8 +265,9 @@ public final class ConfigHandler
             final @Nullable Block block = Block.getBlockFromName(blockName);
             if(block == null) throw new JsonParseException("Fluidlogged API Config: Unable to parse block from blockId: " + blockName);
 
+            //handle fluids
             final Set<Fluid> validFluids = new HashSet<>();
-            for(String fluidName : validFluidNames) {
+            for(String fluidName : fluids) {
                 @Nullable Block fluidBlock = Block.getBlockFromName(fluidName);
                 @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(fluidBlock);
 
@@ -217,40 +275,54 @@ public final class ConfigHandler
                 else throw new JsonParseException("Fluidlogged API Config: Unable to parse fluid from fluids: " + fluidName);
             }
 
-            return new ConfigPredicate(block, validMeta, validFluids.toArray(new Fluid[0]));
+            //handle fluid tags
+            for(String id : fluidTags) {
+                @Nullable Set<Fluid> tag = FLUID_TAGS.get(id);
+
+                if(tag != null) validFluids.addAll(tag);
+                else throw new JsonParseException("Fluidlogged API Config: Unable to parse tag from fluidTags: " + id);
+            }
+
+            return new ConfigPredicate(block, metadata, validFluids.toArray(new Fluid[0]));
         }
     }
 
     //gson
-    public static class Deserializer implements JsonDeserializer<ConfigBuilder>
+    public static class ConfigPredicateDeserializer implements JsonDeserializer<ConfigPredicateBuilder>
     {
         @Nonnull
         @Override
-        public ConfigBuilder deserialize(@Nonnull JsonElement json, @Nullable Type typeOfT, @Nullable JsonDeserializationContext context) throws JsonParseException {
+        public ConfigPredicateBuilder deserialize(@Nonnull JsonElement json, @Nullable Type typeOfT, @Nullable JsonDeserializationContext context) throws JsonParseException {
             try {
                 final NBTTagCompound nbt = JsonToNBT.getTagFromJson(json.toString());
                 if(nbt.hasKey("blockId", Constants.NBT.TAG_STRING)) {
                     final String blockName = nbt.getString("blockId");
-                    final Set<String> validFluidNames = new HashSet<>();
-                    int[] validMeta = new int[0];
+                    final Set<String> fluids = new HashSet<>();
+                    final Set<String> fluidTags = new HashSet<>();
+                    int[] metadata = new int[0];
                     Boolean canFluidFlow = null;
 
                     //get state meta
-                    if(nbt.hasKey("metadata", Constants.NBT.TAG_INT_ARRAY)) {
-                        validMeta = nbt.getIntArray("metadata");
-                    }
+                    if(nbt.hasKey("metadata", Constants.NBT.TAG_INT_ARRAY))
+                        metadata = nbt.getIntArray("metadata");
 
                     //get fluids
                     if(nbt.hasKey("fluids", Constants.NBT.TAG_LIST)) {
                         final NBTTagList list = nbt.getTagList("fluids", Constants.NBT.TAG_STRING);
-                        for(int i = 0; i < list.tagCount(); i++) validFluidNames.add(list.getStringTagAt(i));
+                        for(int i = 0; i < list.tagCount(); i++) fluids.add(list.getStringTagAt(i));
+                    }
+                    
+                    //get fluid tags
+                    if(nbt.hasKey("fluidTags", Constants.NBT.TAG_LIST)) {
+                        final NBTTagList list = nbt.getTagList("fluidTags", Constants.NBT.TAG_STRING);
+                        for(int i = 0; i < list.tagCount(); i++) fluidTags.add(list.getStringTagAt(i));
                     }
 
                     //get canFluidFlow
                     if(nbt.hasKey("canFluidFlow", Constants.NBT.TAG_BYTE))
                         canFluidFlow = nbt.getBoolean("canFluidFlow");
 
-                    return new ConfigBuilder(blockName, validMeta, validFluidNames.toArray(new String[0]), canFluidFlow);
+                    return new ConfigPredicateBuilder(blockName, metadata, fluids.toArray(new String[0]), fluidTags.toArray(new String[0]), canFluidFlow);
                 }
 
                 //no blockId specified

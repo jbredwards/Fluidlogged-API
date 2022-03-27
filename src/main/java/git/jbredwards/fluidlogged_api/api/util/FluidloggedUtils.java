@@ -200,12 +200,16 @@ public final class FluidloggedUtils
                 : state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
+    //to be removed
+    @Deprecated
+    public static boolean isCompatibleFluid(@Nullable IBlockAccess world, @Nullable Fluid fluid1, @Nullable Fluid fluid2) { return isCompatibleFluid(fluid1, fluid2); }
+
     //checks if two fluids are compatible
-    public static boolean isCompatibleFluid(@Nonnull IBlockAccess world, @Nullable Fluid fluid1, @Nullable Fluid fluid2) {
+    public static boolean isCompatibleFluid(@Nullable Fluid fluid1, @Nullable Fluid fluid2) {
         if(fluid1 == null || fluid2 == null) return fluid1 == fluid2;
         else return fluid1.equals(fluid2)
-                || fluid1 instanceof ICompatibleFluid && ((ICompatibleFluid)fluid1).isCompatibleFluid(world, fluid2)
-                || fluid2 instanceof ICompatibleFluid && ((ICompatibleFluid)fluid2).isCompatibleFluid(world, fluid1);
+                || fluid1 instanceof ICompatibleFluid && ((ICompatibleFluid)fluid1).isCompatibleFluid(fluid2)
+                || fluid2 instanceof ICompatibleFluid && ((ICompatibleFluid)fluid2).isCompatibleFluid(fluid1);
     }
 
     //convenience method that takes in an IBlockState rather than a Block
