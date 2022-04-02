@@ -108,12 +108,12 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
 
                         if(otherDecay < 8) {
                             int power = otherDecay - (decay - 8);
-                            vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
+                            vec = vec.add(facing.getXOffset() * power, 0, facing.getZOffset() * power);
                         }
                     }
                     else {
                         int power = otherDecay - decay;
-                        vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
+                        vec = vec.add(facing.getXOffset() * power, 0, facing.getZOffset() * power);
                     }
                 }
             }
@@ -148,7 +148,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     @Overwrite
     public boolean checkForMixing(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState stateIn) {
-        if(blockMaterial == Material.LAVA) {
+        if(stateIn.getMaterial() == Material.LAVA) {
             //get state here, since this method can also be executed from a FluidState
             final IBlockState here = worldIn.getBlockState(pos);
             if(here.getBlock().isReplaceable(worldIn, pos)) {
@@ -275,7 +275,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
 
         //side overlays
         for(int i = 0; i < 4; i++) {
-            EnumFacing side = EnumFacing.getHorizontal(i);
+            EnumFacing side = EnumFacing.byHorizontalIndex(i);
             BlockPos offset = pos.offset(side);
             boolean useOverlay = world.getBlockState(offset).getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID;
             state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], useOverlay);
@@ -384,7 +384,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
 
     @Nonnull
     @Override
-    public Fluid getFluid() { return (blockMaterial == Material.WATER) ? FluidRegistry.WATER : FluidRegistry.LAVA; }
+    public Fluid getFluid() { return (material == Material.WATER) ? FluidRegistry.WATER : FluidRegistry.LAVA; }
 
     @Override
     public int place(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidStack fluidStack, boolean doPlace) {

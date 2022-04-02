@@ -62,13 +62,13 @@ public abstract class MixinEntity
         return state.getMaterial() == materialIn && ForgeHooks.isInsideOfMaterial(materialIn, (Entity)(Object)this, pos);
     }
 
-    @Redirect(method = "doBlockCollisions", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/Block;onEntityCollidedWithBlock(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;)V", remap = false))
+    @Redirect(method = "doBlockCollisions", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/Block;onEntityCollision(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;)V", remap = false))
     private void onEntityCollidedWithBlock(@Nonnull Block instance, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entityIn) {
-        instance.onEntityCollidedWithBlock(worldIn, pos, state, entityIn);
+        instance.onEntityCollision(worldIn, pos, state, entityIn);
         if(FluidloggedUtils.getFluidFromBlock(instance) != null) return;
 
         final FluidState fluidState = FluidState.get(worldIn, pos);
-        if(!fluidState.isEmpty()) fluidState.getBlock().onEntityCollidedWithBlock(worldIn, pos, fluidState.getState(), entityIn);
+        if(!fluidState.isEmpty()) fluidState.getBlock().onEntityCollision(worldIn, pos, fluidState.getState(), entityIn);
     }
 
     @Shadow

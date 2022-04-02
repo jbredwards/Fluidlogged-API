@@ -1,5 +1,5 @@
 {
-  "parent": "mixins.fluidlogged_api.json",
+  "parent": "META-INF/mixins.fluidlogged_api.json",
   "package": "git.jbredwards.fluidlogged_api.mod.asm.mixins.vanilla.entity",
   "mixins": [
     "MixinEntityAIPanic",

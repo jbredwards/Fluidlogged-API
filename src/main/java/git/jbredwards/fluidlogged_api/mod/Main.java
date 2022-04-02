@@ -37,7 +37,7 @@ import static git.jbredwards.fluidlogged_api.mod.Constants.*;
  * @author jbred
  *
  */
-@Mod(modid = MODID, name = NAME, version = VERSION)
+@Mod(modid = MODID, name = NAME, version = VERSION, dependencies = "required-after:mixinbooter")
 public final class Main
 {
     @SuppressWarnings("NotNullFieldNotInitialized")
@@ -88,7 +88,6 @@ public final class Main
         //tries to get the chunk stored in the IBlockAccess
         @Nullable
         public Chunk getChunk(@Nullable IBlockAccess worldIn, @Nonnull BlockPos pos) {
-            if(worldIn instanceof World) return ((World)worldIn).getChunkFromBlockCoords(pos);
             return (worldIn instanceof IChunkProvider) ? ((IChunkProvider)worldIn).getChunkFromBlockCoords(pos) : null;
         }
     }

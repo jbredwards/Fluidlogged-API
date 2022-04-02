@@ -2,6 +2,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.mixins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.IChunkProvider;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -9,6 +10,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.*;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,8 +24,8 @@ import javax.annotation.Nullable;
  * @author jbred
  *
  */
-@Mixin(World.class)
-public abstract class MixinWorld implements IBlockAccess
+@Mixin(value = World.class, priority = 999)
+public abstract class MixinWorld implements IBlockAccess, IChunkProvider
 {
     @Nonnull
     private final World world = (World)(Object)this;
@@ -47,19 +49,20 @@ public abstract class MixinWorld implements IBlockAccess
         int prevZ = MathHelper.floor(vec.z);
 
         BlockPos pos = new BlockPos(prevX, prevY, prevZ);
+        @Nullable RayTraceResult result;
 
         //check FluidState
         if(stopOnLiquid) {
             final FluidState fluidState = FluidState.get(this, pos);
             if(!fluidState.isEmpty() && fluidState.getBlock().canCollideCheck(fluidState.getState(), true) && (!ignoreBlockWithoutBoundingBox || fluidState.getState().getCollisionBoundingBox(this, pos) != Block.NULL_AABB)) {
-                final @Nullable RayTraceResult result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
+                result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
                 if(result != null) { return result; }
             }
         }
 
         IBlockState state = getBlockState(pos);
         if(state.getBlock().canCollideCheck(state, stopOnLiquid) && (!ignoreBlockWithoutBoundingBox || state.getCollisionBoundingBox(this, pos) != Block.NULL_AABB)) {
-            final @Nullable RayTraceResult result = state.collisionRayTrace(world, pos, vec, end);
+            result = state.collisionRayTrace(world, pos, vec, end);
             if(result != null) { return result; }
         }
 
@@ -129,7 +132,7 @@ public abstract class MixinWorld implements IBlockAccess
 
                 if(!fluidState.isEmpty() && (!ignoreBlockWithoutBoundingBox || fluidState.getState().getCollisionBoundingBox(this, pos) != Block.NULL_AABB)) {
                     if(fluidState.getBlock().canCollideCheck(fluidState.getState(), true)) {
-                        @Nullable RayTraceResult result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
+                        result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
                         if(result != null) return result;
                     }
 
@@ -140,7 +143,7 @@ public abstract class MixinWorld implements IBlockAccess
             state = getBlockState(pos);
             if(!ignoreBlockWithoutBoundingBox || state.getMaterial() == Material.PORTAL || state.getCollisionBoundingBox(this, pos) != Block.NULL_AABB) {
                 if(state.getBlock().canCollideCheck(state, stopOnLiquid)) {
-                    @Nullable RayTraceResult result = state.collisionRayTrace(world, pos, vec, end);
+                    result = state.collisionRayTrace(world, pos, vec, end);
                     if(result != null) return result;
                 }
 
@@ -154,6 +157,10 @@ public abstract class MixinWorld implements IBlockAccess
     @Nonnull
     @Redirect(method = {"getLight(Lnet/minecraft/util/math/BlockPos;Z)I", "getLightFromNeighborsFor"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"))
     private IBlockState getFluidOrReal(@Nonnull World self, @Nonnull BlockPos pos) { return FluidloggedUtils.getFluidOrReal(self, pos); }
+
+    @Nullable
+    @Override
+    public Chunk getChunkFromBlockCoords(@Nonnull BlockPos pos) { return world.getChunk(pos); }
 
     /*@Nullable
     @Redirect(method = "isMaterialInBB", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/Block;isAABBInsideMaterial(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;Lnet/minecraft/block/material/Material;)Ljava/lang/Boolean;"))

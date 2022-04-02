@@ -66,8 +66,8 @@ public final class LegacyDataFixer implements IFixableData {
     @SubscribeEvent
     public static void onMissingBlockMappings(@Nonnull RegistryEvent.MissingMappings<Block> event) {
         for(RegistryEvent.MissingMappings.Mapping<Block> mapping : event.getAllMappings()) {
-            if(mapping.key.getResourcePath().endsWith("logged_te")) {
-                final String newId = mapping.key.getResourcePath().replace("logged_te", "");
+            if(mapping.key.getPath().endsWith("logged_te")) {
+                final String newId = mapping.key.getPath().replace("logged_te", "");
                 FLUID_MAPPINGS.put(mapping.id, newId);
                 /* Prevent a warning */
                 mapping.ignore();

@@ -68,9 +68,7 @@ public final class FluidStateMessage implements IMessage
             Minecraft.getMinecraft().addScheduledTask(() -> {
                 final World world = Minecraft.getMinecraft().world;
                 final BlockPos pos = BlockPos.fromLong(message.pos);
-
-                final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(
-                        world.getChunkFromBlockCoords(pos));
+                final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(world.getChunk(pos));
 
                 if(cap != null) {
                     final FluidState fluidState = FluidState.deserialize(message.state);

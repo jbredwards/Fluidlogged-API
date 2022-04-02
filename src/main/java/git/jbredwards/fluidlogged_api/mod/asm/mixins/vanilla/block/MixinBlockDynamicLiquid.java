@@ -56,8 +56,11 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
      */
     @Overwrite
     public void updateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
-        final IBlockState here = world.getBlockState(pos); //fluidlogged fluids will have a different state here than the state input
-        final int lavaDif = (blockMaterial == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 1;
+        final int lavaDif = (material == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 1;
+        if(!world.isAreaLoaded(pos, lavaDif * 2)) return; // Forge: avoid loading unloaded chunks
+
+        //fluidlogged fluids will have a different state here than the state input
+        final IBlockState here = world.getBlockState(pos);
         int quantaRemaining = 8 - state.getValue(BlockLiquid.LEVEL);
 
         // check adjacent block levels if non-source
@@ -66,7 +69,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
             boolean updateWorldQuanta = true;
             final int expQuanta;
 
-            if(ForgeEventFactory.canCreateFluidSource(world, pos, state, blockMaterial == Material.WATER)) {
+            if(ForgeEventFactory.canCreateFluidSource(world, pos, state, material == Material.WATER)) {
                 for(EnumFacing facing : EnumFacing.HORIZONTALS) {
                     BlockPos offset = pos.offset(facing);
 
@@ -110,7 +113,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
                     if(expQuanta <= 0 ) {
                         world.setBlockToAir(pos);
 
-                        if((vertical.getBlock() == this || vertical.getBlock() == BlockLiquid.getStaticBlock(blockMaterial)) && vertical.getValue(BlockLiquid.LEVEL) == 8) {
+                        if((vertical.getBlock() == this || vertical.getBlock() == BlockLiquid.getStaticBlock(material)) && vertical.getValue(BlockLiquid.LEVEL) == 8) {
                             world.setBlockState(pos.down(), state.withProperty(BlockLiquid.LEVEL, lavaDif), Constants.BlockFlags.SEND_TO_CLIENTS);
                             world.scheduleUpdate(pos.down(), this, tickRate(world));
                             world.notifyNeighborsOfStateChange(pos, this, false);
@@ -135,7 +138,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
         // Flow vertically if possible
         tryFlowIntoFluidloggable(world, pos, state, here, EnumFacing.DOWN);
         if(canFluidFlow(world, pos, here, EnumFacing.DOWN) && canDisplace(world, pos.down())) {
-            if(blockMaterial == Material.LAVA) {
+            if(material == Material.LAVA) {
                 final IBlockState down = world.getBlockState(pos.down());
                 if(down.getBlock().isReplaceable(world, pos.down())) {
                     final FluidState fluidState = getFluidState(world, pos.down(), down);
@@ -166,12 +169,12 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
     //fluidlogged lava does fire spread
     @Override
     public void randomTick(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random random) {
-        if(blockMaterial == Material.LAVA) Blocks.LAVA.randomTick(worldIn, pos, state, random);
+        if(material == Material.LAVA) Blocks.LAVA.randomTick(worldIn, pos, state, random);
     }
 
     //try flowing to nearby fluidloggable blocks
     private void tryFlowIntoFluidloggable(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull IBlockState here, @Nonnull EnumFacing... flowInto) {
-        if(ConfigHandler.fluidloggedFluidSpread > 0 && blockMaterial == Material.WATER && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, false))) {
+        if(ConfigHandler.fluidloggedFluidSpread > 0 && material == Material.WATER && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, false))) {
             for(EnumFacing facing : flowInto) {
                 if(canFluidFlow(world, pos, here, facing)) {
                     BlockPos offset = pos.offset(facing);
@@ -243,7 +246,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
     }
 
     private boolean[] getOptimalFlowDirections(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
-        final int lavaDif = (blockMaterial == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 1;
+        final int lavaDif = (material == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 1;
         final int[] flowCost = { 1000, 1000, 1000, 1000 };
 
         for(int side = 0; side < 4; side++) {
@@ -263,7 +266,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
     }
 
     private int calculateFlowCost(@Nonnull World world, @Nonnull BlockPos pos, int recurseDepth, int side) {
-        final int lavaDif = (blockMaterial == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 1;
+        final int lavaDif = (material == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 1;
         int cost = 1000;
 
         for(int adjSide = 0; adjSide < 4; adjSide++) {

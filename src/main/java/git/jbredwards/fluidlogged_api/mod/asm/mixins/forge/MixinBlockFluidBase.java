@@ -164,7 +164,7 @@ public abstract class MixinBlockFluidBase extends Block
 
         //side overlays
         for(int i = 0; i < 4; i++) {
-            EnumFacing side = EnumFacing.getHorizontal(i);
+            EnumFacing side = EnumFacing.byHorizontalIndex(i);
             BlockPos offset = pos.offset(side);
             boolean useOverlay = world.getBlockState(offset).getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID;
             state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], useOverlay);
@@ -282,12 +282,12 @@ public abstract class MixinBlockFluidBase extends Block
 
                         if(otherDecay < quantaPerBlock) {
                             int power = otherDecay - (decay - quantaPerBlock);
-                            vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
+                            vec = vec.add(facing.getXOffset() * power, 0, facing.getZOffset() * power);
                         }
                     }
                     else {
                         int power = otherDecay - decay;
-                        vec = vec.addVector(facing.getFrontOffsetX() * power, 0, facing.getFrontOffsetZ() * power);
+                        vec = vec.add(facing.getXOffset() * power, 0, facing.getZOffset() * power);
                     }
                 }
             }

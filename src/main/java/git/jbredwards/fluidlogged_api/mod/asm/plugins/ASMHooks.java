@@ -200,14 +200,14 @@ public final class ASMHooks
 
     //ModelFluidPlugin
     public static float fixTextureFightingZ(float old, int index) {
-        final EnumFacing facing = EnumFacing.getHorizontal((5 - index) % 4); // [W, S, E, N]
+        final EnumFacing facing = EnumFacing.byHorizontalIndex((5 - index) % 4); // [W, S, E, N]
         if(facing.getAxis() == Axis.X) return old;
         else return old == 1 ? 0.998f : 0.002f;
     }
 
     //ModelFluidPlugin
     public static float fixTextureFightingX(float old, int index) {
-        final EnumFacing facing = EnumFacing.getHorizontal((5 - index) % 4); // [W, S, E, N]
+        final EnumFacing facing = EnumFacing.byHorizontalIndex((5 - index) % 4); // [W, S, E, N]
         if(facing.getAxis() == Axis.Z) return old;
         else return old == 1 ? 0.998f : 0.002f;
     }

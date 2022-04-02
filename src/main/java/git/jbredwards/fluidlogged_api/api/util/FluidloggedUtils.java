@@ -80,7 +80,7 @@ public final class FluidloggedUtils
     public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, int blockFlags) {
         if(world.isOutsideBuildHeight(pos) || world.getWorldType() == WorldType.DEBUG_ALL_BLOCK_STATES) return false;
 
-        final Chunk chunk = world.getChunkFromBlockCoords(pos);
+        final Chunk chunk = world.getChunk(pos);
         if(here == null) here = chunk.getBlockState(pos);
 
         final FluidloggedEvent event = new FluidloggedEvent(world, chunk, pos, here, fluidState, checkVaporize, blockFlags);
@@ -148,7 +148,7 @@ public final class FluidloggedUtils
 
     //causes a light level & light opacity update
     public static void relightFluidBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
-        final @Nullable Chunk chunk = world.getChunkFromBlockCoords(pos);
+        final @Nullable Chunk chunk = world.getChunk(pos);
         final int x = pos.getX() & 15;
         final int z = pos.getZ() & 15;
         final int height = chunk.getHeightValue(x, z);

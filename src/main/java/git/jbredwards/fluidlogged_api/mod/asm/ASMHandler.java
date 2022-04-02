@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.mod.asm;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.mod.Constants;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
@@ -11,11 +12,11 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.*;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
-import org.spongepowered.asm.launch.MixinBootstrap;
-import org.spongepowered.asm.mixin.Mixins;
+import zone.rong.mixinbooter.IEarlyMixinLoader;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,7 +27,7 @@ import java.util.Map;
 @IFMLLoadingPlugin.SortingIndex(1401)
 @IFMLLoadingPlugin.Name("Fluidlogged API Plugin")
 @IFMLLoadingPlugin.MCVersion("1.12.2")
-public final class ASMHandler implements IFMLLoadingPlugin
+public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
 {
     private static boolean obfuscated;
 
@@ -60,6 +61,19 @@ public final class ASMHandler implements IFMLLoadingPlugin
         }
     }
 
+    @Nonnull
+    @Override
+    public List<String> getMixinConfigs() {
+        return ImmutableList.of(
+                "META-INF/mixins." + Constants.MODID + ".forge.json",
+                "META-INF/mixins." + Constants.MODID + ".vanilla.block.json",
+                "META-INF/mixins." + Constants.MODID + ".vanilla.client.json",
+                "META-INF/mixins." + Constants.MODID + ".vanilla.entity.json",
+                "META-INF/mixins." + Constants.MODID + ".vanilla.world.json"
+        );
+    }
+
+    @Nonnull
     @Override
     public String[] getASMTransformerClass() {
         return new String[] { "git.jbredwards.fluidlogged_api.mod.asm.ASMHandler$Transformer" };
@@ -69,14 +83,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
     public void injectData(@Nonnull Map<String, Object> data) {
         obfuscated = (boolean)data.get("runtimeDeobfuscationEnabled");
         ConfigHandler.init();
-
-        //handle mixins
-        MixinBootstrap.init();
-        Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.block.json");
-        Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.client.json");
-        Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.entity.json");
-        Mixins.addConfiguration("mixins." + Constants.MODID + ".vanilla.world.json");
-        Mixins.addConfiguration("mixins." + Constants.MODID + ".forge.json");
     }
 
     @Nullable

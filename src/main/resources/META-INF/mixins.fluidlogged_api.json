@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "package": "",
+  "compatibilityLevel": "JAVA_8",
+  "minVersion": "0.8",
+  "overwrites": { 
+    "conformVisibility": true 
+  }
+}

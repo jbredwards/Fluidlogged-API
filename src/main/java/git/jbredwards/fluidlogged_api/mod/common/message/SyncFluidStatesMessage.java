@@ -86,7 +86,7 @@ public final class SyncFluidStatesMessage implements IMessage
             Minecraft.getMinecraft().addScheduledTask(() -> {
                 final World world = Minecraft.getMinecraft().world;
                 final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(
-                        world.getChunkFromChunkCoords(message.chunkX, message.chunkZ));
+                        world.getChunk(message.chunkX, message.chunkZ));
 
                 if(cap != null) {
                     //clear any old fluid states

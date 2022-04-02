@@ -1,7 +1,0 @@
-{
-  "compatibilityLevel": "JAVA_8",
-  "minVersion": "0.7",
-  "overwrites": {
-    "conformVisibility": true
-  }
-}
