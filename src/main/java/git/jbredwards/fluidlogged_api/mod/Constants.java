@@ -7,10 +7,8 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-public enum Constants
+public final class Constants
 {
-    ;
-
     //mod id constants
     @Nonnull public static final String MODID = "fluidlogged_api";
     @Nonnull public static final String NAME  = "Fluidlogged API";

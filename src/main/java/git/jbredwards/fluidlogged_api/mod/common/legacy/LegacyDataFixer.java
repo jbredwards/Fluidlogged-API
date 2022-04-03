@@ -41,8 +41,10 @@ public final class LegacyDataFixer implements IFixableData {
 
     /**
      * A mapping between the fluid name used by the tile entity and a Forge fluid block.
+     *
+     * This is reset whenever the integrated server restarts, to make sure that IDs don't cross world boundaries.
      */
-    private static final Int2ObjectMap<Block> FLUID_ID_MAPPINGS = new Int2ObjectOpenHashMap<>();
+    private static Int2ObjectMap<Block> FLUID_ID_MAPPINGS = null;
 
     /**
      * The current data version. This is an arbritary value since the mod never used data fixers before.
@@ -52,12 +54,18 @@ public final class LegacyDataFixer implements IFixableData {
     /**
      * Called when FMLServerAboutToStartEvent is invoked.
      */
-    public static void init() { FLUID_MAPPINGS = new Int2ObjectOpenHashMap<>(); }
+    public static void init() {
+        FLUID_MAPPINGS = new Int2ObjectOpenHashMap<>();
+        FLUID_ID_MAPPINGS = new Int2ObjectOpenHashMap<>();
+    }
 
     /**
      * Called when FMLServerStoppedEvent is invoked.
      */
-    public static void reset() { FLUID_MAPPINGS = null; }
+    public static void reset() {
+        FLUID_MAPPINGS = null;
+        FLUID_ID_MAPPINGS = null;
+    }
 
     /**
      * This event handler is called when the registries are first loaded from level.dat. Any fluidlogged_te blocks
@@ -67,8 +75,7 @@ public final class LegacyDataFixer implements IFixableData {
     public static void onMissingBlockMappings(@Nonnull RegistryEvent.MissingMappings<Block> event) {
         for(RegistryEvent.MissingMappings.Mapping<Block> mapping : event.getAllMappings()) {
             if(mapping.key.getPath().endsWith("logged_te")) {
-                final String newId = mapping.key.getPath().replace("logged_te", "");
-                FLUID_MAPPINGS.put(mapping.id, newId);
+                FLUID_MAPPINGS.put(mapping.id, mapping.key.getPath().replace("logged_te", ""));
                 /* Prevent a warning */
                 mapping.ignore();
             }
@@ -137,11 +144,14 @@ public final class LegacyDataFixer implements IFixableData {
                     forgeCaps = new NBTTagCompound();
                     level.setTag("ForgeCaps", forgeCaps);
                 }
-                //initialise IFluidStateCapability nbt
-                //(don't bother with get, it'll never be present in legacy chunks)
-                final NBTTagList cap = new NBTTagList();
-                forgeCaps.setTag(Constants.MODID + ":fluid_states", cap);
-
+                //initialise or get IFluidStateCapability nbt
+                final NBTTagList cap;
+                if(forgeCaps.hasKey(Constants.MODID + ":fluid_states", NBT.TAG_LIST))
+                    cap = forgeCaps.getTagList(Constants.MODID + ":fluid_states", NBT.TAG_COMPOUND);
+                else {
+                    cap = new NBTTagList();
+                    forgeCaps.setTag(Constants.MODID + ":fluid_states", cap);
+                }
                 final NBTTagList sections = level.getTagList("Sections", NBT.TAG_COMPOUND);
                 for(int i = 0; i < sections.tagCount(); ++i) {
                     final NBTTagCompound section = sections.getCompoundTagAt(i);
