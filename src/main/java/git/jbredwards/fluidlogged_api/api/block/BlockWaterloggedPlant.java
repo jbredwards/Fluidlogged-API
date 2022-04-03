@@ -35,7 +35,7 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
      */
     @Override
     public boolean canPlaceBlockAt(@Nonnull World worldIn, @Nonnull BlockPos pos) {
-        return isFluidValid(getDefaultState(), FluidloggedUtils.getFluidState(worldIn, pos).getFluid());
+        return isFluidValid(getDefaultState(), FluidloggedUtils.getFluidState(worldIn, pos).getFluid()) && super.canPlaceBlockAt(worldIn, pos);
     }
 
     /**
@@ -52,7 +52,6 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
     @Nonnull
     @Override
     public EnumActionResult onFluidDrain(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, int blockFlags) {
-        //break this
         world.playEvent(Constants.WorldEvents.BREAK_BLOCK_EFFECTS, pos, getStateId(here));
         dropBlockAsItem(world, pos, here, 0);
         world.setBlockState(pos, Blocks.AIR.getDefaultState(), blockFlags);
