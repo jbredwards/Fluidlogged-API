@@ -12,14 +12,16 @@ import java.util.Iterator;
 import java.util.Optional;
 
 /**
- * used as a base for this mod's plugins
+ * Used as a base for this mod's plugins
  * @author jbred
  *
  */
 public interface IASMPlugin extends Opcodes
 {
-    int isMethodValid(@Nonnull MethodNode method, boolean obfuscated);
-    boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index);
+    default int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return 0; }
+    default boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) { return false; }
+    //return true if the class has been transformed, returning true will cause method transforms to be skipped
+    default boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) { return false; }
     //used to add local variables, returns the amount of variables added
     default int addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) { return 0; }
     //used to remove methods from classes (currently only used for betweenlands mod compat)
@@ -29,44 +31,39 @@ public interface IASMPlugin extends Opcodes
         final ClassNode classNode = new ClassNode();
         final ClassReader reader = new ClassReader(basicClass);
         reader.accept(classNode, 0);
-
-        //runs through each method in the class to find the one that has to be transformed
-        for(Iterator<MethodNode> it = classNode.methods.iterator(); it.hasNext();) {
-            MethodNode method = it.next();
-            int index = isMethodValid(method, obfuscated);
-            if(index > 0) {
-                //informs the console of the transformation
-                if(ConfigHandler.debugASMPlugins) informConsole(reader, method);
-
-                //removes methods and skips the rest if so
-                if(removeMethod(it, obfuscated, index)) continue;
-
-                //used to help add any new local variables
-                LabelNode start = new LabelNode();
-                LabelNode end = new LabelNode();
-                int localVariablesAdded = addLocalVariables(method, start, end, index);
-
-                //adds any new local variables
-                if(localVariablesAdded > 0) {
-                    //ensures that the new local variables can be called anywhere in the method
-                    method.instructions.insertBefore(method.instructions.getFirst(), start);
-                    method.instructions.insert(method.instructions.getLast(), end);
-                    //changes the max local variables to account for the new ones
-                    method.maxLocals += localVariablesAdded;
-                }
-
-                //runs through each node in the method
-                for(AbstractInsnNode insn : method.instructions.toArray()) {
-                    //transforms the method
-                    if(transform(method.instructions, method, insn, obfuscated, index)) break;
+        if(!transformClass(classNode, obfuscated)) {
+            //runs through each method in the class to find the one that has to be transformed
+            for(Iterator<MethodNode> it = classNode.methods.iterator(); it.hasNext();) {
+                MethodNode method = it.next();
+                int index = isMethodValid(method, obfuscated);
+                if(index > 0) {
+                    //informs the console of the transformation
+                    informConsole(reader, method);
+                    //removes methods and skips the rest if so
+                    if(removeMethod(it, obfuscated, index)) continue;
+                    //used to help add any new local variables
+                    LabelNode start = new LabelNode();
+                    LabelNode end = new LabelNode();
+                    int localVariablesAdded = addLocalVariables(method, start, end, index);
+                    //adds any new local variables
+                    if(localVariablesAdded > 0) {
+                        //ensures that the new local variables can be called anywhere in the method
+                        method.instructions.insertBefore(method.instructions.getFirst(), start);
+                        method.instructions.insert(method.instructions.getLast(), end);
+                        //changes the max local variables to account for the new ones
+                        method.maxLocals += localVariablesAdded;
+                    }
+                    //runs through each node in the method
+                    for(AbstractInsnNode insn : method.instructions.toArray()) {
+                        //transforms the method
+                        if(transform(method.instructions, method, insn, obfuscated, index)) break;
+                    }
                 }
             }
         }
-
         //writes the changes
         final ClassWriter writer = new ClassWriter(0);
         classNode.accept(writer);
-
         //returns the transformed class
         return writer.toByteArray();
     }
@@ -75,8 +72,8 @@ public interface IASMPlugin extends Opcodes
     //utility methods that are helpful when applying transformations (prior to v1.6.2 these were found in ASMUtils)
     //=============================================================================================================
 
-    default void informConsole(ClassReader reader, MethodNode method) {
-        System.out.printf("Fluidlogged API Plugin: transforming... %s.%s%s%n", reader.getClassName(), method.name, method.desc);
+    default void informConsole(@Nonnull ClassReader reader, @Nonnull MethodNode method) {
+        if(ConfigHandler.debugASMPlugins) System.out.printf("Fluidlogged API Plugin: transforming... %s.%s%s%n", reader.getClassName(), method.name, method.desc);
     }
 
     @Nonnull

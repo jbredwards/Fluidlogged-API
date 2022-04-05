@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.api.block;
 
-import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import net.minecraft.block.BlockBush;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
@@ -15,6 +15,8 @@ import net.minecraftforge.fluids.FluidRegistry;
 
 import javax.annotation.Nonnull;
 
+import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
+
 /**
  * A basic implementation of an always waterlogged plant for mod devs to use
  * @author jbred
@@ -22,6 +24,9 @@ import javax.annotation.Nonnull;
  */
 public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidloggable
 {
+    //used as a base to determine which fluids can support this plant
+    @Nonnull protected Fluid parentFluid = FluidRegistry.WATER;
+
     protected BlockWaterloggedPlant(@Nonnull Material materialIn) {
         this(materialIn, materialIn.getMaterialMapColor());
     }
@@ -35,7 +40,10 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
      */
     @Override
     public boolean canPlaceBlockAt(@Nonnull World worldIn, @Nonnull BlockPos pos) {
-        return isFluidValid(getDefaultState(), FluidloggedUtils.getFluidState(worldIn, pos).getFluid()) && super.canPlaceBlockAt(worldIn, pos);
+        final FluidState fluidState = getFluidState(worldIn, pos);
+        return isFluidValid(getDefaultState(), fluidState.getFluid())
+                && isFluidloggableFluid(fluidState.getState(), true)
+                && super.canPlaceBlockAt(worldIn, pos);
     }
 
     /**
@@ -43,7 +51,7 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
      */
     @Override
     public boolean isFluidValid(@Nonnull IBlockState state, @Nonnull Fluid fluid) {
-        return FluidloggedUtils.isCompatibleFluid(FluidRegistry.WATER, fluid);
+        return isCompatibleFluid(parentFluid, fluid);
     }
 
     /**
