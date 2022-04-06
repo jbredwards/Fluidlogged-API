@@ -57,7 +57,7 @@ public class CommandSetFluidState extends CommandBase
         final FluidState fluidState = FluidState.of(getBlockByText(sender, args[3]));
         final IBlockState here = world.getBlockState(pos);
 
-        if(FluidloggedUtils.isStateFluidloggable(here, fluidState.getFluid())) {
+        if(FluidloggedUtils.isStateFluidloggable(here, world, pos, fluidState.getFluid())) {
             if(!FluidloggedUtils.setFluidState(world, pos, here, fluidState, false, 2))
                 throw new CommandException("commands.setfluid.noChange");
         }

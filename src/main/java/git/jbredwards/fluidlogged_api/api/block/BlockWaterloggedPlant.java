@@ -8,6 +8,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
@@ -41,7 +42,7 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
     @Override
     public boolean canPlaceBlockAt(@Nonnull World worldIn, @Nonnull BlockPos pos) {
         final FluidState fluidState = getFluidState(worldIn, pos);
-        return isFluidValid(getDefaultState(), fluidState.getFluid())
+        return isFluidValid(getDefaultState(), worldIn, pos, fluidState.getFluid())
                 && isFluidloggableFluid(fluidState.getState(), true)
                 && super.canPlaceBlockAt(worldIn, pos);
     }
@@ -50,7 +51,7 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
      * Ensures that only water-like fluids can be placed inside this
      */
     @Override
-    public boolean isFluidValid(@Nonnull IBlockState state, @Nonnull Fluid fluid) {
+    public boolean isFluidValid(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Fluid fluid) {
         return isCompatibleFluid(parentFluid, fluid);
     }
 

@@ -31,6 +31,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     protected final Fluid fluid;
     protected final IBlockState state;
+    protected int level = -1;
 
     //using FluidState#of rather than the constructor directly is advised
     public FluidState(Fluid fluidIn, IBlockState stateIn) {
@@ -99,7 +100,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     public Material getMaterial() { return state.getMaterial(); }
 
-    public int getLevel() { return state.getValue(BlockLiquid.LEVEL); }
+    public int getLevel() { return level >= 0 ? level : (level = state.getValue(BlockLiquid.LEVEL)); }
 
     @Override
     public final Fluid getLeft() { return getFluid(); }

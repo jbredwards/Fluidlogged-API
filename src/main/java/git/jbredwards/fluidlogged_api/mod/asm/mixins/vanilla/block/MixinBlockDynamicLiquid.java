@@ -181,7 +181,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
                     IBlockState neighbor = world.getBlockState(offset);
 
                     //check if the fluid could occupy the space
-                    if(canFluidFlow(world, offset, neighbor, facing.getOpposite()) && isStateFluidloggable(neighbor, getFluid()) && FluidState.get(world, offset).isEmpty()) {
+                    if(canFluidFlow(world, offset, neighbor, facing.getOpposite()) && isStateFluidloggable(neighbor, world, offset, getFluid()) && FluidState.get(world, offset).isEmpty()) {
                         //check for another source block that can flow into this
                         for(EnumFacing adjacentFacing : EnumFacing.values()) {
                             if(adjacentFacing != EnumFacing.DOWN && adjacentFacing != facing.getOpposite() && canFluidFlow(world, offset, neighbor, adjacentFacing)) {

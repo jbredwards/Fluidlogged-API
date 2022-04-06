@@ -15,7 +15,7 @@ import javax.annotation.Nonnull;
 public final class PluginEntityRenderer implements IASMPlugin
 {
     @Override
-    public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
+    public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         //renderWorldPass, line 1409
         if(checkMethod(method, obfuscated ? "func_175068_a" : "renderWorldPass", "(IFJ)V"))
             return 1;

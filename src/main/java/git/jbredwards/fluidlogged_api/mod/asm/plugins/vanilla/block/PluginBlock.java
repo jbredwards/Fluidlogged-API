@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 public final class PluginBlock implements IASMPlugin
 {
     @Override
-    public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
+    public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         //getLightValue, line 1250
         if(checkMethod(method, "getLightValue", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I")) {
             setMaxLocals(method, 3);

@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 public final class PluginWorld implements IASMPlugin
 {
     @Override
-    public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
+    public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         //setBlockState, line 401
         if(checkMethod(method, obfuscated ? "func_180501_a" : "setBlockState", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"))
             return 1;
@@ -72,7 +72,7 @@ public final class PluginWorld implements IASMPlugin
             final InsnList list = new InsnList();
             list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ALOAD, 1));
-            list.add(genMethodNode("getFluidState", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
+            list.add(genMethodNode("getFluidOrAir", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
 
             instructions.insert(insn, list);
             instructions.remove(insn.getPrevious());

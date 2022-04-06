@@ -74,8 +74,10 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
      * @reason fixes fluidlogged interactions
      * @author jbred
      */
-    @Overwrite(remap = false)
+    @Overwrite
     public void updateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
+        if(!world.isAreaLoaded(pos, quantaPerBlock / 2)) return; // Forge: avoid loading unloaded chunks
+
         final IBlockState here = world.getBlockState(pos); //fluidlogged fluids will have a different state here than the state input
         final EnumFacing facingDir = (densityDir > 0) ? EnumFacing.UP : EnumFacing.DOWN;
         int quantaRemaining = quantaPerBlock - state.getValue(BlockLiquid.LEVEL);
@@ -160,7 +162,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
                     IBlockState neighbor = world.getBlockState(offset);
 
                     //check if the fluid could occupy the space
-                    if(canFluidFlow(world, offset, neighbor, facing.getOpposite()) && isStateFluidloggable(neighbor, getFluid()) && FluidState.get(world, offset).isEmpty()) {
+                    if(canFluidFlow(world, offset, neighbor, facing.getOpposite()) && isStateFluidloggable(neighbor, world, offset, getFluid()) && FluidState.get(world, offset).isEmpty()) {
                         //check for another source block that can flow into this
                         for(EnumFacing adjacentFacing : EnumFacing.values()) {
                             if(adjacentFacing != facingDir && adjacentFacing != facing.getOpposite() && canFluidFlow(world, offset, neighbor, adjacentFacing)) {
@@ -267,7 +269,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
             final IBlockState here = world.getBlockState(pos);
             final Fluid fluid = getFluid();
 
-            if(isStateFluidloggable(here, fluid)) setFluidState(world, pos, here, FluidState.of(fluid), true);
+            if(isStateFluidloggable(here, world, pos, fluid)) setFluidState(world, pos, here, FluidState.of(fluid), true);
             else world.setBlockState(pos, getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
         }
 

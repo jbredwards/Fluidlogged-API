@@ -26,12 +26,16 @@ public interface IFluidloggable
     /**
      * @return true if the IBlockState is fluidloggable
      */
-    default boolean isFluidloggable(@Nonnull IBlockState state) { return true; }
+    default boolean isFluidloggable(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        return true;
+    }
 
     /**
      * @return true if the IBlockState can be fluidlogged with the input fluid
      */
-    default boolean isFluidValid(@Nonnull IBlockState state, @Nonnull Fluid fluid) { return isFluidloggable(state); }
+    default boolean isFluidValid(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Fluid fluid) {
+        return isFluidloggable(state, world, pos);
+    }
 
     /**
      * called by {@link FluidloggedUtils#canFluidFlow},

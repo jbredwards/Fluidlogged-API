@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 public final class PluginWorldServer implements IASMPlugin
 {
     @Override
-    public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
+    public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         //updateBlocks
         if(checkMethod(method, obfuscated ? "func_147456_g" : "updateBlocks", null))
             return 1;

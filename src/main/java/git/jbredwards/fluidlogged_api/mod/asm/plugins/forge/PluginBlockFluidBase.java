@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 public final class PluginBlockFluidBase implements IASMPlugin
 {
     @Override
-    public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
+    public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         //constructor
         if(checkMethod(method, "<init>", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V"))
             return 1;

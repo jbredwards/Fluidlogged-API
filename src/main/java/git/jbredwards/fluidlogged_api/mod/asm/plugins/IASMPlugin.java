@@ -4,12 +4,14 @@ import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Iterator;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * Used as a base for this mod's plugins
@@ -18,29 +20,27 @@ import java.util.Optional;
  */
 public interface IASMPlugin extends Opcodes
 {
-    default int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return 0; }
+    //returns the method index, which is passed into this#transform, returning 0 will skip the method
+    default int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) { return isMethodValid(method, obfuscated) ? 1 : 0; }
+    //utility method that makes life easier if only one method is being transformed
+    default boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return false; }
+    //transform a method, return true if the method is transformed
     default boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) { return false; }
-    //return true if the class has been transformed, returning true will cause method transforms to be skipped
-    default boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) { return false; }
+    //return false if the class has been transformed, returning false will cause method transforms to be skipped
+    default boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) { return true; }
     //used to add local variables, returns the amount of variables added
     default int addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) { return 0; }
-    //used to remove methods from classes (currently only used for betweenlands mod compat)
-    default boolean removeMethod(@Nonnull Iterator<MethodNode> methods, boolean obfuscated, int index) { return false; }
     //ran when the handler transforms the class
     default byte[] transform(@Nonnull byte[] basicClass, boolean obfuscated) {
         final ClassNode classNode = new ClassNode();
-        final ClassReader reader = new ClassReader(basicClass);
-        reader.accept(classNode, 0);
-        if(!transformClass(classNode, obfuscated)) {
+        new ClassReader(basicClass).accept(classNode, 0);
+        if(transformClass(classNode, obfuscated)) {
             //runs through each method in the class to find the one that has to be transformed
-            for(Iterator<MethodNode> it = classNode.methods.iterator(); it.hasNext();) {
-                MethodNode method = it.next();
-                int index = isMethodValid(method, obfuscated);
-                if(index > 0) {
+            for(MethodNode method : classNode.methods) {
+                int index = getMethodIndex(method, obfuscated);
+                if(index != 0) {
                     //informs the console of the transformation
-                    informConsole(reader, method);
-                    //removes methods and skips the rest if so
-                    if(removeMethod(it, obfuscated, index)) continue;
+                    informConsole(classNode.name, method);
                     //used to help add any new local variables
                     LabelNode start = new LabelNode();
                     LabelNode end = new LabelNode();
@@ -54,13 +54,13 @@ public interface IASMPlugin extends Opcodes
                         method.maxLocals += localVariablesAdded;
                     }
                     //runs through each node in the method
-                    for(AbstractInsnNode insn : method.instructions.toArray()) {
+                    for(AbstractInsnNode insn : method.instructions.toArray())
                         //transforms the method
                         if(transform(method.instructions, method, insn, obfuscated, index)) break;
-                    }
                 }
             }
         }
+        else informConsole(classNode.name, null);
         //writes the changes
         final ClassWriter writer = new ClassWriter(0);
         classNode.accept(writer);
@@ -68,13 +68,27 @@ public interface IASMPlugin extends Opcodes
         return writer.toByteArray();
     }
 
-    //=============================================================================================================
-    //utility methods that are helpful when applying transformations (prior to v1.6.2 these were found in ASMUtils)
-    //=============================================================================================================
-
-    default void informConsole(@Nonnull ClassReader reader, @Nonnull MethodNode method) {
-        if(ConfigHandler.debugASMPlugins) System.out.printf("Fluidlogged API Plugin: transforming... %s.%s%s%n", reader.getClassName(), method.name, method.desc);
+    //can be useful for easily troubleshooting plugins
+    default void informConsole(@Nonnull String className, @Nullable MethodNode method) {
+        if(ConfigHandler.debugASMPlugins) {
+            if(method == null) System.out.printf("Fluidlogged API Plugin: transforming... %s", className);
+            else System.out.printf("Fluidlogged API Plugin: transforming... %s.%s%s%n", className, method.name, method.desc);
+        }
     }
+
+    //generates a new MethodNode
+    default void addMethod(@Nonnull ClassNode classNode, @Nonnull String name, @Nonnull String desc, @Nonnull String hookName, @Nonnull String hookDesc, @Nonnull Consumer<GeneratorAdapter> consumer) {
+        final MethodNode method = new MethodNode(ACC_PUBLIC, name, desc, null, null);
+        consumer.accept(new GeneratorAdapter(method, method.access, name, desc));
+        method.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks", hookName, hookDesc, false);
+        method.visitInsn(Type.getReturnType(desc).getOpcode(IRETURN));
+        //adds the newly generated method
+        classNode.methods.add(method);
+    }
+
+    //=============================================================================================================
+    //utility methods that are helpful when applying transformations (prior to v1.7 these were found in ASMUtils)
+    //=============================================================================================================
 
     @Nonnull
     default MethodInsnNode genMethodNode(@Nonnull String name, @Nonnull String desc) {
@@ -86,17 +100,17 @@ public interface IASMPlugin extends Opcodes
         return new MethodInsnNode(INVOKESTATIC, clazz, name, desc, false);
     }
 
-    //same as the normal method, but this one can specify how many to go back
+    //same as insn#getPrevious, but this one can specify how many to go back
     @Nonnull
     default AbstractInsnNode getPrevious(@Nonnull AbstractInsnNode insn, int count) {
         for(int i = 0; i < count; i++) insn = Optional.ofNullable(insn.getPrevious()).orElse(insn);
         return insn;
     }
 
-    //same as the normal method, but this one can specify how many to go forward
+    //same as insn#getNext, but this one can specify how many to go forward
     @Nonnull
     default AbstractInsnNode getNext(@Nonnull AbstractInsnNode insn, int count) {
-        for(int i = 0; i < count; i++) insn = Optional.ofNullable(insn.getPrevious()).orElse(insn);
+        for(int i = 0; i < count; i++) insn = Optional.ofNullable(insn.getNext()).orElse(insn);
         return insn;
     }
 
@@ -112,6 +126,11 @@ public interface IASMPlugin extends Opcodes
         else if(desc == null) return ((MethodInsnNode)insn).name.equals(name);
         //default return
         else return ((MethodInsnNode)insn).name.equals(name) && ((MethodInsnNode)insn).desc.equals(desc);
+    }
+
+    //utility method that doesn't take in a desc
+    default boolean checkMethod(@Nonnull AbstractInsnNode insn, @Nonnull String name) {
+        return insn instanceof MethodInsnNode && ((MethodInsnNode)insn).name.equals(name);
     }
 
     //same as above, but for method nodes

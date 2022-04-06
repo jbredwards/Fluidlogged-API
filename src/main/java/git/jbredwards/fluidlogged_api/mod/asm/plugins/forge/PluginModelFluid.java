@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 public final class PluginModelFluid implements IASMPlugin
 {
     @Override
-    public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
+    public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         if(checkMethod(method, "lambda$buildQuads$13", "(II)F")) return 1;
         if(checkMethod(method, "lambda$buildQuads$11", "(II)F")) return 2;
         return checkMethod(method, "lambda$buildQuads$7", "(I)F") ? 3 : 0;

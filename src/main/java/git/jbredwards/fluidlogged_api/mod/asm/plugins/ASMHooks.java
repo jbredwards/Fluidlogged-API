@@ -1,11 +1,11 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins;
 
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.BFReflector;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.OFReflector;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.mod.common.util.AccessorUtils;
-import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -37,12 +37,11 @@ import javax.annotation.Nullable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
+import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
 import static net.minecraft.util.EnumFacing.*;
 
 /**
  * class exists cause SpongeForge
- * NOTE THAT MOST OF THESE METHODS ARE MEANT TO ONLY BE USED IN CERTAIN CASES,
- * PRIOR TO INTEGRATING THEM TO YOUR OWN MOD, VIEW THE PLUGIN CLASS ASSOCIATED
  * @author jbred
  *
  */
@@ -53,7 +52,7 @@ public final class ASMHooks
     //FORGE
     //=====
 
-    //BlockFluidBasePlugin
+    //PluginBlockFluidBase
     public static Map<Block, Boolean> defaultDisplacements(Map<Block, Boolean> map) {
         final Map<Block, Boolean> ret = new HashMap<>();
         //restore old entries
@@ -103,13 +102,13 @@ public final class ASMHooks
         return ret;
     }
 
-    //BlockFluidBasePlugin (corrects side angles)
+    //PluginBlockFluidBase (corrects side angles)
     @Nonnull public static boolean[] fixN = new boolean[2];
     @Nonnull public static boolean[] fixS = new boolean[2];
     @Nonnull public static boolean[] fixE = new boolean[2];
     @Nonnull public static boolean[] fixW = new boolean[2];
 
-    //BlockFluidBasePlugin
+    //PluginBlockFluidBase
     public static boolean canSideFlow(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, int i, int j) {
         //SE
         if(i == 0 && j == 0) return canSideFlowDir(fluid, state, world, pos, SOUTH, EAST);
@@ -183,29 +182,29 @@ public final class ASMHooks
         else return true;
     }
 
-    //BlockFluidBasePlugin helper
+    //PluginBlockFluidBase helper
     public static boolean canSideFlowDir(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing... sides) {
         for(EnumFacing side : sides) {
-            if(FluidloggedUtils.canFluidFlow(world, pos, state, side) && FluidloggedUtils.canFluidFlow(world, pos.offset(side), world.getBlockState(pos.offset(side)), side.getOpposite()))
+            if(canFluidFlow(world, pos, state, side) && canFluidFlow(world, pos.offset(side), world.getBlockState(pos.offset(side)), side.getOpposite()))
                 return true;
         }
 
         return false;
     }
 
-    //FluidUtilPlugin
+    //PluginFluidUtil
     public static boolean tryPlaceFluid(World world, BlockPos pos, Fluid fluid, IBlockState destBlockState) {
-        return world.isAirBlock(pos) || FluidloggedUtils.isStateFluidloggable(destBlockState, fluid);
+        return world.isAirBlock(pos) || isStateFluidloggable(destBlockState, world, pos, fluid);
     }
 
-    //ModelFluidPlugin
+    //PluginModelFluid
     public static float fixTextureFightingZ(float old, int index) {
         final EnumFacing facing = EnumFacing.byHorizontalIndex((5 - index) % 4); // [W, S, E, N]
         if(facing.getAxis() == Axis.X) return old;
         else return old == 1 ? 0.998f : 0.002f;
     }
 
-    //ModelFluidPlugin
+    //PluginModelFluid
     public static float fixTextureFightingX(float old, int index) {
         final EnumFacing facing = EnumFacing.byHorizontalIndex((5 - index) % 4); // [W, S, E, N]
         if(facing.getAxis() == Axis.Z) return old;
@@ -216,39 +215,53 @@ public final class ASMHooks
     //VANILLA
     //=======
 
-    //BlockLilyPadPlugin
-    public static IBlockState canBlockStay(World world, BlockPos pos) {
-        final IBlockState state = world.getBlockState(pos);
-        final AxisAlignedBB aabb = state.getBoundingBox(world, pos);
-        return aabb.maxY < 1 ? FluidloggedUtils.getFluidOrReal(world, pos, state) : state;
-    }
-
-    //BlockPlugin
+    //PluginBlock
     public static boolean canSustainPlant(BlockBush bush, IBlockState state, IBlockAccess world, BlockPos pos) {
         //add special case for lily pads
         if(bush instanceof BlockLilyPad) {
             return state.getMaterial() == Material.ICE
                     || state.getBoundingBox(world, pos).maxY < 1
-                    && FluidloggedUtils.getFluidOrReal(world, pos, state).getMaterial() == Material.WATER;
+                    && getFluidOrReal(world, pos, state).getMaterial() == Material.WATER;
         }
 
         //old code
         return AccessorUtils.canSustainBush(bush, state);
     }
 
-    //EntityRendererPlugin
-    public static boolean addRainParticles(IBlockState here, BlockPos pos) {
-        final WorldClient world = Minecraft.getMinecraft().world;
-        final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, here);
-
-        return fluidState.isEmpty() || fluidState.getMaterial() != Material.LAVA
-            || !FluidloggedUtils.canFluidFlow(world, pos, here, UP);
+    //PluginBlockLilyPad
+    public static IBlockState canBlockStay(World world, BlockPos pos) {
+        final IBlockState state = world.getBlockState(pos);
+        final AxisAlignedBB aabb = state.getBoundingBox(world, pos);
+        return aabb.maxY < 1 ? getFluidOrReal(world, pos, state) : state;
     }
 
-    //RenderChunkPlugin
+    //PluginBlockTrapDoor
+    public static boolean canTrapDoorFluidFlow(IBlockState here, EnumFacing side) {
+        final boolean isOpen = here.getValue(BlockTrapDoor.OPEN);
+
+        if(side.getAxis().isHorizontal()) return !isOpen || here.getValue(BlockTrapDoor.FACING).getOpposite() != side;
+        else if(side == EnumFacing.UP) return isOpen || here.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.BOTTOM;
+        else return isOpen || here.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.TOP;
+    }
+
+    //PluginBlockWall
+    public static boolean shouldHavePost(IBlockAccess world, BlockPos pos) {
+        return world.isAirBlock(pos) || getFluidFromState(world.getBlockState(pos)) != null;
+    }
+
+    //PluginEntityRenderer
+    public static boolean addRainParticles(IBlockState here, BlockPos pos) {
+        final WorldClient world = Minecraft.getMinecraft().world;
+        final FluidState fluidState = getFluidState(world, pos, here);
+
+        return fluidState.isEmpty() || fluidState.getMaterial() != Material.LAVA
+            || !canFluidFlow(world, pos, here, UP);
+    }
+
+    //PluginRenderChunk
     public static boolean renderChunk(Block block, IBlockState state, BlockRenderLayer layerIn, boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
         //only run fluid renderer once
-        if(layerIn.ordinal() == 0 && FluidloggedUtils.getFluidFromState(state) == null) {
+        if(layerIn.ordinal() == 0 && getFluidFromState(state) == null) {
             final FluidState fluidState = FluidState.get(pos);
             if(!fluidState.isEmpty() && fluidState.getState().getRenderType() == EnumBlockRenderType.MODEL
                     && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
@@ -288,10 +301,10 @@ public final class ASMHooks
         return canRenderBlockInLayer(block, state, layerIn);
     }
 
-    //RenderChunkPlugin
+    //PluginRenderChunk
     public static boolean renderChunkOF(Block block, IBlockState state, BlockRenderLayer layerIn, boolean[] array, RenderChunk renderChunk, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
         //only run fluid renderer once
-        if(layerIn.ordinal() == 0 && FluidloggedUtils.getFluidFromState(state) == null) {
+        if(layerIn.ordinal() == 0 && getFluidFromState(state) == null) {
             final FluidState fluidState = FluidState.get(pos);
             if(!fluidState.isEmpty() && fluidState.getState().getRenderType() == EnumBlockRenderType.MODEL
                     && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
@@ -345,12 +358,12 @@ public final class ASMHooks
         return canRenderBlockInLayer(block ,state, layerIn);
     }
 
-    //RenderChunkPlugin
+    //PluginRenderChunk
     public static boolean renderChunkOF(Object blockIn, Object ignored, Object[] args, boolean[] array, RenderChunk renderChunk, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
         return renderChunkOF((Block)blockIn, (IBlockState)args[0], (BlockRenderLayer)args[1], array, renderChunk, generator, compiledChunk, world, pos, chunkPos);
     }
 
-    //RenderChunkPlugin helper
+    //PluginRenderChunk helper
     public static boolean canRenderBlockInLayer(Block block, IBlockState state, BlockRenderLayer layer) {
         try {
             return BFReflector.canRenderBlockInLayer != null
@@ -362,7 +375,7 @@ public final class ASMHooks
         }
     }
 
-    //WorldPlugin
+    //PluginWorld
     public static boolean isMaterialInBB(World world, AxisAlignedBB bb, Material materialIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
         for(int x = minX; x < maxX; ++x) {
             for(int y = minY; y < maxY; ++y) {
@@ -383,13 +396,13 @@ public final class ASMHooks
         return false;
     }
 
-    //WorldPlugin
-    public static IBlockState getFluidState(World world, BlockPos pos) {
+    //PluginWorld
+    public static IBlockState getFluidOrAir(World world, BlockPos pos) {
         final FluidState fluidState = FluidState.get(world, pos);
         return fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.getState();
     }
 
-    //WorldPlugin
+    //PluginWorld
     public static boolean handleMaterialAcceleration(BlockPos.PooledMutableBlockPos pos, World world, Material material, Entity entity, Vec3d vec3dIn, boolean flagIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
         boolean flag = flagIn;
 
@@ -429,13 +442,13 @@ public final class ASMHooks
         return flag;
     }
 
-    //WorldPlugin
+    //PluginWorld
     public static void neighborChanged(World world, BlockPos pos, Block blockIn, BlockPos fromPos) {
         final FluidState fluidState = FluidState.get(world, pos);
         if(!fluidState.isEmpty()) fluidState.getState().neighborChanged(world, pos, blockIn, fromPos);
     }
 
-    //WorldPlugin
+    //PluginWorld
     public static IBlockState setBlockState(Chunk chunk, BlockPos pos, IBlockState newState, IBlockState oldState, World world, int flags) {
         final @Nullable IBlockState chunkState = chunk.setBlockState(pos, newState);
         if(chunkState != null) {
@@ -443,24 +456,24 @@ public final class ASMHooks
             //this mod adds a special flag (x | 32, example: Constants.BlockFlags.DEFAULT | 32) that removes any FluidState here
             if((flags & 32) != 0) {
                 if(!fluidState.isEmpty())
-                    FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
+                    setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
             }
 
             //without the flag preserves FluidState / sets FluidState using oldState if it's a full fluid & if newState is fluidloggable
             else {
                 if(!fluidState.isEmpty()) {
                     //update neighboring fluids, there's been a state change
-                    if(FluidloggedUtils.isStateFluidloggable(newState, fluidState.getFluid()))
-                        FluidloggedUtils.notifyFluids(world, pos, fluidState, true);
+                    if(isStateFluidloggable(newState, world, pos, fluidState.getFluid()))
+                        notifyFluids(world, pos, fluidState, true);
 
                     //remove fluid here, new state isn't fluidloggable
-                    else FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
+                    else setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
                 }
                 //save oldState as FluidState
                 else {
-                    final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(oldState);
-                    if(fluid != null && FluidloggedUtils.isFluidloggableFluid(oldState, true) && FluidloggedUtils.isStateFluidloggable(newState, fluid))
-                        FluidloggedUtils.setFluidState(world, pos, newState, FluidState.of(fluid), false, flags);
+                    final @Nullable Fluid fluid = getFluidFromState(oldState);
+                    if(fluid != null && isFluidloggableFluid(oldState, true) && isStateFluidloggable(newState, world, pos, fluid))
+                        setFluidState(world, pos, newState, FluidState.of(fluid), false, flags);
                 }
             }
         }
@@ -468,7 +481,7 @@ public final class ASMHooks
         return chunkState;
     }
 
-    //WorldServerPlugin
+    //PluginWorldServer
     public static void updateBlocks(WorldServer world, BlockPos pos) {
         final FluidState fluidState = FluidState.get(world, pos);
         if(!fluidState.isEmpty() && fluidState.getBlock().getTickRandomly())
@@ -478,7 +491,7 @@ public final class ASMHooks
         world.profiler.endSection();
     }
 
-    //WorldServerPlugin
+    //PluginWorldServer
     public static IBlockState updateBlockTick(WorldServer world, BlockPos pos, Block compare) {
         final IBlockState here = world.getBlockState(pos);
         //actual block
@@ -490,7 +503,7 @@ public final class ASMHooks
         return here;
     }
 
-    //WorldServerPlugin
+    //PluginWorldServer
     public static boolean tickUpdates(boolean flag, WorldServer world, NextTickListEntry entry) {
         final FluidState fluidState = FluidState.get(world, entry.position);
         if(!fluidState.isEmpty() && Block.isEqualTo(fluidState.getBlock(), entry.getBlock())) {

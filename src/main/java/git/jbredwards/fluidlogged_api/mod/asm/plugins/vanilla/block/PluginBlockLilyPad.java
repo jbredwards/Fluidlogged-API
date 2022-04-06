@@ -13,8 +13,8 @@ import javax.annotation.Nonnull;
 public final class PluginBlockLilyPad implements IASMPlugin
 {
     @Override
-    public int isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
-        return checkMethod(method, obfuscated ? "func_180671_f" : "canBlockStay", null) ? 1 : 0;
+    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
+        return checkMethod(method, obfuscated ? "func_180671_f" : "canBlockStay", null);
     }
 
     @Override

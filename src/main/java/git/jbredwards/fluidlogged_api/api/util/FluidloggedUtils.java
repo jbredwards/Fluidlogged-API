@@ -105,7 +105,7 @@ public final class FluidloggedUtils
             setFluidState_Internal(world, chunk, here, pos, event.fluidState, event.blockFlags);
 
             //default
-            return event.getResult() != Event.Result.DENY;
+            return true;
         }
     }
 
@@ -200,10 +200,6 @@ public final class FluidloggedUtils
                 : state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
-    //to be removed
-    @Deprecated
-    public static boolean isCompatibleFluid(@Nullable IBlockAccess world, @Nullable Fluid fluid1, @Nullable Fluid fluid2) { return isCompatibleFluid(fluid1, fluid2); }
-
     //checks if two fluids are compatible
     public static boolean isCompatibleFluid(@Nullable Fluid fluid1, @Nullable Fluid fluid2) {
         if(fluid1 == null || fluid2 == null) return fluid1 == fluid2;
@@ -235,13 +231,13 @@ public final class FluidloggedUtils
                 ((IFluidloggableFluid)fluid.getBlock()).isFluidloggableFluid(fluid, checkLevel);
     }
 
-    public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
+    public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable Fluid fluid) {
         //config
         final EnumActionResult result = ConfigHandler.isStateFluidloggable(state, fluid);
         if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;
         //defaults
         return (state.getBlock() instanceof IFluidloggable) && (fluid != null
-                ? ((IFluidloggable)state.getBlock()).isFluidValid(state, fluid)
-                : ((IFluidloggable)state.getBlock()).isFluidloggable(state));
+                ? ((IFluidloggable)state.getBlock()).isFluidValid(state, world, pos, fluid)
+                : ((IFluidloggable)state.getBlock()).isFluidloggable(state, world, pos));
     }
 }
