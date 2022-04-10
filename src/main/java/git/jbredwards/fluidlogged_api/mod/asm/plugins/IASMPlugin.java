@@ -76,13 +76,25 @@ public interface IASMPlugin extends Opcodes
         }
     }
 
+    //overrides an existing MethodNode
+    default void overrideMethod(@Nonnull MethodNode method, @Nullable String hookName, @Nullable String hookDesc, @Nonnull Consumer<GeneratorAdapter> consumer) {
+        //remove existing body data
+        method.instructions.clear();
+        if(method.tryCatchBlocks != null) method.tryCatchBlocks.clear();
+        if(method.localVariables != null) method.localVariables.clear();
+        if(method.visibleLocalVariableAnnotations != null) method.visibleLocalVariableAnnotations.clear();
+        if(method.invisibleLocalVariableAnnotations != null) method.invisibleLocalVariableAnnotations.clear();
+        //write new body data
+        consumer.accept(new GeneratorAdapter(method, method.access, method.name, method.desc));
+        if(hookName != null && hookDesc != null) //allow the hook to be skipped, in case it's easier to use the consumer
+            method.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks", hookName, hookDesc, false);
+        method.visitInsn(Type.getReturnType(method.desc).getOpcode(IRETURN));
+    }
+
     //generates a new MethodNode
-    default void addMethod(@Nonnull ClassNode classNode, @Nonnull String name, @Nonnull String desc, @Nonnull String hookName, @Nonnull String hookDesc, @Nonnull Consumer<GeneratorAdapter> consumer) {
+    default void addMethod(@Nonnull ClassNode classNode, @Nonnull String name, @Nonnull String desc, @Nullable String hookName, @Nullable String hookDesc, @Nonnull Consumer<GeneratorAdapter> consumer) {
         final MethodNode method = new MethodNode(ACC_PUBLIC, name, desc, null, null);
-        consumer.accept(new GeneratorAdapter(method, method.access, name, desc));
-        method.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks", hookName, hookDesc, false);
-        method.visitInsn(Type.getReturnType(desc).getOpcode(IRETURN));
-        //adds the newly generated method
+        overrideMethod(method, hookName, hookDesc, consumer);
         classNode.methods.add(method);
     }
 

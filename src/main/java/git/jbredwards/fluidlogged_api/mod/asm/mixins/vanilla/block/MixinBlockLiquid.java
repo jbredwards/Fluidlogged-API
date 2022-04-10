@@ -393,7 +393,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
             final IBlockState here = world.getBlockState(pos);
 
             if(isStateFluidloggable(here, world, pos, getFluid())) setFluidState(world, pos, here, FluidState.of(this), true);
-            else world.setBlockState(pos, getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
+            else world.setBlockState(pos, BlockLiquid.getFlowingBlock(material).getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
         }
 
         return Fluid.BUCKET_VOLUME;

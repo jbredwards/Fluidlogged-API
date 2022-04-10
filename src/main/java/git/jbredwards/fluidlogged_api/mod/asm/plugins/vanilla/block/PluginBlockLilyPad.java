@@ -14,7 +14,7 @@ public final class PluginBlockLilyPad implements IASMPlugin
 {
     @Override
     public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
-        return checkMethod(method, obfuscated ? "func_180671_f" : "canBlockStay", null);
+        return method.name.equals(obfuscated ? "func_180671_f" : "canBlockStay");
     }
 
     @Override

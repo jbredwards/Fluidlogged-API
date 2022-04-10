@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged_api.mod.asm;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.PluginASMHooks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.*;
@@ -47,6 +48,9 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("net.minecraft.client.renderer.EntityRenderer", new PluginEntityRenderer()) //fixes graphical underwater block selection; lava FluidStates now emit smoke while raining; fixes FluidState fog color
                 //vanilla (blocks)
                 .put("net.minecraft.block.Block", new PluginBlock()) //fixes some lighting, canSustainPlant, and explosion related issues
+                .put("net.minecraft.block.BlockBarrier", new PluginBlockBarrier()) //move the hardcoded stuff from WorldClient to BlockBarrier
+                .put("net.minecraft.block.BlockConcretePowder", new PluginBlockConcretePowder()) //concrete forms from concrete powder while its next to flowing water FluidStates
+                .put("net.minecraft.block.BlockDoor", new PluginBlockDoor()) // update upper FluidState & correct canFluidFlow
                 .put("net.minecraft.block.BlockLilyPad", new PluginBlockLilyPad()) //lily pads can stay on certain water FluidStates
                 .put("net.minecraft.block.BlockTrapDoor", new PluginBlockTrapDoor()) //fluids flow from correct sides
                 .put("net.minecraft.block.BlockWall", new PluginBlockWall()) //fixes a bug with walls that caused the post to unintentionally render
@@ -83,6 +87,8 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 //vanilla (world)
                 .put("net.minecraft.world.World", new PluginWorld()) //corrects a lot of FluidState related interactions
                 .put("net.minecraft.world.WorldServer", new PluginWorldServer()) //FluidStates now get ticked
+                //internal
+                .put("git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMHooks", new PluginASMHooks())
                 .build();
 
         @Override

@@ -2,7 +2,7 @@ package git.jbredwards.fluidlogged_api.mod.common.config;
 
 import com.google.gson.*;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import git.jbredwards.fluidlogged_api.mod.asm.mixins.utils.IMixinBlock;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMHooks;
 import it.unimi.dsi.fastutil.ints.Int2BooleanMap;
 import it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
@@ -179,7 +179,7 @@ public final class ConfigHandler
             ConfigPredicate predicate = builder.build();
             map.put(predicate.block, predicate);
 
-            ((IMixinBlock)predicate.block).setCanFluidFlow(builder.canFluidFlow);
+            ASMHooks.setCanFluidFlow(predicate.block, builder.canFluidFlow);
         }
     }
 

@@ -14,7 +14,7 @@ public final class PluginBlockWall implements IASMPlugin
 {
     @Override
     public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
-        return checkMethod(method, obfuscated ? "func_176221_a" : "getActualState", null);
+        return method.name.equals(obfuscated ? "func_176221_a" : "getActualState");
     }
 
     @Override

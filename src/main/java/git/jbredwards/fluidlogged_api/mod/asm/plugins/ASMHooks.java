@@ -1,6 +1,5 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins;
 
-import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.BFReflector;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.OFReflector;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
@@ -20,6 +19,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.crash.CrashReport;
 import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.*;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -48,12 +48,21 @@ import static net.minecraft.util.EnumFacing.*;
 @SuppressWarnings("unused")
 public final class ASMHooks
 {
+    //===============================================================
+    //INTERNAL (these are all given functionality via PluginASMHooks)
+    //===============================================================
+
+    @Nullable
+    public static Boolean getCanFluidFlow(@Nonnull Block block) { return null; }
+    public static void setCanFluidFlow(@Nonnull Block block, @Nullable Boolean canFluidFlowIn) { }
+
     //=====
     //FORGE
     //=====
 
     //PluginBlockFluidBase
-    public static Map<Block, Boolean> defaultDisplacements(Map<Block, Boolean> map) {
+    @Nonnull
+    public static Map<Block, Boolean> defaultDisplacements(@Nonnull Map<Block, Boolean> map) {
         final Map<Block, Boolean> ret = new HashMap<>();
         //restore old entries
         ret.put(Blocks.OAK_DOOR,                       false);
@@ -226,6 +235,61 @@ public final class ASMHooks
 
         //old code
         return AccessorUtils.canSustainBush(bush, state);
+    }
+
+    //PluginBlock
+    public float getExplosionResistance(@Nonnull Block block, @Nullable Entity exploder, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Explosion explosion) {
+        if(getFluidFromBlock(block) != null) return block.getExplosionResistance(exploder);
+        //return the greater of the two possible resistance values here
+        final FluidState fluidState = FluidState.get(world, pos);
+        return Math.max(fluidState.isEmpty() ? 0 : fluidState.getBlock().getExplosionResistance(world, pos, exploder, explosion), block.getExplosionResistance(exploder));
+    }
+
+    //PluginBlock
+    public static int getLightOpacity(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        if(getFluidFromState(state) != null) return state.getLightOpacity();
+        //return the greater of the two possible light values here
+        final FluidState fluidState = FluidState.get(world, pos);
+        return Math.max(fluidState.isEmpty() ? 0 : fluidState.getState().getLightOpacity(world, pos), state.getLightOpacity());
+    }
+
+    //PluginBlock
+    public static int getLightValue(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        if(getFluidFromState(state) != null) return state.getLightValue();
+        //return the greater of the two possible light values here
+        final FluidState fluidState = FluidState.get(world, pos);
+        return Math.max(fluidState.isEmpty() ? 0 : fluidState.getState().getLightValue(world, pos), state.getLightValue());
+    }
+
+    //PluginBlockBarrier
+    public static void fixBarrierParticles(IBlockState state, World world, BlockPos pos) {
+        final EntityPlayer player = Minecraft.getMinecraft().player;
+        if(player.isCreative() && player.getHeldItemMainhand().getItem() == state.getBlock().getItemDropped(state, world.rand, 0))
+            world.spawnParticle(EnumParticleTypes.BARRIER, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0, 0, 0);
+    }
+
+    //PluginBlockConcretePowder
+    public static boolean tryTouchWater(World world, BlockPos pos, EnumFacing facing) {
+        final IBlockState state = world.getBlockState(pos);
+        return getFluidOrReal(world, pos, state).getMaterial() == Material.WATER
+                && canFluidFlow(world, pos, state, facing.getOpposite());
+    }
+
+    //PluginBlockDoor
+    public static void notifyDoorFluids(@Nonnull World world, @Nonnull BlockPos rangeMin, @Nonnull BlockPos rangeMax) {
+        notifyFluids(world, rangeMin.up(), FluidState.get(world, rangeMin.up()), false, EnumFacing.DOWN);
+        world.markBlockRangeForRenderUpdate(rangeMin, rangeMax);
+    }
+
+    //PluginBlockDoor
+    public static boolean canDoorFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull EnumFacing side) {
+        if(side.getAxis().isVertical()) return true;
+
+        here = here.getActualState(world, pos);
+        final EnumFacing facing = here.getValue(BlockDoor.FACING);
+
+        return (here.getValue(BlockDoor.OPEN) ? (here.getValue(BlockDoor.HINGE) == BlockDoor.EnumHingePosition.RIGHT
+                ? facing.rotateY() : facing.rotateYCCW()) : facing.getOpposite()) != side;
     }
 
     //PluginBlockLilyPad
