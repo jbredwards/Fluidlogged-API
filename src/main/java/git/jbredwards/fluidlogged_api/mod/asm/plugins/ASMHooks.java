@@ -7,6 +7,7 @@ import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.mod.common.util.AccessorUtils;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -30,6 +31,8 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.ForgeHooksClient;
+import net.minecraftforge.common.property.IExtendedBlockState;
+import net.minecraftforge.common.property.PropertyFloat;
 import net.minecraftforge.fluids.*;
 
 import javax.annotation.Nonnull;
@@ -49,7 +52,7 @@ import static net.minecraft.util.EnumFacing.*;
 public final class ASMHooks
 {
     //===============================================================
-    //INTERNAL (these are all given functionality via PluginASMHooks)
+    //INTERNAL (these are given functionality via PluginASMHooks)
     //===============================================================
 
     @Nullable
@@ -111,24 +114,199 @@ public final class ASMHooks
         return ret;
     }
 
-    //PluginBlockFluidBase (corrects side angles)
+    //PluginBlockFluidBase
+    public static boolean shouldFluidSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, int densityDir) {
+        if(!canFluidFlow(world, pos, world.getBlockState(pos), side)) return true;
+
+        final IBlockState neighbor = world.getBlockState(pos.offset(side));
+        return !isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluidFromState(state))
+                || !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite());
+    }
+
+    //PluginBlockFluidBase
+    @Nonnull
+    public static IBlockState getFluidExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, int densityDir, int quantaPerBlock, float quantaPerBlockFloat, float quantaFraction, float flowDirection) {
+        if(!(oldState instanceof IExtendedBlockState)) return oldState;
+        final IBlockState here = world.getBlockState(pos);
+
+        //covert to extended state
+        IExtendedBlockState state = (IExtendedBlockState)oldState;
+        state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, flowDirection);
+
+        //corner height variables
+        final IBlockState[][] upBlockState = new IBlockState[3][3];
+        final Fluid[][] upFluid = new Fluid[3][3];
+        final float[][] height = new float[3][3];
+        final float[][] corner = new float[2][2];
+
+        upBlockState[1][1] = world.getBlockState(pos.down(densityDir));
+        upFluid[1][1] = getFluidState(world, pos.down(densityDir), upBlockState[1][1]).getFluid();
+        height[1][1] = getFluidHeightForRender(fluid, world, pos, upBlockState[1][1], upFluid[1][1], 1, 1, densityDir, quantaPerBlock, quantaPerBlockFloat, quantaFraction);
+
+        //fluid block above this
+        if(height[1][1] == 1)
+            for(int i = 0; i < 2; i++)
+                for(int j = 0; j < 2; j++)
+                    corner[i][j] = 1;
+        //no fluid block above this
+        else {
+            //get corner heights from all 8 sides
+            for(int i = 0; i < 3; i++) {
+                for(int j = 0; j < 3; j++) {
+                    if(i != 1 || j != 1) {
+                        upBlockState[i][j] = world.getBlockState(pos.add(i - 1, 0, j - 1).down(densityDir));
+                        upFluid[i][j] = getFluidState(world, pos.add(i - 1, 0, j - 1).down(densityDir), upBlockState[i][j]).getFluid();
+                        height[i][j] = getFluidHeightForRender(fluid, world, pos.add(i - 1, 0, j - 1), upBlockState[i][j], upFluid[i][j], i, j, densityDir, quantaPerBlock, quantaPerBlockFloat, quantaFraction);
+                    }
+                }
+            }
+            //find average of all heights for each corner
+            for(int i = 0; i < 2; i++)
+                for(int j = 0; j < 2; j++)
+                    corner[i][j] = getFluidHeightAverage(i, j, quantaFraction, height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
+
+            //check for downflow above corners
+            boolean n =  isFluid(fluid, upBlockState[0][1], upFluid[0][1], world, pos.north(), EnumFacing.NORTH);
+            boolean s =  isFluid(fluid, upBlockState[2][1], upFluid[2][1], world, pos.south(), EnumFacing.SOUTH);
+            boolean w =  isFluid(fluid, upBlockState[1][0], upFluid[1][0], world, pos.west(),  EnumFacing.WEST);
+            boolean e =  isFluid(fluid, upBlockState[1][2], upFluid[1][2], world, pos.east(),  EnumFacing.EAST);
+            boolean nw = isFluid(fluid, upBlockState[0][0], upFluid[0][0], world, pos.north().west(), EnumFacing.NORTH, EnumFacing.WEST);
+            boolean ne = isFluid(fluid, upBlockState[0][2], upFluid[0][2], world, pos.north().east(), EnumFacing.NORTH, EnumFacing.EAST);
+            boolean sw = isFluid(fluid, upBlockState[2][0], upFluid[2][0], world, pos.south().west(), EnumFacing.SOUTH, EnumFacing.WEST);
+            boolean se = isFluid(fluid, upBlockState[2][2], upFluid[2][2], world, pos.south().east(), EnumFacing.SOUTH, EnumFacing.EAST);
+            if(nw || n || w) corner[0][0] = 1;
+            if(ne || n || e) corner[0][1] = 1;
+            if(sw || s || w) corner[1][0] = 1;
+            if(se || s || e) corner[1][1] = 1;
+
+            //fix corners of fluidlogged blocks
+            if(corner[0][0] < quantaFraction && (fixCorner(fluid, here, world, pos, EnumFacing.NORTH, EnumFacing.WEST) || fixCorner(fluid, here, world, pos, EnumFacing.WEST, EnumFacing.NORTH))) corner[0][0] = quantaFraction;
+            if(corner[0][1] < quantaFraction && (fixCorner(fluid, here, world, pos, EnumFacing.SOUTH, EnumFacing.WEST) || fixCorner(fluid, here, world, pos, EnumFacing.WEST, EnumFacing.SOUTH))) corner[0][1] = quantaFraction;
+            if(corner[1][0] < quantaFraction && (fixCorner(fluid, here, world, pos, EnumFacing.NORTH, EnumFacing.EAST) || fixCorner(fluid, here, world, pos, EnumFacing.EAST, EnumFacing.NORTH))) corner[1][0] = quantaFraction;
+            if(corner[1][1] < quantaFraction && (fixCorner(fluid, here, world, pos, EnumFacing.SOUTH, EnumFacing.EAST) || fixCorner(fluid, here, world, pos, EnumFacing.EAST, EnumFacing.SOUTH))) corner[1][1] = quantaFraction;
+        }
+
+        //side overlays
+        for(int i = 0; i < 4; i++) {
+            EnumFacing side = EnumFacing.byHorizontalIndex(i);
+            BlockPos offset = pos.offset(side);
+            boolean useOverlay = world.getBlockState(offset).getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID;
+            state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], useOverlay);
+        }
+
+        //fix possible top z fighting
+        if(!canFluidFlow(world, pos, here, densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN)) {
+            if(corner[0][0] == 1) corner[0][0] = 0.998f;
+            if(corner[0][1] == 1) corner[0][1] = 0.998f;
+            if(corner[1][0] == 1) corner[1][0] = 0.998f;
+            if(corner[1][1] == 1) corner[1][1] = 0.998f;
+        }
+
+        //sets the corner props
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[0], corner[0][0], quantaFraction);
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[1], corner[0][1], quantaFraction);
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[2], corner[1][1], quantaFraction);
+        state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[3], corner[1][0], quantaFraction);
+        return state;
+    }
+
+    //PluginBlockFluidBase helper
+    public static boolean fixCorner(@Nonnull Fluid fluid, @Nonnull IBlockState here, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing primary, @Nonnull EnumFacing other) {
+        if(canFluidFlow(world, pos, here, primary)) return false;
+
+        final BlockPos offset = pos.offset(other);
+        final IBlockState neighbor = world.getBlockState(offset);
+
+        if(!canFluidFlow(world, offset, neighbor, primary) || !canFluidFlow(world, offset, neighbor, other.getOpposite()))
+            return true;
+
+        else return !isCompatibleFluid(getFluidState(world, offset, neighbor).getFluid(), fluid);
+    }
+
+    //PluginBlockFluidBase helper
+    public static float getFluidHeightForRender(@Nonnull Fluid fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState up, @Nullable Fluid upFluid, int i, int j, int densityDir, int quantaPerBlock, float quantaPerBlockFloat, float quantaFraction) {
+        //check block above
+        if(isFluid(fluid, up, upFluid, world, pos.down(densityDir), (densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN))) return 1;
+
+        final IBlockState state = world.getBlockState(pos);
+        if(state.getBlock().isAir(state, world, pos)) return 0;
+
+        final FluidState fluidState = getFluidState(world, pos, state);
+        final boolean canSideFlow = canSideFlow(state, world, pos, i, j);
+        final boolean fluidMatches = isCompatibleFluid(fluidState.getFluid(), fluid);
+
+        //is a fluid
+        if(fluidMatches && canSideFlow) {
+            final int level = fluidState.getLevel();
+
+            if(level == 0) return quantaFraction;
+            else return ((quantaPerBlock - level) / quantaPerBlockFloat) * quantaFraction;
+        }
+
+        //not a fluid
+        else return -1f / quantaPerBlock * quantaFraction;
+    }
+
+    //PluginBlockFluidBase helper
+    public static float getFluidHeightAverage(int i, int j, float quantaFraction, @Nonnull float... flow) {
+        float total = 0;
+        int count = 0;
+
+        for(int index = 0; index < flow.length; index++) {
+            //fix corners visually flowing into illegal sides (vanilla 1.13 bug)
+            if(fixN[i] && j == 1 && (index & 1) == 1) continue;
+            if(fixS[i] && j == 0 && (index & 1) == 0) continue;
+            if(fixE[j] && i == 0 && index <= 1) continue;
+            if(fixW[j] && i == 1 && index > 1) continue;
+
+            if(flow[index] >= quantaFraction) {
+                total += flow[index] * 10;
+                count += 10;
+            }
+
+            if(flow[index] >= 0) {
+                total += flow[index];
+                count++;
+            }
+        }
+
+        return total / count;
+    }
+
+    //PluginBlockFluidBase helper
+    public static boolean isFluid(@Nonnull Fluid fluid, @Nonnull IBlockState neighbor, @Nullable Fluid other, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing...faces) {
+        if(isCompatibleFluid(fluid, other)) {
+            for(EnumFacing facing : faces) if(!canFluidFlow(world, pos, neighbor, facing.getOpposite())) return false;
+            return true;
+        }
+
+        return false;
+    }
+
+    //PluginBlockFluidBase helper
+    @Nonnull
+    public static IExtendedBlockState withPropertyFallback(@Nonnull IExtendedBlockState state, @Nonnull PropertyFloat property, float value, float quantaFraction) {
+        return state.withProperty(property, property.isValid(value) ? value : quantaFraction);
+    }
+
+    //PluginBlockFluidBase helper (corrects side angles)
     @Nonnull public static boolean[] fixN = new boolean[2];
     @Nonnull public static boolean[] fixS = new boolean[2];
     @Nonnull public static boolean[] fixE = new boolean[2];
     @Nonnull public static boolean[] fixW = new boolean[2];
 
-    //PluginBlockFluidBase
-    public static boolean canSideFlow(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, int i, int j) {
+    //PluginBlockFluidBase helper
+    public static boolean canSideFlow(IBlockState state, IBlockAccess world, BlockPos pos, int i, int j) {
         //SE
-        if(i == 0 && j == 0) return canSideFlowDir(fluid, state, world, pos, SOUTH, EAST);
+        if(i == 0 && j == 0) return canSideFlowDir(state, world, pos, SOUTH, EAST);
         //S
         else if(i == 1  && j == 0) {
             fixS = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, SOUTH)) return true;
+            if(canSideFlowDir(state, world, pos, SOUTH)) return true;
 
             //fix uneven corners
-            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, SOUTH, EAST);
-            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, SOUTH, WEST);
+            final boolean flag1 = canSideFlowDir(state, world, pos, SOUTH, EAST);
+            final boolean flag2 = canSideFlowDir(state, world, pos, SOUTH, WEST);
             if(flag1 != flag2) {
                 if(flag1) fixS[0] = true;
                 else      fixS[1] = true;
@@ -137,15 +315,15 @@ public final class ASMHooks
             return flag1 || flag2;
         }
         //SW
-        else if(i == 2  && j == 0) return canSideFlowDir(fluid, state, world, pos, SOUTH, WEST);
+        else if(i == 2  && j == 0) return canSideFlowDir(state, world, pos, SOUTH, WEST);
         //E
         else if(i == 0 && j == 1) {
             fixE = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, EAST)) return true;
+            if(canSideFlowDir(state, world, pos, EAST)) return true;
 
             //fix uneven corners
-            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, EAST, SOUTH);
-            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, EAST, NORTH);
+            final boolean flag1 = canSideFlowDir(state, world, pos, EAST, SOUTH);
+            final boolean flag2 = canSideFlowDir(state, world, pos, EAST, NORTH);
             if(flag1 != flag2) {
                 if(flag1) fixE[0] = true;
                 else      fixE[1] = true;
@@ -156,11 +334,11 @@ public final class ASMHooks
         //W
         else if(i == 2  && j == 1) {
             fixW = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, WEST)) return true;
+            if(canSideFlowDir(state, world, pos, WEST)) return true;
 
             //fix uneven corners
-            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, WEST, SOUTH);
-            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, WEST, NORTH);
+            final boolean flag1 = canSideFlowDir(state, world, pos, WEST, SOUTH);
+            final boolean flag2 = canSideFlowDir(state, world, pos, WEST, NORTH);
             if(flag1 != flag2) {
                 if(flag1) fixW[0] = true;
                 else      fixW[1] = true;
@@ -169,15 +347,15 @@ public final class ASMHooks
             return flag1 || flag2;
         }
         //NE
-        else if(i == 0 && j == 2) return canSideFlowDir(fluid, state, world, pos, NORTH, EAST);
+        else if(i == 0 && j == 2) return canSideFlowDir(state, world, pos, NORTH, EAST);
         //N
         else if(i == 1  && j == 2) {
             fixN = new boolean[2];
-            if(canSideFlowDir(fluid, state, world, pos, NORTH)) return true;
+            if(canSideFlowDir(state, world, pos, NORTH)) return true;
 
             //fix uneven corners
-            final boolean flag1 = canSideFlowDir(fluid, state, world, pos, NORTH, EAST);
-            final boolean flag2 = canSideFlowDir(fluid, state, world, pos, NORTH, WEST);
+            final boolean flag1 = canSideFlowDir(state, world, pos, NORTH, EAST);
+            final boolean flag2 = canSideFlowDir(state, world, pos, NORTH, WEST);
             if(flag1 != flag2) {
                 if(flag1) fixN[0] = true;
                 else      fixN[1] = true;
@@ -186,13 +364,13 @@ public final class ASMHooks
             return flag1 || flag2;
         }
         //NW
-        else if(i == 2  && j == 2) return canSideFlowDir(fluid, state, world, pos, NORTH, WEST);
+        else if(i == 2  && j == 2) return canSideFlowDir(state, world, pos, NORTH, WEST);
         //default
         else return true;
     }
 
     //PluginBlockFluidBase helper
-    public static boolean canSideFlowDir(Fluid fluid, IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing... sides) {
+    public static boolean canSideFlowDir(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing... sides) {
         for(EnumFacing side : sides) {
             if(canFluidFlow(world, pos, state, side) && canFluidFlow(world, pos.offset(side), world.getBlockState(pos.offset(side)), side.getOpposite()))
                 return true;

@@ -92,20 +92,16 @@ public final class SyncFluidStatesMessage implements IMessage
                     //clear any old fluid states
                     final Set<BlockPos> removed = ImmutableSet.copyOf(cap.getFluidStates().keySet());
                     cap.getFluidStates().clear();
-
                     //add any new fluid states
                     message.data.forEach(entry -> {
                         BlockPos pos = BlockPos.fromLong(entry.getKey());
                         FluidState fluidState = FluidState.deserialize(entry.getValue());
-
                         //send changes to client
                         cap.setFluidState(pos, fluidState);
-
                         //re-render block
                         FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
                         world.markBlockRangeForRenderUpdate(pos, pos);
                     });
-
                     //update removed light levels & renders
                     removed.forEach(pos -> {
                         //make sure the cleared pos wasn't replaced prior to re-render

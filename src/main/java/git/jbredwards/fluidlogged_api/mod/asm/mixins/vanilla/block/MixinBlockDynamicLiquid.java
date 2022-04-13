@@ -286,11 +286,11 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
     private void flowIntoBlock(@Nonnull World world, @Nonnull BlockPos pos, int meta) {
         if(canDisplace(world, pos)) {
             final IBlockState state = world.getBlockState(pos);
-            final Block block = state.getBlock();
 
-            if(!block.isAir(state, world, pos) && getFluidFromBlock(block) == null) {
+            if(!state.getBlock().isAir(state, world, pos)) {
                 // Forge: Vanilla has a 'bug' where snowballs don't drop like every other block. So special case because ewww...
-                if(block != Blocks.SNOW_LAYER) block.dropBlockAsItem(world, pos, state, 0);
+                if(state.getBlock() != Blocks.SNOW_LAYER) state.getBlock().dropBlockAsItem(world, pos, state, 0);
+                if(material == Material.LAVA) triggerMixEffects(world, pos);
             }
 
             world.setBlockState(pos, getDefaultState().withProperty(BlockLiquid.LEVEL, meta));

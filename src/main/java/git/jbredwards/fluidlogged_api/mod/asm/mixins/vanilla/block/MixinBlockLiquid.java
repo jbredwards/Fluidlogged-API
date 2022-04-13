@@ -64,14 +64,6 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
      * @reason fixes fluidlogged interactions
      * @author jbred
      */
-    @Nonnull
-    @Overwrite
-    public EnumBlockRenderType getRenderType(@Nonnull IBlockState state) { return EnumBlockRenderType.MODEL; }
-
-    /**
-     * @reason fixes fluidlogged interactions
-     * @author jbred
-     */
     @SideOnly(Side.CLIENT)
     @Overwrite
     public boolean shouldSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
@@ -326,7 +318,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
         if(state.getBlock().isAir(state, world, pos)) return 0;
 
         final FluidState fluidState = getFluidState(world, pos, state);
-        final boolean canSideFlow = ASMHooks.canSideFlow(getFluid(), state, world, pos, i, j);
+        final boolean canSideFlow = ASMHooks.canSideFlow(state, world, pos, i, j);
         final boolean fluidMatches = isCompatibleFluid(fluidState.getFluid(), getFluid());
 
         //is a fluid

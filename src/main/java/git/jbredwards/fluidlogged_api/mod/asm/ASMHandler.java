@@ -49,9 +49,12 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 //vanilla (blocks)
                 .put("net.minecraft.block.Block", new PluginBlock()) //fixes some lighting, canSustainPlant, and explosion related issues
                 .put("net.minecraft.block.BlockBarrier", new PluginBlockBarrier()) //move the hardcoded stuff from WorldClient to BlockBarrier
+                .put("net.minecraft.block.BlockBush", new PluginBlockBush()) //exists for fluidloggable plants that parent from this class
+                .put("net.minecraft.block.BlockCocoa", new PluginBlockCocoa()) //exists in case cocoa beans are added to the config whitelist
                 .put("net.minecraft.block.BlockConcretePowder", new PluginBlockConcretePowder()) //concrete forms from concrete powder while its next to flowing water FluidStates
                 .put("net.minecraft.block.BlockDoor", new PluginBlockDoor()) // update upper FluidState & correct canFluidFlow
                 .put("net.minecraft.block.BlockLilyPad", new PluginBlockLilyPad()) //lily pads can stay on certain water FluidStates
+                .put("net.minecraft.block.BlockLiquid", new PluginBlockLiquid()) //significantly changes the BlockLiquid class to work with the mod
                 .put("net.minecraft.block.BlockTrapDoor", new PluginBlockTrapDoor()) //fluids flow from correct sides
                 .put("net.minecraft.block.BlockWall", new PluginBlockWall()) //fixes a bug with walls that caused the post to unintentionally render
                 //vanilla (default fluidloggables)

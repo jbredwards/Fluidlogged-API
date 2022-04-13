@@ -28,7 +28,7 @@ public final class PluginBlockConcretePowder implements IASMPlugin
             return true;
         }
         //tryTouchWater, line 48
-        else if(index == 2 && insn.getOpcode() == IF_ACMPNE) {
+        else if(index == 2 && getPrevious(insn, 2).getOpcode() == INVOKEINTERFACE) {
             final InsnList list = new InsnList();
             //EnumFacing local var
             list.add(new VarInsnNode(ALOAD, 8));

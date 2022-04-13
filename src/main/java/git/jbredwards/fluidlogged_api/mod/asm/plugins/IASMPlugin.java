@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Used as a base for this mod's plugins
@@ -77,24 +78,33 @@ public interface IASMPlugin extends Opcodes
     }
 
     //overrides an existing MethodNode
-    default void overrideMethod(@Nonnull MethodNode method, @Nullable String hookName, @Nullable String hookDesc, @Nonnull Consumer<GeneratorAdapter> consumer) {
-        //remove existing body data
-        method.instructions.clear();
-        if(method.tryCatchBlocks != null) method.tryCatchBlocks.clear();
-        if(method.localVariables != null) method.localVariables.clear();
-        if(method.visibleLocalVariableAnnotations != null) method.visibleLocalVariableAnnotations.clear();
-        if(method.invisibleLocalVariableAnnotations != null) method.invisibleLocalVariableAnnotations.clear();
-        //write new body data
-        consumer.accept(new GeneratorAdapter(method, method.access, method.name, method.desc));
-        if(hookName != null && hookDesc != null) //allow the hook to be skipped, in case it's easier to use the consumer
-            method.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks", hookName, hookDesc, false);
-        method.visitInsn(Type.getReturnType(method.desc).getOpcode(IRETURN));
+    default void overrideMethod(@Nonnull ClassNode classNode, @Nonnull Predicate<MethodNode> searchCondition, @Nullable String hookName, @Nullable String hookDesc, @Nonnull Consumer<GeneratorAdapter> consumer) {
+        for(MethodNode method : classNode.methods) {
+            if(searchCondition.test(method)) {
+                //remove existing body data
+                method.instructions.clear();
+                if(method.tryCatchBlocks != null) method.tryCatchBlocks.clear();
+                if(method.localVariables != null) method.localVariables.clear();
+                if(method.visibleLocalVariableAnnotations != null) method.visibleLocalVariableAnnotations.clear();
+                if(method.invisibleLocalVariableAnnotations != null) method.invisibleLocalVariableAnnotations.clear();
+                //write new body data
+                consumer.accept(new GeneratorAdapter(method, method.access, method.name, method.desc));
+                if(hookName != null && hookDesc != null) //allow the hook to be skipped, in case it's easier to use the consumer
+                    method.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks", hookName, hookDesc, false);
+                method.visitInsn(Type.getReturnType(method.desc).getOpcode(IRETURN));
+            }
+        }
     }
 
     //generates a new MethodNode
     default void addMethod(@Nonnull ClassNode classNode, @Nonnull String name, @Nonnull String desc, @Nullable String hookName, @Nullable String hookDesc, @Nonnull Consumer<GeneratorAdapter> consumer) {
         final MethodNode method = new MethodNode(ACC_PUBLIC, name, desc, null, null);
-        overrideMethod(method, hookName, hookDesc, consumer);
+        //write new body data
+        consumer.accept(new GeneratorAdapter(method, method.access, method.name, method.desc));
+        if(hookName != null && hookDesc != null) //allow the hook to be skipped, in case it's easier to use the consumer
+            method.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks", hookName, hookDesc, false);
+        method.visitInsn(Type.getReturnType(method.desc).getOpcode(IRETURN));
+        //add the newly generated method
         classNode.methods.add(method);
     }
 
@@ -126,6 +136,18 @@ public interface IASMPlugin extends Opcodes
         return insn;
     }
 
+    //same as below, but for method nodes
+    default boolean checkMethod(@Nonnull MethodNode method, @Nullable String name, @Nullable String desc) {
+        //if both are null, assume looking for any method
+        if(name == null && desc == null) return true;
+        //if name null, assume only looking for desc
+        else if(name == null) return method.desc.equals(desc);
+        //if desc null, assume only looking for name
+        else if(desc == null) return method.name.equals(name);
+        //default return
+        else return method.name.equals(name) && method.desc.equals(desc);
+    }
+
     //returns true if the insn is both a method and if it matches the name & desc
     default boolean checkMethod(@Nullable AbstractInsnNode insn, @Nullable String name, @Nullable String desc) {
         //dude it isn't even a method...
@@ -145,18 +167,6 @@ public interface IASMPlugin extends Opcodes
         return insn instanceof MethodInsnNode && ((MethodInsnNode)insn).name.equals(name);
     }
 
-    //same as above, but for method nodes
-    default boolean checkMethod(@Nonnull MethodNode method, @Nullable String name, @Nullable String desc) {
-        //if both are null, assume looking for any method
-        if(name == null && desc == null) return true;
-        //if name null, assume only looking for desc
-        else if(name == null) return method.desc.equals(desc);
-        //if desc null, assume only looking for name
-        else if(desc == null) return method.name.equals(name);
-        //default return
-        else return method.name.equals(name) && method.desc.equals(desc);
-    }
-
     //returns true if the insn is both a field and if it matches the name & desc
     default boolean checkField(@Nullable AbstractInsnNode insn, @Nullable String name, @Nullable String desc) {
         //not a field
@@ -168,7 +178,12 @@ public interface IASMPlugin extends Opcodes
         //only looking for name
         else if(desc == null) return ((FieldInsnNode)insn).name.equals(name);
         //default
-        else return((FieldInsnNode)insn).name.equals(name) && ((FieldInsnNode)insn).desc.equals(desc);
+        else return ((FieldInsnNode)insn).name.equals(name) && ((FieldInsnNode)insn).desc.equals(desc);
+    }
+
+    //utility method that doesn't take in a desc
+    default boolean checkField(@Nonnull AbstractInsnNode insn, @Nonnull String name) {
+        return insn instanceof FieldInsnNode && ((FieldInsnNode)insn).name.equals(name);
     }
 
     //sets the max locals while taking possible external transformers into account
