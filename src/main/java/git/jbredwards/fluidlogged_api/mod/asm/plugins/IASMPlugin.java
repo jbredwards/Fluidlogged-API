@@ -10,18 +10,19 @@ import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
- * Used as a base for this mod's plugins
+ * Allows for quick & easy asm plugins
  * @author jbred
  *
  */
 public interface IASMPlugin extends Opcodes
 {
+    //exists to let other mods to more easily use this interface, like njarm
+    @Nonnull default String getHookClass() { return "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks"; }
     //returns the method index, which is passed into this#transform, returning 0 will skip the method
     default int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) { return isMethodValid(method, obfuscated) ? 1 : 0; }
     //utility method that makes life easier if only one method is being transformed
@@ -91,7 +92,7 @@ public interface IASMPlugin extends Opcodes
                 //write new body data
                 consumer.accept(new GeneratorAdapter(method, method.access, method.name, method.desc));
                 if(hookName != null && hookDesc != null) //allow the hook to be skipped, in case it's easier to use the consumer
-                    method.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks", hookName, hookDesc, false);
+                    method.visitMethodInsn(INVOKESTATIC, getHookClass(), hookName, hookDesc, false);
                 method.visitInsn(Type.getReturnType(method.desc).getOpcode(IRETURN));
             }
         }
@@ -103,29 +104,25 @@ public interface IASMPlugin extends Opcodes
         //write new body data
         consumer.accept(new GeneratorAdapter(method, method.access, method.name, method.desc));
         if(hookName != null && hookDesc != null) //allow the hook to be skipped, in case it's easier to use the consumer
-            method.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks", hookName, hookDesc, false);
+            method.visitMethodInsn(INVOKESTATIC, getHookClass(), hookName, hookDesc, false);
         method.visitInsn(Type.getReturnType(method.desc).getOpcode(IRETURN));
         //add the newly generated method
         classNode.methods.add(method);
     }
 
-    //remove all nodes from indexes 0 though n
+    //remove all nodes from indexes 0 though n (inclusive) (n < 0 = previous; n > 0 = next)
     default void removeFrom(@Nonnull InsnList instructions, @Nonnull AbstractInsnNode insn, int n) {
         final Supplier<AbstractInsnNode> toRemove = n < 0 ? insn::getPrevious : insn::getNext;
-        if(n < 0) n = -n;
-        for(int i = 0; i < n; i++) instructions.remove(toRemove.get());
+        if(n < 0) n = -n; //n must be positive going forward
+        while(n --> 0) instructions.remove(toRemove.get());
         instructions.remove(insn);
     }
 
-    //=============================================================================================================
-    //utility methods that are helpful when applying transformations (prior to v1.7 these were found in ASMUtils)
-    //=============================================================================================================
-
+    //same as method below, but uses hook class
     @Nonnull
-    default MethodInsnNode genMethodNode(@Nonnull String name, @Nonnull String desc) {
-        return genMethodNode("git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks", name, desc);
-    }
+    default MethodInsnNode genMethodNode(@Nonnull String name, @Nonnull String desc) { return genMethodNode(getHookClass(), name, desc); }
 
+    //generates a new method node
     @Nonnull
     default MethodInsnNode genMethodNode(@Nonnull String clazz, @Nonnull String name, @Nonnull String desc) {
         return new MethodInsnNode(INVOKESTATIC, clazz, name, desc, false);
@@ -134,14 +131,14 @@ public interface IASMPlugin extends Opcodes
     //same as insn#getPrevious, but this one can specify how many to go back
     @Nonnull
     default AbstractInsnNode getPrevious(@Nonnull AbstractInsnNode insn, int count) {
-        for(int i = 0; i < count; i++) insn = Optional.ofNullable(insn.getPrevious()).orElse(insn);
+        while(count --> 0 && insn.getPrevious() != null) insn = insn.getPrevious();
         return insn;
     }
 
     //same as insn#getNext, but this one can specify how many to go forward
     @Nonnull
     default AbstractInsnNode getNext(@Nonnull AbstractInsnNode insn, int count) {
-        for(int i = 0; i < count; i++) insn = Optional.ofNullable(insn.getNext()).orElse(insn);
+        while(count --> 0 && insn.getNext() != null) insn = insn.getNext();
         return insn;
     }
 
