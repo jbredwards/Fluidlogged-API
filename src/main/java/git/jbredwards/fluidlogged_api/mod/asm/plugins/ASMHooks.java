@@ -51,14 +51,6 @@ import static net.minecraft.util.EnumFacing.*;
 @SuppressWarnings("unused")
 public final class ASMHooks
 {
-    //===============================================================
-    //INTERNAL (these are given functionality via PluginASMHooks)
-    //===============================================================
-
-    @Nullable
-    public static Boolean getCanFluidFlow(@Nonnull Block block) { return null; }
-    public static void setCanFluidFlow(@Nonnull Block block, @Nullable Boolean canFluidFlowIn) { }
-
     //=====
     //FORGE
     //=====
@@ -377,6 +369,38 @@ public final class ASMHooks
         }
 
         return false;
+    }
+
+    //PluginBlockFluidBase
+    @Nonnull
+    public static Vec3d getFluidFlowVector(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int densityDir, int quantaPerBlock) {
+        final IBlockState here = world.getBlockState(pos);
+        Vec3d vec = Vec3d.ZERO;
+
+        final int decay = AccessorUtils.getFlowDecay(block, world, pos);
+        for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+            if(canFluidFlow(world, pos, here, facing)) {
+                BlockPos offset = pos.offset(facing);
+                if(canFluidFlow(world, offset, world.getBlockState(offset), facing.getOpposite())) {
+                    int otherDecay = AccessorUtils.getFlowDecay(block, world, offset);
+
+                    if(otherDecay >= quantaPerBlock) {
+                        otherDecay = AccessorUtils.getFlowDecay(block, world, offset.up(densityDir));
+
+                        if(otherDecay < quantaPerBlock) {
+                            int power = otherDecay - (decay - quantaPerBlock);
+                            vec = vec.add(facing.getXOffset() * power, 0, facing.getZOffset() * power);
+                        }
+                    }
+                    else {
+                        int power = otherDecay - decay;
+                        vec = vec.add(facing.getXOffset() * power, 0, facing.getZOffset() * power);
+                    }
+                }
+            }
+        }
+
+        return vec.normalize();
     }
 
     //PluginFluidUtil

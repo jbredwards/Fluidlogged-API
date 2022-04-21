@@ -2,7 +2,7 @@ package git.jbredwards.fluidlogged_api.mod.common.config;
 
 import com.google.gson.*;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMHooks;
+import git.jbredwards.fluidlogged_api.mod.common.util.AccessorUtils;
 import it.unimi.dsi.fastutil.ints.Int2BooleanMap;
 import it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
@@ -128,25 +128,21 @@ public final class ConfigHandler
             //fluid tags
             final @Nullable InputStream fluidTags = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/fluidTags.json", modId));
             if(fluidTags != null) readFluidTags(GSON.fromJson(IOUtils.toString(fluidTags, Charset.defaultCharset()), FluidTag[].class));
-            
             //whitelist
             final @Nullable InputStream whitelist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/whitelist.json", modId));
             if(whitelist != null) readPredicates(WHITELIST, GSON.fromJson(IOUtils.toString(whitelist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
-
             //blacklist
             final @Nullable InputStream blacklist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/blacklist.json", modId));
             if(blacklist != null) readPredicates(BLACKLIST, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
-
-            //clear fluid tags, as to prevent possible mod conflicts
+            //clear fluid tags before reading the next mod, as to prevent possible conflicts
             FLUID_TAGS.clear();
         }
-
         //gives the user final say regarding the whitelist & blacklist
+        //config will be null if the file doesn't exist (first launch)
         if(config != null) {
             readFluidTags(config.fluidTags);
             readPredicates(WHITELIST, config.whitelist);
             readPredicates(BLACKLIST, config.blacklist);
-
             FLUID_TAGS.clear();
             config = null;
         }
@@ -179,7 +175,7 @@ public final class ConfigHandler
             ConfigPredicate predicate = builder.build();
             map.put(predicate.block, predicate);
 
-            ASMHooks.setCanFluidFlow(predicate.block, builder.canFluidFlow);
+            AccessorUtils.setCanFluidFlow(predicate.block, builder.canFluidFlow);
         }
     }
 

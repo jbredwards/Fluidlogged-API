@@ -13,6 +13,7 @@ import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * Used as a base for this mod's plugins
@@ -106,6 +107,14 @@ public interface IASMPlugin extends Opcodes
         method.visitInsn(Type.getReturnType(method.desc).getOpcode(IRETURN));
         //add the newly generated method
         classNode.methods.add(method);
+    }
+
+    //remove all nodes from indexes 0 though n
+    default void removeFrom(@Nonnull InsnList instructions, @Nonnull AbstractInsnNode insn, int n) {
+        final Supplier<AbstractInsnNode> toRemove = n < 0 ? insn::getPrevious : insn::getNext;
+        if(n < 0) n = -n;
+        for(int i = 0; i < n; i++) instructions.remove(toRemove.get());
+        instructions.remove(insn);
     }
 
     //=============================================================================================================

@@ -3,7 +3,7 @@ package git.jbredwards.fluidlogged_api.mod.asm;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.PluginASMHooks;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.PluginAccessorUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.*;
@@ -43,6 +43,7 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("net.minecraftforge.fluids.FluidUtil", new PluginFluidUtil()) //changes some of this class's util functions to be FluidState sensitive
                 //modded
                 .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
+                .put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()) //better builders wands compat
                 //vanilla (client)
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new PluginRenderChunk()) //allows the game to render FluidStates
                 .put("net.minecraft.client.renderer.EntityRenderer", new PluginEntityRenderer()) //fixes graphical underwater block selection; lava FluidStates now emit smoke while raining; fixes FluidState fog color
@@ -91,7 +92,7 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("net.minecraft.world.World", new PluginWorld()) //corrects a lot of FluidState related interactions
                 .put("net.minecraft.world.WorldServer", new PluginWorldServer()) //FluidStates now get ticked
                 //internal
-                .put("git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMHooks", new PluginASMHooks())
+                .put("git.jbredwards.fluidlogged_api.mod.common.util.AccessorUtils", new PluginAccessorUtils())
                 .build();
 
         @Override
