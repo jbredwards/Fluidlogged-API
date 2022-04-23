@@ -3,7 +3,9 @@ package git.jbredwards.fluidlogged_api.mod.asm.mixins.forge;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
@@ -18,6 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import java.util.Map;
 
@@ -147,4 +150,25 @@ public abstract class MixinBlockFluidBase extends Block
 
     @Shadow(remap = false)
     protected abstract int getFlowDecay(@Nonnull IBlockAccess world, @Nonnull BlockPos pos);
+
+    @Shadow(remap = false)
+    public abstract float getFilledPercentage(@Nonnull IBlockAccess world, @Nonnull BlockPos pos);
+
+    @Nullable
+    @Override
+    public Boolean isEntityInsideMaterial(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState iblockstate, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
+        return materialIn == material && entity.getEntityBoundingBox().minY < pos.getY() + getFilledPercentage(world, pos);
+    }
+
+    @Nullable
+    @Override
+    public Boolean isAABBInsideMaterial(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB boundingBox, @Nonnull Material materialIn) {
+        return materialIn == material && Boolean.TRUE.equals(isAABBInsideLiquid(world, pos, boundingBox));
+    }
+
+    @Nullable
+    @Override
+    public Boolean isAABBInsideLiquid(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB boundingBox) {
+        return boundingBox.minY < pos.getY() + getFilledPercentage(world, pos);
+    }
 }

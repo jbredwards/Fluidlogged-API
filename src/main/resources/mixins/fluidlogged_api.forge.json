@@ -3,9 +3,6 @@
   "package": "git.jbredwards.fluidlogged_api.mod.asm.mixins.forge",
   "mixins": [
     "MixinBlockFluidBase",
-    "MixinBlockFluidClassic",
-    "MixinFluid",
-    "MixinFluidUtil",
-    "MixinForgeHooks"
+    "MixinBlockFluidClassic"
   ]
 }

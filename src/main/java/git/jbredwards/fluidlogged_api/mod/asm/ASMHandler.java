@@ -3,11 +3,11 @@ package git.jbredwards.fluidlogged_api.mod.asm;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.PluginAccessorUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client.*;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity.PluginEntity;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.*;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -39,7 +39,9 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
         public static Map<String, IASMPlugin> PLUGINS = new ImmutableMap.Builder<String, IASMPlugin>()
                 //forge
                 .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new PluginModelFluid()) //fixes all issues with fluidlogged z-fighting
+                .put("net.minecraftforge.common.ForgeHooks", new PluginForgeHooks()) //fix ForgeHooks#isInsideOfMaterial by allowing it to access stored fluid blocks
                 .put("net.minecraftforge.fluids.BlockFluidBase", new PluginBlockFluidBase()) //prevent startup crash
+                .put("net.minecraftforge.fluids.Fluid", new PluginFluid()) //store one internal FluidState for each Fluid, as to decrease ram usage
                 .put("net.minecraftforge.fluids.FluidUtil", new PluginFluidUtil()) //changes some of this class's util functions to be FluidState sensitive
                 //modded
                 .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
@@ -54,11 +56,16 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("net.minecraft.block.BlockCocoa", new PluginBlockCocoa()) //exists in case cocoa beans are added to the config whitelist
                 .put("net.minecraft.block.BlockConcretePowder", new PluginBlockConcretePowder()) //concrete forms from concrete powder while its next to flowing water FluidStates
                 .put("net.minecraft.block.BlockDoor", new PluginBlockDoor()) // update upper FluidState & correct canFluidFlow
+                .put("net.minecraft.block.BlockFarmland", new PluginBlockFarmland()) //farmland blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockLilyPad", new PluginBlockLilyPad()) //lily pads can stay on certain water FluidStates
                 .put("net.minecraft.block.BlockLiquid", new PluginBlockLiquid()) //significantly changes the BlockLiquid class to work with the mod
+                .put("net.minecraft.block.BlockPistonBase", new PluginBlockPistonBase()) //piston bases are fluidloggable while extended
+                .put("net.minecraft.block.BlockReed", new PluginBlockReed()) //sugar cane blocks now recognise water FluidStates
+                .put("net.minecraft.block.BlockSkull", new PluginBlockSkull()) //wither skulls no longer void the FluidState here when summoning the wither
+                .put("net.minecraft.block.BlockSlab", new PluginBlockSlab()) //half slabs are fluidloggable
                 .put("net.minecraft.block.BlockTrapDoor", new PluginBlockTrapDoor()) //fluids flow from correct sides
                 .put("net.minecraft.block.BlockWall", new PluginBlockWall()) //fixes a bug with walls that caused the post to unintentionally render
-                //vanilla (default fluidloggables)
+                //vanilla (basic fluidlogging implementation for certain blocks)
                 .put("net.minecraft.block.BlockAnvil", new PluginFluidloggableBlocks())
                 .put("net.minecraft.block.BlockBanner", new PluginFluidloggableBlocks())
                 .put("net.minecraft.block.BlockBasePressurePlate", new PluginFluidloggableBlocks())
@@ -88,6 +95,8 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("net.minecraft.block.BlockStairs", new PluginFluidloggableBlocks())
                 .put("net.minecraft.block.BlockTripWire", new PluginFluidloggableBlocks())
                 .put("net.minecraft.block.BlockTripWireHook", new PluginFluidloggableBlocks())
+                //vanilla (entity)
+                .put("net.minecraft.entity.Entity", new PluginEntity())
                 //vanilla (world)
                 .put("net.minecraft.world.World", new PluginWorld()) //corrects a lot of FluidState related interactions
                 .put("net.minecraft.world.WorldServer", new PluginWorldServer()) //FluidStates now get ticked

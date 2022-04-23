@@ -94,6 +94,19 @@ public final class PluginBlockFluidBase implements IASMPlugin
                 generator.visitMaxs(4, 0);
             }
         );
+        //getFlowVector, don't flow into/from invalid sides
+        overrideMethod(classNode, method -> method.name.equals("getFlowVector"),
+            "getFluidFlowVector", "(Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;II)Lnet/minecraft/util/math/Vec3d;", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitVarInsn(ALOAD, 1);
+                generator.visitVarInsn(ALOAD, 2);
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "densityDir", "I");
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "quantaPerBlock", "I");
+                generator.visitMaxs(3, 0);
+            }
+        );
 
         return true;
     }

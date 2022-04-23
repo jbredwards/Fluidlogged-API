@@ -1,11 +1,13 @@
 package git.jbredwards.fluidlogged_api.mod.common.util;
 
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBush;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.fluids.BlockFluidBase;
+import net.minecraftforge.fluids.Fluid;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -27,4 +29,8 @@ public final class AccessorUtils
     //BlockFluidBase
     public static int getFlowDecay(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return 0; }
     public static boolean hasVerticalFlow(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return false; }
+
+    //Fluid
+    @Nonnull public static FluidState getDefaultFluidState(@Nonnull Fluid fluid) { return null; }
+    @Nonnull public static FluidState setDefaultFluidState(@Nonnull Fluid fluid, @Nonnull FluidState fluidState) { return null; }
 }

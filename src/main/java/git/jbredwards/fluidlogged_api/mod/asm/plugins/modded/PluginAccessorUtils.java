@@ -20,6 +20,8 @@ public final class PluginAccessorUtils implements IASMPlugin
             case "canSustainPlant": return 3;
             case "getFlowDecay"   : return 4;
             case "hasVerticalFlow": return 5;
+            case "getDefaultFluidState": return 6;
+            case "setDefaultFluidState": return 7;
             default: return 0;
         }
     }
@@ -64,6 +66,23 @@ public final class PluginAccessorUtils implements IASMPlugin
             instructions.insert(insn, new VarInsnNode(ALOAD, 0));
             instructions.remove(insn);
             setMaxLocals(method, 3);
+            return true;
+        }
+        else if(index == 6 && insn.getOpcode() == ACONST_NULL) {
+            instructions.insert(insn, new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/Fluid", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 0));
+            instructions.remove(insn);
+            setMaxLocals(method, 1);
+            return true;
+        }
+        else if(index == 7 && insn.getOpcode() == ACONST_NULL) {
+            instructions.insert(insn, new FieldInsnNode(PUTFIELD, "net/minecraftforge/fluids/Fluid", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
+            instructions.insert(insn, new InsnNode(DUP_X1));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 1));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 0));
+            instructions.remove(insn);
+            setMaxLocals(method, 3);
+            return true;
         }
 
         return false;

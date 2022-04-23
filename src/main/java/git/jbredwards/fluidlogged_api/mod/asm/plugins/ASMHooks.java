@@ -34,6 +34,8 @@ import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.PropertyFloat;
 import net.minecraftforge.fluids.*;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -404,7 +406,14 @@ public final class ASMHooks
     }
 
     //PluginFluidUtil
-    public static boolean tryPlaceFluid(World world, BlockPos pos, Fluid fluid, IBlockState destBlockState) {
+    @Nullable
+    public static IFluidHandler getFluidHandler(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
+        final FluidState fluidState = getFluidState(world, pos, state);
+        return fluidState.isEmpty() ? null : new FluidBlockWrapper(fluidState.getBlock(), world, pos);
+    }
+
+    //PluginFluidUtil
+    public static boolean tryPlaceFluid(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, @Nonnull IBlockState destBlockState) {
         return world.isAirBlock(pos) || isStateFluidloggable(destBlockState, world, pos, fluid);
     }
 
@@ -500,6 +509,12 @@ public final class ASMHooks
         final AxisAlignedBB aabb = state.getBoundingBox(world, pos);
         return aabb.maxY < 1 ? getFluidOrReal(world, pos, state) : state;
     }
+
+    //PluginBlockPistonBase
+    public static boolean isPistonFluidloggable(@Nonnull IBlockState state) { return state.getValue(BlockPistonBase.EXTENDED); }
+
+    //PluginBlockSlab
+    public static boolean isSlabFluidloggable(@Nonnull BlockSlab slab) { return !slab.isDouble(); }
 
     //PluginBlockTrapDoor
     public static boolean canTrapDoorFluidFlow(IBlockState here, EnumFacing side) {
@@ -642,6 +657,13 @@ public final class ASMHooks
     }
 
     //PluginWorld
+    public static boolean isFlammableWithin(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
+        if(getFluidFromBlock(block) == FluidRegistry.LAVA) return Boolean.TRUE.equals(block.isAABBInsideLiquid(world, pos, bb));
+        final FluidState fluidState = FluidState.get(world, pos); //handle possible lava FluidState
+        return fluidState.getFluid() == FluidRegistry.LAVA && Boolean.TRUE.equals(fluidState.getBlock().isAABBInsideLiquid(world, pos, bb));
+    }
+
+    //PluginWorld
     public static boolean isMaterialInBB(World world, AxisAlignedBB bb, Material materialIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
         for(int x = minX; x < maxX; ++x) {
             for(int y = minY; y < maxY; ++y) {
@@ -651,9 +673,12 @@ public final class ASMHooks
 
                     if(!fluidState.isEmpty()) {
                         @Nullable Boolean result = fluidState.getBlock().isAABBInsideMaterial(world, pos, bb, materialIn);
-
-                        if(Boolean.TRUE.equals(result)) return true;
-                        else if(fluidState.getMaterial() == materialIn) return true;
+                        if(result != null) {
+                            if(!result) continue;
+                            return true;
+                        }
+                        else if(fluidState.getMaterial() == materialIn)
+                            return true;
                     }
                 }
             }
@@ -662,7 +687,7 @@ public final class ASMHooks
         return false;
     }
 
-    //PluginWorld
+    //PluginWorld & others
     public static IBlockState getFluidOrAir(World world, BlockPos pos) {
         final FluidState fluidState = FluidState.get(world, pos);
         return fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.getState();

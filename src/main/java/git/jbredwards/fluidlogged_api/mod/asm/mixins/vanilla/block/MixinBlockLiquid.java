@@ -9,9 +9,11 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -190,7 +192,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
                 && canFluidFlow(worldIn, pos.up(), up, EnumFacing.DOWN)
                 && canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), EnumFacing.UP);
 
-        return flag ? 1 : 1 - BlockLiquid.getLiquidHeightPercent(state.getValue(BlockLiquid.LEVEL));
+        return flag ? 1 : Math.max(1 - (BlockLiquid.getLiquidHeightPercent(state.getValue(BlockLiquid.LEVEL)) - 1f/9), 0);
     }
 
     @Nonnull
@@ -407,13 +409,12 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
     }
 
     @Override
-    public boolean canDrain(@Nonnull World world, @Nonnull BlockPos pos) {
-        return getFluidOrReal(world, pos).getValue(BlockLiquid.LEVEL) == 0;
-    }
+    public boolean canDrain(@Nonnull World world, @Nonnull BlockPos pos) { return getFluidState(world, pos).getLevel() == 0; }
 
     @Override
-    public float getFilledPercentage(@Nonnull World world, @Nonnull BlockPos pos) {
-        return 1 - (BlockLiquid.getLiquidHeightPercent(getFluidOrReal(world, pos).getValue(BlockLiquid.LEVEL)) - (1f / 9));
+    public float getFilledPercentage(@Nonnull World world, @Nonnull BlockPos pos) { return getFilledPercentage((IBlockAccess)world, pos); }
+    public float getFilledPercentage(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        return hasVerticalFlow(world, pos) ? 1 : 1 - (BlockLiquid.getLiquidHeightPercent(getFluidState(world, pos).getLevel()) - (1f/9));
     }
 
     @Override
@@ -433,4 +434,22 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
 
     @Shadow
     protected abstract void triggerMixEffects(@Nonnull World worldIn, @Nonnull BlockPos pos);
+
+    @Nullable
+    @Override
+    public Boolean isEntityInsideMaterial(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState iblockstate, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
+        return materialIn == material && entity.getEntityBoundingBox().minY < pos.getY() + getFilledPercentage(world, pos);
+    }
+
+    @Nullable
+    @Override
+    public Boolean isAABBInsideMaterial(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB boundingBox, @Nonnull Material materialIn) {
+        return materialIn == material && Boolean.TRUE.equals(isAABBInsideLiquid(world, pos, boundingBox));
+    }
+
+    @Nullable
+    @Override
+    public Boolean isAABBInsideLiquid(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB boundingBox) {
+        return boundingBox.minY < pos.getY() + getFilledPercentage(world, pos);
+    }
 }

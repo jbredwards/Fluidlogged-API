@@ -47,6 +47,9 @@ public final class PluginWorld implements IASMPlugin
         || checkMethod(method, obfuscated ? "func_147470_e" : "isFlammableWithin", null)
         || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null)) return 6;
 
+        //isFlammableWithin, fix bug with lava level
+        else if(method.name.equals(obfuscated ? "func_147470_e" : "isFlammableWithin")) return 7;
+
         return 0;
     }
 
@@ -163,6 +166,18 @@ public final class PluginWorld implements IASMPlugin
         else if(index == 6 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
             instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.remove(insn);
+            return true;
+        }
+
+        //isFlammableWithin, fix bug with lava level
+        else if(index == 7 && checkField(insn, obfuscated ? "field_150353_l" : "LAVA")) {
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new VarInsnNode(ALOAD, 8));
+            list.add(new VarInsnNode(ALOAD, 1));
+            list.add(genMethodNode("isFlammableWithin", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Z"));
+            instructions.insert(insn, list);
+            removeFrom(instructions, insn, -3);
             return true;
         }
 

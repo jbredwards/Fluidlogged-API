@@ -66,7 +66,6 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
         // check adjacent block levels if non-source
         if(quantaRemaining < 8) {
             int adjacentSourceBlocks = 0;
-            boolean updateWorldQuanta = true;
             final int expQuanta;
 
             if(ForgeEventFactory.canCreateFluidSource(world, pos, state, material == Material.WATER)) {
@@ -84,10 +83,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
                 expQuanta = 8;
 
             // vertical flow into block
-            else if(hasVerticalFlow(world, pos)) {
-                updateWorldQuanta = false;
-                expQuanta = 8;
-            }
+            else if(hasVerticalFlow(world, pos)) expQuanta = 8 - lavaDif;
 
             else {
                 int maxQuanta = -100;
@@ -106,25 +102,13 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
 
             // decay calculation
             else {
-                final boolean wasVertical = (quantaRemaining == 0);
                 quantaRemaining = expQuanta;
 
-                if(updateWorldQuanta) {
-                    if(expQuanta <= 0 ) {
-                        world.setBlockToAir(pos);
-
-                        if((vertical.getBlock() == this || vertical.getBlock() == BlockLiquid.getStaticBlock(material)) && vertical.getValue(BlockLiquid.LEVEL) == 8) {
-                            world.setBlockState(pos.down(), state.withProperty(BlockLiquid.LEVEL, lavaDif), Constants.BlockFlags.SEND_TO_CLIENTS);
-                            world.scheduleUpdate(pos.down(), this, tickRate(world));
-                            world.notifyNeighborsOfStateChange(pos, this, false);
-                        }
-                    }
-
-                    else {
-                        world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, wasVertical ? lavaDif : (8 - expQuanta)), Constants.BlockFlags.SEND_TO_CLIENTS);
-                        world.scheduleUpdate(pos, this, tickRate(world));
-                        world.notifyNeighborsOfStateChange(pos, this, false);
-                    }
+                if(expQuanta <= 0 ) world.setBlockToAir(pos);
+                else {
+                    world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, 8 - expQuanta), Constants.BlockFlags.SEND_TO_CLIENTS);
+                    world.scheduleUpdate(pos, this, tickRate(world));
+                    world.notifyNeighborsOfStateChange(pos, this, false);
                 }
             }
         }
@@ -150,7 +134,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
                 }
             }
 
-            flowIntoBlock(world, pos.down(), 8);
+            flowIntoBlock(world, pos.down(), lavaDif);
             return;
         }
 

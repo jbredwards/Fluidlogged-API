@@ -37,18 +37,19 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
     }
 
     /**
-     * This can only be placed in water-like blocks
+     * This can only be placed in compatible fluid blocks
      */
     @Override
     public boolean canPlaceBlockAt(@Nonnull World worldIn, @Nonnull BlockPos pos) {
         final FluidState fluidState = getFluidState(worldIn, pos);
-        return isFluidValid(getDefaultState(), worldIn, pos, fluidState.getFluid())
+        return !fluidState.isEmpty()
+                && isFluidValid(getDefaultState(), worldIn, pos, fluidState.getFluid())
                 && isFluidloggableFluid(fluidState.getState(), true)
                 && super.canPlaceBlockAt(worldIn, pos);
     }
 
     /**
-     * Ensures that only water-like fluids can be placed inside this
+     * Ensures that only compatible fluids can be placed inside this
      */
     @Override
     public boolean isFluidValid(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Fluid fluid) {
@@ -56,7 +57,7 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
     }
 
     /**
-     * Remove this if the fluid here is drained
+     * Breaks the plant here if the fluid is drained
      */
     @Nonnull
     @Override
