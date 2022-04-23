@@ -2,6 +2,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.mixins.forge;
 
 import com.google.common.primitives.Ints;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import net.minecraft.block.BlockLiquid;
@@ -155,7 +156,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
 
     //try flowing to nearby fluidloggable blocks
     private void tryFlowIntoFluidloggable(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing facingDir, @Nonnull IBlockState state, @Nonnull IBlockState here, @Nonnull EnumFacing... flowInto) {
-        if(quantaPerBlock > 0 && ConfigHandler.fluidloggedFluidSpread > 0 && canCreateSources && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, false))) {
+        if(quantaPerBlock > 0 && ConfigHandler.fluidloggedFluidSpread > 0 && canCreateSources && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, world, pos))) {
             for(EnumFacing facing : flowInto) {
                 if(canFluidFlow(world, pos, here, facing)) {
                     BlockPos offset = pos.offset(facing);
@@ -176,7 +177,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
                                             : getFluidState(world, adjacentOffset, adjacent);
 
                                     //set the FluidState in the world
-                                    if(isCompatibleFluid(adjacentFluid.getFluid(), getFluid()) && isFluidloggableFluid(adjacentFluid.getState(), adjacentFacing != facingDir.getOpposite())) {
+                                    if(isCompatibleFluid(adjacentFluid.getFluid(), getFluid()) && FluidloggedUtils.isFluidloggableFluid(adjacentFluid.getState(), world, adjacentOffset)) {
                                         setFluidState(world, offset, neighbor, FluidState.of(this), false);
                                         break;
                                     }
@@ -296,13 +297,18 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
     }
 
     @Override
-    public boolean isFluidloggableFluid(@Nonnull IBlockState fluid, boolean checkLevel) {
-        if(hasTileEntity(fluid) || this != getFluid().getBlock()) return false;
-        else if(!checkLevel) return true;
+    public boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        if(!isFluidloggableFluid()) return false;
+        else if(fluid.getValue(BlockLiquid.LEVEL) == getMaxRenderHeightMeta()) return true;
+        else if(!canCreateSources) return false;
 
-        final int level = fluid.getValue(BlockLiquid.LEVEL);
-        return level == getMaxRenderHeightMeta() || level >= quantaPerBlock && canCreateSources;
+        final IBlockState vertical = world.getBlockState(pos.down(densityDir));
+        return isCompatibleFluid(getFluid(), getFluidState(world, pos.down(densityDir), vertical).getFluid())
+                && canFluidFlow(world, pos.down(densityDir), vertical, densityDir < 1 ? EnumFacing.DOWN : EnumFacing.UP);
     }
+
+    @Override
+    public boolean isFluidloggableFluid() { return !hasTileEntity() && this == getFluid().getBlock(); }
 
     @Shadow(remap = false)
     public abstract int getMaxRenderHeightMeta();

@@ -763,7 +763,7 @@ public final class ASMHooks
                 //save oldState as FluidState
                 else {
                     final @Nullable Fluid fluid = getFluidFromState(oldState);
-                    if(fluid != null && isFluidloggableFluid(oldState, true) && isStateFluidloggable(newState, world, pos, fluid))
+                    if(fluid != null && isFluidloggableFluid(oldState, world, pos) && isStateFluidloggable(newState, world, pos, fluid))
                         setFluidState(world, pos, newState, FluidState.of(fluid), false, flags);
                 }
             }

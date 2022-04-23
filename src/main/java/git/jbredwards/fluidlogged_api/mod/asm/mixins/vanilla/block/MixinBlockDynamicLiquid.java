@@ -158,7 +158,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
 
     //try flowing to nearby fluidloggable blocks
     private void tryFlowIntoFluidloggable(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull IBlockState here, @Nonnull EnumFacing... flowInto) {
-        if(ConfigHandler.fluidloggedFluidSpread > 0 && material == Material.WATER && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, false))) {
+        if(ConfigHandler.fluidloggedFluidSpread > 0 && material == Material.WATER && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, world, pos))) {
             for(EnumFacing facing : flowInto) {
                 if(canFluidFlow(world, pos, here, facing)) {
                     BlockPos offset = pos.offset(facing);
@@ -179,7 +179,7 @@ public abstract class MixinBlockDynamicLiquid extends MixinBlockLiquid
                                             : getFluidState(world, adjacentOffset, adjacent);
 
                                     //set the FluidState in the world
-                                    if(isCompatibleFluid(adjacentFluid.getFluid(), getFluid()) && isFluidloggableFluid(adjacentFluid.getState(), adjacentFacing != EnumFacing.UP)) {
+                                    if(isCompatibleFluid(adjacentFluid.getFluid(), getFluid()) && isFluidloggableFluid(adjacentFluid.getState(), world, adjacentOffset)) {
                                         setFluidState(world, offset, neighbor, FluidState.of(this), false);
                                         break;
                                     }

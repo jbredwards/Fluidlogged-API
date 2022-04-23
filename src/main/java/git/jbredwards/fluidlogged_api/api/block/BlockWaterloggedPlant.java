@@ -44,7 +44,7 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
         final FluidState fluidState = getFluidState(worldIn, pos);
         return !fluidState.isEmpty()
                 && isFluidValid(getDefaultState(), worldIn, pos, fluidState.getFluid())
-                && isFluidloggableFluid(fluidState.getState(), true)
+                && isFluidloggableFluid(fluidState.getState(), worldIn, pos)
                 && super.canPlaceBlockAt(worldIn, pos);
     }
 

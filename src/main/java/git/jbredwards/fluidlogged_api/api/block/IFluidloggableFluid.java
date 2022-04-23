@@ -1,16 +1,28 @@
 package git.jbredwards.fluidlogged_api.api.block;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.fluids.IFluidBlock;
 
 import javax.annotation.Nonnull;
 
 /**
- * Have your block implement this if it should be able to hold fluidloggable blocks.
+ * Have your fluid block implement this if it should be able to hold fluidloggable blocks.
  * @author jbred
  *
  */
 public interface IFluidloggableFluid extends IFluidBlock
 {
-    boolean isFluidloggableFluid(@Nonnull IBlockState fluid, boolean checkLevel);
+    /**
+     * Used when the fluid is in the world
+     */
+    default boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        return isFluidloggableFluid();
+    }
+
+    /**
+     * Used when the fluid isn't in the world (bucket fluidlogging for example)
+     */
+    boolean isFluidloggableFluid();
 }

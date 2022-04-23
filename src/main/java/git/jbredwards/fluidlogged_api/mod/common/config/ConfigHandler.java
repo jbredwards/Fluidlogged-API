@@ -162,7 +162,7 @@ public final class ConfigHandler
                 @Nullable Block fluidBlock = Block.getBlockFromName(fluidName);
                 @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(fluidBlock);
 
-                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(fluidBlock.getDefaultState(), false)) fluids.add(fluid);
+                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(fluidBlock)) fluids.add(fluid);
                 else throw new JsonParseException("Fluidlogged API Config: Unable to parse fluid: " + fluidName + " from fluidTag: " + tag.id);
             }
 
@@ -267,7 +267,7 @@ public final class ConfigHandler
                 @Nullable Block fluidBlock = Block.getBlockFromName(fluidName);
                 @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(fluidBlock);
 
-                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(fluidBlock.getDefaultState(), false)) validFluids.add(fluid);
+                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(fluidBlock)) validFluids.add(fluid);
                 else throw new JsonParseException("Fluidlogged API Config: Unable to parse fluid from fluids: " + fluidName);
             }
 

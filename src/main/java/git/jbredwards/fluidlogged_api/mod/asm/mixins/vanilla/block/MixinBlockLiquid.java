@@ -11,7 +11,6 @@ import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -86,19 +85,18 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
     @Nonnull
     @Overwrite
     protected Vec3d getFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
+        final int decay = 8 - getEffectiveQuanta(world, pos);
         Vec3d vec = Vec3d.ZERO;
-
-        final int decay = getFluidState(world, pos, here).getLevel();
 
         for(EnumFacing facing : EnumFacing.HORIZONTALS) {
             if(canFluidFlow(world, pos, here, facing)) {
                 BlockPos offset = pos.offset(facing);
 
                 if(canFluidFlow(world, offset, world.getBlockState(offset), facing.getOpposite())) {
-                    int otherDecay = 8 - getQuantaValue(world, offset);
+                    int otherDecay = 8 - getEffectiveQuanta(world, offset);
 
                     if(otherDecay >= 8) {
-                        otherDecay = 8 - getQuantaValue(world, offset.down());
+                        otherDecay = 8 - getEffectiveQuanta(world, offset.down());
 
                         if(otherDecay < 8) {
                             int power = otherDecay - (decay - 8);
@@ -114,6 +112,11 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
         }
 
         return vec.normalize();
+    }
+
+    protected int getEffectiveQuanta(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        int quantaValue = getQuantaValue(world, pos);
+        return quantaValue > 0 && quantaValue < 8 && hasVerticalFlow(world, pos) ? 8 : quantaValue;
     }
 
     protected int getQuantaValue(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
@@ -418,18 +421,21 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
     }
 
     @Override
-    public boolean isFluidloggableFluid(@Nonnull IBlockState fluid, boolean checkLevel) {
-        //most modded BlockLiquid instances involve blocks that typically shouldn't be fluidloggable fluids (like coral)
-        final Block block = fluid.getBlock();
-        if(block != Blocks.FLOWING_LAVA && block != Blocks.LAVA && block != Blocks.FLOWING_WATER && block != Blocks.WATER)
-            return false;
+    public boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        if(!isFluidloggableFluid()) return false;
+        else if(fluid.getValue(BlockLiquid.LEVEL) == 0) return true;
+        else if(fluid.getMaterial() != Material.WATER) return false;
 
-        //skip level check if not required
-        if(!checkLevel) return true;
+        final IBlockState vertical = world.getBlockState(pos.up());
+        return isCompatibleFluid(getFluid(), getFluidState(world, pos.up(), vertical).getFluid())
+                && canFluidFlow(world, pos.up(), vertical, EnumFacing.DOWN);
+    }
 
-        //do level check
-        final int level = fluid.getValue(BlockLiquid.LEVEL);
-        return level == 0 || level >= 8 && fluid.getMaterial() == Material.WATER;
+    @SuppressWarnings("ConstantConditions")
+    @Override
+    public boolean isFluidloggableFluid() {
+        final Block block = this; //most modded BlockLiquid instances involve blocks that shouldn't be fluidloggable fluids (like coral)
+        return block == Blocks.WATER || block == Blocks.LAVA || block == Blocks.FLOWING_WATER || block == Blocks.FLOWING_LAVA;
     }
 
     @Shadow

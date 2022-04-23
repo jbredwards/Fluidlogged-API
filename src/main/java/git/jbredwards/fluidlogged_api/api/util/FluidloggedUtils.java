@@ -225,11 +225,17 @@ public final class FluidloggedUtils
         else return material == Material.LAVA ? FluidRegistry.LAVA : null;
     }
 
-    //return true if the IBlockState can be fluidlogged
-    public static boolean isFluidloggableFluid(@Nonnull IBlockState fluid, boolean checkLevel) {
+    //return true if the fluid not yet in the world can be fluidlogged
+    public static boolean isFluidloggableFluid(@Nullable Block fluid) {
+        //(BlockLiquid & BlockFluidClassic extend this through asm)
+        return fluid instanceof IFluidloggableFluid && ((IFluidloggableFluid)fluid).isFluidloggableFluid();
+    }
+
+    //return true if the fluid at the pos can be fluidlogged
+    public static boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         //(BlockLiquid & BlockFluidClassic extend this through asm)
         return fluid.getBlock() instanceof IFluidloggableFluid &&
-                ((IFluidloggableFluid)fluid.getBlock()).isFluidloggableFluid(fluid, checkLevel);
+                ((IFluidloggableFluid)fluid.getBlock()).isFluidloggableFluid(fluid, world, pos);
     }
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable Fluid fluid) {

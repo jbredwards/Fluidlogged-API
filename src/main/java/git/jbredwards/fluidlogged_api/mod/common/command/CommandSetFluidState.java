@@ -28,8 +28,9 @@ public class CommandSetFluidState extends CommandBase
     @Nonnull
     protected static final List<ResourceLocation> TAB_COMPLETIONS = ImmutableList.<ResourceLocation>builder()
             .addAll(FluidRegistry.getRegisteredFluids().values().stream()
-                    .filter(fluid -> fluid.canBePlacedInWorld() && FluidloggedUtils.isFluidloggableFluid(fluid.getBlock().getDefaultState(), false))
-                    .map(fluid -> fluid.getBlock().getRegistryName()).collect(Collectors.toList()))
+                    .filter(fluid -> FluidloggedUtils.isFluidloggableFluid(fluid.getBlock()))
+                    .map(fluid -> fluid.getBlock().getRegistryName())
+                    .collect(Collectors.toList()))
             .add(new ResourceLocation("air"))
             .build();
 
