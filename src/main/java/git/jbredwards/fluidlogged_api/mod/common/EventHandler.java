@@ -5,7 +5,6 @@ import git.jbredwards.fluidlogged_api.mod.Main;
 import git.jbredwards.fluidlogged_api.mod.common.message.SyncFluidStatesMessage;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
-import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
@@ -28,7 +27,6 @@ import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.model.TRSRTransformation;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
-import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ChunkWatchEvent;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
@@ -46,6 +44,8 @@ import net.minecraftforge.items.ItemHandlerHelper;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Objects;
+
+import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
 
 /**
  *
@@ -67,18 +67,11 @@ public final class EventHandler
         if(cap != null) Main.wrapper.sendTo(new SyncFluidStatesMessage(event.getChunk(), cap.getFluidStates()), event.getPlayer());
     }
 
-    @SubscribeEvent(priority = EventPriority.LOW)
-    public static void notifyFluidState(@Nonnull BlockEvent.NeighborNotifyEvent event) {
-        if(FluidloggedUtils.getFluidFromState(event.getState()) == null) {
-            final FluidState fluidState = FluidState.get(event.getWorld(), event.getPos());
-            if(!fluidState.isEmpty()) fluidState.getState().neighborChanged(event.getWorld(), event.getPos(), event.getState().getBlock(), event.getPos());
-        }
-    }
-
     @SideOnly(Side.CLIENT)
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void removeBuiltInLiquidStateMappers(@Nullable TextureStitchEvent.Pre event) {
-        Minecraft.getMinecraft().modelManager.getBlockModelShapes().getBlockStateMapper().setBuiltInBlocks.removeIf(b -> b instanceof BlockLiquid);
+        Minecraft.getMinecraft().modelManager.getBlockModelShapes().getBlockStateMapper().setBuiltInBlocks
+                .removeIf(b -> b instanceof BlockLiquid && isFluidloggableFluid(b));
     }
 
     @SideOnly(Side.CLIENT)
@@ -86,7 +79,7 @@ public final class EventHandler
     public static void registerLiquidStateMappers(@Nullable ModelRegistryEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
             //allow vanilla fluid blocks to use the new fluid renderer
-            if(block instanceof BlockLiquid) {
+            if(block instanceof BlockLiquid && isFluidloggableFluid(block)) {
                 ModelLoader.setCustomStateMapper(block, new StateMapperBase() {
                     @Nonnull
                     @Override
@@ -103,8 +96,8 @@ public final class EventHandler
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void registerLiquidBakedModels(@Nonnull ModelBakeEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
-            if(block instanceof BlockLiquid) {
-                IBakedModel model = new ModelFluid(FluidloggedUtils.getFluidFromBlock(block)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
+            if(block instanceof BlockLiquid && isFluidloggableFluid(block)) {
+                IBakedModel model = new ModelFluid(getFluidFromBlock(block)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
                 event.getModelRegistry().putObject(new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid"), model);
             }
         }
@@ -183,7 +176,7 @@ public final class EventHandler
         final IBlockState state = world.getBlockState(pos);
         final Fluid fluid = stack.getFluid();
 
-        final boolean isFluidloggable = FluidloggedUtils.isFluidloggableFluid(fluid.getBlock()) && FluidloggedUtils.isStateFluidloggable(state, world, pos, fluid);
+        final boolean isFluidloggable = isFluidloggableFluid(fluid.getBlock()) && isStateFluidloggable(state, world, pos, fluid);
         if(isFluidloggable && handler.drain(new FluidStack(stack, FluidState.of(fluid).getBlock().place(world, pos, stack.copy(), true)), true) != null) {
             if(!world.provider.doesWaterVaporize() || !fluid.doesVaporize(stack))
                 world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluid.getEmptySound(stack), SoundCategory.BLOCKS, 1, 1);

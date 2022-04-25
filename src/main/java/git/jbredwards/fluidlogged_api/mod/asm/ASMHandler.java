@@ -7,7 +7,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client.*;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity.PluginEntity;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.*;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -63,6 +63,7 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("net.minecraft.block.BlockReed", new PluginBlockReed()) //sugar cane blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockSkull", new PluginBlockSkull()) //wither skulls no longer void the FluidState here when summoning the wither
                 .put("net.minecraft.block.BlockSlab", new PluginBlockSlab()) //half slabs are fluidloggable
+                .put("net.minecraft.block.BlockSponge", new PluginBlockSponge()) //fixes drain interactions across all modded fluids & FluidStates
                 .put("net.minecraft.block.BlockTrapDoor", new PluginBlockTrapDoor()) //fluids flow from correct sides
                 .put("net.minecraft.block.BlockWall", new PluginBlockWall()) //fixes a bug with walls that caused the post to unintentionally render
                 //vanilla (basic fluidlogging implementation for certain blocks)

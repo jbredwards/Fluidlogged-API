@@ -150,7 +150,8 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
             final IBlockState here = worldIn.getBlockState(pos);
             if(here.getBlock().isReplaceable(worldIn, pos)) {
                 for(EnumFacing facing : EnumFacing.values()) {
-                    if(facing == EnumFacing.DOWN || !canFluidFlow(worldIn, pos, here, facing)) continue;
+                    if(facing == EnumFacing.DOWN  || !canFluidFlow(worldIn, pos, here, facing))
+                        continue;
 
                     BlockPos offset = pos.offset(facing);
                     IBlockState state = worldIn.getBlockState(offset);
@@ -402,13 +403,13 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
         final IBlockState here = world.getBlockState(pos);
         final FluidState fluidState = getFluidState(world, pos, here);
 
-        if(fluidState.isEmpty() || fluidState.getLevel() != 0) return null;
+        if(fluidState.isEmpty()) return null;
         if(doDrain) {
             if(fluidState.getState() == here) world.setBlockState(pos, Blocks.AIR.getDefaultState());
             else setFluidState(world, pos, here, FluidState.EMPTY, false);
         }
 
-        return new FluidStack(fluidState.getFluid(), Fluid.BUCKET_VOLUME);
+        return fluidState.getLevel() != 0 ? null : new FluidStack(fluidState.getFluid(), Fluid.BUCKET_VOLUME);
     }
 
     @Override

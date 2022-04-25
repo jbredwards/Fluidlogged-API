@@ -287,13 +287,13 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
         final IBlockState here = world.getBlockState(pos);
         final FluidState fluidState = getFluidState(world, pos, here);
 
-        if(fluidState.isEmpty() || fluidState.getLevel() != 0) return null;
+        if(fluidState.isEmpty()) return null;
         if(doDrain) {
             if(fluidState.getState() == here) world.setBlockState(pos, Blocks.AIR.getDefaultState());
             else setFluidState(world, pos, here, FluidState.EMPTY, false);
         }
 
-        return stack.copy();
+        return fluidState.getLevel() != 0 ? null : stack.copy();
     }
 
     @Override

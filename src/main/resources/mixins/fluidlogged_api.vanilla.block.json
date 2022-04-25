@@ -4,7 +4,6 @@
   "mixins": [
     "MixinBlockDynamicLiquid",
     "MixinBlockLiquid",
-    "MixinBlockSponge",
     "MixinBlockTorch",
     "MixinFluidloggableBlocksFlowable",
     "MixinMaterialLogic"

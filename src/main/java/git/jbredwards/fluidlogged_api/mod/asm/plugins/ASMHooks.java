@@ -33,9 +33,11 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.PropertyFloat;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper;
+import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -516,6 +518,51 @@ public final class ASMHooks
     //PluginBlockSlab
     public static boolean isSlabFluidloggable(@Nonnull BlockSlab slab) { return !slab.isDouble(); }
 
+    //PluginBlockSponge
+    private static boolean available = true;
+    @SuppressWarnings("ConstantConditions")
+    public static boolean absorb(@Nonnull World world, @Nonnull BlockPos origin) {
+        //temporary fix for strange update bug
+        if(available) {
+            available = false;
+            final Queue<Pair<BlockPos, Integer>> queue = new LinkedList<>();
+            queue.add(Pair.of(origin, 0));
+            int absorbed = 0;
+
+            while(!queue.isEmpty()) {
+                final Pair<BlockPos, Integer> entry = queue.poll();
+                final BlockPos pos = entry.getKey();
+                final int distance = entry.getValue();
+
+                for(EnumFacing facing : values()) {
+                    final BlockPos offset = pos.offset(facing);
+                    final FluidState fluidState = getFluidState(world, offset);
+
+                    if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) {
+                        //don't drain bad fluid blocks (looking at you BOP kelp)
+                        if(fluidState.getBlock() instanceof IFluidBlock) {
+                            fluidState.getBlock().drain(world, offset, true);
+                            if(distance < 6) queue.add(Pair.of(offset, distance + 1));
+                            absorbed++;
+                        }
+                        //drain bad fluid blocks
+                        else if(world.setBlockToAir(pos)) {
+                            world.playEvent(Constants.WorldEvents.BREAK_BLOCK_EFFECTS, offset, Block.getStateId(fluidState.getState()));
+                            fluidState.getBlock().dropBlockAsItem(world, offset, fluidState.getState(), 0);
+                            if(distance < 6) queue.add(Pair.of(offset, distance + 1));
+                            absorbed++;
+                        }
+                    }
+                }
+            }
+
+            available = true;
+            return absorbed > 0;
+        }
+
+        return false;
+    }
+
     //PluginBlockTrapDoor
     public static boolean canTrapDoorFluidFlow(IBlockState here, EnumFacing side) {
         final boolean isOpen = here.getValue(BlockTrapDoor.OPEN);
@@ -752,13 +799,10 @@ public final class ASMHooks
 
             //without the flag preserves FluidState / sets FluidState using oldState if it's a full fluid & if newState is fluidloggable
             else {
+                //remove FluidState here, new state isn't fluidloggable
                 if(!fluidState.isEmpty()) {
-                    //update neighboring fluids, there's been a state change
-                    if(isStateFluidloggable(newState, world, pos, fluidState.getFluid()))
-                        notifyFluids(world, pos, fluidState, true);
-
-                    //remove fluid here, new state isn't fluidloggable
-                    else setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
+                    if(!isStateFluidloggable(newState, world, pos, fluidState.getFluid()))
+                        setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
                 }
                 //save oldState as FluidState
                 else {

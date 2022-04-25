@@ -148,7 +148,7 @@ public final class FluidloggedUtils
 
     //causes a light level & light opacity update
     public static void relightFluidBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
-        final @Nullable Chunk chunk = world.getChunk(pos);
+        final Chunk chunk = world.getChunk(pos);
         final int x = pos.getX() & 15;
         final int z = pos.getZ() & 15;
         final int height = chunk.getHeightValue(x, z);
