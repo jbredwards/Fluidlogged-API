@@ -148,6 +148,8 @@ public final class FluidloggedUtils
 
     //causes a light level & light opacity update
     public static void relightFluidBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
+        if(!world.isAreaLoaded(pos, 16, false)) return; //fix crash with phosphor mod installed
+
         final Chunk chunk = world.getChunk(pos);
         final int x = pos.getX() & 15;
         final int z = pos.getZ() & 15;

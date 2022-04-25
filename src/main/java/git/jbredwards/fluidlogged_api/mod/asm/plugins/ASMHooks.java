@@ -451,7 +451,7 @@ public final class ASMHooks
     }
 
     //PluginBlock
-    public float getExplosionResistance(@Nonnull Block block, @Nullable Entity exploder, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Explosion explosion) {
+    public static float getExplosionResistance(@Nonnull Block block, @Nullable Entity exploder, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Explosion explosion) {
         if(getFluidFromBlock(block) != null) return block.getExplosionResistance(exploder);
         //return the greater of the two possible resistance values here
         final FluidState fluidState = FluidState.get(world, pos);

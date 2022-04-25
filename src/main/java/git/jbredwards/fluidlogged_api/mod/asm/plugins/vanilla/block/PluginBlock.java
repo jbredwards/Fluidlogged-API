@@ -31,7 +31,7 @@ public final class PluginBlock implements IASMPlugin
 
         //getExplosionResistance, line 1766
         else if(checkMethod(method, "getExplosionResistance", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;Lnet/minecraft/world/Explosion;)F")) {
-            setMaxLocals(method, 6);
+            setMaxLocals(method, 5);
             return 4;
         }
 
@@ -65,7 +65,7 @@ public final class PluginBlock implements IASMPlugin
             return true;
         }
         //getLightValue, line 1250
-        if(index == 2 && checkMethod(insn, obfuscated ? "func_149750_m" : "getLightValue", "(Lnet/minecraft/block/state/IBlockState;)I")) {
+        if(index == 2 && checkMethod(insn, obfuscated ? "func_185906_d" : "getLightValue", "()I")) {
             final InsnList list = new InsnList();
             //parameters
             list.add(new VarInsnNode(ALOAD, 2));
@@ -103,7 +103,7 @@ public final class PluginBlock implements IASMPlugin
             return true;
         }
         //canSustainPlant
-        if(index == 5) {
+        else if(index == 5) {
             //line 1949
             if(checkMethod(insn, obfuscated ? "func_185514_i" : "canSustainBush")) {
                 final InsnList list = new InsnList();
@@ -124,7 +124,7 @@ public final class PluginBlock implements IASMPlugin
             }
         }
         //getLightOpacity, line 2030
-        else if(index == 6 && checkMethod(insn, obfuscated ? "func_149717_k" : "getLightOpacity", "(Lnet/minecraft/block/state/IBlockState;)I")) {
+        else if(index == 6 && checkMethod(insn, obfuscated ? "func_185891_c" : "getLightOpacity", "()I")) {
             final InsnList list = new InsnList();
             //parameters
             list.add(new VarInsnNode(ALOAD, 2));
