@@ -297,7 +297,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
     }
 
     @Override
-    public boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+    public boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull World world, @Nonnull BlockPos pos) {
         if(!isFluidloggableFluid()) return false;
         else if(fluid.getValue(BlockLiquid.LEVEL) == getMaxRenderHeightMeta()) return true;
         else if(!canCreateSources) return false;

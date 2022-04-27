@@ -234,13 +234,13 @@ public final class FluidloggedUtils
     }
 
     //return true if the fluid at the pos can be fluidlogged
-    public static boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+    public static boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull World world, @Nonnull BlockPos pos) {
         //(BlockLiquid & BlockFluidClassic extend this through asm)
         return fluid.getBlock() instanceof IFluidloggableFluid &&
                 ((IFluidloggableFluid)fluid.getBlock()).isFluidloggableFluid(fluid, world, pos);
     }
 
-    public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nullable Fluid fluid) {
+    public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nullable Fluid fluid) {
         //config
         final EnumActionResult result = ConfigHandler.isStateFluidloggable(state, fluid);
         if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;

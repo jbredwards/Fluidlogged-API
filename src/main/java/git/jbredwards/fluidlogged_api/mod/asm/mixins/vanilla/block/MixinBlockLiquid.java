@@ -250,7 +250,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
     }
 
     @Override
-    public boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+    public boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull World world, @Nonnull BlockPos pos) {
         if(!isFluidloggableFluid()) return false;
         else if(fluid.getValue(BlockLiquid.LEVEL) == 0) return true;
         else if(fluid.getMaterial() != Material.WATER) return false;

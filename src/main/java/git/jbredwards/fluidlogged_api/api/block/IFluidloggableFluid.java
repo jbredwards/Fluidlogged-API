@@ -2,7 +2,7 @@ package git.jbredwards.fluidlogged_api.api.block;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
 import net.minecraftforge.fluids.IFluidBlock;
 
 import javax.annotation.Nonnull;
@@ -17,7 +17,7 @@ public interface IFluidloggableFluid extends IFluidBlock
     /**
      * Used when the fluid is in the world
      */
-    default boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+    default boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull World world, @Nonnull BlockPos pos) {
         return isFluidloggableFluid();
     }
 

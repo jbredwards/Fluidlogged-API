@@ -52,7 +52,7 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
      * Ensures that only compatible fluids can be placed inside this
      */
     @Override
-    public boolean isFluidValid(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Fluid fluid) {
+    public boolean isFluidValid(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Fluid fluid) {
         return isCompatibleFluid(parentFluid, fluid);
     }
 
