@@ -28,7 +28,7 @@ public interface IASMPlugin extends Opcodes
     //utility method that makes life easier if only one method is being transformed
     default boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return false; }
     //transform a method, return true if the method is transformed
-    default boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) { return false; }
+    default boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) { return true; }
     //return false if the class has been transformed, returning false will cause method transforms to be skipped
     default boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) { return true; }
     //used to add local variables, returns the amount of variables added
@@ -74,7 +74,7 @@ public interface IASMPlugin extends Opcodes
     //can be useful for easily troubleshooting plugins
     default void informConsole(@Nonnull String className, @Nullable MethodNode method) {
         if(ConfigHandler.debugASMPlugins) {
-            if(method == null) System.out.printf("Fluidlogged API Plugin: transforming... %s", className);
+            if(method == null) System.out.printf("Fluidlogged API Plugin: transforming... %s%n", className);
             else System.out.printf("Fluidlogged API Plugin: transforming... %s.%s%s%n", className, method.name, method.desc);
         }
     }

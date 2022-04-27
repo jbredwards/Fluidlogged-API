@@ -3,9 +3,6 @@
   "package": "git.jbredwards.fluidlogged_api.mod.asm.mixins.vanilla.block",
   "mixins": [
     "MixinBlockDynamicLiquid",
-    "MixinBlockLiquid",
-    "MixinBlockTorch",
-    "MixinFluidloggableBlocksFlowable",
-    "MixinMaterialLogic"
+    "MixinBlockLiquid"
   ]
 }

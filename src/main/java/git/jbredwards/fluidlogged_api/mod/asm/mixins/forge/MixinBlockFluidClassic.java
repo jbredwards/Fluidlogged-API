@@ -268,9 +268,9 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
         if(fluidStack.amount < Fluid.BUCKET_VOLUME) return 0;
         if(doPlace) {
             final IBlockState here = world.getBlockState(pos);
-            final Fluid fluid = getFluid();
 
-            if(isStateFluidloggable(here, world, pos, fluid)) setFluidState(world, pos, here, FluidState.of(fluid), true);
+            if(isStateFluidloggable(here, world, pos, getFluid())) {
+                if(!setFluidState(world, pos, here, FluidState.of(this), true)) return 0; }
             else world.setBlockState(pos, getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
         }
 
@@ -290,7 +290,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
         if(fluidState.isEmpty()) return null;
         if(doDrain) {
             if(fluidState.getState() == here) world.setBlockState(pos, Blocks.AIR.getDefaultState());
-            else setFluidState(world, pos, here, FluidState.EMPTY, false);
+            else if(!setFluidState(world, pos, here, FluidState.EMPTY, false)) return null;
         }
 
         return fluidState.getLevel() != 0 ? null : stack.copy();

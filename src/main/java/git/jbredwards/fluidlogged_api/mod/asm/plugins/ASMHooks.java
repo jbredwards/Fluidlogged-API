@@ -4,9 +4,11 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.BFReflector;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.OFReflector;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.util.AccessorUtils;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.material.MaterialLogic;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -135,6 +137,7 @@ public final class ASMHooks
         final float[][] height = new float[3][3];
         final float[][] corner = new float[2][2];
 
+        final EnumFacing densityFace = densityDir < 0 ? UP : DOWN;
         upBlockState[1][1] = world.getBlockState(pos.down(densityDir));
         upFluid[1][1] = getFluidState(world, pos.down(densityDir), upBlockState[1][1]).getFluid();
         height[1][1] = getFluidHeightForRender(fluid, world, pos, upBlockState[1][1], upFluid[1][1], 1, 1, densityDir, quantaPerBlock, quantaPerBlockFloat, quantaFraction);
@@ -162,36 +165,36 @@ public final class ASMHooks
                     corner[i][j] = getFluidHeightAverage(i, j, quantaFraction, height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
 
             //check for downflow above corners
-            boolean n =  isFluid(fluid, upBlockState[0][1], upFluid[0][1], world, pos.north(), EnumFacing.NORTH);
-            boolean s =  isFluid(fluid, upBlockState[2][1], upFluid[2][1], world, pos.south(), EnumFacing.SOUTH);
-            boolean w =  isFluid(fluid, upBlockState[1][0], upFluid[1][0], world, pos.west(),  EnumFacing.WEST);
-            boolean e =  isFluid(fluid, upBlockState[1][2], upFluid[1][2], world, pos.east(),  EnumFacing.EAST);
-            boolean nw = isFluid(fluid, upBlockState[0][0], upFluid[0][0], world, pos.north().west(), EnumFacing.NORTH, EnumFacing.WEST);
-            boolean ne = isFluid(fluid, upBlockState[0][2], upFluid[0][2], world, pos.north().east(), EnumFacing.NORTH, EnumFacing.EAST);
-            boolean sw = isFluid(fluid, upBlockState[2][0], upFluid[2][0], world, pos.south().west(), EnumFacing.SOUTH, EnumFacing.WEST);
-            boolean se = isFluid(fluid, upBlockState[2][2], upFluid[2][2], world, pos.south().east(), EnumFacing.SOUTH, EnumFacing.EAST);
+            boolean n =  isFluid(fluid, upBlockState[0][1], upFluid[0][1], world, pos.north(), NORTH, densityFace);
+            boolean s =  isFluid(fluid, upBlockState[2][1], upFluid[2][1], world, pos.south(), SOUTH, densityFace);
+            boolean w =  isFluid(fluid, upBlockState[1][0], upFluid[1][0], world, pos.west(),  WEST,  densityFace);
+            boolean e =  isFluid(fluid, upBlockState[1][2], upFluid[1][2], world, pos.east(),  EAST,  densityFace);
+            boolean nw = isFluid(fluid, upBlockState[0][0], upFluid[0][0], world, pos.north().west(), NORTH, WEST, densityFace);
+            boolean ne = isFluid(fluid, upBlockState[0][2], upFluid[0][2], world, pos.north().east(), NORTH, EAST, densityFace);
+            boolean sw = isFluid(fluid, upBlockState[2][0], upFluid[2][0], world, pos.south().west(), SOUTH, WEST, densityFace);
+            boolean se = isFluid(fluid, upBlockState[2][2], upFluid[2][2], world, pos.south().east(), SOUTH, EAST, densityFace);
             if(nw || n || w) corner[0][0] = 1;
             if(ne || n || e) corner[0][1] = 1;
             if(sw || s || w) corner[1][0] = 1;
             if(se || s || e) corner[1][1] = 1;
 
             //fix corners of fluidlogged blocks
-            if(corner[0][0] < quantaFraction && (fixCorner(fluid, here, world, pos, EnumFacing.NORTH, EnumFacing.WEST) || fixCorner(fluid, here, world, pos, EnumFacing.WEST, EnumFacing.NORTH))) corner[0][0] = quantaFraction;
-            if(corner[0][1] < quantaFraction && (fixCorner(fluid, here, world, pos, EnumFacing.SOUTH, EnumFacing.WEST) || fixCorner(fluid, here, world, pos, EnumFacing.WEST, EnumFacing.SOUTH))) corner[0][1] = quantaFraction;
-            if(corner[1][0] < quantaFraction && (fixCorner(fluid, here, world, pos, EnumFacing.NORTH, EnumFacing.EAST) || fixCorner(fluid, here, world, pos, EnumFacing.EAST, EnumFacing.NORTH))) corner[1][0] = quantaFraction;
-            if(corner[1][1] < quantaFraction && (fixCorner(fluid, here, world, pos, EnumFacing.SOUTH, EnumFacing.EAST) || fixCorner(fluid, here, world, pos, EnumFacing.EAST, EnumFacing.SOUTH))) corner[1][1] = quantaFraction;
+            if(corner[0][0] < quantaFraction && (fixCorner(fluid, here, world, pos, NORTH, WEST) || fixCorner(fluid, here, world, pos, WEST, NORTH))) corner[0][0] = quantaFraction;
+            if(corner[0][1] < quantaFraction && (fixCorner(fluid, here, world, pos, SOUTH, WEST) || fixCorner(fluid, here, world, pos, WEST, SOUTH))) corner[0][1] = quantaFraction;
+            if(corner[1][0] < quantaFraction && (fixCorner(fluid, here, world, pos, NORTH, EAST) || fixCorner(fluid, here, world, pos, EAST, NORTH))) corner[1][0] = quantaFraction;
+            if(corner[1][1] < quantaFraction && (fixCorner(fluid, here, world, pos, SOUTH, EAST) || fixCorner(fluid, here, world, pos, EAST, SOUTH))) corner[1][1] = quantaFraction;
         }
 
         //side overlays
         for(int i = 0; i < 4; i++) {
-            EnumFacing side = EnumFacing.byHorizontalIndex(i);
+            EnumFacing side = byHorizontalIndex(i);
             BlockPos offset = pos.offset(side);
             boolean useOverlay = world.getBlockState(offset).getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID;
             state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], useOverlay);
         }
 
         //fix possible top z fighting
-        if(!canFluidFlow(world, pos, here, densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN)) {
+        if(!canFluidFlow(world, pos, here, densityFace)) {
             if(corner[0][0] == 1) corner[0][0] = 0.998f;
             if(corner[0][1] == 1) corner[0][1] = 0.998f;
             if(corner[1][0] == 1) corner[1][0] = 0.998f;
@@ -222,7 +225,7 @@ public final class ASMHooks
     //PluginBlockFluidBase helper
     public static float getFluidHeightForRender(@Nonnull Fluid fluid, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState up, @Nullable Fluid upFluid, int i, int j, int densityDir, int quantaPerBlock, float quantaPerBlockFloat, float quantaFraction) {
         //check block above
-        if(isFluid(fluid, up, upFluid, world, pos.down(densityDir), (densityDir < 0 ? EnumFacing.UP : EnumFacing.DOWN))) return 1;
+        if(isFluid(fluid, up, upFluid, world, pos.down(densityDir), (densityDir < 0 ? UP : DOWN))) return 1;
 
         final IBlockState state = world.getBlockState(pos);
         if(state.getBlock().isAir(state, world, pos)) return 0;
@@ -382,7 +385,7 @@ public final class ASMHooks
         Vec3d vec = Vec3d.ZERO;
 
         final int decay = AccessorUtils.getFlowDecay(block, world, pos);
-        for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+        for(EnumFacing facing : HORIZONTALS) {
             if(canFluidFlow(world, pos, here, facing)) {
                 BlockPos offset = pos.offset(facing);
                 if(canFluidFlow(world, offset, world.getBlockState(offset), facing.getOpposite())) {
@@ -421,14 +424,14 @@ public final class ASMHooks
 
     //PluginModelFluid
     public static float fixTextureFightingZ(float old, int index) {
-        final EnumFacing facing = EnumFacing.byHorizontalIndex((5 - index) % 4); // [W, S, E, N]
+        final EnumFacing facing = byHorizontalIndex((5 - index) % 4); // [W, S, E, N]
         if(facing.getAxis() == Axis.X) return old;
         else return old == 1 ? 0.998f : 0.002f;
     }
 
     //PluginModelFluid
     public static float fixTextureFightingX(float old, int index) {
-        final EnumFacing facing = EnumFacing.byHorizontalIndex((5 - index) % 4); // [W, S, E, N]
+        final EnumFacing facing = byHorizontalIndex((5 - index) % 4); // [W, S, E, N]
         if(facing.getAxis() == Axis.Z) return old;
         else return old == 1 ? 0.998f : 0.002f;
     }
@@ -490,7 +493,7 @@ public final class ASMHooks
 
     //PluginBlockDoor
     public static void notifyDoorFluids(@Nonnull World world, @Nonnull BlockPos rangeMin, @Nonnull BlockPos rangeMax) {
-        notifyFluids(world, rangeMin.up(), FluidState.get(world, rangeMin.up()), false, EnumFacing.DOWN);
+        notifyFluids(world, rangeMin.up(), FluidState.get(world, rangeMin.up()), false, DOWN);
         world.markBlockRangeForRenderUpdate(rangeMin, rangeMax);
     }
 
@@ -568,8 +571,26 @@ public final class ASMHooks
         final boolean isOpen = here.getValue(BlockTrapDoor.OPEN);
 
         if(side.getAxis().isHorizontal()) return !isOpen || here.getValue(BlockTrapDoor.FACING).getOpposite() != side;
-        else if(side == EnumFacing.UP) return isOpen || here.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.BOTTOM;
+        else if(side == UP) return isOpen || here.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.BOTTOM;
         else return isOpen || here.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.TOP;
+    }
+
+    //PluginBlockTrapDoor & others
+    public static void notifyFluidStates(@Nonnull World world, @Nonnull BlockPos pos) {
+        notifyFluids(world, pos, FluidState.get(world, pos), true);
+    }
+
+    //PluginBlockTorch
+    @Nonnull private static final Material TORCH = new MaterialLogic(Material.CIRCUITS.getMaterialMapColor()) {
+        @Nonnull
+        @Override
+        public Material setNoPushMobility() { return super.setNoPushMobility(); }
+    }.setNoPushMobility();
+
+    //PluginBlockTorch
+    @Nonnull
+    public static Material getTorchMaterial(@Nonnull Material material, @Nonnull Block block) {
+        return !ConfigHandler.fluidsBreakTorches || block instanceof BlockRedstoneTorch ? material : TORCH;
     }
 
     //PluginBlockWall
@@ -584,6 +605,44 @@ public final class ASMHooks
 
         return fluidState.isEmpty() || fluidState.getMaterial() != Material.LAVA
             || !canFluidFlow(world, pos, here, UP);
+    }
+
+    //PluginMaterialLogic
+    public static boolean isMaterialCircuit(@Nonnull Material material) { return material == Material.CIRCUITS; }
+
+    //PluginParticle
+    public static int fixParticleBrightness(@Nonnull World world, @Nonnull BlockPos pos) {
+        final int sky = fixParticleBrightness(world, pos, EnumSkyBlock.SKY);
+        final int block = fixParticleBrightness(world, pos, EnumSkyBlock.BLOCK);
+        return sky << 20 | Math.max(block, 0) << 4;
+    }
+
+    //PluginParticle helper
+    public static int fixParticleBrightness(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumSkyBlock type) {
+        if(!world.provider.hasSkyLight() && type == EnumSkyBlock.SKY) return 0;
+        if(pos.getY() < 0) pos = new BlockPos(pos.getX(), 0, pos.getZ());
+        if(!world.isValid(pos)) return type.defaultLightValue;
+        return Math.max(world.getLightFor(type, pos),
+                Math.max(world.getLightFor(type, pos.up()),
+                        Math.max(world.getLightFor(type, pos.east()),
+                                Math.max(world.getLightFor(type, pos.west()),
+                                        Math.max(world.getLightFor(type, pos.south()),
+                                                world.getLightFor(type, pos.north()))))));
+    }
+
+    //PluginParticleRain & PluginEntityRenderer
+    @SuppressWarnings("ConstantConditions")
+    @Nonnull
+    public static AxisAlignedBB fixRainCollision(@Nonnull IBlockState here, @Nonnull World world, @Nonnull BlockPos pos) {
+        final FluidState fluidState = getFluidState(world, pos, here);
+        final AxisAlignedBB aabb = here.getBoundingBox(world, pos);
+        //skip fluid check if none are present, or if it's a bad fluid
+        if(fluidState.isEmpty() || !(fluidState.getBlock() instanceof IFluidBlock)) return aabb;
+        final double fluidHeight = Math.max(
+                getFluidFromState(here) == null ? aabb.maxY : 0,
+                fluidState.getBlock().getFilledPercentage(world, pos));
+
+        return new AxisAlignedBB(0, 0, 0, 0, fluidHeight, 0);
     }
 
     //PluginRenderChunk

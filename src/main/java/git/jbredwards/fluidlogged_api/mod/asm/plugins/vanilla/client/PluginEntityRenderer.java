@@ -9,6 +9,7 @@ import javax.annotation.Nonnull;
  * -fixes underwater block selection, for real though, it's hard-coded to not render underwater, but if I remove that, works fine underwater, WHY?! lol
  * -lava FluidStates now emit smoke while raining
  * -fixes FluidState fog color
+ * -correct rain particle spawn height
  * @author jbred
  *
  */
@@ -40,22 +41,42 @@ public final class PluginEntityRenderer implements IASMPlugin
             instructions.remove(getPrevious(insn, 2));
             instructions.remove(getPrevious(insn, 1));
             instructions.remove(getPrevious(insn, 0));
-
             return true;
         }
-        //addRainParticles, line 1561
-        else if(index == 2 && checkField(insn, obfuscated ? "field_151587_i" : "LAVA", "Lnet/minecraft/block/material/Material;")) {
-            final InsnList list = new InsnList();
-            //adds new code
-            list.add(new VarInsnNode(ALOAD, 17));
-            list.add(genMethodNode("addRainParticles", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;)Z"));
-            ((JumpInsnNode)insn.getNext()).setOpcode(IFEQ);
-            instructions.insert(insn, list);
-            //removes old
-            instructions.remove(insn.getPrevious());
-            instructions.remove(insn);
-
-            return true;
+        //addRainParticles
+        else if(index == 2) {
+            //replace old height with better one
+            if(checkMethod(insn, obfuscated ? "func_185900_c" : "getBoundingBox")) {
+                instructions.insert(insn, genMethodNode("fixRainCollision", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/util/math/AxisAlignedBB;"));
+                instructions.remove(insn);
+            }
+            //only do lava smoke particles if they make sense
+            else if(checkField(insn, obfuscated ? "field_151587_i" : "LAVA", "Lnet/minecraft/block/material/Material;")) {
+                final InsnList list = new InsnList();
+                //adds new code
+                list.add(new VarInsnNode(ALOAD, 17));
+                list.add(genMethodNode("addRainParticles", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;)Z"));
+                ((JumpInsnNode)insn.getNext()).setOpcode(IFEQ);
+                instructions.insert(insn, list);
+                //removes old
+                instructions.remove(insn.getPrevious());
+                instructions.remove(insn);
+            }
+            //remove unnecessary offset
+            else if(checkField(insn, obfuscated ? "field_72337_e" : "maxY"))
+                removeFrom(instructions, getPrevious(insn, 3), -1);
+            //lava height works differently than water for some reason, lets change that
+            else if(checkField(insn, obfuscated ? "field_72338_b" : "minY")) {
+                ((FieldInsnNode)insn).name = obfuscated ? "field_72337_e" : "maxY";
+                instructions.remove(insn.getNext());
+                instructions.insert(insn, new InsnNode(DADD));
+                //vanilla uses the wrong blockpos here, fix that
+                instructions.insert(getPrevious(insn, 5), new InsnNode(FCONST_1));
+                instructions.insert(getPrevious(insn, 5), new InsnNode(FSUB));
+                //remove unnecessary offset
+                removeFrom(instructions, getPrevious(insn, 3), -1);
+                return true;
+            }
         }
         //updateFogColor, line 1857
         else if(index == 3 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", null)) {

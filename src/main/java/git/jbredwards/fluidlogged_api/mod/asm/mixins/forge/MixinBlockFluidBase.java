@@ -157,18 +157,25 @@ public abstract class MixinBlockFluidBase extends Block
     @Nullable
     @Override
     public Boolean isEntityInsideMaterial(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState iblockstate, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
-        return materialIn == material && entity.getEntityBoundingBox().minY < pos.getY() + getFilledPercentage(world, pos);
+        return materialIn != material ? null : isWithinFluid(world, pos, testingHead ? yToTest : entity.posY);
     }
 
     @Nullable
     @Override
     public Boolean isAABBInsideMaterial(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB boundingBox, @Nonnull Material materialIn) {
-        return materialIn == material && Boolean.TRUE.equals(isAABBInsideLiquid(world, pos, boundingBox));
+        return materialIn != material ? null : isAABBInsideLiquid(world, pos, boundingBox);
     }
 
     @Nullable
     @Override
     public Boolean isAABBInsideLiquid(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB boundingBox) {
-        return boundingBox.minY < pos.getY() + getFilledPercentage(world, pos);
+        return isWithinFluid(world, pos, boundingBox.minY);
+    }
+
+    //forked from BlockFluidBase, but takes the y value directly
+    private boolean isWithinFluid(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, double y) {
+        final float filled = getFilledPercentage(world, pos);
+        return filled < 0 ? y > pos.getY() + filled + 1
+                : y < pos.getY() + filled;
     }
 }

@@ -47,9 +47,13 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
                 .put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()) //better builders wands compat
                 //vanilla (client)
+                .put("net.minecraft.client.particle.Particle", new PluginParticle()) //fix particle lighting while within fluidlogged blocks
+                .put("net.minecraft.client.particle.ParticleRain", new PluginParticleRain()) //fix all fluid-related rain collisions
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new PluginRenderChunk()) //allows the game to render FluidStates
+                .put("net.minecraft.client.renderer.ActiveRenderInfo", new PluginActiveRenderInfo()) //get block fog color from possible FluidState
                 .put("net.minecraft.client.renderer.EntityRenderer", new PluginEntityRenderer()) //fixes graphical underwater block selection; lava FluidStates now emit smoke while raining; fixes FluidState fog color
                 //vanilla (blocks)
+                .put("net.minecraft.block.material.MaterialLogic", new PluginMaterialLogic()) //prevents fluids from destroying "circuit" blocks
                 .put("net.minecraft.block.Block", new PluginBlock()) //fixes some lighting, canSustainPlant, and explosion related issues
                 .put("net.minecraft.block.BlockBarrier", new PluginBlockBarrier()) //move the hardcoded stuff from WorldClient to BlockBarrier
                 .put("net.minecraft.block.BlockBush", new PluginBlockBush()) //exists for fluidloggable plants that parent from this class
@@ -57,14 +61,17 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("net.minecraft.block.BlockConcretePowder", new PluginBlockConcretePowder()) //concrete forms from concrete powder while its next to flowing water FluidStates
                 .put("net.minecraft.block.BlockDoor", new PluginBlockDoor()) // update upper FluidState & correct canFluidFlow
                 .put("net.minecraft.block.BlockFarmland", new PluginBlockFarmland()) //farmland blocks now recognise water FluidStates
+                .put("net.minecraft.block.BlockLeaves", new PluginFluidloggableBlocksFlowable()) //for this it makes sense to have the fluid flow from any side
                 .put("net.minecraft.block.BlockLilyPad", new PluginBlockLilyPad()) //lily pads can stay on certain water FluidStates
                 .put("net.minecraft.block.BlockLiquid", new PluginBlockLiquid()) //significantly changes the BlockLiquid class to work with the mod
+                .put("net.minecraft.block.BlockMobSpawner", new PluginFluidloggableBlocksFlowable()) //for this it makes sense to have the fluid flow from any side
                 .put("net.minecraft.block.BlockPistonBase", new PluginBlockPistonBase()) //piston bases are fluidloggable while extended
                 .put("net.minecraft.block.BlockReed", new PluginBlockReed()) //sugar cane blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockSkull", new PluginBlockSkull()) //wither skulls no longer void the FluidState here when summoning the wither
                 .put("net.minecraft.block.BlockSlab", new PluginBlockSlab()) //half slabs are fluidloggable
                 .put("net.minecraft.block.BlockSponge", new PluginBlockSponge()) //fixes drain interactions across all modded fluids & FluidStates
                 .put("net.minecraft.block.BlockTrapDoor", new PluginBlockTrapDoor()) //fluids flow from correct sides
+                .put("net.minecraft.block.BlockTorch", new PluginBlockTorch()) //allow torches to be destroyed by flowing fluid blocks
                 .put("net.minecraft.block.BlockWall", new PluginBlockWall()) //fixes a bug with walls that caused the post to unintentionally render
                 //vanilla (basic fluidlogging implementation for certain blocks)
                 .put("net.minecraft.block.BlockAnvil", new PluginFluidloggableBlocks())
