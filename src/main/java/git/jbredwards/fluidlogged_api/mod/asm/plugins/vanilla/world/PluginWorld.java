@@ -45,10 +45,17 @@ public final class PluginWorld implements IASMPlugin
         //changes some methods to use FluidloggedUtils#getFluidOrReal
         else if(checkMethod(method, obfuscated ? "func_72953_d" : "containsAnyLiquid", null)
         || checkMethod(method, obfuscated ? "func_147470_e" : "isFlammableWithin", null)
-        || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null)) return 6;
+        || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null)
+        || checkMethod(method, obfuscated ? "func_175705_a" : "getLightFromNeighborsFor", null)
+        || checkMethod(method, obfuscated ? "func_175721_c" : "getLight", "(Lnet/minecraft/util/math/BlockPos;Z)I"))
+            return 6;
 
         //isFlammableWithin, fix bug with lava level
         else if(method.name.equals(obfuscated ? "func_147470_e" : "isFlammableWithin")) return 7;
+
+        //rayTraceBlocks, ray traces now include fluidlogged fluid blocks
+        else if(checkMethod(method, obfuscated ? "func_147447_a" : "rayTraceBlocks", "(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;ZZZ)Lnet/minecraft/util/math/RayTraceResult;"))
+            return 8;
 
         return 0;
     }
@@ -182,5 +189,30 @@ public final class PluginWorld implements IASMPlugin
         }
 
         return false;
+    }
+
+    @Override
+    public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/world/IChunkProvider");
+        addMethod(classNode, "getChunkFromBlockCoords", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/world/World", obfuscated ? "func_175726_f" : "getChunk", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;", false);
+            generator.visitMaxs(2, 0);
+        });
+        //rayTraceBlocks, ray traces now include fluidlogged fluid blocks
+        overrideMethod(classNode, method -> checkMethod(method, obfuscated ? "func_147447_a" : "rayTraceBlocks", "(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;ZZZ)Lnet/minecraft/util/math/RayTraceResult;"),
+            "rayTraceBlocks", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;ZZZ)Lnet/minecraft/util/math/RayTraceResult;", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitVarInsn(ALOAD, 1);
+                generator.visitVarInsn(ALOAD, 2);
+                generator.visitVarInsn(ILOAD, 3);
+                generator.visitVarInsn(ILOAD, 4);
+                generator.visitVarInsn(ILOAD, 5);
+                generator.visitMaxs(6, 0);
+            }
+        );
+
+        return true;
     }
 }

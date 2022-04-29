@@ -139,11 +139,13 @@ public final class FluidloggedUtils
         }
 
         //update blocks & fluids
-        if((blockFlags & Constants.BlockFlags.NOTIFY_NEIGHBORS) != 0)
-            world.markAndNotifyBlock(pos, chunk, here, here, blockFlags);
+        if(world.isAreaLoaded(pos, 1, false)) { //prevent cascading world gen if mods place FluidStates along chunk boarders
+            if((blockFlags & Constants.BlockFlags.NOTIFY_NEIGHBORS) != 0)
+                world.markAndNotifyBlock(pos, chunk, here, here, blockFlags);
 
-        //update fluids only
-        else notifyFluids(world, pos, fluidState, false);
+            //update fluids only
+            else notifyFluids(world, pos, fluidState, false);
+        }
     }
 
     //causes a light level & light opacity update

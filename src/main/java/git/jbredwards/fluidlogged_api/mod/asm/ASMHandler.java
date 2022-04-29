@@ -47,8 +47,12 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
                 .put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()) //better builders wands compat
                 //vanilla (client)
+                .put("net.minecraft.client.multiplayer.WorldClient", new PluginWorldClient()) //non-empty FluidStates call randomDisplayTick & move hardcoded barrier stuff to barrier.randomDisplayTick
                 .put("net.minecraft.client.particle.Particle", new PluginParticle()) //fix particle lighting while within fluidlogged blocks
+                .put("net.minecraft.client.particle.ParticleBubble", new PluginWaterParticles()) //this doesn't instantly disappear while inside water FluidStates
+                .put("net.minecraft.client.particle.ParticleDrip", new PluginWaterParticles()) //this doesn't instantly disappear while inside water FluidStates
                 .put("net.minecraft.client.particle.ParticleRain", new PluginParticleRain()) //fix all fluid-related rain collisions
+                .put("net.minecraft.client.particle.ParticleSuspend", new PluginWaterParticles()) //this doesn't instantly disappear while inside water FluidStates
                 .put("net.minecraft.client.renderer.chunk.RenderChunk", new PluginRenderChunk()) //allows the game to render FluidStates
                 .put("net.minecraft.client.renderer.ActiveRenderInfo", new PluginActiveRenderInfo()) //get block fog color from possible FluidState
                 .put("net.minecraft.client.renderer.EntityRenderer", new PluginEntityRenderer()) //fixes graphical underwater block selection; lava FluidStates now emit smoke while raining; fixes FluidState fog color
@@ -104,8 +108,17 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("net.minecraft.block.BlockTripWire", new PluginFluidloggableBlocks())
                 .put("net.minecraft.block.BlockTripWireHook", new PluginFluidloggableBlocks())
                 //vanilla (entity)
+                .put("net.minecraft.entity.ai.EntityAIPanic", new PluginEntityAIPanic()) //water FluidStates are now seen as water blocks
+                .put("net.minecraft.entity.ai.RandomPositionGenerator", new PluginRandomPositionGenerator()) //water FluidStates are now seen as water blocks
+                .put("net.minecraft.entity.item.EntityBoat", new PluginEntityBoat()) //boats work with water FluidStates
+                .put("net.minecraft.entity.item.EntityItem", new PluginEntityItem()) //handle lava collisions correctly
+                .put("net.minecraft.entity.item.EntityXPOrb", new PluginEntityItem()) //handle lava collisions correctly
+                .put("net.minecraft.entity.projectile.EntityFishHook", new PluginEntityFishHook()) //fishhook entities generate the fishing particles at water FluidStates
                 .put("net.minecraft.entity.Entity", new PluginEntity())
                 //vanilla (world)
+                .put("net.minecraft.world.end.DragonSpawnManager$3", new PluginDragonSpawnManager()) //summoning the ender dragon will now void FluidStates at the pillar locations
+                .put("net.minecraft.world.gen.feature.WorldGenDungeons", new PluginWorldGenDungeons()) //spawner dungeons now void FluidStates when they generate
+                .put("net.minecraft.world.ChunkCache", new PluginChunkCache()) //fix lighting bugs
                 .put("net.minecraft.world.World", new PluginWorld()) //corrects a lot of FluidState related interactions
                 .put("net.minecraft.world.WorldServer", new PluginWorldServer()) //FluidStates now get ticked
                 //internal
@@ -125,8 +138,6 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
         return ImmutableList.of(
                 "mixins/fluidlogged_api.forge.json",
                 "mixins/fluidlogged_api.vanilla.block.json",
-                "mixins/fluidlogged_api.vanilla.client.json",
-                "mixins/fluidlogged_api.vanilla.entity.json",
                 "mixins/fluidlogged_api.vanilla.world.json"
         );
     }

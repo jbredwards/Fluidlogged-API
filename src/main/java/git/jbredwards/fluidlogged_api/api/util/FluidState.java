@@ -95,6 +95,10 @@ public class FluidState extends Pair<Fluid, IBlockState>
     //null if empty, nonnull otherwise
     public IBlockState getState() { return state; }
 
+    //some FluidStates may contain badly coded fluid blocks if gotten from an IBlockState
+    //it's advised to check for this before running IFluidBlock logic
+    public boolean isValid() { return state.getBlock() instanceof IFluidBlock; }
+
     @SuppressWarnings("unchecked")
     public <T extends Block & IFluidBlock> T getBlock() { return (T)state.getBlock(); }
 

@@ -17,6 +17,8 @@ public final class PluginEntity implements IASMPlugin
         if(method.name.equals(obfuscated ? "func_180799_ab" : "isInLava")) return 1;
         else if(method.name.equals(obfuscated ? "func_70072_I" : "handleWaterMovement")) return 1;
         else if(method.name.equals(obfuscated ? "func_71061_d_" : "doWaterSplashEffect")) return 2;
+        else if(method.name.equals(obfuscated ? "func_70055_a" : "isInsideOfMaterial")) return 3;
+        else if(method.name.equals(obfuscated ? "func_145775_I" : "doBlockCollisions")) return 4;
         return 0;
     }
 
@@ -29,19 +31,9 @@ public final class PluginEntity implements IASMPlugin
         }
         //doWaterSplashEffect
         else if(index == 2) {
-            if(checkMethod(insn, obfuscated ? "func_76128_c" : "floor")) {
-                //add motion to position the particles better
-                instructions.insertBefore(insn, new InsnNode(D2F));
-                instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
-                instructions.insertBefore(insn, new FieldInsnNode(GETFIELD, "net/minecraft/entity/Entity", obfuscated ? "field_70181_x" : "motionY", "D"));
-                instructions.insertBefore(insn, new InsnNode(D2F));
-                instructions.insertBefore(insn, new LdcInsnNode(-0.7f));
-                instructions.insertBefore(insn, new InsnNode(FMUL));
-                instructions.insertBefore(insn, new InsnNode(FADD));
-                instructions.insertBefore(insn, new LdcInsnNode(0.1f));
-                instructions.insertBefore(insn, new InsnNode(FSUB));
-                //don't round y value, not needed
-                removeFrom(instructions, insn, 1);
+            if(checkMethod(insn.getPrevious(), obfuscated ? "func_76128_c" : "floor")) {
+                instructions.insert(insn, genMethodNode("doWaterSplashEffect", "(Lnet/minecraft/entity/Entity;)F"));
+                removeFrom(instructions, insn, -3);
             }
             //remove offset, not needed
             else if(insn.getOpcode() == FADD && insn.getPrevious().getOpcode() == FCONST_1)
@@ -53,6 +45,18 @@ public final class PluginEntity implements IASMPlugin
                 instructions.insert(getNext(insn, 14), new InsnNode(DCONST_0));
                 instructions.insert(getNext(insn, 14), new InsnNode(DCONST_0));
             }
+        }
+        //isInsideOfMaterial, add FluidState functionality
+        else if(index == 3 && checkMethod(insn, "isEntityInsideMaterial")) {
+            instructions.insert(insn, genMethodNode("isEntityInsideFluidState", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;DLnet/minecraft/block/material/Material;Z)Ljava/lang/Boolean;"));
+            instructions.remove(insn);
+            return true;
+        }
+        //doBlockCollisions, fix fluid collisions & add FluidState functionality
+        else if(index == 4 && checkMethod(insn, obfuscated ? "func_180634_a" : "onEntityCollision")) {
+            instructions.insert(insn, genMethodNode("onEntityCollidedWithFluidState", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;)V"));
+            instructions.remove(insn);
+            return true;
         }
 
         return false;

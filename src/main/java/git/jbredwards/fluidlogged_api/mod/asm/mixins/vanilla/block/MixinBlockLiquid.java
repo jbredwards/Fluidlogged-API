@@ -307,7 +307,7 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
     @Nonnull
     @Override
     public IBlockState getStateAtViewpoint(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Vec3d viewpoint) {
-        if(viewpoint.y < pos.getY() + getBlockLiquidHeight(state, world, pos)) return state;
+        if(viewpoint.y < pos.getY() + getBlockLiquidHeight(state, world, pos)) return super.getStateAtViewpoint(state, world, pos, viewpoint);
         //return the other block here if the player isn't within the fluid
         final IBlockState here = world.getBlockState(pos);
         return here == state ? Blocks.AIR.getDefaultState()

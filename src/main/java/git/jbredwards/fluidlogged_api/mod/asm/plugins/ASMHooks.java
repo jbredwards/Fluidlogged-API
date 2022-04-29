@@ -1,5 +1,6 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins;
 
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.BFReflector;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.OFReflector;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
@@ -25,14 +26,13 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.*;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.client.ForgeHooksClient;
+import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.PropertyFloat;
 import net.minecraftforge.common.util.Constants;
@@ -523,7 +523,6 @@ public final class ASMHooks
 
     //PluginBlockSponge
     private static boolean available = true;
-    @SuppressWarnings("ConstantConditions")
     public static boolean absorb(@Nonnull World world, @Nonnull BlockPos origin) {
         //temporary fix for strange update bug
         if(available) {
@@ -543,7 +542,7 @@ public final class ASMHooks
 
                     if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) {
                         //don't drain bad fluid blocks (looking at you BOP kelp)
-                        if(fluidState.getBlock() instanceof IFluidBlock) {
+                        if(fluidState.isValid()) {
                             fluidState.getBlock().drain(world, offset, true);
                             if(distance < 6) queue.add(Pair.of(offset, distance + 1));
                             absorbed++;
@@ -598,6 +597,67 @@ public final class ASMHooks
         return world.isAirBlock(pos) || getFluidFromState(world.getBlockState(pos)) != null;
     }
 
+    //PluginChunkCache
+    @Nullable
+    public static Chunk getChunkFromChunkCache(@Nonnull BlockPos pos, @Nonnull Chunk[][] chunkArray, int chunkX, int chunkZ) {
+        final int x = (pos.getX() >> 4) - chunkX;
+        final int z = (pos.getZ() >> 4) - chunkZ;
+        return x >= 0 && x < chunkArray.length && z >= 0 && z < chunkArray[x].length ? chunkArray[x][z] : null;
+    }
+
+    //PluginEntity
+    public static float doWaterSplashEffect(@Nonnull Entity entity) {
+        final @Nullable RayTraceResult result = entity.world.rayTraceBlocks(
+                new Vec3d(entity.posX - entity.motionX, entity.posY - entity.motionY, entity.posZ - entity.motionZ),
+                new Vec3d(entity.posX + entity.motionX, entity.posY + entity.motionY, entity.posZ + entity.motionZ),
+                true, true, false);
+
+        //use the exact point where the entity collided with water
+        if(result != null) {
+            final BlockPos pos = result.getBlockPos();
+            final FluidState fluidState = getFluidState(entity.world, pos);
+            if(!fluidState.isEmpty() && fluidState.isValid()) {
+                final float filled = fluidState.getBlock().getFilledPercentage(entity.world, pos);
+                return pos.getY() + (filled < 0 ? filled + 1.1f : filled - 0.1f);
+            }
+        }
+
+        //estimate (should never pass)
+        return (float)(entity.posY + entity.motionY * -0.7 - 0.1);
+    }
+
+    //PluginEntity
+    @Nullable
+    public static Boolean isEntityInsideFluidState(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
+        @Nullable Boolean result = block.isEntityInsideMaterial(world, pos, here, entity, yToTest, materialIn, testingHead);
+        if(result != null) return result;
+        //check for FluidState if block here is not a fluid
+        else if(getFluidFromBlock(block) == null) {
+            final FluidState fluidState = FluidState.get(world, pos);
+            if(!fluidState.isEmpty()) {
+                result = fluidState.getBlock().isEntityInsideMaterial(world, pos, fluidState.getState(), entity, yToTest, materialIn, testingHead);
+                if(result != null) return result;
+                else if(fluidState.getMaterial() == materialIn)
+                    return ForgeHooks.isInsideOfMaterial(materialIn, entity, pos);
+            }
+        }
+
+        return null;
+    }
+
+    //PluginEntity
+    public static void onEntityCollidedWithFluidState(@Nonnull Block block, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull Entity entityIn) {
+        //check if the entity is inside the block before doing collisions
+        if(!Boolean.FALSE.equals(block.isAABBInsideLiquid(worldIn, pos, entityIn.getEntityBoundingBox())))
+            block.onEntityCollision(worldIn, pos, here, entityIn);
+
+        //don't check for FluidState if block here is a fluid
+        if(FluidloggedUtils.getFluidFromBlock(block) != null) return;
+        final FluidState fluidState = FluidState.get(worldIn, pos);
+        if(!fluidState.isEmpty() && !Boolean.FALSE.equals(fluidState.getBlock().isAABBInsideLiquid(worldIn, pos, entityIn.getEntityBoundingBox())))
+            fluidState.getBlock().onEntityCollision(worldIn, pos, fluidState.getState(), entityIn);
+    }
+
     //PluginEntityRenderer
     public static boolean addRainParticles(IBlockState here, BlockPos pos) {
         final WorldClient world = Minecraft.getMinecraft().world;
@@ -631,13 +691,12 @@ public final class ASMHooks
     }
 
     //PluginParticleRain & PluginEntityRenderer
-    @SuppressWarnings("ConstantConditions")
     @Nonnull
     public static AxisAlignedBB fixRainCollision(@Nonnull IBlockState here, @Nonnull World world, @Nonnull BlockPos pos) {
         final FluidState fluidState = getFluidState(world, pos, here);
         final AxisAlignedBB aabb = here.getBoundingBox(world, pos);
         //skip fluid check if none are present, or if it's a bad fluid
-        if(fluidState.isEmpty() || !(fluidState.getBlock() instanceof IFluidBlock)) return aabb;
+        if(fluidState.isEmpty() || !fluidState.isValid()) return aabb;
         final double fluidHeight = Math.max(
                 getFluidFromState(here) == null ? aabb.maxY : 0,
                 fluidState.getBlock().getFilledPercentage(world, pos));
@@ -873,6 +932,137 @@ public final class ASMHooks
         }
 
         return chunkState;
+    }
+
+    //PluginWorld
+    @SuppressWarnings("ConstantConditions")
+    @Nullable
+    public static RayTraceResult rayTraceBlocks(@Nonnull World world, @Nonnull Vec3d vec, @Nonnull Vec3d end, boolean stopOnLiquid, boolean ignoreBlockWithoutBoundingBox, boolean returnLastUncollidableBlock) {
+        if(Double.isNaN(vec.x) || Double.isNaN(vec.y) || Double.isNaN(vec.z) || Double.isNaN(end.x) || Double.isNaN(end.y) || Double.isNaN(end.z))
+            return null;
+
+        final int endX = MathHelper.floor(end.x);
+        final int endY = MathHelper.floor(end.y);
+        final int endZ = MathHelper.floor(end.z);
+        int prevX = MathHelper.floor(vec.x);
+        int prevY = MathHelper.floor(vec.y);
+        int prevZ = MathHelper.floor(vec.z);
+
+        BlockPos pos = new BlockPos(prevX, prevY, prevZ);
+        @Nullable RayTraceResult result;
+
+        //check FluidState
+        if(stopOnLiquid) {
+            final FluidState fluidState = FluidState.get(world, pos);
+            if(!fluidState.isEmpty() && fluidState.getBlock().canCollideCheck(fluidState.getState(), true) && (!ignoreBlockWithoutBoundingBox || fluidState.getState().getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
+                result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
+                if(result != null) { return result; }
+            }
+        }
+
+        IBlockState state = world.getBlockState(pos);
+        if(state.getBlock().canCollideCheck(state, stopOnLiquid) && (!ignoreBlockWithoutBoundingBox || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
+            result = state.collisionRayTrace(world, pos, vec, end);
+            if(result != null) { return result; }
+        }
+
+        @Nullable RayTraceResult lastResult = null;
+        for(int i = 200; i-- >= 0;) {
+            if(Double.isNaN(vec.x) || Double.isNaN(vec.y) || Double.isNaN(vec.z))
+                return null;
+
+            if(prevX == endX && prevY == endY && prevZ == endZ)
+                return returnLastUncollidableBlock ? lastResult : null;
+
+            boolean flagX = true, flagY = true, flagZ = true;
+            double x = 999, y = 999, z = 999;
+
+            if(endX > prevX) x = prevX + 1;
+            else if(endX < prevX) x = prevX;
+            else flagX = false;
+
+            if(endY > prevY) y = prevY + 1;
+            else if(endY < prevY) y = prevY;
+            else flagY = false;
+
+            if(endZ > prevZ) z = prevZ + 1;
+            else if(endZ < prevZ) z = prevZ;
+            else flagZ = false;
+
+            double coveredX = 999, coveredY = 999, coveredZ = 999;
+            double distX = end.x - vec.x;
+            double distY = end.y - vec.y;
+            double distZ = end.z - vec.z;
+
+            if(flagX) coveredX = (x - vec.x) / distX;
+            if(flagY) coveredY = (y - vec.y) / distY;
+            if(flagZ) coveredZ = (z - vec.z) / distZ;
+
+            if(coveredX == -0) coveredX = -1.0E-4;
+            if(coveredY == -0) coveredY = -1.0E-4;
+            if(coveredZ == -0) coveredZ = -1.0E-4;
+
+            //the general direction of the trace
+            EnumFacing facing;
+
+            if(coveredX < coveredY && coveredX < coveredZ) {
+                facing = endX > prevX ? EnumFacing.WEST : EnumFacing.EAST;
+                vec = new Vec3d(x, vec.y + distY * coveredX, vec.z + distZ * coveredX);
+            }
+
+            else if(coveredY < coveredZ) {
+                facing = endY > prevY ? EnumFacing.DOWN : EnumFacing.UP;
+                vec = new Vec3d(vec.x + distX * coveredY, y, vec.z + distZ * coveredY);
+            }
+
+            else {
+                facing = endZ > prevZ ? EnumFacing.NORTH : EnumFacing.SOUTH;
+                vec = new Vec3d(vec.x + distX * coveredZ, vec.y + distY * coveredZ, z);
+            }
+
+            prevX = MathHelper.floor(vec.x) - (facing == EnumFacing.EAST  ? 1 : 0);
+            prevY = MathHelper.floor(vec.y) - (facing == EnumFacing.UP    ? 1 : 0);
+            prevZ = MathHelper.floor(vec.z) - (facing == EnumFacing.SOUTH ? 1 : 0);
+
+            pos = new BlockPos(prevX, prevY, prevZ);
+
+            //check FluidState
+            if(stopOnLiquid) {
+                FluidState fluidState = FluidState.get(world, pos);
+
+                if(!fluidState.isEmpty() && (!ignoreBlockWithoutBoundingBox || fluidState.getState().getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
+                    if(fluidState.getBlock().canCollideCheck(fluidState.getState(), true)) {
+                        result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
+                        if(result != null) return result;
+                    }
+
+                    else lastResult = new RayTraceResult(RayTraceResult.Type.MISS, vec, facing, pos);
+                }
+            }
+
+            state = world.getBlockState(pos);
+            if(!ignoreBlockWithoutBoundingBox || state.getMaterial() == Material.PORTAL || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB) {
+                if(state.getBlock().canCollideCheck(state, stopOnLiquid)) {
+                    result = state.collisionRayTrace(world, pos, vec, end);
+                    if(result != null) return result;
+                }
+
+                else lastResult = new RayTraceResult(RayTraceResult.Type.MISS, vec, facing, pos);
+            }
+        }
+
+        return returnLastUncollidableBlock ? lastResult : null;
+    }
+
+    //PluginWorldClient
+    public static void randomFluidStateTick(@Nonnull World world, int x, int y, int z, int offset, @Nonnull Random random) {
+        x += world.rand.nextInt(offset) - world.rand.nextInt(offset);
+        y += world.rand.nextInt(offset) - world.rand.nextInt(offset);
+        z += world.rand.nextInt(offset) - world.rand.nextInt(offset);
+
+        final BlockPos pos = new BlockPos(x, y, z);
+        final FluidState fluidState = FluidState.get(pos);
+        if(!fluidState.isEmpty()) fluidState.getBlock().randomDisplayTick(fluidState.getState(), world, pos, random);
     }
 
     //PluginWorldServer
