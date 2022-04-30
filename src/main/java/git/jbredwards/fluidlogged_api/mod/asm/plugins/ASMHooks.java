@@ -609,7 +609,7 @@ public final class ASMHooks
     public static float doWaterSplashEffect(@Nonnull Entity entity) {
         final @Nullable RayTraceResult result = entity.world.rayTraceBlocks(
                 new Vec3d(entity.posX - entity.motionX, entity.posY - entity.motionY, entity.posZ - entity.motionZ),
-                new Vec3d(entity.posX + entity.motionX, entity.posY + entity.motionY, entity.posZ + entity.motionZ),
+                new Vec3d(entity.posX, entity.posY, entity.posZ),
                 true, true, false);
 
         //use the exact point where the entity collided with water
@@ -954,14 +954,14 @@ public final class ASMHooks
         //check FluidState
         if(stopOnLiquid) {
             final FluidState fluidState = FluidState.get(world, pos);
-            if(!fluidState.isEmpty() && fluidState.getBlock().canCollideCheck(fluidState.getState(), true) && (!ignoreBlockWithoutBoundingBox || fluidState.getState().getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
+            if(!fluidState.isEmpty() && fluidState.getBlock().canCollideCheck(fluidState.getState(), true)) {
                 result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
                 if(result != null) { return result; }
             }
         }
 
         IBlockState state = world.getBlockState(pos);
-        if(state.getBlock().canCollideCheck(state, stopOnLiquid) && (!ignoreBlockWithoutBoundingBox || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
+        if(state.getBlock().canCollideCheck(state, stopOnLiquid) && (stopOnLiquid && getFluidFromState(state) != null || !ignoreBlockWithoutBoundingBox || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
             result = state.collisionRayTrace(world, pos, vec, end);
             if(result != null) { return result; }
         }
@@ -1029,8 +1029,7 @@ public final class ASMHooks
             //check FluidState
             if(stopOnLiquid) {
                 FluidState fluidState = FluidState.get(world, pos);
-
-                if(!fluidState.isEmpty() && (!ignoreBlockWithoutBoundingBox || fluidState.getState().getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
+                if(!fluidState.isEmpty()) {
                     if(fluidState.getBlock().canCollideCheck(fluidState.getState(), true)) {
                         result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
                         if(result != null) return result;
@@ -1041,7 +1040,7 @@ public final class ASMHooks
             }
 
             state = world.getBlockState(pos);
-            if(!ignoreBlockWithoutBoundingBox || state.getMaterial() == Material.PORTAL || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB) {
+            if(!ignoreBlockWithoutBoundingBox || state.getMaterial() == Material.PORTAL || stopOnLiquid && getFluidFromState(state) != null || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB) {
                 if(state.getBlock().canCollideCheck(state, stopOnLiquid)) {
                     result = state.collisionRayTrace(world, pos, vec, end);
                     if(result != null) return result;
