@@ -44,6 +44,8 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("net.minecraftforge.fluids.Fluid", new PluginFluid()) //store one internal FluidState for each Fluid, as to decrease ram usage
                 .put("net.minecraftforge.fluids.FluidUtil", new PluginFluidUtil()) //changes some of this class's util functions to be FluidState sensitive
                 //modded
+                .put("cofh.thermaldynamics.block.BlockTDBase", new PluginThermalDynamics()) //fix fluidlogged duct explosion resistance
+                .put("cofh.thermaldynamics.duct.tiles.TileGrid", new PluginThermalDynamics()) //ray trace now skip fluids
                 .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
                 .put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()) //better builders wands compat
                 //vanilla (client)
@@ -118,6 +120,7 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 //vanilla (world)
                 .put("net.minecraft.world.end.DragonSpawnManager$3", new PluginDragonSpawnManager()) //summoning the ender dragon will now void FluidStates at the pillar locations
                 .put("net.minecraft.world.gen.feature.WorldGenDungeons", new PluginWorldGenDungeons()) //spawner dungeons now void FluidStates when they generate
+                .put("net.minecraft.world.gen.structure.template.Template", new PluginTemplate()) //structures can load saved FluidStates
                 .put("net.minecraft.world.ChunkCache", new PluginChunkCache()) //fix lighting bugs
                 .put("net.minecraft.world.World", new PluginWorld()) //corrects a lot of FluidState related interactions
                 .put("net.minecraft.world.WorldServer", new PluginWorldServer()) //FluidStates now get ticked
@@ -137,8 +140,7 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
     public List<String> getMixinConfigs() {
         return ImmutableList.of(
                 "mixins/fluidlogged_api.forge.json",
-                "mixins/fluidlogged_api.vanilla.block.json",
-                "mixins/fluidlogged_api.vanilla.world.json"
+                "mixins/fluidlogged_api.vanilla.block.json"
         );
     }
 

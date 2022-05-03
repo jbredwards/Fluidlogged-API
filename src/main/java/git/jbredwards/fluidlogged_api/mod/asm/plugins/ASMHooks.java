@@ -1,6 +1,5 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins;
 
-import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.BFReflector;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.OFReflector;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
@@ -25,12 +24,17 @@ import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.*;
 import net.minecraft.util.math.*;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.gen.structure.template.PlacementSettings;
+import net.minecraft.world.gen.structure.template.Template;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.property.IExtendedBlockState;
@@ -201,6 +205,12 @@ public final class ASMHooks
             if(corner[1][1] == 1) corner[1][1] = 0.998f;
         }
 
+        //reset corner fixes
+        fixN = new boolean[2];
+        fixS = new boolean[2];
+        fixE = new boolean[2];
+        fixW = new boolean[2];
+
         //sets the corner props
         state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[0], corner[0][0], quantaFraction);
         state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[1], corner[0][1], quantaFraction);
@@ -300,7 +310,6 @@ public final class ASMHooks
         if(i == 0 && j == 0) return canSideFlowDir(state, world, pos, SOUTH, EAST);
         //S
         else if(i == 1  && j == 0) {
-            fixS = new boolean[2];
             if(canSideFlowDir(state, world, pos, SOUTH)) return true;
 
             //fix uneven corners
@@ -317,7 +326,6 @@ public final class ASMHooks
         else if(i == 2  && j == 0) return canSideFlowDir(state, world, pos, SOUTH, WEST);
         //E
         else if(i == 0 && j == 1) {
-            fixE = new boolean[2];
             if(canSideFlowDir(state, world, pos, EAST)) return true;
 
             //fix uneven corners
@@ -332,7 +340,6 @@ public final class ASMHooks
         }
         //W
         else if(i == 2  && j == 1) {
-            fixW = new boolean[2];
             if(canSideFlowDir(state, world, pos, WEST)) return true;
 
             //fix uneven corners
@@ -349,7 +356,6 @@ public final class ASMHooks
         else if(i == 0 && j == 2) return canSideFlowDir(state, world, pos, NORTH, EAST);
         //N
         else if(i == 1  && j == 2) {
-            fixN = new boolean[2];
             if(canSideFlowDir(state, world, pos, NORTH)) return true;
 
             //fix uneven corners
@@ -652,7 +658,7 @@ public final class ASMHooks
             block.onEntityCollision(worldIn, pos, here, entityIn);
 
         //don't check for FluidState if block here is a fluid
-        if(FluidloggedUtils.getFluidFromBlock(block) != null) return;
+        if(getFluidFromBlock(block) != null) return;
         final FluidState fluidState = FluidState.get(worldIn, pos);
         if(!fluidState.isEmpty() && !Boolean.FALSE.equals(fluidState.getBlock().isAABBInsideLiquid(worldIn, pos, entityIn.getEntityBoundingBox())))
             fluidState.getBlock().onEntityCollision(worldIn, pos, fluidState.getState(), entityIn);
@@ -819,6 +825,61 @@ public final class ASMHooks
         catch (IllegalAccessException | InvocationTargetException e) {
             return block.canRenderInLayer(state, layer);
         }
+    }
+
+    //PluginTemplate
+    public static void addFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull BlockPos transformedPos, @Nullable Block toIgnore, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
+        final FluidState fluidState = FluidState.get(world, pos);
+        if(!fluidState.isEmpty() && fluidState.getBlock() != toIgnore)
+            fluidStates.add(Pair.of(transformedPos, fluidState));
+    }
+
+    //PluginTemplate
+    public static void addFluidsToWorld(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull BlockPos size, @Nonnull PlacementSettings settings, int flags, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
+        if(!fluidStates.isEmpty() && size.getX() > 0 && size.getZ() > 0) {
+            for(Pair<BlockPos, FluidState> entry : fluidStates) {
+                BlockPos transformedPos = Template.transformedBlockPos(settings, entry.getKey()).add(pos);
+                setFluidState(world, transformedPos, null, entry.getValue(), false, flags);
+            }
+        }
+    }
+
+    //PluginTemplate
+    public static int keepOldFlag(int blockFlags, boolean keepOldFluidStates) { return keepOldFluidStates ? blockFlags : (blockFlags | 32); }
+
+    //PluginTemplate
+    public static void readTemplate(@Nonnull Template template, @Nonnull NBTTagCompound compound, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
+        fluidStates.clear();
+
+        if(compound.hasKey("fluidStates", Constants.NBT.TAG_LIST)) {
+            for(NBTBase nbtBase : compound.getTagList("fluidStates", Constants.NBT.TAG_COMPOUND)) {
+                NBTTagCompound nbt = (NBTTagCompound)nbtBase;
+                FluidState fluidState = FluidState.of(Block.getBlockFromName(nbt.getString("state")));
+
+                if(!fluidState.isEmpty())
+                    fluidStates.add(Pair.of(BlockPos.fromLong(nbt.getLong("pos")), fluidState));
+            }
+        }
+
+        if(compound.hasKey("keepOldFluidStates", Constants.NBT.TAG_BYTE))
+            AccessorUtils.setKeepOldFluidStates(template, compound.getBoolean("keepOldFluidStates"));
+    }
+
+    //PluginTemplate
+    public static void writeTemplate(@Nonnull NBTTagCompound compound, boolean keepOldFluidStates, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
+        if(!fluidStates.isEmpty()) {
+            final NBTTagList list = new NBTTagList();
+            for(Pair<BlockPos, FluidState> entry : fluidStates) {
+                NBTTagCompound nbt = new NBTTagCompound();
+                nbt.setString("state", String.valueOf(entry.getValue().getBlock().getRegistryName()));
+                nbt.setLong("pos", entry.getKey().toLong());
+                list.appendTag(nbt);
+            }
+
+            compound.setTag("fluidStates", list);
+        }
+
+        compound.setBoolean("keepOldFluidStates", keepOldFluidStates);
     }
 
     //PluginWorld

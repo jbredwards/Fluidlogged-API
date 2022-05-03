@@ -18,10 +18,11 @@ public final class PluginAccessorUtils implements IASMPlugin
             case "getCanFluidFlow": return 1;
             case "setCanFluidFlow": return 2;
             case "canSustainPlant": return 3;
-            case "getFlowDecay"   : return 4;
+            case "getFlowDecay": return 4;
             case "hasVerticalFlow": return 5;
             case "getDefaultFluidState": return 6;
             case "setDefaultFluidState": return 7;
+            case "setKeepOldFluidStates": return 8;
             default: return 0;
         }
     }
@@ -82,6 +83,13 @@ public final class PluginAccessorUtils implements IASMPlugin
             instructions.insert(insn, new VarInsnNode(ALOAD, 0));
             instructions.remove(insn);
             setMaxLocals(method, 3);
+            return true;
+        }
+        else if(index == 8 && insn.getOpcode() == RETURN) {
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
+            instructions.insertBefore(insn, new VarInsnNode(ILOAD, 1));
+            instructions.insertBefore(insn, new FieldInsnNode(PUTFIELD, "net/minecraft/world/gen/structure/template/Template", "keepOldFluidStates", "Z"));
+            setMaxLocals(method, 2);
             return true;
         }
 

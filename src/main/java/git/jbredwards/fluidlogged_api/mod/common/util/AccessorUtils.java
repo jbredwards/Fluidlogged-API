@@ -6,6 +6,7 @@ import net.minecraft.block.BlockBush;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.gen.structure.template.Template;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
 
@@ -33,4 +34,7 @@ public final class AccessorUtils
     //Fluid
     @Nonnull public static FluidState getDefaultFluidState(@Nonnull Fluid fluid) { return null; }
     @Nonnull public static FluidState setDefaultFluidState(@Nonnull Fluid fluid, @Nonnull FluidState fluidState) { return null; }
+
+    //Template
+    public static void setKeepOldFluidStates(@Nonnull Template template, boolean keepOldFluidStates) { }
 }
