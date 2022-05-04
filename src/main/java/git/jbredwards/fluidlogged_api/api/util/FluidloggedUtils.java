@@ -116,12 +116,12 @@ public final class FluidloggedUtils
         if(cap == null) throw new NullPointerException("There was a critical internal error involving the Fluidlogged API mod, notify the mod author!");
 
         //fix small graphical flicker with blocks placed inside fluids
-        if(world.isRemote && !fluidState.isEmpty()) cap.setFluidState(pos, fluidState);
+        if(world.isRemote) { if(!fluidState.isEmpty()) cap.setFluidState(pos.toLong(), fluidState); }
 
         //only do these on server
-        if(!world.isRemote) {
+        else {
             //send changes to server
-            cap.setFluidState(pos, fluidState);
+            cap.setFluidState(pos.toLong(), fluidState);
 
             //send changes to client
             if((blockFlags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {

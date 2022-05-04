@@ -74,7 +74,7 @@ public final class FluidStateMessage implements IMessage
                     final FluidState fluidState = FluidState.deserialize(message.state);
 
                     //send changes to client
-                    cap.setFluidState(pos, fluidState);
+                    cap.setFluidState(pos.toLong(), fluidState);
 
                     //re-render block
                     FluidloggedUtils.relightFluidBlock(world, pos, fluidState);

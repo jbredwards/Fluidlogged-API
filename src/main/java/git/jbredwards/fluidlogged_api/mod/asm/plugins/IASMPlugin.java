@@ -169,7 +169,7 @@ public interface IASMPlugin extends Opcodes
     }
 
     //utility method that doesn't take in a desc
-    default boolean checkMethod(@Nonnull AbstractInsnNode insn, @Nonnull String name) {
+    default boolean checkMethod(@Nullable AbstractInsnNode insn, @Nonnull String name) {
         return insn instanceof MethodInsnNode && ((MethodInsnNode)insn).name.equals(name);
     }
 
@@ -188,7 +188,7 @@ public interface IASMPlugin extends Opcodes
     }
 
     //utility method that doesn't take in a desc
-    default boolean checkField(@Nonnull AbstractInsnNode insn, @Nonnull String name) {
+    default boolean checkField(@Nullable AbstractInsnNode insn, @Nonnull String name) {
         return insn instanceof FieldInsnNode && ((FieldInsnNode)insn).name.equals(name);
     }
 

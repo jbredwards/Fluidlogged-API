@@ -1,12 +1,13 @@
 package git.jbredwards.fluidlogged_api.mod.common.capability;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -15,7 +16,6 @@ import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -28,11 +28,10 @@ public interface IFluidStateCapability
     @CapabilityInject(IFluidStateCapability.class)
     Capability<IFluidStateCapability> CAPABILITY = null;
 
-    @Nonnull Map<BlockPos, FluidState> getFluidStates();
-    //don't call directly, instead use FluidloggedUtils#getFluidState for IBlockState sensitivity!
-    @Nonnull FluidState getFluidState(@Nonnull BlockPos pos);
-    //don't call directly, instead use FluidloggedUtils#setFluidState for the config, and event & IFluidloggable implementations!
-    void setFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fluid);
+    //these are internal methods only, only use them if you have to
+    @Nonnull Long2ObjectMap<FluidState> getFluidStates();
+    void setFluidState(long pos, @Nonnull FluidState fluid);
+
     //get this from a capability provider
     @SuppressWarnings("ConstantConditions")
     @Nullable
@@ -44,21 +43,14 @@ public interface IFluidStateCapability
     class Impl implements IFluidStateCapability
     {
         @Nonnull
-        protected final Map<BlockPos, FluidState> fluidStates = new HashMap<>();
+        protected final Long2ObjectMap<FluidState> fluidStates = new Long2ObjectOpenHashMap<>();
 
         @Nonnull
         @Override
-        public Map<BlockPos, FluidState> getFluidStates() { return fluidStates; }
-
-        @Nonnull
-        @Override
-        public FluidState getFluidState(@Nonnull BlockPos pos) {
-            final @Nullable FluidState fluidState = fluidStates.get(pos);
-            return fluidState == null ? FluidState.EMPTY : fluidState;
-        }
+        public Long2ObjectMap<FluidState> getFluidStates() { return fluidStates; }
 
         @Override
-        public void setFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
+        public void setFluidState(long pos, @Nonnull FluidState fluidState) {
             if(fluidState.isEmpty()) fluidStates.remove(pos);
             else fluidStates.put(pos, fluidState);
         }
@@ -97,9 +89,9 @@ public interface IFluidStateCapability
         @Override
         public NBTBase writeNBT(@Nullable Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side) {
             final NBTTagList list = new NBTTagList();
-            for(Map.Entry<BlockPos, FluidState> entry : instance.getFluidStates().entrySet()) {
+            for(Map.Entry<Long, FluidState> entry : instance.getFluidStates().entrySet()) {
                 NBTTagCompound nbt = new NBTTagCompound();
-                nbt.setLong("pos", entry.getKey().toLong());
+                nbt.setLong("pos", entry.getKey());
                 nbt.setString("id", String.valueOf(entry.getValue().getBlock().getRegistryName()));
 
                 list.appendTag(nbt);
@@ -116,7 +108,7 @@ public interface IFluidStateCapability
                         NBTTagCompound nbt = (NBTTagCompound)tag;
                         if(nbt.hasKey("id", Constants.NBT.TAG_STRING) && nbt.hasKey("pos", Constants.NBT.TAG_LONG)) {
                             FluidState state = FluidState.of(Block.getBlockFromName(nbt.getString("id")));
-                            if(!state.isEmpty()) instance.setFluidState(BlockPos.fromLong(nbt.getLong("pos")), state);
+                            if(!state.isEmpty()) instance.setFluidState(nbt.getLong("pos"), state);
                         }
                     }
                 }

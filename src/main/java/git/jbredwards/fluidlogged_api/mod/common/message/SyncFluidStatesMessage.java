@@ -5,6 +5,7 @@ import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapabilit
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import io.netty.buffer.ByteBuf;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -19,7 +20,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -34,8 +34,8 @@ public final class SyncFluidStatesMessage implements IMessage
     public int chunkX, chunkZ;
 
     public SyncFluidStatesMessage() {}
-    public SyncFluidStatesMessage(@Nonnull ChunkPos chunkPos, @Nonnull Map<BlockPos, FluidState> fluidStateMap) {
-        fluidStateMap.forEach((pos, fluidState) -> data.add(Pair.of(pos.toLong(), fluidState.serialize())));
+    public SyncFluidStatesMessage(@Nonnull ChunkPos chunkPos, @Nonnull Long2ObjectMap<FluidState> fluidStateMap) {
+        fluidStateMap.forEach((pos, fluidState) -> data.add(Pair.of(pos, fluidState.serialize())));
         chunkX = chunkPos.x;
         chunkZ = chunkPos.z;
         isValid = true;
@@ -90,23 +90,24 @@ public final class SyncFluidStatesMessage implements IMessage
 
                 if(cap != null) {
                     //clear any old fluid states
-                    final Set<BlockPos> removed = ImmutableSet.copyOf(cap.getFluidStates().keySet());
+                    final Set<Long> removed = ImmutableSet.copyOf(cap.getFluidStates().keySet());
                     cap.getFluidStates().clear();
                     //add any new fluid states
                     message.data.forEach(entry -> {
                         BlockPos pos = BlockPos.fromLong(entry.getKey());
                         FluidState fluidState = FluidState.deserialize(entry.getValue());
                         //send changes to client
-                        cap.setFluidState(pos, fluidState);
+                        cap.setFluidState(entry.getKey(), fluidState);
                         //re-render block
                         FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
                         world.markBlockRangeForRenderUpdate(pos, pos);
                     });
                     //update removed light levels & renders
-                    removed.forEach(pos -> {
+                    removed.forEach(serialized -> {
                         //make sure the cleared pos wasn't replaced prior to re-render
-                        if(!cap.getFluidStates().containsKey(pos)) {
+                        if(!cap.getFluidStates().containsKey(serialized)) {
                             //re-render block
+                            BlockPos pos = BlockPos.fromLong(serialized);
                             FluidloggedUtils.relightFluidBlock(world, pos, FluidState.EMPTY);
                             world.markBlockRangeForRenderUpdate(pos, pos);
                         }
