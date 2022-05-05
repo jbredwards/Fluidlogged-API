@@ -159,21 +159,9 @@ public abstract class MixinBlockLiquid extends Block implements IFluidloggableFl
                     if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) {
                         final int level = stateIn.getValue(BlockLiquid.LEVEL);
 
-                        //obsidian
-                        if(level == 0) {
-                            worldIn.setBlockState(pos, ForgeEventFactory.fireFluidPlaceBlockEvent(worldIn, pos, pos, Blocks.OBSIDIAN.getDefaultState()));
-                            triggerMixEffects(worldIn, pos);
-                            return true;
-                        }
-
-                        //cobble
-                        if(level <= 4 || facing == EnumFacing.UP) {
-                            worldIn.setBlockState(pos, ForgeEventFactory.fireFluidPlaceBlockEvent(worldIn, pos, pos, Blocks.COBBLESTONE.getDefaultState()));
-                            triggerMixEffects(worldIn, pos);
-                            return true;
-                        }
-
-                        return false;
+                        worldIn.setBlockState(pos, ForgeEventFactory.fireFluidPlaceBlockEvent(worldIn, pos, pos, level == 0 ? Blocks.OBSIDIAN.getDefaultState() : Blocks.COBBLESTONE.getDefaultState()));
+                        triggerMixEffects(worldIn, pos);
+                        return true;
                     }
                 }
             }
