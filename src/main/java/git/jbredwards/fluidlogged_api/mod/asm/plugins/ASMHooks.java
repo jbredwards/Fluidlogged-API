@@ -45,7 +45,6 @@ import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -289,7 +288,7 @@ public final class ASMHooks
                     if(canFluidFlow(world, pos, states[1][0][1], facing)
                             && canFluidFlow(world, offset, neighbor, facing.getOpposite())
                             && canFluidFlow(world, offset, neighbor, sides[offsetX != 0 ? 0 : 1])
-                            && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], sides[offsetX != 0 ? 1 : 0])
+                            && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], sides[offsetX != 0 ? 0 : 1].getOpposite())
                             && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, offset, neighbor), offsetX + 1, offsetZ + 1).getFluid()))
 
                         return true;
