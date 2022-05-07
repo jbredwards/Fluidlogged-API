@@ -6,8 +6,10 @@ import net.minecraft.block.BlockBush;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.template.Template;
 import net.minecraftforge.fluids.BlockFluidBase;
+import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
 
 import javax.annotation.Nonnull;
@@ -30,6 +32,11 @@ public final class AccessorUtils
     //BlockFluidBase
     public static int getFlowDecay(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return 0; }
     public static boolean hasVerticalFlow(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return false; }
+
+    //BlockFluidClassic
+    public static int getLargerQuanta(@Nonnull BlockFluidClassic block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int compare) { return 0; }
+    public static int calculateFlowCost(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos, int recurseDepth, int side) { return 0; }
+    public static void flowIntoBlock(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos, int meta) { }
 
     //Fluid
     @Nonnull public static FluidState getDefaultFluidState(@Nonnull Fluid fluid) { return null; }

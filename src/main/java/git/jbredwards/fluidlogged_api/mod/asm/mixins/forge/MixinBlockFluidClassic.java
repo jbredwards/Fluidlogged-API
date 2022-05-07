@@ -5,7 +5,9 @@ import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.mod.common.util.AccessorUtils;
 import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -15,6 +17,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
+import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
@@ -37,7 +40,7 @@ import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
  *
  */
 @Mixin(BlockFluidClassic.class)
-public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase implements IFluidloggableFluid
+public abstract class MixinBlockFluidClassic extends BlockFluidBase implements IFluidloggableFluid
 {
     @Final
     @Shadow(remap = false)
@@ -55,7 +58,9 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
     @Shadow(remap = false)
     protected FluidStack stack;
 
-    public MixinBlockFluidClassic(@Nonnull Material materialIn) { super(materialIn); }
+    public MixinBlockFluidClassic(@Nonnull Fluid fluid, @Nonnull Material material, @Nonnull MapColor mapColor) {
+        super(fluid, material, mapColor);
+    }
 
     /**
      * @reason fixes fluidlogged interactions
@@ -103,7 +108,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
                 expQuanta = quantaPerBlock;
 
             // vertical flow into block
-            else if(hasVerticalFlow(world, pos)) expQuanta = quantaPerBlock - 1;
+            else if(AccessorUtils.hasVerticalFlow((BlockFluidClassic)(Object)this, world, pos)) expQuanta = quantaPerBlock - 1;
 
             else {
                 int maxQuanta = -100;
@@ -111,7 +116,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
                     BlockPos offset = pos.offset(side);
 
                     if(canFluidFlow(world, pos, here, side) && canFluidFlow(world, offset, world.getBlockState(offset), side.getOpposite()))
-                        maxQuanta = getLargerQuanta(world, offset, maxQuanta);
+                        maxQuanta = AccessorUtils.getLargerQuanta((BlockFluidClassic)(Object)this, world, offset, maxQuanta);
                 }
 
                 expQuanta = maxQuanta - 1;
@@ -136,7 +141,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
         // Flow vertically if possible
         tryFlowIntoFluidloggable(world, pos, facingDir, state, here, facingDir);
         if(canFluidFlow(world, pos, here, facingDir) && canDisplace(world, pos.up(densityDir))) {
-            flowIntoBlock(world, pos.up(densityDir), 1);
+            AccessorUtils.flowIntoBlock((BlockFluidClassic)(Object)this, world, pos.up(densityDir), 1);
             return;
         }
 
@@ -145,12 +150,12 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
         if(flowMeta >= quantaPerBlock) return;
 
         if(isSourceBlock(world, pos, here, null) || !isFlowingVertically(world, pos)) {
-            if(hasVerticalFlow(world, pos)) flowMeta = 1;
+            if(AccessorUtils.hasVerticalFlow((BlockFluidClassic)(Object)this, world, pos)) flowMeta = 1;
 
             final boolean[] flowTo = getOptimalFlowDirections(world, pos, here);
             for(int i = 0; i < 4; i++)
                 if(flowTo[i] && canFluidFlow(world, pos, here, SIDES.get(i)))
-                    flowIntoBlock(world, pos.offset(SIDES.get(i)), flowMeta);
+                    AccessorUtils.flowIntoBlock((BlockFluidClassic)(Object)this, world, pos.offset(SIDES.get(i)), flowMeta);
         }
     }
 
@@ -241,7 +246,7 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
             if(!canFlowInto(world, offset) || isSourceBlock(world, offset)) continue;
 
             if(canFlowInto(world, offset.up(densityDir))) flowCost[side] = 0;
-            else flowCost[side] = calculateFlowCost(world, offset, 1, side);
+            else flowCost[side] = AccessorUtils.calculateFlowCost((BlockFluidClassic)(Object)this, world, offset, 1, side);
         }
 
         int min = Ints.min(flowCost);
@@ -309,16 +314,4 @@ public abstract class MixinBlockFluidClassic extends MixinBlockFluidBase impleme
 
     @Override
     public boolean isFluidloggableFluid() { return !hasTileEntity() && this == getFluid().getBlock(); }
-
-    @Shadow(remap = false)
-    public abstract int getMaxRenderHeightMeta();
-
-    @Shadow(remap = false)
-    protected abstract int getLargerQuanta(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, int compare);
-
-    @Shadow(remap = false)
-    protected abstract int calculateFlowCost(@Nonnull World world, @Nonnull BlockPos pos, int recurseDepth, int side);
-
-    @Shadow(remap = false)
-    protected abstract void flowIntoBlock(@Nonnull World world, @Nonnull BlockPos pos, int meta);
 }

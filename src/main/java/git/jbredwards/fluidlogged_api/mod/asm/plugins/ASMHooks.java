@@ -13,6 +13,7 @@ import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.chunk.ChunkCompileTaskGenerator;
@@ -161,10 +162,10 @@ public final class ASMHooks
             for(int i = 0; i < 3; i++) {
                 for(int j = 0; j < 3; j++) {
                     if(i != 1 || j != 1) {
-                        if(states[i][0][j] == null) states[i][0][j] = world.getBlockState(pos.add(i-1, 0, j-1));
-                        if(states[i][1][j] == null) states[i][1][j] = world.getBlockState(pos.add(i-1, -densityDir, j-1));
-                        if(fluids[i][0][j] == null) fluids[i][0][j] = getFluidState(world, pos.add(i-1, 0, j-1), states[i][0][j]);
-                        if(fluids[i][1][j] == null) fluids[i][1][j] = (i == 1 || j == 1) ? getFluidState(world, pos.add(i-1, -densityDir, j-1), states[i][1][j]) : FluidState.EMPTY;
+                        if(states[i][0][j] == null) states[i][0][j] = world.getBlockState(pos.add(i - 1, 0, j - 1));
+                        if(states[i][1][j] == null) states[i][1][j] = world.getBlockState(pos.add(i - 1, -densityDir, j - 1));
+                        if(fluids[i][0][j] == null) fluids[i][0][j] = getFluidState(world, pos.add(i - 1, 0, j - 1), states[i][0][j]);
+                        if(fluids[i][1][j] == null) fluids[i][1][j] = getFluidState(world, pos.add(i - 1, -densityDir, j - 1), states[i][1][j]);
                         height[i][j] = getFluidHeightForRender(world, pos, states, fluids, i, j, densityFace, quantaPerBlock, quantaPerBlockFloat, quantaFraction);
                     }
                 }
@@ -215,27 +216,30 @@ public final class ASMHooks
     public static float getFluidHeightForRender(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, int i, int j, EnumFacing densityFace, int quantaPerBlock, float quantaPerBlockFloat, float quantaFraction) {
         final EnumFacing[] faces = FACES[j * 3 + i];
 
-        //check for vertical fluids here or adjacent, ignores diagonals
-        if(connectToVertical(states, fluids, world, pos, densityFace, i, j, faces))
-            return 1;
-
         //fix fluidlogged height
         for(EnumFacing facing : faces) if(!canFluidFlow(world, pos, states[1][0][1], facing))
             return 2;
 
-        //air block
-        if(states[i][0][j].getBlock().isAir(states[i][0][j], world, pos.add(i-1, 0, j-1)))
-            return 0;
+        //check for vertical connections
+        if(connectToVertical(states, fluids, world, pos, densityFace, i, j, faces))
+            return 1;
 
-        //fluid block
+        //check for horizontal connections
         if(connectToHorizontal(states, fluids, world, pos, i, j, faces)) {
-            final int level = fluids[i][0][j].getLevel();
-            if(level == 0) return quantaFraction;
-            else return ((quantaPerBlock - level) / quantaPerBlockFloat) * quantaFraction;
+            //air block
+            if(states[i][0][j].getBlock().isAir(states[i][0][j], world, pos.add(i - 1, 0, j - 1)))
+                return 0;
+
+            //fluid block
+            else if(isCompatibleFluid(fluids[1][0][1].getFluid(), fluids[i][0][j].getFluid())) {
+                final int level = fluids[i][0][j].getLevel();
+                if(level == 0) return quantaFraction;
+                else return ((quantaPerBlock - level) / quantaPerBlockFloat) * quantaFraction;
+            }
         }
 
         //default
-        else return -1;
+        return -1;
     }
 
     //PluginBlockFluidBase helper
@@ -265,43 +269,38 @@ public final class ASMHooks
     }
 
     //PluginBlockFluidBase helper
-    public static boolean connectToVertical(@Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing densityFace, int i, int j, @Nonnull EnumFacing... sides) {
-        if(isCompatibleFluid(fluids[1][0][1].getFluid(), fluids[i][1][j].getFluid()) && connectToHorizontal(states, fluids, world, pos, i, j, sides)) {
-            return canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], densityFace)
-                    && canFluidFlow(world, pos.add(i - 1, -densityFace.getYOffset(), j - 1), states[i][1][j], densityFace.getOpposite());
-        }
-
-        return false;
+    public static boolean connectToVertical(@Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing densityFace, int i, int j, @Nonnull EnumFacing[] sides) {
+        return isCompatibleFluid(fluids[1][0][1].getFluid(), fluids[i][1][j].getFluid())
+                && isCompatibleFluid(fluids[1][0][1].getFluid(), fluids[i][0][j].getFluid())
+                && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], densityFace)
+                && canFluidFlow(world, pos.add(i - 1, -densityFace.getYOffset(), j - 1), states[i][1][j], densityFace.getOpposite())
+                && connectToHorizontal(states, fluids, world, pos, i, j, sides);
     }
 
     //PluginBlockFluidBase helper
-    public static boolean connectToHorizontal(@Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int i, int j, @Nonnull EnumFacing... sides) {
-        if(isCompatibleFluid(fluids[1][0][1].getFluid(), fluids[i][0][j].getFluid())) {
-            final boolean diagonal = i != 1 && j != 1;
-            for(EnumFacing facing : sides) {
-                //check diagonal
-                int offsetX = facing.getXOffset(), offsetZ = facing.getZOffset();
-                if(diagonal) {
-                    BlockPos offset = pos.offset(facing);
-                    IBlockState neighbor = getOrSet(states, () -> world.getBlockState(offset), offsetX + 1, offsetZ + 1);
+    public static boolean connectToHorizontal(@Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int i, int j, @Nonnull EnumFacing[] sides) {
+        final boolean diagonal = sides.length == 2;
+        for(EnumFacing facing : sides) {
+            //check diagonal
+            int offsetX = facing.getXOffset(), offsetZ = facing.getZOffset();
+            if(diagonal) {
+                BlockPos offset = pos.offset(facing);
+                IBlockState neighbor = getOrSet(states, () -> world.getBlockState(offset), offsetX + 1, offsetZ + 1);
 
-                    if(canFluidFlow(world, pos, states[1][0][1], facing)
-                            && canFluidFlow(world, offset, neighbor, facing.getOpposite())
-                            && canFluidFlow(world, offset, neighbor, sides[offsetX != 0 ? 0 : 1])
-                            && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], sides[offsetX != 0 ? 0 : 1].getOpposite())
-                            && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, offset, neighbor), offsetX + 1, offsetZ + 1).getFluid()))
+                if(canFluidFlow(world, pos, states[1][0][1], facing)
+                        && canFluidFlow(world, offset, neighbor, facing.getOpposite())
+                        && canFluidFlow(world, offset, neighbor, sides[offsetX != 0 ? 0 : 1])
+                        && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], sides[offsetX != 0 ? 0 : 1].getOpposite())
+                        && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, offset, neighbor), offsetX + 1, offsetZ + 1).getFluid()))
 
-                        return true;
-                }
-                //check adjacent
-                else if(!canFluidFlow(world, pos, states[1][0][1], facing) || !canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], facing.getOpposite()))
-                    return false;
+                    return true;
             }
-
-            return !diagonal;
+            //check adjacent
+            else if(!canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], facing.getOpposite()))
+                return false;
         }
 
-        return false;
+        return !diagonal;
     }
 
     //PluginBlockFluidBase helper
@@ -347,6 +346,60 @@ public final class ASMHooks
         }
 
         return vec.normalize();
+    }
+
+    //PluginBlockFluidBase
+    public static boolean hasVerticalFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, int densityDir) {
+        final EnumFacing facing = (densityDir < 0) ? EnumFacing.UP : EnumFacing.DOWN;
+        if(!canFluidFlow(world, pos, world.getBlockState(pos), facing)) return false;
+
+        final BlockPos offset = pos.down(densityDir);
+        final IBlockState state = world.getBlockState(offset);
+
+        return canFluidFlow(world, offset, state, facing.getOpposite())
+                && isCompatibleFluid(getFluidState(world, offset, state).getFluid(), fluid);
+    }
+
+    //PluginBlockFluidBase
+    @Nonnull
+    public static IBlockState getStateAtViewpoint(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Vec3d viewpoint) {
+        final IBlockState here = world.getBlockState(pos);
+        return here == state ? Blocks.AIR.getDefaultState()
+                : here.getBlock().getStateAtViewpoint(here, world, pos, viewpoint);
+    }
+
+    //PluginBlockFluidBase
+    @Nonnull
+    public static Vec3d getFluidFogColor(@Nonnull BlockFluidBase block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Entity entity, @Nonnull Vec3d originalColor, float partialTicks) {
+        //remove built-in in place for better check
+        if(isWithinFluid(block, world, pos, ActiveRenderInfo.projectViewFromEntity(entity, partialTicks).y)) {
+            int color = block.getFluid().getColor();
+            float red = (color >> 16 & 0xFF) / 255.0f;
+            float green = (color >> 8 & 0xFF) / 255.0f;
+            float blue = (color & 0xFF) / 255.0f;
+            return new Vec3d(red, green, blue);
+        }
+
+        //not inside fluid
+        return originalColor;
+    }
+
+    //PluginBlockFluidBase
+    @Nullable
+    public static Boolean isEntityInsideFluid(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
+        return materialIn != state.getMaterial() ? null : isWithinFluid(block, world, pos, testingHead ? yToTest : entity.posY);
+    }
+
+    //PluginBlockFluidBase
+    @Nullable
+    public static Boolean isAABBInsideMaterial(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB boundingBox, @Nonnull Material materialIn) {
+        return materialIn != block.getDefaultState().getMaterial() ? null : block.isAABBInsideLiquid(world, pos, boundingBox);
+    }
+
+    //PluginBlockFluidBase, forked from BlockFluidBase but now takes the y value directly
+    public static boolean isWithinFluid(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, double y) {
+        final float filled = block.getFilledPercentage(world, pos);
+        return filled < 0 ? y > pos.getY() + filled + 1 : y < pos.getY() + filled;
     }
 
     //PluginFluidUtil
@@ -1094,5 +1147,24 @@ public final class ASMHooks
         }
 
         return flag;
+    }
+
+    //======
+    //MODDED
+    //======
+
+    //PluginBiomesOPlenty
+    public static boolean canBOPFluidFlow(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing) {
+        final IBlockState here = world.getBlockState(pos);
+        return here.getBlock().isReplaceable(world, pos)
+                && canFluidFlow(world, pos, here, facing)
+                && canFluidFlow(world, pos.offset(facing), world.getBlockState(pos.offset(facing)), facing.getOpposite());
+    }
+
+    //PluginBiomesOPlenty
+    @Nonnull
+    public static IBlockState getBOPFluidOrAir(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
+        final FluidState fluidState = getFluidState(world, pos);
+        return fluidState.isEmpty() ? state : fluidState.getState();
     }
 }

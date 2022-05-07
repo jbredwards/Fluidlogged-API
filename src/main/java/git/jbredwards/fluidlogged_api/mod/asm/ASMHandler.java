@@ -40,12 +40,17 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 //forge
                 .put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new PluginModelFluid()) //fixes all issues with fluidlogged z-fighting
                 .put("net.minecraftforge.common.ForgeHooks", new PluginForgeHooks()) //fix ForgeHooks#isInsideOfMaterial by allowing it to access stored fluid blocks
-                .put("net.minecraftforge.fluids.BlockFluidBase", new PluginBlockFluidBase()) //prevent startup crash
+                .put("net.minecraftforge.fluids.BlockFluidBase", new PluginBlockFluidBase()) //modded fluids work properly with the mod & prevent startup crash
+                .put("net.minecraftforge.fluids.BlockFluidClassic", new PluginBlockFluidClassic()) //modded fluids work properly with the mod
                 .put("net.minecraftforge.fluids.Fluid", new PluginFluid()) //store one internal FluidState for each Fluid, as to decrease ram usage
                 .put("net.minecraftforge.fluids.FluidUtil", new PluginFluidUtil()) //changes some of this class's util functions to be FluidState sensitive
                 //modded
+                .put("biomesoplenty.common.fluids.blocks.BlockBloodFluid", new PluginBiomesOPlenty()) //fix BOP fluid block mixing
+                .put("biomesoplenty.common.fluids.blocks.BlockHotSpringWaterFluid", new PluginBiomesOPlenty()) //fix BOP fluid block mixing
+                .put("biomesoplenty.common.fluids.blocks.BlockPoisonFluid", new PluginBiomesOPlenty()) //fix BOP fluid block mixing
+                .put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new PluginBiomesOPlenty()) //fix BOP fluid block mixing
                 .put("cofh.thermaldynamics.block.BlockTDBase", new PluginThermalDynamics()) //fix fluidlogged duct explosion resistance
-                .put("cofh.thermaldynamics.duct.tiles.TileGrid", new PluginThermalDynamics()) //ray trace now skip fluids
+                .put("cofh.thermaldynamics.duct.tiles.TileGrid", new PluginThermalDynamics()) //ray trace now skips fluids
                 .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
                 .put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()) //better builders wands compat
                 //vanilla (client)

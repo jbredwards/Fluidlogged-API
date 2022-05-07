@@ -20,9 +20,12 @@ public final class PluginAccessorUtils implements IASMPlugin
             case "canSustainPlant": return 3;
             case "getFlowDecay": return 4;
             case "hasVerticalFlow": return 5;
-            case "getDefaultFluidState": return 6;
-            case "setDefaultFluidState": return 7;
-            case "setKeepOldFluidStates": return 8;
+            case "getLargerQuanta": return 6;
+            case "calculateFlowCost": return 7;
+            case "flowIntoBlock": return 8;
+            case "getDefaultFluidState": return 9;
+            case "setDefaultFluidState": return 10;
+            case "setKeepOldFluidStates": return 11;
             default: return 0;
         }
     }
@@ -52,7 +55,7 @@ public final class PluginAccessorUtils implements IASMPlugin
             return true;
         }
         else if(index == 4 && insn.getOpcode() == ICONST_0) {
-            instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidBase", "getFlowDecay", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", false));
+            instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidBase", "getFlowDecay_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", false));
             instructions.insert(insn, new VarInsnNode(ALOAD, 2));
             instructions.insert(insn, new VarInsnNode(ALOAD, 1));
             instructions.insert(insn, new VarInsnNode(ALOAD, 0));
@@ -61,7 +64,7 @@ public final class PluginAccessorUtils implements IASMPlugin
             return true;
         }
         else if(index == 5 && insn.getOpcode() == ICONST_0) {
-            instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidBase", "hasVerticalFlow", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", false));
+            instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidBase", "hasVerticalFlow_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", false));
             instructions.insert(insn, new VarInsnNode(ALOAD, 2));
             instructions.insert(insn, new VarInsnNode(ALOAD, 1));
             instructions.insert(insn, new VarInsnNode(ALOAD, 0));
@@ -69,14 +72,44 @@ public final class PluginAccessorUtils implements IASMPlugin
             setMaxLocals(method, 3);
             return true;
         }
-        else if(index == 6 && insn.getOpcode() == ACONST_NULL) {
+        else if(index == 6 && insn.getOpcode() == ICONST_0) {
+            instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidClassic", "getLargerQuanta_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;I)I", false));
+            instructions.insert(insn, new VarInsnNode(ILOAD, 3));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 2));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 1));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 0));
+            instructions.remove(insn);
+            setMaxLocals(method, 4);
+            return true;
+        }
+        else if(index == 7 && insn.getOpcode() == ICONST_0) {
+            instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidClassic", "calculateFlowCost_Public", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;II)I", false));
+            instructions.insert(insn, new VarInsnNode(ILOAD, 4));
+            instructions.insert(insn, new VarInsnNode(ILOAD, 3));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 2));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 1));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 0));
+            instructions.remove(insn);
+            setMaxLocals(method, 5);
+            return true;
+        }
+        else if(index == 8 && insn.getOpcode() == RETURN) {
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 1));
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 2));
+            instructions.insertBefore(insn, new VarInsnNode(ILOAD, 3));
+            instructions.insertBefore(insn, new MethodInsnNode(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidClassic", "flowIntoBlock_Public", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;I)V", false));
+            setMaxLocals(method, 4);
+            return true;
+        }
+        else if(index == 9 && insn.getOpcode() == ACONST_NULL) {
             instructions.insert(insn, new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/Fluid", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
             instructions.insert(insn, new VarInsnNode(ALOAD, 0));
             instructions.remove(insn);
             setMaxLocals(method, 1);
             return true;
         }
-        else if(index == 7 && insn.getOpcode() == ACONST_NULL) {
+        else if(index == 10 && insn.getOpcode() == ACONST_NULL) {
             instructions.insert(insn, new FieldInsnNode(PUTFIELD, "net/minecraftforge/fluids/Fluid", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
             instructions.insert(insn, new InsnNode(DUP_X1));
             instructions.insert(insn, new VarInsnNode(ALOAD, 1));
@@ -85,7 +118,7 @@ public final class PluginAccessorUtils implements IASMPlugin
             setMaxLocals(method, 3);
             return true;
         }
-        else if(index == 8 && insn.getOpcode() == RETURN) {
+        else if(index == 11 && insn.getOpcode() == RETURN) {
             instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
             instructions.insertBefore(insn, new VarInsnNode(ILOAD, 1));
             instructions.insertBefore(insn, new FieldInsnNode(PUTFIELD, "net/minecraft/world/gen/structure/template/Template", "keepOldFluidStates", "Z"));
