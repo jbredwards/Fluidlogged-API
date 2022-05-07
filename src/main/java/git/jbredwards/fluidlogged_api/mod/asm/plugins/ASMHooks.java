@@ -45,6 +45,8 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.*;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
@@ -470,6 +472,7 @@ public final class ASMHooks
     }
 
     //PluginBlockBarrier
+    @SideOnly(Side.CLIENT)
     public static void fixBarrierParticles(IBlockState state, World world, BlockPos pos) {
         final EntityPlayer player = Minecraft.getMinecraft().player;
         if(player.isCreative() && player.getHeldItemMainhand().getItem() == state.getBlock().getItemDropped(state, world.rand, 0))
