@@ -34,8 +34,9 @@ public final class AccessorUtils
     public static boolean hasVerticalFlow(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return false; }
 
     //BlockFluidClassic
+    @Nonnull public static boolean[] getOptimalFlowDirections(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos) { return null; }
     public static int getLargerQuanta(@Nonnull BlockFluidClassic block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int compare) { return 0; }
-    public static int calculateFlowCost(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos, int recurseDepth, int side) { return 0; }
+    public static boolean canFlowInto(@Nonnull BlockFluidClassic block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) { return false; }
     public static void flowIntoBlock(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos, int meta) { }
 
     //Fluid

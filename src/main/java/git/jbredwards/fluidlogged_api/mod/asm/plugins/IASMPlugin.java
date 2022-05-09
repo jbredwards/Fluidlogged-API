@@ -83,6 +83,7 @@ public interface IASMPlugin extends Opcodes
     default void overrideMethod(@Nonnull ClassNode classNode, @Nonnull Predicate<MethodNode> searchCondition, @Nullable String hookName, @Nullable String hookDesc, @Nonnull Consumer<GeneratorAdapter> consumer) {
         for(MethodNode method : classNode.methods) {
             if(searchCondition.test(method)) {
+                informConsole(classNode.name, method);
                 //remove existing body data
                 method.instructions.clear();
                 if(method.tryCatchBlocks != null) method.tryCatchBlocks.clear();
@@ -101,6 +102,7 @@ public interface IASMPlugin extends Opcodes
     //generates a new MethodNode
     default void addMethod(@Nonnull ClassNode classNode, @Nonnull String name, @Nonnull String desc, @Nullable String hookName, @Nullable String hookDesc, @Nonnull Consumer<GeneratorAdapter> consumer) {
         final MethodNode method = new MethodNode(ACC_PUBLIC, name, desc, null, null);
+        informConsole(classNode.name, method);
         //write new body data
         consumer.accept(new GeneratorAdapter(method, method.access, method.name, method.desc));
         if(hookName != null && hookDesc != null) //allow the hook to be skipped, in case it's easier to use the consumer

@@ -142,12 +142,7 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
 
     @Nonnull
     @Override
-    public List<String> getMixinConfigs() {
-        return ImmutableList.of(
-                "mixins/fluidlogged_api.forge.json",
-                "mixins/fluidlogged_api.vanilla.block.json"
-        );
-    }
+    public List<String> getMixinConfigs() { return ImmutableList.of("mixins/fluidlogged_api.vanilla.block.json"); }
 
     @Nonnull
     @Override
