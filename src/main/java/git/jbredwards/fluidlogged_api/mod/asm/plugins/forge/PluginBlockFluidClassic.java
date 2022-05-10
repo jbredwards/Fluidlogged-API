@@ -103,18 +103,21 @@ public final class PluginBlockFluidClassic implements IASMPlugin
         );
         //allow the place method to fluidlog blocks
         overrideMethod(classNode, method -> method.name.equals("place"),
-            "place", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/FluidStack;Z)I", generator -> {
+            "place", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/FluidStack;ZLnet/minecraft/block/state/IBlockState;)I", generator -> {
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ILOAD, 4);
-                generator.visitMaxs(5, 0);
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitMethodInsn(INVOKESPECIAL, "net/minecraft/block/Block", obfuscated ? "func_176223_P" : "getDefaultState", "()Lnet/minecraft/block/state/IBlockState;", false);
+                generator.visitMaxs(6, 0);
             }
         );
         //allow the drain method to drain fluidlogged blocks
         overrideMethod(classNode, method -> method.name.equals("drain"),
-            "drain", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;ZLnet/minecraftforge/fluids/FluidStack;)Lnet/minecraftforge/fluids/FluidStack;", generator -> {
+            "drain", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;ZLnet/minecraftforge/fluids/FluidStack;)Lnet/minecraftforge/fluids/FluidStack;", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ILOAD, 3);

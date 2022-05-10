@@ -2,16 +2,13 @@ buildscript {
     repositories {
         mavenCentral()
         maven { url 'https://files.minecraftforge.net/maven' }
-        maven { url 'https://repo.spongepowered.org/maven' }
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
     }
 }
 
 apply plugin: 'net.minecraftforge.gradle.forge'
-apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'maven-publish'
 
 version = 'v1.8.0-mc1.12.2'
@@ -45,20 +42,6 @@ processResources {
     }
 }
 
-repositories {
-    maven { url 'https://repo.spongepowered.org/maven' }
-    maven { url 'https://maven.cleanroommc.com' }
-}
-
-dependencies {
-    deobfCompile 'zone.rong:mixinbooter:4.2'
-    compile('org.spongepowered:mixin:0.8.3-SNAPSHOT') {
-        exclude module: 'guava'
-        exclude module: 'commons-io'
-        exclude module: 'gson'
-    }
-}
-
 task deobfJar(type: Jar) {
     from sourceSets.main.output
     classifier = 'deobf'
@@ -79,8 +62,7 @@ jar {
         attributes([
                 'FMLCorePlugin': 'git.jbredwards.fluidlogged_api.mod.asm.ASMHandler',
                 'FMLCorePluginContainsFMLMod': 'true',
-                'FMLAT': 'fluidlogged_api_at.cfg',
-                'ForceLoadAsMod': 'true'
+                'FMLAT': 'fluidlogged_api_at.cfg'
         ])
     }
 }

@@ -37,7 +37,7 @@ import static git.jbredwards.fluidlogged_api.mod.Constants.*;
  * @author jbred
  *
  */
-@Mod(modid = MODID, name = NAME, version = VERSION, dependencies = "required-after:mixinbooter")
+@Mod(modid = MODID, name = NAME, version = VERSION)
 public final class Main
 {
     @SuppressWarnings("NotNullFieldNotInitialized")

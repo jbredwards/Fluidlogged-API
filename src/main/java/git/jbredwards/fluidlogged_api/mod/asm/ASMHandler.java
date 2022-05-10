@@ -1,6 +1,5 @@
 package git.jbredwards.fluidlogged_api.mod.asm;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.*;
@@ -12,11 +11,9 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.*;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
-import zone.rong.mixinbooter.IEarlyMixinLoader;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,7 +24,7 @@ import java.util.Map;
 @IFMLLoadingPlugin.SortingIndex(1401)
 @IFMLLoadingPlugin.Name("Fluidlogged API Plugin")
 @IFMLLoadingPlugin.MCVersion("1.12.2")
-public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
+public final class ASMHandler implements IFMLLoadingPlugin
 {
     private static boolean obfuscated;
 
@@ -71,6 +68,7 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
                 .put("net.minecraft.block.BlockCocoa", new PluginBlockCocoa()) //exists in case cocoa beans are added to the config whitelist
                 .put("net.minecraft.block.BlockConcretePowder", new PluginBlockConcretePowder()) //concrete forms from concrete powder while its next to flowing water FluidStates
                 .put("net.minecraft.block.BlockDoor", new PluginBlockDoor()) // update upper FluidState & correct canFluidFlow
+                .put("net.minecraft.block.BlockDynamicLiquid", new PluginBlockDynamicLiquid()) //fixes a bunch of liquid interactions while fluidlogged
                 .put("net.minecraft.block.BlockFarmland", new PluginBlockFarmland()) //farmland blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockLeaves", new PluginFluidloggableBlocksFlowable()) //for this it makes sense to have the fluid flow from any side
                 .put("net.minecraft.block.BlockLilyPad", new PluginBlockLilyPad()) //lily pads can stay on certain water FluidStates
@@ -139,10 +137,6 @@ public final class ASMHandler implements IFMLLoadingPlugin, IEarlyMixinLoader
             return plugin == null ? basicClass : plugin.transform(basicClass, obfuscated);
         }
     }
-
-    @Nonnull
-    @Override
-    public List<String> getMixinConfigs() { return ImmutableList.of("mixins/fluidlogged_api.vanilla.block.json"); }
 
     @Nonnull
     @Override

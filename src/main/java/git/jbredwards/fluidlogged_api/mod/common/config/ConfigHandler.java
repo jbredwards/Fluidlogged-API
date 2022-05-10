@@ -53,6 +53,7 @@ public final class ConfigHandler
     public static boolean fluidsBreakTorches = true;
     public static boolean debugASMPlugins = false;
     public static int fluidloggedFluidSpread = 2;
+    public static boolean verticalFluidloggedFluidSpread = true;
 
     //checks if the input state is fluidloggable, according to the config settings
     public static EnumActionResult isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
@@ -98,7 +99,10 @@ public final class ConfigHandler
                         "\"blacklist\":[],\n" +
                         "\n" +
                         "#otuput to the console for every ASM transformation, useful for debugging\n" +
-                        "\"debugASMPlugins\":false";
+                        "\"debugASMPlugins\":false,\n" +
+                        "\n" +
+                        "#remove the ability for \"infinite\" fluids to fluidlog blocks below\n" +
+                        "\"removeVerticalFluidloggedFluidSpread\":false";
 
                 //writes the default entries to the new cfg file
                 final FileWriter writer = new FileWriter(cfg);
@@ -114,6 +118,7 @@ public final class ConfigHandler
                 fluidsBreakTorches = config.fluidsBreakTorches;
                 applyDefaults = config.applyDefaults;
                 debugASMPlugins = config.debugASMPlugins;
+                verticalFluidloggedFluidSpread = !config.removeVerticalFluidloggedFluidSpread;
             }
         }
 
@@ -183,6 +188,7 @@ public final class ConfigHandler
     public static class Config
     {
         public final int fluidloggedFluidSpread;
+        public final boolean removeVerticalFluidloggedFluidSpread;
         public final boolean fluidsBreakTorches;
         public final boolean applyDefaults;
         public final @Nullable FluidTag[] fluidTags;
@@ -190,8 +196,9 @@ public final class ConfigHandler
         public final ConfigPredicateBuilder[] blacklist;
         public final boolean debugASMPlugins;
 
-        public Config(int fluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, @Nullable FluidTag[] fluidTags, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins) {
+        public Config(int fluidloggedFluidSpread, boolean removeVerticalFluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, @Nullable FluidTag[] fluidTags, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins) {
             this.fluidloggedFluidSpread = fluidloggedFluidSpread;
+            this.removeVerticalFluidloggedFluidSpread = removeVerticalFluidloggedFluidSpread;
             this.fluidsBreakTorches = fluidsBreakTorches;
             this.applyDefaults = applyDefaults;
             this.fluidTags = fluidTags;
