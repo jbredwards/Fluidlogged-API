@@ -10,7 +10,7 @@
 
 ```groovy
 dependencies {
-    deobfCompile 'com.github.jbredwards:fluidlogged-api:ccf9bba5ec'
+    deobfCompile 'com.github.jbredwards:fluidlogged-api:df10310dee'
 }
 
 repositories {
@@ -18,6 +18,6 @@ repositories {
 }
 ```
 
-##### Remember to have either the spongeforge mixin library (ver 0.7 or greater) in your workspace or a mod that supplies it to have this work properly
+##### Any mods using versions 1.8.0+ as a dependancy must make sure they're using stable_39 mappings for this mod to work properly in a deobfuscated enviornment!
 
 ##### View the [wiki](https://github.com/jbredwards/Fluidlogged-API/wiki) for more info. (currently wip)
