@@ -13,7 +13,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -36,7 +35,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.Optional;
 
 /**
  * helpful functions
@@ -69,7 +67,9 @@ public final class FluidloggedUtils
     //if none return input state
     @Nonnull
     public static IBlockState getFluidOrReal(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
-        return getFluidFromState(here) != null ? here : Optional.ofNullable(FluidState.get(world, pos).getState()).orElse(here);
+        if(getFluidFromState(here) != null) return here;
+        final FluidState fluidState = FluidState.get(world, pos);
+        return fluidState.isEmpty() ? here : fluidState.getState();
     }
 
     //convenience method that uses default block flags
@@ -171,11 +171,10 @@ public final class FluidloggedUtils
 
     //functions the same as World#notifyNeighborsOfStateChange, but for fluids
     public static void notifyFluids(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, boolean notifyHere, @Nullable EnumFacing... except) {
-        final IBlockState state = fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.getState();
         final EnumSet<EnumFacing> set = EnumSet.allOf(EnumFacing.class);
         if(except != null) Arrays.asList(except).forEach(set::remove);
 
-        if(ForgeEventFactory.onNeighborNotify(world, pos, state, set, false).isCanceled())
+        if(ForgeEventFactory.onNeighborNotify(world, pos, fluidState.getState(), set, false).isCanceled())
             return;
 
         //update state here
@@ -188,7 +187,7 @@ public final class FluidloggedUtils
             FluidState neighbor = getFluidState(world, offset);
 
             if(!neighbor.isEmpty())
-                neighbor.getState().neighborChanged(world, offset, state.getBlock(), pos);
+                neighbor.getState().neighborChanged(world, offset, fluidState.getBlock(), pos);
         }
     }
 

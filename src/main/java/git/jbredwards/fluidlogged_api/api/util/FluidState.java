@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -27,7 +28,7 @@ import javax.annotation.concurrent.Immutable;
 public class FluidState extends Pair<Fluid, IBlockState>
 {
     //always used instead of a null value
-    @Nonnull public static final FluidState EMPTY = new FluidState(null, null);
+    @Nonnull public static final FluidState EMPTY = new FluidState(null, Blocks.AIR.getDefaultState());
 
     protected final Fluid fluid;
     protected final IBlockState state;
@@ -92,7 +93,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
     //null if empty, nonnull otherwise
     public Fluid getFluid() { return fluid; }
 
-    //null if empty, nonnull otherwise
+    @Nonnull
     public IBlockState getState() { return state; }
 
     //some FluidStates may contain badly coded fluid blocks if gotten from an IBlockState

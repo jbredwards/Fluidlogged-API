@@ -11,7 +11,6 @@ import git.jbredwards.fluidlogged_api.mod.common.util.AccessorUtils;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.material.MaterialLogic;
-import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -189,9 +188,9 @@ public final class ASMHooks
                 EnumFacing side = byHorizontalIndex(i);
                 BlockPos offset = pos.offset(side);
                 //use cache if available
-                state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i],
-                        getOrSet(states, () -> world.getBlockState(offset), side.getXOffset() + 1, side.getZOffset() + 1)
-                                .getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID);
+                state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], !canFluidFlow(world, offset,
+                        getOrSet(states, () -> world.getBlockState(offset), side.getXOffset() + 1, side.getZOffset() + 1),
+                        side.getOpposite()));
             }
         }
 
@@ -497,7 +496,7 @@ public final class ASMHooks
                 else {
                     world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, quantaPerBlock - expQuanta), Constants.BlockFlags.SEND_TO_CLIENTS);
                     world.scheduleUpdate(pos, block, block.tickRate(world));
-                    world.notifyNeighborsOfStateChange(pos, block, false);
+                    world.notifyNeighborsRespectDebug(pos, block, false);
                 }
             }
         }
@@ -808,7 +807,7 @@ public final class ASMHooks
                 else {
                     world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, 8 - expQuanta), Constants.BlockFlags.SEND_TO_CLIENTS);
                     world.scheduleUpdate(pos, block, block.tickRate(world));
-                    world.notifyNeighborsOfStateChange(pos, block, false);
+                    world.notifyNeighborsRespectDebug(pos, block, false);
                 }
             }
         }
@@ -1500,10 +1499,7 @@ public final class ASMHooks
     }
 
     //PluginWorld & others
-    public static IBlockState getFluidOrAir(World world, BlockPos pos) {
-        final FluidState fluidState = FluidState.get(world, pos);
-        return fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.getState();
-    }
+    public static IBlockState getFluidOrAir(World world, BlockPos pos) { return FluidState.get(world, pos).getState(); }
 
     //PluginWorld
     public static boolean handleMaterialAcceleration(BlockPos.PooledMutableBlockPos pos, World world, Material material, Entity entity, Vec3d vec3dIn, boolean flagIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {

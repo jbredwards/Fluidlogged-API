@@ -5,7 +5,6 @@ import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.*;
-import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -63,7 +62,7 @@ public class CommandSetFluidState extends CommandBase
                 throw new CommandException("commands.setfluid.noChange");
         }
 
-        else if(!world.setBlockState(pos, fluidState.isEmpty() ? Blocks.AIR.getDefaultState() : fluidState.getState(), 2))
+        else if(!world.setBlockState(pos, fluidState.getState(), 2))
             throw new CommandException("commands.setfluid.noChange");
 
         notifyCommandListener(sender, this, "commands.setfluid.success");
