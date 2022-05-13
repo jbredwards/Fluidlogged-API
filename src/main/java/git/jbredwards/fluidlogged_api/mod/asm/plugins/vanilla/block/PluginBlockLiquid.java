@@ -95,7 +95,7 @@ public final class PluginBlockLiquid implements IASMPlugin
             }
         );
         //stone & obsidian only form while directly connected to lava/water
-        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_190973_f" : "getBlockLiquidHeight"),
+        overrideMethod(classNode, method -> checkMethod(method, obfuscated ? "func_190973_f" : "getBlockLiquidHeight", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)F"),
             "getBlockLiquidHeight", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)F", generator -> {
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitVarInsn(ALOAD, 1);

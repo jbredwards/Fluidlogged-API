@@ -70,8 +70,7 @@ public final class EventHandler
     @SideOnly(Side.CLIENT)
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void removeBuiltInLiquidStateMappers(@Nullable TextureStitchEvent.Pre event) {
-        Minecraft.getMinecraft().modelManager.getBlockModelShapes().getBlockStateMapper().setBuiltInBlocks
-                .removeIf(b -> b instanceof BlockLiquid && isFluidloggableFluid(b));
+        Minecraft.getMinecraft().modelManager.getBlockModelShapes().getBlockStateMapper().setBuiltInBlocks.removeIf(b -> b instanceof BlockLiquid);
     }
 
     @SideOnly(Side.CLIENT)
@@ -79,7 +78,7 @@ public final class EventHandler
     public static void registerLiquidStateMappers(@Nullable ModelRegistryEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
             //allow vanilla fluid blocks to use the new fluid renderer
-            if(block instanceof BlockLiquid && isFluidloggableFluid(block)) {
+            if(block instanceof BlockLiquid) {
                 ModelLoader.setCustomStateMapper(block, new StateMapperBase() {
                     @Nonnull
                     @Override
@@ -96,7 +95,7 @@ public final class EventHandler
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void registerLiquidBakedModels(@Nonnull ModelBakeEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
-            if(block instanceof BlockLiquid && isFluidloggableFluid(block)) {
+            if(block instanceof BlockLiquid) {
                 IBakedModel model = new ModelFluid(getFluidFromBlock(block)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
                 event.getModelRegistry().putObject(new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid"), model);
             }
