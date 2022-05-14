@@ -253,7 +253,7 @@ public final class ASMHooks
                                 && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], other.getOpposite())
                                 && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, offset, neighbor), facing).getFluid())
                                 && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], facing.getOpposite())
-                                && canFluidFlow(world, pos.offset(other), get(states, other), facing)
+                                && canFluidFlow(world, pos.offset(other), getOrSet(states, () -> world.getBlockState(pos.offset(other)), other), facing)
                                 && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, pos.offset(other), get(states, other)), other).getFluid())
                                 && lowest > get(fluids, other).getLevel()) lowest = get(fluids, other).getLevel();
                     }
@@ -383,7 +383,7 @@ public final class ASMHooks
 
     //PluginBlockFluidBase
     public static boolean hasVerticalFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, int densityDir) {
-        final EnumFacing facing = (densityDir < 0) ? EnumFacing.UP : EnumFacing.DOWN;
+        final EnumFacing facing = (densityDir < 0) ? UP : DOWN;
         if(!canFluidFlow(world, pos, world.getBlockState(pos), facing)) return false;
 
         final BlockPos offset = pos.down(densityDir);
@@ -446,12 +446,12 @@ public final class ASMHooks
     }
 
     //PluginBlockFluidClassic
-    private static final List<EnumFacing> SIDES = Collections.unmodifiableList(Arrays.asList(EnumFacing.WEST, EnumFacing.EAST, EnumFacing.NORTH, EnumFacing.SOUTH));
+    private static final List<EnumFacing> SIDES = Collections.unmodifiableList(Arrays.asList(WEST, EAST, NORTH, SOUTH));
     public static void fluidUpdateTick(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, int quantaPerBlock, int densityDir, boolean canCreateSources) {
         if(!world.isAreaLoaded(pos, quantaPerBlock / 2)) return; // Forge: avoid loading unloaded chunks
 
         final IBlockState here = world.getBlockState(pos); //fluidlogged fluids will have a different state here than the state input
-        final EnumFacing facingDir = (densityDir > 0) ? EnumFacing.UP : EnumFacing.DOWN;
+        final EnumFacing facingDir = (densityDir > 0) ? UP : DOWN;
         int quantaRemaining = quantaPerBlock - state.getValue(BlockLiquid.LEVEL);
 
         // check adjacent block levels if non-source
@@ -460,7 +460,7 @@ public final class ASMHooks
             final int expQuanta;
 
             if(ForgeEventFactory.canCreateFluidSource(world, pos, state, canCreateSources)) {
-                for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+                for(EnumFacing facing : HORIZONTALS) {
                     BlockPos offset = pos.offset(facing);
 
                     if(isSourceBlock(block, world, offset, world.getBlockState(offset), facing.getOpposite()))
@@ -478,7 +478,7 @@ public final class ASMHooks
 
             else {
                 int maxQuanta = -100;
-                for(EnumFacing side : EnumFacing.HORIZONTALS) {
+                for(EnumFacing side : HORIZONTALS) {
                     BlockPos offset = pos.offset(side);
 
                     if(canFluidFlow(world, pos, here, side) && canFluidFlow(world, offset, world.getBlockState(offset), side.getOpposite()))
@@ -502,7 +502,7 @@ public final class ASMHooks
         }
 
         //try flowing to nearby fluidloggable blocks
-        else tryFlowIntoFluidloggable(block, world, pos, facingDir, state, here, quantaPerBlock, canCreateSources, EnumFacing.HORIZONTALS);
+        else tryFlowIntoFluidloggable(block, world, pos, facingDir, state, here, quantaPerBlock, canCreateSources, HORIZONTALS);
 
         // Fluidlog vertical if possible
         if(ConfigHandler.verticalFluidloggedFluidSpread)
@@ -539,7 +539,7 @@ public final class ASMHooks
                     //check if the fluid could occupy the space
                     if(canFluidFlow(world, offset, neighbor, facing.getOpposite()) && isStateFluidloggable(neighbor, world, offset, block.getFluid()) && FluidState.get(world, offset).isEmpty()) {
                         //check for another source block that can flow into this
-                        for(EnumFacing adjacentFacing : EnumFacing.values()) {
+                        for(EnumFacing adjacentFacing : values()) {
                             if(adjacentFacing != facingDir && adjacentFacing != facing.getOpposite() && (adjacentFacing.getYOffset() == 0 || ConfigHandler.verticalFluidloggedFluidSpread) && canFluidFlow(world, offset, neighbor, adjacentFacing)) {
                                 BlockPos adjacentOffset = offset.offset(adjacentFacing);
                                 IBlockState adjacent = world.getBlockState(adjacentOffset);
@@ -566,7 +566,7 @@ public final class ASMHooks
 
     //PluginBlockFluidClassic
     public static boolean isFluidFlowingVertically(@Nonnull BlockFluidClassic block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int densityDir) {
-        final EnumFacing facingDir = (densityDir < 0) ? EnumFacing.UP : EnumFacing.DOWN;
+        final EnumFacing facingDir = (densityDir < 0) ? UP : DOWN;
 
         final IBlockState here = world.getBlockState(pos);
         if(!canFluidFlow(world, pos, here, facingDir.getOpposite())) return false;
@@ -632,7 +632,7 @@ public final class ASMHooks
 
         final IBlockState vertical = world.getBlockState(pos.down(densityDir));
         return isCompatibleFluid(block.getFluid(), getFluidState(world, pos.down(densityDir), vertical).getFluid())
-                && canFluidFlow(world, pos.down(densityDir), vertical, densityDir < 1 ? EnumFacing.DOWN : EnumFacing.UP);
+                && canFluidFlow(world, pos.down(densityDir), vertical, densityDir < 1 ? DOWN : UP);
     }
 
     //PluginBlockFluidClassic
@@ -768,7 +768,7 @@ public final class ASMHooks
             final int expQuanta;
 
             if(ForgeEventFactory.canCreateFluidSource(world, pos, state, state.getMaterial() == Material.WATER)) {
-                for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+                for(EnumFacing facing : HORIZONTALS) {
                     BlockPos offset = pos.offset(facing);
 
                     if(isSourceBlock((IFluidBlock)block, world, offset, world.getBlockState(offset), facing.getOpposite()))
@@ -778,7 +778,7 @@ public final class ASMHooks
 
             // new source block
             final IBlockState vertical = world.getBlockState(pos.down());
-            if(adjacentSourceBlocks >= 2 && (vertical.getMaterial().isSolid() || isSourceBlock((IFluidBlock)block, world, pos.down(), vertical, EnumFacing.UP)))
+            if(adjacentSourceBlocks >= 2 && (vertical.getMaterial().isSolid() || isSourceBlock((IFluidBlock)block, world, pos.down(), vertical, UP)))
                 expQuanta = 8;
 
             // vertical flow into block
@@ -786,7 +786,7 @@ public final class ASMHooks
 
             else {
                 int maxQuanta = -100;
-                for(EnumFacing side : EnumFacing.HORIZONTALS) {
+                for(EnumFacing side : HORIZONTALS) {
                     BlockPos offset = pos.offset(side);
 
                     if(canFluidFlow(world, pos, here, side) && canFluidFlow(world, offset, world.getBlockState(offset), side.getOpposite()))
@@ -814,19 +814,19 @@ public final class ASMHooks
 
         //place static block
         else {
-            tryFlowIntoFluidloggable((IFluidBlock)block, world, pos, EnumFacing.DOWN, state, here, 8, state.getMaterial() == Material.WATER, EnumFacing.HORIZONTALS);
+            tryFlowIntoFluidloggable((IFluidBlock)block, world, pos, DOWN, state, here, 8, state.getMaterial() == Material.WATER, HORIZONTALS);
             if(state == here) block.placeStaticBlock(world, pos, state);
         }
 
         // Fluidlog vertical if possible
         if(ConfigHandler.verticalFluidloggedFluidSpread)
-            tryFlowIntoFluidloggable((IFluidBlock)block, world, pos, EnumFacing.DOWN, state, here, 8, state.getMaterial() == Material.WATER, EnumFacing.DOWN);
+            tryFlowIntoFluidloggable((IFluidBlock)block, world, pos, DOWN, state, here, 8, state.getMaterial() == Material.WATER, DOWN);
 
         // Flow vertically if possible
-        if(canFluidFlow(world, pos, here, EnumFacing.DOWN) && canDisplace(world, pos.down(), fluid)) {
+        if(canFluidFlow(world, pos, here, DOWN) && canDisplace(world, pos.down(), fluid)) {
             if(state.getMaterial() == Material.LAVA) {
                 final IBlockState down = world.getBlockState(pos.down());
-                if(down.getBlock().isReplaceable(world, pos.down())) {
+                if(down.getBlock().isReplaceable(world, pos.down()) && canFluidFlow(world, pos.down(), down, UP)) {
                     final FluidState fluidState = getFluidState(world, pos.down(), down);
                     if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) {
                         world.setBlockState(pos.down(), ForgeEventFactory.fireFluidPlaceBlockEvent(world, pos.down(), pos, Blocks.STONE.getDefaultState()));
@@ -967,8 +967,8 @@ public final class ASMHooks
             //get state here, since this method can also be executed from a FluidState
             final IBlockState here = worldIn.getBlockState(pos);
             if(here.getBlock().isReplaceable(worldIn, pos)) {
-                for(EnumFacing facing : EnumFacing.values()) {
-                    if(facing == EnumFacing.DOWN  || !canFluidFlow(worldIn, pos, here, facing))
+                for(EnumFacing facing : values()) {
+                    if(facing == DOWN  || !canFluidFlow(worldIn, pos, here, facing))
                         continue;
 
                     BlockPos offset = pos.offset(facing);
@@ -997,7 +997,7 @@ public final class ASMHooks
         final int decay = 8 - getEffectiveQuanta(block, world, pos);
         Vec3d vec = Vec3d.ZERO;
 
-        for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+        for(EnumFacing facing : HORIZONTALS) {
             if(canFluidFlow(world, pos, here, facing)) {
                 BlockPos offset = pos.offset(facing);
 
@@ -1045,8 +1045,8 @@ public final class ASMHooks
     public static float getBlockLiquidHeight(@Nonnull IBlockState state, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
         final IBlockState up = worldIn.getBlockState(pos.up());
         final boolean flag = isCompatibleFluid(getFluidState(worldIn, pos.up(), up).getFluid(), getFluidFromState(state))
-                && canFluidFlow(worldIn, pos.up(), up, EnumFacing.DOWN)
-                && canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), EnumFacing.UP);
+                && canFluidFlow(worldIn, pos.up(), up, DOWN)
+                && canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), UP);
 
         return flag ? 1 : 1 - (BlockLiquid.getLiquidHeightPercent(state.getValue(BlockLiquid.LEVEL)) - 1f/9);
     }
@@ -1077,7 +1077,7 @@ public final class ASMHooks
 
         final IBlockState vertical = world.getBlockState(pos.up());
         return isCompatibleFluid(block.getFluid(), getFluidState(world, pos.up(), vertical).getFluid())
-                && canFluidFlow(world, pos.up(), vertical, EnumFacing.DOWN);
+                && canFluidFlow(world, pos.up(), vertical, DOWN);
     }
 
     //PluginBlockLiquid
@@ -1651,23 +1651,23 @@ public final class ASMHooks
             EnumFacing facing;
 
             if(coveredX < coveredY && coveredX < coveredZ) {
-                facing = endX > prevX ? EnumFacing.WEST : EnumFacing.EAST;
+                facing = endX > prevX ? WEST : EAST;
                 vec = new Vec3d(x, vec.y + distY * coveredX, vec.z + distZ * coveredX);
             }
 
             else if(coveredY < coveredZ) {
-                facing = endY > prevY ? EnumFacing.DOWN : EnumFacing.UP;
+                facing = endY > prevY ? DOWN : UP;
                 vec = new Vec3d(vec.x + distX * coveredY, y, vec.z + distZ * coveredY);
             }
 
             else {
-                facing = endZ > prevZ ? EnumFacing.NORTH : EnumFacing.SOUTH;
+                facing = endZ > prevZ ? NORTH : SOUTH;
                 vec = new Vec3d(vec.x + distX * coveredZ, vec.y + distY * coveredZ, z);
             }
 
-            prevX = MathHelper.floor(vec.x) - (facing == EnumFacing.EAST  ? 1 : 0);
-            prevY = MathHelper.floor(vec.y) - (facing == EnumFacing.UP    ? 1 : 0);
-            prevZ = MathHelper.floor(vec.z) - (facing == EnumFacing.SOUTH ? 1 : 0);
+            prevX = MathHelper.floor(vec.x) - (facing == EAST  ? 1 : 0);
+            prevY = MathHelper.floor(vec.y) - (facing == UP    ? 1 : 0);
+            prevZ = MathHelper.floor(vec.z) - (facing == SOUTH ? 1 : 0);
 
             pos = new BlockPos(prevX, prevY, prevZ);
 
