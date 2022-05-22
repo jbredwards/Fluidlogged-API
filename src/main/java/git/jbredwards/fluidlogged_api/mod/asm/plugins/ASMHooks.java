@@ -127,9 +127,12 @@ public final class ASMHooks
 
     //PluginBlockFluidBase
     public static boolean shouldFluidSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, int densityDir) {
-        if(!canFluidFlow(world, pos, world.getBlockState(pos), side)) return true;
+        if(!canFluidFlow(world, pos, world.getBlockState(pos), side) && !FluidState.get(world, pos).isEmpty()) return true;
 
         final IBlockState neighbor = world.getBlockState(pos.offset(side));
+        //this check exists for mods like coral reef that don't have proper block sides
+        if(isCompatibleFluid(getFluidFromState(state), getFluidFromState(neighbor))) return false;
+        else if(neighbor.doesSideBlockRendering(world, pos.offset(side), side.getOpposite())) return false;
         return !isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluidFromState(state))
                 || !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite());
     }
@@ -579,7 +582,8 @@ public final class ASMHooks
 
     //PluginBlockFluidClassic
     public static boolean canFlowInto(@Nonnull BlockFluidClassic block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        return isCompatibleFluid(getFluidState(world, pos).getFluid(), block.getFluid()) || block.canDisplace(world, pos);
+        final IBlockState state = world.getBlockState(pos);
+        return isCompatibleFluid(getFluidFromState(state), block.getFluid()) && state.getValue(BlockLiquid.LEVEL) > 0 || block.canDisplace(world, pos);
     }
 
     //PluginBlockFluidClassic
@@ -928,7 +932,7 @@ public final class ASMHooks
 
     //PluginBlockDynamicLiquid helper
     public static boolean canFlowInto(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
-        return isCompatibleFluid(getFluidState(world, pos, state).getFluid(), block.getFluid()) || canDisplace(world, pos, block.getFluid());
+        return isCompatibleFluid(getFluidFromState(state), block.getFluid()) && state.getValue(BlockLiquid.LEVEL) > 0 || canDisplace(world, pos, block.getFluid());
     }
 
     //PluginBlockDynamicLiquid helper
