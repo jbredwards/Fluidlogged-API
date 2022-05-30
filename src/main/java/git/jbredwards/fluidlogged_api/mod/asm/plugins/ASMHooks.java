@@ -1277,6 +1277,8 @@ public final class ASMHooks
         if(!world.provider.hasSkyLight() && type == EnumSkyBlock.SKY) return 0;
         if(pos.getY() < 0) pos = new BlockPos(pos.getX(), 0, pos.getZ());
         if(!world.isValid(pos)) return type.defaultLightValue;
+        if(!world.getBlockState(pos).useNeighborBrightness() && FluidState.get(pos).isEmpty())
+            return world.getCombinedLight(pos, 0);
         return Math.max(world.getLightFor(type, pos),
                 Math.max(world.getLightFor(type, pos.up()),
                         Math.max(world.getLightFor(type, pos.east()),
@@ -1428,7 +1430,7 @@ public final class ASMHooks
         if(!fluidStates.isEmpty() && size.getX() > 0 && size.getZ() > 0) {
             for(Pair<BlockPos, FluidState> entry : fluidStates) {
                 BlockPos transformedPos = Template.transformedBlockPos(settings, entry.getKey()).add(pos);
-                setFluidState(world, transformedPos, null, entry.getValue(), false, flags);
+                setFluidState(world, transformedPos, null, entry.getValue(), false, true, flags);
             }
         }
     }
@@ -1559,7 +1561,7 @@ public final class ASMHooks
             //this mod adds a special flag (x | 32, example: Constants.BlockFlags.DEFAULT | 32) that removes any FluidState here
             if((flags & 32) != 0) {
                 if(!fluidState.isEmpty())
-                    setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
+                    setFluidState(world, pos, newState, FluidState.EMPTY, false, false, flags);
             }
 
             //without the flag preserves FluidState / sets FluidState using oldState if it's a full fluid & if newState is fluidloggable
@@ -1567,7 +1569,7 @@ public final class ASMHooks
                 //remove FluidState here, new state isn't fluidloggable
                 if(!fluidState.isEmpty()) {
                     if(!isStateFluidloggable(newState, world, pos, fluidState.getFluid()))
-                        setFluidState(world, pos, newState, FluidState.EMPTY, false, flags);
+                        setFluidState(world, pos, newState, FluidState.EMPTY, false, false, flags);
                     //ensure fluids are updated when the block here changes
                     else if(world.isAreaLoaded(pos, 1)) notifyFluids(world, pos, fluidState, true);
                 }
@@ -1575,7 +1577,7 @@ public final class ASMHooks
                 else {
                     final @Nullable Fluid fluid = getFluidFromState(oldState);
                     if(fluid != null && isFluidloggableFluid(oldState, world, pos) && isStateFluidloggable(newState, world, pos, fluid))
-                        setFluidState(world, pos, newState, FluidState.of(fluid), false, flags);
+                        setFluidState(world, pos, newState, FluidState.of(fluid), false, false, flags);
                 }
             }
         }

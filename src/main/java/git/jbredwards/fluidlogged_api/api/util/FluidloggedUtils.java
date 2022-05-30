@@ -74,10 +74,10 @@ public final class FluidloggedUtils
 
     //convenience method that uses default block flags
     public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize) {
-        return setFluidState(world, pos, here, fluidState, checkVaporize, Constants.BlockFlags.DEFAULT_AND_RERENDER);
+        return setFluidState(world, pos, here, fluidState, checkVaporize, true, Constants.BlockFlags.DEFAULT_AND_RERENDER);
     }
 
-    public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, int blockFlags) {
+    public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, boolean doRenderUpdate, int blockFlags) {
         if(world.isOutsideBuildHeight(pos) || world.getWorldType() == WorldType.DEBUG_ALL_BLOCK_STATES) return false;
 
         final Chunk chunk = world.getChunk(pos);
@@ -102,7 +102,7 @@ public final class FluidloggedUtils
             }
 
             //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-            setFluidState_Internal(world, chunk, here, pos, event.fluidState, event.blockFlags);
+            setFluidState_Internal(world, chunk, here, pos, event.fluidState, doRenderUpdate, event.blockFlags);
 
             //default
             return true;
@@ -111,7 +111,7 @@ public final class FluidloggedUtils
 
     //if you're not an event instance or an IFluidloggable instance, use setFluidState instead!
     //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-    public static void setFluidState_Internal(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull IBlockState here, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, int blockFlags) {
+    public static void setFluidState_Internal(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull IBlockState here, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, boolean doRenderUpdate, int blockFlags) {
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
         if(cap == null) throw new NullPointerException("There was a critical internal error involving the Fluidlogged API mod, notify the mod author!");
 
@@ -126,7 +126,7 @@ public final class FluidloggedUtils
             //send changes to client
             if((blockFlags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {
                 Main.wrapper.sendToAllAround(
-                        new FluidStateMessage(pos, fluidState),
+                        new FluidStateMessage(pos, fluidState, doRenderUpdate),
                         new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
                 );
             }

@@ -26,12 +26,14 @@ public final class FluidStateMessage implements IMessage
     public boolean isValid;
     public long pos;
     public int state;
+    public boolean doRenderUpdate;
 
     public FluidStateMessage() {}
-    public FluidStateMessage(@Nonnull BlockPos pos, @Nonnull FluidState state) {
+    public FluidStateMessage(@Nonnull BlockPos pos, @Nonnull FluidState state, boolean doRenderUpdate) {
         this.isValid = true;
         this.pos = pos.toLong();
         this.state = state.serialize();
+        this.doRenderUpdate = doRenderUpdate;
     }
 
     @Override
@@ -40,6 +42,7 @@ public final class FluidStateMessage implements IMessage
         if(isValid) {
             pos = buf.readLong();
             state = buf.readInt();
+            doRenderUpdate = buf.readBoolean();
         }
     }
 
@@ -49,6 +52,7 @@ public final class FluidStateMessage implements IMessage
         if(isValid) {
             buf.writeLong(pos);
             buf.writeInt(state);
+            buf.writeBoolean(doRenderUpdate);
         }
     }
 
@@ -78,7 +82,7 @@ public final class FluidStateMessage implements IMessage
 
                     //re-render block
                     FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
-                    world.markBlockRangeForRenderUpdate(pos, pos);
+                    if(message.doRenderUpdate) world.markBlockRangeForRenderUpdate(pos, pos);
                 }
             });
         }
