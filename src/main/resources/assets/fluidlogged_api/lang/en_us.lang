@@ -2,3 +2,5 @@ commands.setfluid.usage=/setfluid <x> <y> <z> <fluid block>
 commands.setfluid.success=Fluid block placed
 commands.setfluid.outOfWorld=Cannot place fluid block outside world
 commands.setfluid.noChange=The fluid block couldn't be placed
+commands.reloadFluidloggedAPI.usage=/reloadFluidloggedAPI
+commands.reloadFluidloggedAPI.success=Successfully reloaded the Fluidlogged API config

@@ -1,10 +1,12 @@
 package git.jbredwards.fluidlogged_api.mod;
 
+import git.jbredwards.fluidlogged_api.mod.common.command.CommandReloadCfg;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandSetFluidState;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.mod.common.legacy.LegacyDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.message.FluidStateMessage;
+import git.jbredwards.fluidlogged_api.mod.common.message.ReloadCfgMessage;
 import git.jbredwards.fluidlogged_api.mod.common.message.SyncFluidStatesMessage;
 import git.jbredwards.fluidlogged_api.api.world.IChunkProvider;
 import net.minecraft.block.BlockDispenser;
@@ -55,6 +57,7 @@ public final class Main
         wrapper = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
         wrapper.registerMessage(FluidStateMessage.Handler.INSTANCE, FluidStateMessage.class, 1, Side.CLIENT);
         wrapper.registerMessage(SyncFluidStatesMessage.Handler.INSTANCE, SyncFluidStatesMessage.class, 2, Side.CLIENT);
+        wrapper.registerMessage(ReloadCfgMessage.Handler.INSTANCE, ReloadCfgMessage.class, 3, Side.CLIENT);
     }
 
     @Mod.EventHandler
@@ -72,7 +75,10 @@ public final class Main
 
     //registers a new command
     @Mod.EventHandler
-    public static void start(@Nonnull FMLServerStartingEvent event) { event.registerServerCommand(new CommandSetFluidState()); }
+    public static void start(@Nonnull FMLServerStartingEvent event) {
+        event.registerServerCommand(new CommandSetFluidState());
+        event.registerServerCommand(new CommandReloadCfg());
+    }
 
     //initializes datafixer
     @Mod.EventHandler

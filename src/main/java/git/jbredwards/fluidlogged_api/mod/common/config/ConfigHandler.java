@@ -82,32 +82,39 @@ public final class ConfigHandler
                         "#case 0: fluids cannot flow into fluidloggable blocks\n" +
                         "#case 1: fluids can flow into fluidloggable blocks, but only from fluidlogged blocks (legacy mod behavior)\n" +
                         "#case 2: fluids can flow into fluidloggable blocks from fluidlogged blocks & normal fluid blocks (1.13 behavior)\n" +
-                        "\"fluidloggedFluidSpread\":2,\n" +
+                        "fluidloggedFluidSpread:2,\n" +
                         "\n" +
                         "#flowing fluid blocks break torches (vanilla behavior)\n" +
-                        "\"fluidsBreakTorches\":true,\n" +
+                        "fluidsBreakTorches:true,\n" +
                         "\n" +
                         "#this mod by default allows certain blocks to be fluidlogged\n" +
-                        "\"applyDefaults\":true,\n" +
+                        "applyDefaults:true,\n" +
                         "\n" +
                         "#whitelist for adding new fluidloggable blocks (this is in addition to the defaults)\n" +
                         "#info about the format for this can be found on this mod's wiki\n" +
-                        "\"whitelist\":[],\n" +
+                        "whitelist:[],\n" +
                         "\n" +
                         "#blacklist blocks from the defaults\n" +
                         "#info about the format for this can be found on this mod's wiki\n" +
-                        "\"blacklist\":[],\n" +
+                        "blacklist:[],\n" +
                         "\n" +
                         "#otuput to the console for every ASM transformation, useful for debugging\n" +
-                        "\"debugASMPlugins\":false,\n" +
+                        "debugASMPlugins:false,\n" +
                         "\n" +
                         "#remove the ability for \"infinite\" fluids to fluidlog blocks below\n" +
-                        "\"removeVerticalFluidloggedFluidSpread\":false";
+                        "removeVerticalFluidloggedFluidSpread:false";
 
                 //writes the default entries to the new cfg file
                 final FileWriter writer = new FileWriter(cfg);
                 writer.write(contents);
                 writer.close();
+
+                //ensure defaults are applied
+                fluidloggedFluidSpread = 2;
+                fluidsBreakTorches = true;
+                applyDefaults = true;
+                debugASMPlugins = false;
+                verticalFluidloggedFluidSpread = true;
             }
 
             //reads an already existing cfg file
@@ -120,6 +127,9 @@ public final class ConfigHandler
                 debugASMPlugins = config.debugASMPlugins;
                 verticalFluidloggedFluidSpread = !config.removeVerticalFluidloggedFluidSpread;
             }
+
+            WHITELIST.clear();
+            BLACKLIST.clear();
         }
 
         //oops
