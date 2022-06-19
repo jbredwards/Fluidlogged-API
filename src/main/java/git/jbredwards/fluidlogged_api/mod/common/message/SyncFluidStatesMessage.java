@@ -6,6 +6,7 @@ import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -34,8 +35,8 @@ public final class SyncFluidStatesMessage implements IMessage
     public int chunkX, chunkZ;
 
     public SyncFluidStatesMessage() {}
-    public SyncFluidStatesMessage(@Nonnull ChunkPos chunkPos, @Nonnull Long2ObjectMap<FluidState> fluidStateMap) {
-        fluidStateMap.forEach((pos, fluidState) -> data.add(Pair.of(pos, fluidState.serialize())));
+    public SyncFluidStatesMessage(@Nonnull ChunkPos chunkPos, @Nonnull IFluidStateCapability cap) {
+        cap.getAllFluidStates(entry -> data.add(Pair.of(entry.getKey(), entry.getValue().serialize())));
         chunkX = chunkPos.x;
         chunkZ = chunkPos.z;
         isValid = true;
@@ -90,8 +91,9 @@ public final class SyncFluidStatesMessage implements IMessage
 
                 if(cap != null) {
                     //clear any old fluid states
-                    final Set<Long> removed = ImmutableSet.copyOf(cap.getFluidStates().keySet());
-                    cap.getFluidStates().clear();
+                    LongOpenHashSet removed = new LongOpenHashSet();
+                    cap.getAllFluidStates(entry -> removed.add(entry.getKey()));
+                    cap.clearFluidStates();
                     //add any new fluid states
                     message.data.forEach(entry -> {
                         BlockPos pos = BlockPos.fromLong(entry.getKey());
@@ -105,7 +107,7 @@ public final class SyncFluidStatesMessage implements IMessage
                     //update removed light levels & renders
                     removed.forEach(serialized -> {
                         //make sure the cleared pos wasn't replaced prior to re-render
-                        if(!cap.getFluidStates().containsKey(serialized)) {
+                        if(!cap.hasFluidState(serialized)) {
                             //re-render block
                             BlockPos pos = BlockPos.fromLong(serialized);
                             FluidloggedUtils.relightFluidBlock(world, pos, FluidState.EMPTY);

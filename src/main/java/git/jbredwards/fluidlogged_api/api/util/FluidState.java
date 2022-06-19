@@ -78,7 +78,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
     @Nonnull
     public static FluidState getFromProvider(@Nullable ICapabilityProvider p, @Nonnull BlockPos pos) {
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(p);
-        return cap == null ? EMPTY : cap.getFluidStates().getOrDefault(pos.toLong(), EMPTY);
+        return cap == null ? EMPTY : cap.getFluidState(pos.toLong(), EMPTY);
     }
 
     //creates a new FluidState from the serialized one

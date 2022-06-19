@@ -64,7 +64,7 @@ public final class EventHandler
     @SubscribeEvent
     public static void sendToPlayer(@Nonnull ChunkWatchEvent.Watch event) {
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(event.getChunkInstance());
-        if(cap != null) Main.wrapper.sendTo(new SyncFluidStatesMessage(event.getChunk(), cap.getFluidStates()), event.getPlayer());
+        if(cap != null) Main.wrapper.sendTo(new SyncFluidStatesMessage(event.getChunk(), cap), event.getPlayer());
     }
 
     @SideOnly(Side.CLIENT)
