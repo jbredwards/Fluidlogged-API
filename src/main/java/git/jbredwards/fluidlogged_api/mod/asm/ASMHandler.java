@@ -10,6 +10,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.*;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
 import javax.annotation.Nonnull;
@@ -26,8 +27,6 @@ import java.util.Map;
 @IFMLLoadingPlugin.MCVersion("1.12.2")
 public final class ASMHandler implements IFMLLoadingPlugin
 {
-    private static boolean obfuscated;
-
     //this class exists cause the vanilla launcher needs the transformer & plugin to be different classes for reasons?
     public static final class Transformer implements IClassTransformer
     {
@@ -48,6 +47,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new PluginBiomesOPlenty()) //fix BOP fluid block mixing
                 .put("cofh.thermaldynamics.block.BlockTDBase", new PluginThermalDynamics()) //fix fluidlogged duct explosion resistance
                 .put("cofh.thermaldynamics.duct.tiles.TileGrid", new PluginThermalDynamics()) //ray trace now skips fluids
+                .put("crafttweaker.mc1120.block.MCWorldBlock", new PluginCraftTweaker()) //MCWorldBlock.getFluid can read FluidStates
                 .put("org.spongepowered.common.mixin.core.entity.EntityMixin", new PluginSpongeForge()) //spongeforge no longer mixins into conflicting methods
                 .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
                 .put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()) //better builders wands compat
@@ -133,9 +133,9 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .build();
 
         @Override
-        public byte[] transform(String name, String transformedName, byte[] basicClass) {
+        public byte[] transform(@Nonnull String name, @Nonnull String transformedName, @Nonnull byte[] basicClass) {
             final @Nullable IASMPlugin plugin = PLUGINS.get(transformedName);
-            return plugin == null ? basicClass : plugin.transform(basicClass, obfuscated);
+            return plugin == null ? basicClass : plugin.transform(basicClass, !FMLLaunchHandler.isDeobfuscatedEnvironment());
         }
     }
 
@@ -146,10 +146,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
     }
 
     @Override
-    public void injectData(@Nonnull Map<String, Object> data) {
-        obfuscated = (boolean)data.get("runtimeDeobfuscationEnabled");
-        ConfigHandler.init();
-    }
+    public void injectData(@Nonnull Map<String, Object> data) { ConfigHandler.init(); }
 
     @Nullable
     @Override
