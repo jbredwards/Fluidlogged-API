@@ -31,6 +31,11 @@ public class CommandReloadCfg extends CommandBase
     public void execute(@Nonnull MinecraftServer server, @Nonnull ICommandSender sender, @Nonnull String[] args) throws CommandException {
         if(args.length > 0) throw new WrongUsageException(getUsage(sender));
         else try {
+            //don't allow the server to reload a common-side config while more than
+            //just the host is online, doing this would result all changes causing a desync!
+            if(server.getPlayerList().getCurrentPlayerCount() > 1)
+                throw new WrongUsageException("command.reloadFluidloggedAPI.desyncWarning");
+
             ConfigHandler.init();
             ConfigHandler.complete();
             Main.wrapper.sendToServer(new ReloadCfgMessage());

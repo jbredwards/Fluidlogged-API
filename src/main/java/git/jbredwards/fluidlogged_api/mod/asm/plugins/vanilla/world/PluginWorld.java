@@ -32,13 +32,11 @@ public final class PluginWorld implements IASMPlugin
 
         //handleMaterialAcceleration, line 2443
         else if(checkMethod(method, obfuscated ? "func_72918_a" : "handleMaterialAcceleration", null)) {
-            setMaxLocals(method, 12);
             return 4;
         }
 
         //isMaterialInBB, line 2494
         else if(checkMethod(method, obfuscated ? "func_72875_a" : "isMaterialInBB", null)) {
-            setMaxLocals(method, 9);
             return 5;
         }
 

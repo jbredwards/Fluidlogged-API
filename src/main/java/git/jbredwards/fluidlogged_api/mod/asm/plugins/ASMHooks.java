@@ -7,7 +7,6 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.OFReflector;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
-import git.jbredwards.fluidlogged_api.mod.common.util.AccessorUtils;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.material.MaterialLogic;
@@ -358,15 +357,15 @@ public final class ASMHooks
         final IBlockState here = world.getBlockState(pos);
         Vec3d vec = Vec3d.ZERO;
 
-        final int decay = AccessorUtils.getFlowDecay(block, world, pos);
+        final int decay = ASMNatives.getFlowDecay(block, world, pos);
         for(EnumFacing facing : HORIZONTALS) {
             if(canFluidFlow(world, pos, here, facing)) {
                 BlockPos offset = pos.offset(facing);
                 if(canFluidFlow(world, offset, world.getBlockState(offset), facing.getOpposite())) {
-                    int otherDecay = AccessorUtils.getFlowDecay(block, world, offset);
+                    int otherDecay = ASMNatives.getFlowDecay(block, world, offset);
 
                     if(otherDecay >= quantaPerBlock) {
-                        otherDecay = AccessorUtils.getFlowDecay(block, world, offset.up(densityDir));
+                        otherDecay = ASMNatives.getFlowDecay(block, world, offset.up(densityDir));
 
                         if(otherDecay < quantaPerBlock) {
                             int power = otherDecay - (decay - quantaPerBlock);
@@ -477,7 +476,7 @@ public final class ASMHooks
                 expQuanta = quantaPerBlock;
 
             // vertical flow into block
-            else if(AccessorUtils.hasVerticalFlow(block, world, pos)) expQuanta = quantaPerBlock - 1;
+            else if(ASMNatives.hasVerticalFlow(block, world, pos)) expQuanta = quantaPerBlock - 1;
 
             else {
                 int maxQuanta = -100;
@@ -485,7 +484,7 @@ public final class ASMHooks
                     BlockPos offset = pos.offset(side);
 
                     if(canFluidFlow(world, pos, here, side) && canFluidFlow(world, offset, world.getBlockState(offset), side.getOpposite()))
-                        maxQuanta = AccessorUtils.getLargerQuanta(block, world, offset, maxQuanta);
+                        maxQuanta = ASMNatives.getLargerQuanta(block, world, offset, maxQuanta);
                 }
 
                 expQuanta = maxQuanta - 1;
@@ -513,7 +512,7 @@ public final class ASMHooks
 
         // Flow vertically if possible
         if(canFluidFlow(world, pos, here, facingDir) && block.canDisplace(world, pos.up(densityDir))) {
-            AccessorUtils.flowIntoBlock(block, world, pos.up(densityDir), 1);
+            ASMNatives.flowIntoBlock(block, world, pos.up(densityDir), 1);
             return;
         }
 
@@ -522,12 +521,12 @@ public final class ASMHooks
         if(flowMeta >= quantaPerBlock) return;
 
         if(isSourceBlock(block, world, pos, here, null) || !block.isFlowingVertically(world, pos)) {
-            if(AccessorUtils.hasVerticalFlow(block, world, pos)) flowMeta = 1;
+            if(ASMNatives.hasVerticalFlow(block, world, pos)) flowMeta = 1;
 
-            final boolean[] flowTo = AccessorUtils.getOptimalFlowDirections(block, world, pos);
+            final boolean[] flowTo = ASMNatives.getOptimalFlowDirections(block, world, pos);
             for(int i = 0; i < 4; i++)
                 if(flowTo[i] && canFluidFlow(world, pos, here, SIDES.get(i)))
-                    AccessorUtils.flowIntoBlock(block, world, pos.offset(SIDES.get(i)), flowMeta);
+                    ASMNatives.flowIntoBlock(block, world, pos.offset(SIDES.get(i)), flowMeta);
         }
     }
 
@@ -577,7 +576,7 @@ public final class ASMHooks
         final IBlockState neighbor = world.getBlockState(pos.up(densityDir));
         return isCompatibleFluid(getFluidState(world, pos.up(densityDir), neighbor).getFluid(), block.getFluid())
                 || (isCompatibleFluid(getFluidState(world, pos, here).getFluid(), block.getFluid())
-                && AccessorUtils.canFlowInto(block, world, pos.up(densityDir)));
+                && ASMNatives.canFlowInto(block, world, pos.up(densityDir)));
     }
 
     //PluginBlockFluidClassic
@@ -685,7 +684,7 @@ public final class ASMHooks
         }
 
         //old code
-        return AccessorUtils.canSustainBush(bush, state);
+        return ASMNatives.canSustainBush(bush, state);
     }
 
     //PluginBlock
@@ -1277,14 +1276,16 @@ public final class ASMHooks
         if(!world.provider.hasSkyLight() && type == EnumSkyBlock.SKY) return 0;
         if(pos.getY() < 0) pos = new BlockPos(pos.getX(), 0, pos.getZ());
         if(!world.isValid(pos)) return type.defaultLightValue;
-        if(!world.getBlockState(pos).useNeighborBrightness() && FluidState.get(pos).isEmpty())
-            return world.getCombinedLight(pos, 0);
-        return Math.max(world.getLightFor(type, pos),
-                Math.max(world.getLightFor(type, pos.up()),
-                        Math.max(world.getLightFor(type, pos.east()),
-                                Math.max(world.getLightFor(type, pos.west()),
-                                        Math.max(world.getLightFor(type, pos.south()),
-                                                world.getLightFor(type, pos.north()))))));
+        if(!world.getBlockState(pos).useNeighborBrightness()) {
+            final FluidState fluidState = FluidState.get(pos);
+            if(fluidState.isEmpty() || !fluidState.getState().useNeighborBrightness())
+                return world.getLightFor(type, pos);
+        }
+        return Math.max(world.getLightFor(type, pos.up()),
+                Math.max(world.getLightFor(type, pos.east()),
+                        Math.max(world.getLightFor(type, pos.west()),
+                                Math.max(world.getLightFor(type, pos.south()),
+                                        world.getLightFor(type, pos.north())))));
     }
 
     //PluginParticleRain & PluginEntityRenderer
@@ -1453,7 +1454,7 @@ public final class ASMHooks
         }
 
         if(compound.hasKey("keepOldFluidStates", Constants.NBT.TAG_BYTE))
-            AccessorUtils.setKeepOldFluidStates(template, compound.getBoolean("keepOldFluidStates"));
+            ASMNatives.setKeepOldFluidStates(template, compound.getBoolean("keepOldFluidStates"));
     }
 
     //PluginTemplate

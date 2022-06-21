@@ -13,14 +13,12 @@ import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
 import net.minecraftforge.common.util.Constants;
-import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * allows chunks to store fluid states
@@ -29,15 +27,16 @@ import java.util.function.Consumer;
  */
 public interface IFluidStateCapability
 {
+    @SuppressWarnings("ConstantConditions")
     @CapabilityInject(IFluidStateCapability.class)
-    Capability<IFluidStateCapability> CAPABILITY = null;
+    @Nonnull Capability<IFluidStateCapability> CAPABILITY = null;
 
     //these are internal methods only, only use them if you have to
-    void getAllFluidStates(Consumer<Map.Entry<Long, FluidState>> callback);
+    void forEach(@Nonnull BiConsumer<Long, FluidState> action);
     boolean hasFluidState(long pos);
     void clearFluidStates();
-    void setFluidState(long pos, @Nonnull FluidState fluid);
-    FluidState getFluidState(long pos, FluidState def);
+    void setFluidState(long pos, @Nonnull FluidState fluidState);
+    @Nonnull FluidState getFluidState(long pos, @Nonnull FluidState def);
 
     //get this from a capability provider
     @SuppressWarnings("ConstantConditions")
@@ -49,60 +48,48 @@ public interface IFluidStateCapability
     //default implementation
     class Impl implements IFluidStateCapability
     {
-        @Nonnull
-        protected final Long2ObjectMap<FluidState> fluidStates = new Long2ObjectOpenHashMap<>();
-
-        protected ReadWriteLock stateLock = new ReentrantReadWriteLock();
+        @Nonnull protected final Long2ObjectMap<FluidState> fluidStates = new Long2ObjectOpenHashMap<>();
+        @Nonnull protected final ReadWriteLock stateLock = new ReentrantReadWriteLock();
 
         @Override
-        public void setFluidState(long pos, @Nonnull FluidState fluidState) {
-            stateLock.writeLock().lock();
-            try {
-                if(fluidState.isEmpty()) fluidStates.remove(pos);
-                else fluidStates.put(pos, fluidState);
-            } finally {
-                stateLock.writeLock().unlock();
-            }
-        }
-
-        @Override
-        public void getAllFluidStates(Consumer<Map.Entry<Long, FluidState>> callback) {
+        public void forEach(@Nonnull BiConsumer<Long, FluidState> action) {
             stateLock.readLock().lock();
-            try {
-                fluidStates.entrySet().forEach(callback);
-            } finally {
-                stateLock.readLock().unlock();
-            }
+            try { fluidStates.forEach(action); }
+            finally { stateLock.readLock().unlock(); }
         }
 
         @Override
         public boolean hasFluidState(long pos) {
             stateLock.readLock().lock();
-            try {
-                return fluidStates.containsKey(pos);
-            } finally {
-                stateLock.readLock().unlock();
-            }
+            try { return fluidStates.containsKey(pos); }
+            finally { stateLock.readLock().unlock(); }
         }
 
         @Override
         public void clearFluidStates() {
             stateLock.writeLock().lock();
-            try {
-                fluidStates.clear();
-            } finally {
-                stateLock.writeLock().unlock();
-            }
+            try { fluidStates.clear(); }
+            finally { stateLock.writeLock().unlock(); }
         }
 
         @Override
-        public FluidState getFluidState(long pos, FluidState def) {
-            stateLock.readLock().lock();
+        public void setFluidState(long pos, @Nonnull FluidState fluidState) {
+            stateLock.writeLock().lock();
+
             try {
-                return fluidStates.getOrDefault(pos, def);
-            } finally {
-                stateLock.readLock().unlock();
+                if(fluidState.isEmpty()) fluidStates.remove(pos);
+                else fluidStates.put(pos, fluidState);
             }
+
+            finally { stateLock.writeLock().unlock(); }
+        }
+
+        @Nonnull
+        @Override
+        public FluidState getFluidState(long pos, @Nonnull FluidState def) {
+            stateLock.readLock().lock();
+            try { return fluidStates.getOrDefault(pos, def); }
+            finally { stateLock.readLock().unlock(); }
         }
     }
 
@@ -137,12 +124,12 @@ public interface IFluidStateCapability
 
         @Nonnull
         @Override
-        public NBTBase writeNBT(@Nullable Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side) {
+        public NBTBase writeNBT(@Nonnull Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side) {
             final NBTTagList list = new NBTTagList();
-            instance.getAllFluidStates(entry -> {
+            instance.forEach((pos, fluidState) -> {
                 NBTTagCompound nbt = new NBTTagCompound();
-                nbt.setLong("pos", entry.getKey());
-                nbt.setString("id", String.valueOf(entry.getValue().getBlock().getRegistryName()));
+                nbt.setLong("pos", pos);
+                nbt.setString("id", String.valueOf(fluidState.getBlock().getRegistryName()));
 
                 list.appendTag(nbt);
             });
@@ -150,8 +137,9 @@ public interface IFluidStateCapability
         }
 
         @Override
-        public void readNBT(@Nullable Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side, @Nullable NBTBase nbtIn) {
+        public void readNBT(@Nonnull Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side, @Nullable NBTBase nbtIn) {
             if(nbtIn instanceof NBTTagList) {
+                instance.clearFluidStates();
                 for(NBTBase tag : (NBTTagList)nbtIn) {
                     if(tag instanceof NBTTagCompound) {
                         NBTTagCompound nbt = (NBTTagCompound)tag;

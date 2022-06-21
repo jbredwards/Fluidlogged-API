@@ -41,8 +41,6 @@ public final class PluginRenderChunk implements IASMPlugin
             list.add(genMethodNode("renderChunk", "(Lnet/minecraft/block/Block;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/BlockRenderLayer;[ZLnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)Z"));
             instructions.insert(insn, list);
             instructions.remove(insn);
-
-            setMaxLocals(method, 9);
             return true;
         }
 
@@ -67,8 +65,6 @@ public final class PluginRenderChunk implements IASMPlugin
             list.add(genMethodNode("renderChunkOF", "(Lnet/minecraft/block/Block;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/BlockRenderLayer;[ZLnet/minecraft/client/renderer/chunk/RenderChunk;Lnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)Z"));
             instructions.insert(insn, list);
             instructions.remove(insn);
-
-            setMaxLocals(method, 10);
             return true;
         }
 
@@ -93,8 +89,6 @@ public final class PluginRenderChunk implements IASMPlugin
             list.add(genMethodNode("renderChunkOF", "(Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;[ZLnet/minecraft/client/renderer/chunk/RenderChunk;Lnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)Z"));
             instructions.insert(insn, list);
             instructions.remove(insn);
-
-            setMaxLocals(method, 10);
             return true;
         }
 

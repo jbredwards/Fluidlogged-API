@@ -19,7 +19,6 @@ public final class PluginBlockTrapDoor implements IASMPlugin
             "canTrapDoorFluidFlow", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/EnumFacing;)Z", generator -> {
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
-                generator.visitMaxs(2, 0);
             }
         );
 

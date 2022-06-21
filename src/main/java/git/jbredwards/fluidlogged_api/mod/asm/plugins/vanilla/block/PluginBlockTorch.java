@@ -19,7 +19,6 @@ public final class PluginBlockTorch implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", obfuscated ? "field_149764_J" : "material", "Lnet/minecraft/block/material/Material;");
                 generator.visitVarInsn(ALOAD, 0);
-                generator.visitMaxs(2, 0);
             }
         );
 

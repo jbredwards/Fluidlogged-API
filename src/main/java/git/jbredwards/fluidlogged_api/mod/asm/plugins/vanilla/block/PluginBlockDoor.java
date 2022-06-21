@@ -41,7 +41,6 @@ public final class PluginBlockDoor implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
-                generator.visitMaxs(4, 0);
             }
         );
 

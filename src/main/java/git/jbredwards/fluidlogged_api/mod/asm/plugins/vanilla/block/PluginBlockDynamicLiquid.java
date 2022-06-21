@@ -22,7 +22,6 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
-                generator.visitMaxs(5, 0);
             }
         );
         //fluidlogged lava does fire spread
@@ -32,7 +31,6 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
-                generator.visitMaxs(4, 0);
             }
         );
         //tick fluidlogged fluids when neighbors update
@@ -42,14 +40,11 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
-                generator.visitMaxs(4, 0);
             }
         );
         //shouldn't require updates
-        addMethod(classNode, obfuscated ? "func_149698_L" : "requiresUpdates", "()Z", null, null, generator -> {
-            generator.visitInsn(ICONST_0);
-            generator.visitMaxs(1, 0);
-        });
+        addMethod(classNode, obfuscated ? "func_149698_L" : "requiresUpdates", "()Z", null, null, generator ->
+                generator.visitInsn(ICONST_0));
 
         return false;
     }

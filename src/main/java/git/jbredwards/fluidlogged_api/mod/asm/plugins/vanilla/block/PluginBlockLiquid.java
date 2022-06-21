@@ -58,10 +58,8 @@ public final class PluginBlockLiquid implements IASMPlugin
         classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggableFluid");
         //use forge unlisted fluid props
         overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_180661_e" : "createBlockState"),
-            "createLiquidBlockState", "(Lnet/minecraft/block/Block;)Lnet/minecraft/block/state/BlockStateContainer;", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitMaxs(1, 0);
-            }
+            "createLiquidBlockState", "(Lnet/minecraft/block/Block;)Lnet/minecraft/block/state/BlockStateContainer;",
+                generator -> generator.visitVarInsn(ALOAD, 0)
         );
         //better side rendering
         overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_176225_a" : "shouldSideBeRendered"),
@@ -71,7 +69,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
                 generator.visitInsn(ICONST_M1);
-                generator.visitMaxs(5, 0);
             }
         );
         //fix canFluidFlow-related vector bugs
@@ -81,7 +78,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
-                generator.visitMaxs(4, 0);
             }
         );
         //stone & obsidian only form while directly connected to lava/water
@@ -91,7 +87,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
-                generator.visitMaxs(4, 0);
             }
         );
         //stone & obsidian only form while directly connected to lava/water
@@ -100,7 +95,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
-                generator.visitMaxs(3, 0);
             }
         );
         //fix corner heights
@@ -120,7 +114,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitMethodInsn(INVOKESTATIC, getHookClass(), "getSlopeAngle", "(Lnet/minecraft/block/BlockLiquid;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)D", false);
                 generator.visitInsn(D2F);
-                generator.visitMaxs(11, 0);
             }
         );
         //getStateAtViewpoint
@@ -130,7 +123,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
-                generator.visitMaxs(4, 0);
             }
         );
         //isEntityInsideMaterial
@@ -143,7 +135,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(DLOAD, 5);
                 generator.visitVarInsn(ALOAD, 7);
                 generator.visitVarInsn(ILOAD, 8);
-                generator.visitMaxs(8, 0);
             }
         );
         //isAABBInsideMaterial
@@ -154,7 +145,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
-                generator.visitMaxs(5, 0);
             }
         );
         //isAABBInsideLiquid
@@ -164,7 +154,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
-                generator.visitMaxs(4, 0);
             }
         );
         //getFluid
@@ -172,7 +161,6 @@ public final class PluginBlockLiquid implements IASMPlugin
             "getLiquid", "(Lnet/minecraft/block/material/Material;)Lnet/minecraftforge/fluids/Fluid;", generator -> {
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", obfuscated ? "field_149764_J" : "material", "Lnet/minecraft/block/material/Material;");
-                generator.visitMaxs(1, 0);
             }
         );
         //place
@@ -187,7 +175,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", obfuscated ? "field_149764_J" : "material", "Lnet/minecraft/block/material/Material;");
                 generator.visitMethodInsn(INVOKESTATIC, "net/minecraft/block/BlockLiquid", obfuscated ? "func_176361_a" : "getFlowingBlock", "(Lnet/minecraft/block/material/Material;)Lnet/minecraft/block/BlockDynamicLiquid;", false);
                 generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/block/Block", obfuscated ? "func_176223_P" : "getDefaultState", "()Lnet/minecraft/block/state/IBlockState;", false);
-                generator.visitMaxs(6, 0);
             }
         );
         //drain
@@ -198,7 +185,6 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ILOAD, 3);
                 generator.visitInsn(ACONST_NULL);
-                generator.visitMaxs(5, 0);
             }
         );
         //canDrain
@@ -206,7 +192,6 @@ public final class PluginBlockLiquid implements IASMPlugin
             "canDrain", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
-                generator.visitMaxs(2, 0);
             }
         );
         //getFilledPercentage
@@ -217,7 +202,6 @@ public final class PluginBlockLiquid implements IASMPlugin
             generator.visitVarInsn(ALOAD, 1);
             generator.visitVarInsn(ALOAD, 2);
             generator.visitMethodInsn(INVOKESTATIC, getHookClass(), "getBlockLiquidHeight", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)F", false);
-            generator.visitMaxs(3, 0);
         });
         //isFluidloggableFluid
         addMethod(classNode, "isFluidloggableFluid", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z",
@@ -226,15 +210,12 @@ public final class PluginBlockLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
-                generator.visitMaxs(4, 0);
             }
         );
         //isFluidloggableFluid
         addMethod(classNode, "isFluidloggableFluid", "()Z",
-            "isLiquidFluidloggable", "(Lnet/minecraft/block/Block;)Z", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitMaxs(1, 0);
-            }
+            "isLiquidFluidloggable", "(Lnet/minecraft/block/Block;)Z",
+                generator -> generator.visitVarInsn(ALOAD, 0)
         );
 
         return true;

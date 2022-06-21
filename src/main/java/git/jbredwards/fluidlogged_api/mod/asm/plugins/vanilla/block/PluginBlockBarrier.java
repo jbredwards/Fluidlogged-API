@@ -17,10 +17,7 @@ public final class PluginBlockBarrier implements IASMPlugin
         classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggable");
         //allow fluids to flow from any side
         addMethod(classNode, "canFluidFlow", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/EnumFacing;)Z",
-            null, null, generator -> {
-                generator.visitInsn(ICONST_1);
-                generator.visitMaxs(1, 0);
-            }
+            null, null, generator -> generator.visitInsn(ICONST_1)
         );
         //reimplement barrier particles
         addMethod(classNode, obfuscated ? "func_180655_c" : "randomDisplayTick", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Ljava/util/Random;)V",
@@ -31,7 +28,6 @@ public final class PluginBlockBarrier implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
-                generator.visitMaxs(3, 0);
             }
         );
 

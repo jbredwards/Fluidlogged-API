@@ -49,7 +49,6 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "quantaPerBlock", "I");
-                generator.visitMaxs(4, 0);
             }
         );
         //able to get quanta value from fluidlogged fluids
@@ -65,7 +64,6 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "densityDir", "I");
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidClassic", "canCreateSources", "Z");
-                generator.visitMaxs(7, 0);
             }
         );
         //check for FluidStates & canFluidFlow
@@ -76,7 +74,6 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "densityDir", "I");
-                generator.visitMaxs(4, 0);
             }
         );
         //check for ICompatibleFluid
@@ -85,7 +82,6 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
-                generator.visitMaxs(3, 0);
             }
         );
         //check for FluidStates & canFluidFlow
@@ -98,7 +94,6 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitMethodInsn(INVOKEINTERFACE, "net/minecraft/world/IBlockAccess", obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;", true);
                 generator.visitInsn(ACONST_NULL);
-                generator.visitMaxs(5, 0);
             }
         );
         //allow the place method to fluidlog blocks
@@ -111,7 +106,6 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                 generator.visitVarInsn(ILOAD, 4);
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitMethodInsn(INVOKESPECIAL, "net/minecraft/block/Block", obfuscated ? "func_176223_P" : "getDefaultState", "()Lnet/minecraft/block/state/IBlockState;", false);
-                generator.visitMaxs(6, 0);
             }
         );
         //allow the drain method to drain fluidlogged blocks
@@ -123,7 +117,6 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                 generator.visitVarInsn(ILOAD, 3);
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidClassic", "stack", "Lnet/minecraftforge/fluids/FluidStack;");
-                generator.visitMaxs(5, 0);
             }
         );
         //allow this fluid to be fluidloggable
@@ -137,21 +130,17 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "densityDir", "I");
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidClassic", "canCreateSources", "Z");
-                generator.visitMaxs(6, 0);
             }
         );
         //allow this fluid to be fluidloggable
-        addMethod(classNode, "isFluidloggableFluid", "()Z", "isFluidFluidloggable", "(Lnet/minecraft/block/Block;)Z", generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitMaxs(1, 0);
-        });
+        addMethod(classNode, "isFluidloggableFluid", "()Z", "isFluidFluidloggable", "(Lnet/minecraft/block/Block;)Z",
+                generator -> generator.visitVarInsn(ALOAD, 0));
         //add public getter for protected method
         addMethod(classNode, "getOptimalFlowDirections_Public", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)[Z", null, null, generator -> {
             generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ALOAD, 1);
             generator.visitVarInsn(ALOAD, 2);
             generator.visitMethodInsn(INVOKESPECIAL, "net/minecraftforge/fluids/BlockFluidClassic", "getOptimalFlowDirections", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)[Z", false);
-            generator.visitMaxs(3, 0);
         });
         //add public getter for protected method
         addMethod(classNode, "getLargerQuanta_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;I)I", null, null, generator -> {
@@ -160,15 +149,13 @@ public final class PluginBlockFluidClassic implements IASMPlugin
             generator.visitVarInsn(ALOAD, 2);
             generator.visitVarInsn(ILOAD, 3);
             generator.visitMethodInsn(INVOKESPECIAL, "net/minecraftforge/fluids/BlockFluidClassic", "getLargerQuanta", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;I)I", false);
-            generator.visitMaxs(4, 0);
         });
         //add public getter for protected method
-        addMethod(classNode, "canFlowInto_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)V", null, null, generator -> {
+        addMethod(classNode, "canFlowInto_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", null, null, generator -> {
             generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ALOAD, 1);
             generator.visitVarInsn(ALOAD, 2);
-            generator.visitMethodInsn(INVOKESPECIAL, "net/minecraftforge/fluids/BlockFluidClassic", "canFlowInto", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)V", false);
-            generator.visitMaxs(3, 0);
+            generator.visitMethodInsn(INVOKESPECIAL, "net/minecraftforge/fluids/BlockFluidClassic", "canFlowInto", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", false);
         });
         //add public getter for protected method
         addMethod(classNode, "flowIntoBlock_Public", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;I)V", null, null, generator -> {
@@ -177,16 +164,15 @@ public final class PluginBlockFluidClassic implements IASMPlugin
             generator.visitVarInsn(ALOAD, 2);
             generator.visitVarInsn(ILOAD, 3);
             generator.visitMethodInsn(INVOKESPECIAL, "net/minecraftforge/fluids/BlockFluidClassic", "flowIntoBlock", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;I)V", false);
-            generator.visitMaxs(4, 0);
         });
 
-        return false;
+        return true;
     }
 
     //getOptimalFlowDirections, don't look up the state here each loop
     @Override
-    public int addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) {
+    public boolean addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) {
         method.localVariables.add(new LocalVariableNode("here", "Lnet/minecraft/block/state/IBlockState;", null, start, end, 5));
-        return 1;
+        return true;
     }
 }

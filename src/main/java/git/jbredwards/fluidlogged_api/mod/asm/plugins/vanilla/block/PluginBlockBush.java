@@ -35,4 +35,16 @@ public final class PluginBlockBush implements IASMPlugin
 
         return false;
     }
+
+    @Override
+    public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
+        //add public getter for protected method
+        addMethod(classNode, "canSustainBush_Public", "(Lnet/minecraft/block/state/IBlockState;)Z", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/block/BlockBush", obfuscated ? "func_185514_i" : "canSustainBush", "(Lnet/minecraft/block/state/IBlockState;)Z", false);
+        });
+
+        return true;
+    }
 }

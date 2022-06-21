@@ -15,10 +15,8 @@ public final class PluginFluidloggableBlocksFlowable implements IASMPlugin
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
         classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggable");
-        addMethod(classNode, "canFluidFlow", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/EnumFacing;)Z", null, null, generator -> {
-            generator.visitInsn(ICONST_1);
-            generator.visitMaxs(1, 0);
-        });
+        addMethod(classNode, "canFluidFlow", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/EnumFacing;)Z", null, null,
+                generator -> generator.visitInsn(ICONST_1));
 
         return false;
     }

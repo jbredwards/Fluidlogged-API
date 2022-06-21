@@ -18,7 +18,6 @@ public final class PluginBlockSponge implements IASMPlugin
             "absorb", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
-                generator.visitMaxs(2, 0);
             }
         );
 

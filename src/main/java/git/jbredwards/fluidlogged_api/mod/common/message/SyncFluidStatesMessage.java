@@ -1,12 +1,11 @@
 package git.jbredwards.fluidlogged_api.mod.common.message;
 
-import com.google.common.collect.ImmutableSet;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import io.netty.buffer.ByteBuf;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -30,20 +29,21 @@ import java.util.Set;
  */
 public final class SyncFluidStatesMessage implements IMessage
 {
-    @Nonnull public Set<Pair<Long, Integer>> data = new HashSet<>();
+    @Nonnull
+    public Set<Pair<Long, Integer>> data = new HashSet<>();
     public boolean isValid;
     public int chunkX, chunkZ;
 
     public SyncFluidStatesMessage() {}
     public SyncFluidStatesMessage(@Nonnull ChunkPos chunkPos, @Nonnull IFluidStateCapability cap) {
-        cap.getAllFluidStates(entry -> data.add(Pair.of(entry.getKey(), entry.getValue().serialize())));
+        cap.forEach((pos, fluidState) -> data.add(Pair.of(pos, fluidState.serialize())));
         chunkX = chunkPos.x;
         chunkZ = chunkPos.z;
         isValid = true;
     }
 
     @Override
-    public void fromBytes(ByteBuf buf) {
+    public void fromBytes(@Nonnull ByteBuf buf) {
         isValid = buf.readBoolean();
         if(isValid) {
             //read pos
@@ -56,7 +56,7 @@ public final class SyncFluidStatesMessage implements IMessage
     }
 
     @Override
-    public void toBytes(ByteBuf buf) {
+    public void toBytes(@Nonnull ByteBuf buf) {
         buf.writeBoolean(isValid);
         if(isValid) {
             //write pos
@@ -83,7 +83,7 @@ public final class SyncFluidStatesMessage implements IMessage
         }
 
         @SideOnly(Side.CLIENT)
-        private void addTask(@Nonnull SyncFluidStatesMessage message) {
+        void addTask(@Nonnull SyncFluidStatesMessage message) {
             Minecraft.getMinecraft().addScheduledTask(() -> {
                 final World world = Minecraft.getMinecraft().world;
                 final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(
@@ -91,13 +91,13 @@ public final class SyncFluidStatesMessage implements IMessage
 
                 if(cap != null) {
                     //clear any old fluid states
-                    LongOpenHashSet removed = new LongOpenHashSet();
-                    cap.getAllFluidStates(entry -> removed.add(entry.getKey()));
+                    final LongSet removed = new LongOpenHashSet();
+                    cap.forEach((pos, fluidState) -> removed.add(pos));
                     cap.clearFluidStates();
                     //add any new fluid states
                     message.data.forEach(entry -> {
-                        BlockPos pos = BlockPos.fromLong(entry.getKey());
-                        FluidState fluidState = FluidState.deserialize(entry.getValue());
+                        final BlockPos pos = BlockPos.fromLong(entry.getKey());
+                        final FluidState fluidState = FluidState.deserialize(entry.getValue());
                         //send changes to client
                         cap.setFluidState(entry.getKey(), fluidState);
                         //re-render block
@@ -105,11 +105,11 @@ public final class SyncFluidStatesMessage implements IMessage
                         world.markBlockRangeForRenderUpdate(pos, pos);
                     });
                     //update removed light levels & renders
-                    removed.forEach(serialized -> {
+                    removed.forEach(serializedPos -> {
                         //make sure the cleared pos wasn't replaced prior to re-render
-                        if(!cap.hasFluidState(serialized)) {
+                        if(!cap.hasFluidState(serializedPos)) {
                             //re-render block
-                            BlockPos pos = BlockPos.fromLong(serialized);
+                            BlockPos pos = BlockPos.fromLong(serializedPos);
                             FluidloggedUtils.relightFluidBlock(world, pos, FluidState.EMPTY);
                             world.markBlockRangeForRenderUpdate(pos, pos);
                         }

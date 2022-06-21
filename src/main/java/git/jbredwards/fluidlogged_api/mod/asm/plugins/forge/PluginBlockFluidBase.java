@@ -104,7 +104,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 4);
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "densityDir", "I");
-                generator.visitMaxs(5, 0);
             }
         );
         //getExtendedState, fix corner heights
@@ -127,7 +126,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitMethodInsn(INVOKESTATIC, "net/minecraftforge/fluids/BlockFluidBase", "getFlowDirection", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)D", false);
                 generator.visitInsn(D2F);
-                generator.visitMaxs(10, 0);
             }
         );
         //getFlowVector, don't flow into/from invalid sides
@@ -140,7 +138,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "densityDir", "I");
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "quantaPerBlock", "I");
-                generator.visitMaxs(5, 0);
             }
         );
         //hasVerticalFlow, don't flow into/from invalid sides
@@ -152,7 +149,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
                 generator.visitMethodInsn(INVOKEINTERFACE, "net/minecraftforge/fluids/IFluidBlock", "getFluid", "()Lnet/minecraftforge/fluids/Fluid;", true);
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "densityDir", "I");
-                generator.visitMaxs(4, 0);
             }
         );
         //getFogColor, remove built-in for better checks
@@ -164,7 +160,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 4);
                 generator.visitVarInsn(ALOAD, 5);
                 generator.visitVarInsn(FLOAD, 6);
-                generator.visitMaxs(6, 0);
             }
         );
         //better entity fluid collision
@@ -178,7 +173,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
                 generator.visitVarInsn(DLOAD, 5);
                 generator.visitVarInsn(ALOAD, 7);
                 generator.visitVarInsn(ILOAD, 8);
-                generator.visitMaxs(9, 0);
             }
         );
         //better entity fluid collision
@@ -189,7 +183,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
-                generator.visitMaxs(5, 0);
             }
         );
         //better entity fluid collision
@@ -201,7 +194,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
             generator.visitFieldInsn(GETFIELD, "net/minecraft/util/math/AxisAlignedBB", obfuscated ? "field_72338_b" : "minY", "D");
             generator.visitMethodInsn(INVOKESTATIC, getHookClass(), "isWithinFluid", "(Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;D)Z", false);
             generator.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
-            generator.visitMaxs(5, 0);
         });
         //add public getter for protected method
         addMethod(classNode, "getFlowDecay_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", null, null, generator -> {
@@ -209,7 +201,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
             generator.visitVarInsn(ALOAD, 1);
             generator.visitVarInsn(ALOAD, 2);
             generator.visitMethodInsn(INVOKESPECIAL, "net/minecraftforge/fluids/BlockFluidBase", "getFlowDecay", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", false);
-            generator.visitMaxs(3, 0);
         });
         //add public getter for protected method
         addMethod(classNode, "hasVerticalFlow_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", null, null, generator -> {
@@ -217,7 +208,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
             generator.visitVarInsn(ALOAD, 1);
             generator.visitVarInsn(ALOAD, 2);
             generator.visitMethodInsn(INVOKESPECIAL, "net/minecraftforge/fluids/BlockFluidBase", "hasVerticalFlow", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", false);
-            generator.visitMaxs(3, 0);
         });
 
         return true;

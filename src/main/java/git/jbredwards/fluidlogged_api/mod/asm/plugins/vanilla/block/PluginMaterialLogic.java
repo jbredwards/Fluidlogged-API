@@ -15,10 +15,7 @@ public final class PluginMaterialLogic implements IASMPlugin
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
         overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_76230_c" : "blocksMovement"),
-            "isMaterialCircuit", "(Lnet/minecraft/block/material/Material;)Z", generator -> {
-                 generator.visitVarInsn(ALOAD, 0);
-                 generator.visitMaxs(2, 0);
-            }
+            "isMaterialCircuit", "(Lnet/minecraft/block/material/Material;)Z", generator -> generator.visitVarInsn(ALOAD, 0)
         );
 
         return false;

@@ -34,8 +34,6 @@ public final class PluginTemplate implements IASMPlugin
             list.add(new MethodInsnNode(INVOKESPECIAL, "java/util/ArrayList", "<init>", "()V", false));
             list.add(new FieldInsnNode(PUTFIELD, "net/minecraft/world/gen/structure/template/Template", "fluidStates", "Ljava/util/List;"));
             instructions.insert(insn, list);
-            method.maxStack = 3;
-            method.maxLocals = 2;
             return true;
         }
         else if(index == 2) {

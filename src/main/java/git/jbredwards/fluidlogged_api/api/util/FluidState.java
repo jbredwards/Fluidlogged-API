@@ -2,7 +2,7 @@ package git.jbredwards.fluidlogged_api.api.util;
 
 import git.jbredwards.fluidlogged_api.mod.Main;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
-import git.jbredwards.fluidlogged_api.mod.common.util.AccessorUtils;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMNatives;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -44,12 +44,12 @@ public class FluidState extends Pair<Fluid, IBlockState>
     @Nonnull
     public static FluidState of(@Nullable Fluid fluidIn) {
         if(fluidIn == null || !fluidIn.canBePlacedInWorld()) return EMPTY;
-        final FluidState defaultFluidState = AccessorUtils.getDefaultFluidState(fluidIn);
+        final FluidState defaultFluidState = ASMNatives.getDefaultFluidState(fluidIn);
         //use the fluid's default state if present
         if(!defaultFluidState.isEmpty()) return defaultFluidState;
         //generate new instance if default not present
         final Block block = fluidIn.getBlock();
-        return AccessorUtils.setDefaultFluidState(fluidIn,
+        return ASMNatives.setDefaultFluidState(fluidIn,
                 new FluidState(fluidIn, (block instanceof BlockLiquid)
                 //ensure flowing blocks are used for vanilla fluids
                 ? BlockLiquid.getFlowingBlock(block.getDefaultState().getMaterial()).getDefaultState()

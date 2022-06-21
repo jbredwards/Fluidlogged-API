@@ -8,7 +8,7 @@ import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.api.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.mod.common.message.FluidStateMessage;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
-import git.jbredwards.fluidlogged_api.mod.common.util.AccessorUtils;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMNatives;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
@@ -196,7 +196,7 @@ public final class FluidloggedUtils
     //2: returns true if a fluid can flow into this block from the specified side
     public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing side) {
         //config override
-        final @Nullable Boolean overrideCanFluidFlow = AccessorUtils.getCanFluidFlow(state.getBlock());
+        final @Nullable Boolean overrideCanFluidFlow = ASMNatives.getCanFluidFlow(state.getBlock());
         if(overrideCanFluidFlow != null) return overrideCanFluidFlow;
         //built-in behavior
         return (state.getBlock() instanceof IFluidloggable)

@@ -1,10 +1,7 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins;
 
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.tree.*;
 
@@ -31,8 +28,8 @@ public interface IASMPlugin extends Opcodes
     default boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) { return true; }
     //return false if the class has been transformed, returning false will cause method transforms to be skipped
     default boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) { return true; }
-    //used to add local variables, returns the amount of variables added
-    default int addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) { return 0; }
+    //used to add local variables, returns true if variables were added
+    default boolean addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) { return false; }
     //ran when the handler transforms the class
     default byte[] transform(@Nonnull byte[] basicClass, boolean obfuscated) {
         final ClassNode classNode = new ClassNode();
@@ -47,14 +44,11 @@ public interface IASMPlugin extends Opcodes
                     //used to help add any new local variables
                     LabelNode start = new LabelNode();
                     LabelNode end = new LabelNode();
-                    int localVariablesAdded = addLocalVariables(method, start, end, index);
                     //adds any new local variables
-                    if(localVariablesAdded > 0) {
+                    if(addLocalVariables(method, start, end, index)) {
                         //ensures that the new local variables can be called anywhere in the method
                         method.instructions.insertBefore(method.instructions.getFirst(), start);
                         method.instructions.insert(method.instructions.getLast(), end);
-                        //changes the max local variables to account for the new ones
-                        method.maxLocals += localVariablesAdded;
                     }
                     //runs through each node in the method
                     for(AbstractInsnNode insn : method.instructions.toArray())
@@ -65,7 +59,7 @@ public interface IASMPlugin extends Opcodes
         }
         else informConsole(classNode.name, null);
         //writes the changes
-        final ClassWriter writer = new ClassWriter(0);
+        final ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         classNode.accept(writer);
         //returns the transformed class
         return writer.toByteArray();
@@ -192,12 +186,5 @@ public interface IASMPlugin extends Opcodes
     //utility method that doesn't take in a desc
     default boolean checkField(@Nullable AbstractInsnNode insn, @Nonnull String name) {
         return insn instanceof FieldInsnNode && ((FieldInsnNode)insn).name.equals(name);
-    }
-
-    //sets the max locals while taking possible external transformers into account
-    default void setMaxLocals(@Nonnull MethodNode method, int newMaxLocals) {
-        if(method.maxLocals < newMaxLocals) method.maxLocals = newMaxLocals;
-        //always update the max stack size to allow for an increased local size
-        if(method.maxStack < newMaxLocals) method.maxStack = newMaxLocals;
     }
 }

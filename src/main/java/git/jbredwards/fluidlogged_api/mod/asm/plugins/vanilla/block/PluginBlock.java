@@ -20,7 +20,6 @@ public final class PluginBlock implements IASMPlugin
 
         //getLightValue, line 1250
         else if(checkMethod(method, "getLightValue", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I")) {
-            setMaxLocals(method, 3);
             return 2;
         }
 
@@ -31,19 +30,16 @@ public final class PluginBlock implements IASMPlugin
 
         //getExplosionResistance, line 1766
         else if(checkMethod(method, "getExplosionResistance", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;Lnet/minecraft/world/Explosion;)F")) {
-            setMaxLocals(method, 5);
             return 4;
         }
 
         //canSustainPlant, lines 1949 & 1964
         else if(checkMethod(method, "canSustainPlant", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;Lnet/minecraftforge/common/IPlantable;)Z")){
-            setMaxLocals(method, 5);
             return 5;
         }
 
         //getLightOpacity, line 2030
         else if(checkMethod(method, "getLightOpacity", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I")) {
-            setMaxLocals(method, 3);
             return 6;
         }
 

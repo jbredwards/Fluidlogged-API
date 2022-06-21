@@ -68,7 +68,7 @@ public final class FluidStateMessage implements IMessage
         }
 
         @SideOnly(Side.CLIENT)
-        private void addTask(@Nonnull FluidStateMessage message) {
+        void addTask(@Nonnull FluidStateMessage message) {
             Minecraft.getMinecraft().addScheduledTask(() -> {
                 final World world = Minecraft.getMinecraft().world;
                 final BlockPos pos = BlockPos.fromLong(message.pos);
