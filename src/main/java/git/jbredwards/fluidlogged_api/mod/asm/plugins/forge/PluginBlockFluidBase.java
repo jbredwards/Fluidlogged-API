@@ -153,10 +153,11 @@ public final class PluginBlockFluidBase implements IASMPlugin
         );
         //getFogColor, remove built-in for better checks
         overrideMethod(classNode, method -> method.name.equals("getFogColor"),
-            "getFluidFogColor", "(Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;Lnet/minecraft/util/math/Vec3d;F)Lnet/minecraft/util/math/Vec3d;", generator -> {
+            "getFluidFogColor", "(Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;Lnet/minecraft/util/math/Vec3d;F)Lnet/minecraft/util/math/Vec3d;", generator -> {
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
+                generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
                 generator.visitVarInsn(ALOAD, 5);
                 generator.visitVarInsn(FLOAD, 6);
@@ -164,7 +165,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
         );
         //better entity fluid collision
         addMethod(classNode, "isEntityInsideMaterial", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;DLnet/minecraft/block/material/Material;Z)Ljava/lang/Boolean;",
-            "isEntityInsideFluid", "(Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;DLnet/minecraft/block/material/Material;Z)Ljava/lang/Boolean;", generator -> {
+            "isEntityInsideFluid", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;DLnet/minecraft/block/material/Material;Z)Ljava/lang/Boolean;", generator -> {
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
@@ -191,8 +192,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
             generator.visitVarInsn(ALOAD, 1);
             generator.visitVarInsn(ALOAD, 2);
             generator.visitVarInsn(ALOAD, 3);
-            generator.visitFieldInsn(GETFIELD, "net/minecraft/util/math/AxisAlignedBB", obfuscated ? "field_72338_b" : "minY", "D");
-            generator.visitMethodInsn(INVOKESTATIC, getHookClass(), "isWithinFluid", "(Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;D)Z", false);
+            generator.visitMethodInsn(INVOKESTATIC, getHookClass(), "isWithinFluid", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Z", false);
             generator.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
         });
         //add public getter for protected method

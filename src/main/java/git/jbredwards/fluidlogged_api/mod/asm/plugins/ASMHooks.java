@@ -131,6 +131,9 @@ public final class ASMHooks
         final IBlockState neighbor = world.getBlockState(pos.offset(side));
         //this check exists for mods like coral reef that don't have proper block sides
         if(isCompatibleFluid(getFluidFromState(state), getFluidFromState(neighbor))) return false;
+        //special case for surface
+        else if(side == (densityDir > 0 ? DOWN : UP)) return true;
+        //normal cases
         else if(neighbor.doesSideBlockRendering(world, pos.offset(side), side.getOpposite())) return false;
         return !isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluidFromState(state))
                 || !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite());
@@ -405,9 +408,9 @@ public final class ASMHooks
 
     //PluginBlockFluidBase
     @Nonnull
-    public static Vec3d getFluidFogColor(@Nonnull BlockFluidBase block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Entity entity, @Nonnull Vec3d originalColor, float partialTicks) {
+    public static Vec3d getFluidFogColor(@Nonnull BlockFluidBase block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, @Nonnull Vec3d originalColor, float partialTicks) {
         //remove built-in in place for better check
-        if(isWithinFluid(block, world, pos, ActiveRenderInfo.projectViewFromEntity(entity, partialTicks).y)) {
+        if(isWithinFluid(block, (IExtendedBlockState)block.getExtendedState(state, world, pos), world, pos, ActiveRenderInfo.projectViewFromEntity(entity, partialTicks))) {
             int color = block.getFluid().getColor();
             float red = (color >> 16 & 0xFF) / 255.0f;
             float green = (color >> 8 & 0xFF) / 255.0f;
@@ -421,8 +424,10 @@ public final class ASMHooks
 
     //PluginBlockFluidBase
     @Nullable
-    public static Boolean isEntityInsideFluid(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
-        return materialIn != state.getMaterial() ? null : isWithinFluid(block, world, pos, testingHead ? yToTest : entity.posY);
+    public static Boolean isEntityInsideFluid(@Nonnull Block block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
+        if(materialIn != state.getMaterial()) return null;
+        else if(!testingHead) return isWithinFluid(block, world, pos, entity.getEntityBoundingBox());
+        return isWithinFluid(block, (IExtendedBlockState)block.getExtendedState(state, world, pos), world, pos, new Vec3d(entity.posX, yToTest, entity.posZ));
     }
 
     //PluginBlockFluidBase
@@ -431,10 +436,46 @@ public final class ASMHooks
         return materialIn != block.getDefaultState().getMaterial() ? null : block.isAABBInsideLiquid(world, pos, boundingBox);
     }
 
-    //PluginBlockFluidBase, forked from BlockFluidBase but now takes the y value directly
-    public static boolean isWithinFluid(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, double y) {
-        final float filled = block.getFilledPercentage(world, pos);
-        return filled < 0 ? y > pos.getY() + filled + 1 : y < pos.getY() + filled;
+    //PluginBlockFluidBase
+    public static boolean isWithinFluid(@Nonnull Block block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
+        bb = bb.intersect(new AxisAlignedBB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1));
+        final IExtendedBlockState state = (IExtendedBlockState)block.getExtendedState(getFluidOrReal(world, pos), world, pos);
+        return isWithinFluid(block, state, world, pos, new Vec3d(bb.minX, bb.minY, bb.minZ))
+                || isWithinFluid(block, state, world, pos, new Vec3d(bb.minX, bb.minY, bb.maxZ))
+                || isWithinFluid(block, state, world, pos, new Vec3d(bb.maxX, bb.minY, bb.minZ))
+                || isWithinFluid(block, state, world, pos, new Vec3d(bb.maxX, bb.minY, bb.maxZ));
+    }
+
+    //PluginBlockFluidBase helper
+    public static boolean isWithinFluid(@Nonnull Block block, @Nonnull IExtendedBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Vec3d entityVec) {
+        final float[][] corners = new float[2][2];
+        corners[0][0] = state.getValue(BlockFluidBase.LEVEL_CORNERS[0]);
+        corners[0][1] = state.getValue(BlockFluidBase.LEVEL_CORNERS[1]);
+        corners[1][1] = state.getValue(BlockFluidBase.LEVEL_CORNERS[2]);
+        corners[1][0] = state.getValue(BlockFluidBase.LEVEL_CORNERS[3]);
+
+        double x = entityVec.x - pos.getX();
+        double z = entityVec.z - pos.getZ();
+        if(x < 0) x++;
+        if(z < 0) z++;
+
+        final double dif1 = Math.sqrt(2) - distance(0, x, 0, z);
+        final double dif2 = Math.sqrt(2) - distance(0, x, 1, z);
+        final double dif3 = Math.sqrt(2) - distance(1, x, 1, z);
+        final double dif4 = Math.sqrt(2) - distance(1, x, 0, z);
+        final double fluidHeight = (corners[0][0] * dif1 + corners[0][1] * dif2 + corners[1][1] * dif3 + corners[1][0] * dif4)
+                / (dif1 + dif2 + dif3 + dif4);
+
+        //if fluid is upside down, do upside down collision
+        return block instanceof BlockFluidBase && ((BlockFluidBase)block).getDensity() < 0
+                ? entityVec.y > pos.getY() - fluidHeight + 1 : entityVec.y < pos.getY() + fluidHeight;
+    }
+
+    //PluginBlockFluidBase helper
+    public static double distance(double x1, double x2, double z1, double z2) {
+        final double distX = Math.max(x1, x2) - Math.min(x1, x2);
+        final double distZ = Math.max(z1, z2) - Math.min(z1, z2);
+        return Math.sqrt(distX * distX + distZ * distZ);
     }
 
     //PluginBlockFluidClassic
@@ -1062,7 +1103,7 @@ public final class ASMHooks
 
     //PluginBlockLiquid
     public static boolean getLiquidFogColor(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Vec3d viewport) {
-        return viewport.y >= pos.getY() + getBlockLiquidHeight(state, world, pos);
+        return !isWithinFluid(state.getBlock(), (IExtendedBlockState)state.getBlock().getExtendedState(state, world, pos), world, pos, viewport);
     }
 
     //PluginBlockLiquid
@@ -1092,23 +1133,11 @@ public final class ASMHooks
     //PluginBlockLiquid
     @Nonnull
     public static IBlockState getStateAtViewpoint(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Vec3d viewpoint) {
-        if(viewpoint.y < pos.getY() + getBlockLiquidHeight(state, world, pos)) return state;
+        if(isWithinFluid(state.getBlock(), (IExtendedBlockState)state.getBlock().getExtendedState(state, world, pos), world, pos, viewpoint)) return state;
         //return the other block here if the player isn't within the fluid
         final IBlockState here = world.getBlockState(pos);
         return here == state ? Blocks.AIR.getDefaultState()
                 : here.getBlock().getStateAtViewpoint(here, world, pos, viewpoint);
-    }
-
-    //PluginBlockLiquid
-    @Nullable
-    public static Boolean isEntityInsideFluid(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
-        return materialIn != state.getMaterial() ? null : (testingHead ? yToTest : entity.posY) < pos.getY() + getBlockLiquidHeight(state, world, pos);
-    }
-
-    //PluginBlockLiquid
-    @Nonnull
-    public static Boolean isAABBInsideLiquid(@Nonnull IFluidBlock block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB boundingBox) {
-        return boundingBox.minY < pos.getY() + block.getFilledPercentage(world, pos);
     }
 
     //PluginBlockPistonBase

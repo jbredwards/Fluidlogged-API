@@ -196,7 +196,6 @@ public final class PluginWorld implements IASMPlugin
             generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ALOAD, 1);
             generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/world/World", obfuscated ? "func_175726_f" : "getChunk", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;", false);
-            generator.visitMaxs(2, 0);
         });
         //rayTraceBlocks, ray traces now include fluidlogged fluid blocks
         overrideMethod(classNode, method -> checkMethod(method, obfuscated ? "func_147447_a" : "rayTraceBlocks", "(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;ZZZ)Lnet/minecraft/util/math/RayTraceResult;"),
@@ -207,7 +206,6 @@ public final class PluginWorld implements IASMPlugin
                 generator.visitVarInsn(ILOAD, 3);
                 generator.visitVarInsn(ILOAD, 4);
                 generator.visitVarInsn(ILOAD, 5);
-                generator.visitMaxs(6, 0);
             }
         );
 

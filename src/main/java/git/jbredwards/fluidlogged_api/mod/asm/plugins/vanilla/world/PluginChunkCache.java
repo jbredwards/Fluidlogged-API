@@ -38,7 +38,6 @@ public final class PluginChunkCache implements IASMPlugin
                 generator.visitFieldInsn(GETFIELD, "net/minecraft/world/ChunkCache", obfuscated ? "field_72818_a" : "chunkX", "I");
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraft/world/ChunkCache", obfuscated ? "field_72816_b" : "chunkZ", "I");
-                generator.visitMaxs(4, 0);
             }
         );
 
