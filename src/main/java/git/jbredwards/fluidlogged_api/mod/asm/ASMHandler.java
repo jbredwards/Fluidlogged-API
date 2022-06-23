@@ -7,6 +7,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity.*;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.item.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.*;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -52,6 +53,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("org.spongepowered.common.mixin.core.entity.EntityMixin", new PluginSpongeForge()) //spongeforge no longer mixins into conflicting methods
                 .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
                 .put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()) //better builders wands compat
+                .put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()) //wooden bowls can now be filled by using water FluidStates
                 //vanilla (client)
                 .put("net.minecraft.client.multiplayer.WorldClient", new PluginWorldClient()) //non-empty FluidStates call randomDisplayTick & move hardcoded barrier stuff to barrier.randomDisplayTick
                 .put("net.minecraft.client.particle.Particle", new PluginParticle()) //fix particle lighting while within fluidlogged blocks
@@ -122,6 +124,8 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.entity.item.EntityXPOrb", new PluginEntityItem()) //handle lava collisions correctly
                 .put("net.minecraft.entity.projectile.EntityFishHook", new PluginEntityFishHook()) //fishhook entities generate the fishing particles at water FluidStates
                 .put("net.minecraft.entity.Entity", new PluginEntity())
+                //vanilla (item)
+                .put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()) //glass bottles can only be filled with water from actual water fluid blocks
                 //vanilla (world)
                 .put("net.minecraft.world.end.DragonSpawnManager$3", new PluginDragonSpawnManager()) //summoning the ender dragon will now void FluidStates at the pillar locations
                 .put("net.minecraft.world.gen.feature.WorldGenDungeons", new PluginWorldGenDungeons()) //spawner dungeons now void FluidStates when they generate
