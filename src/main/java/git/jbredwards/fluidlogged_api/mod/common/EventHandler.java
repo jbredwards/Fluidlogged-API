@@ -90,25 +90,23 @@ public final class EventHandler
         }
     }
 
-    @SuppressWarnings("ConstantConditions")
     @SideOnly(Side.CLIENT)
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void registerLiquidBakedModels(@Nonnull ModelBakeEvent event) {
         for(Block block : ForgeRegistries.BLOCKS) {
             if(block instanceof BlockLiquid) {
-                IBakedModel model = new ModelFluid(getFluidFromBlock(block)).bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
+                IBakedModel model = new ModelFluid(Objects.requireNonNull(getFluidFromBlock(block)))
+                        .bake(TRSRTransformation.identity(), DefaultVertexFormats.ITEM, ModelLoader.defaultTextureGetter());
                 event.getModelRegistry().putObject(new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid"), model);
             }
         }
     }
 
-    @SuppressWarnings("ConstantConditions")
     @SideOnly(Side.CLIENT)
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void improveDebugScreen(@Nonnull RenderGameOverlayEvent.Text event) {
         final @Nullable RayTraceResult trace = Minecraft.getMinecraft().objectMouseOver;
-
-        if(trace != null && trace.getBlockPos() != null && !event.getRight().isEmpty()) {
+        if(trace != null && trace.typeOfHit == RayTraceResult.Type.BLOCK && !event.getRight().isEmpty()) {
             final FluidState fluidState = FluidState.get(trace.getBlockPos());
             if(!fluidState.isEmpty()) {
                 //separate the fluid info from the block info

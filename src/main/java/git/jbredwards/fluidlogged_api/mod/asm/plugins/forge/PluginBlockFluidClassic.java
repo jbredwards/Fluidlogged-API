@@ -26,11 +26,13 @@ public final class PluginBlockFluidClassic implements IASMPlugin
         }
         //ignore if fluid can't flow from the given side
         else if(checkMethod(insn, "isSourceBlock")) {
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 2));
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 5));
-            instructions.insertBefore(insn, new VarInsnNode(ILOAD, 3));
-            instructions.insertBefore(insn, genMethodNode("getOptimalFlowDirections", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/BlockFluidClassic;Lnet/minecraft/block/state/IBlockState;I)Z"));
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 2));
+            list.add(new VarInsnNode(ALOAD, 5));
+            list.add(new VarInsnNode(ILOAD, 3));
+            list.add(genMethodNode("getOptimalFlowDirections", "(Lnet/minecraftforge/fluids/BlockFluidClassic;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"));
+
+            instructions.insert(insn, list);
             instructions.remove(insn);
             return true;
         }

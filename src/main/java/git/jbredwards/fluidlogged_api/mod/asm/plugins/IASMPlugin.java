@@ -33,7 +33,7 @@ public interface IASMPlugin extends Opcodes
     //ran when the handler transforms the class
     default byte[] transform(@Nonnull byte[] basicClass, boolean obfuscated) {
         final ClassNode classNode = new ClassNode();
-        new ClassReader(basicClass).accept(classNode, 0);
+        new ClassReader(basicClass).accept(classNode, ClassReader.SKIP_FRAMES);
         if(transformClass(classNode, obfuscated)) {
             //runs through each method in the class to find the one that has to be transformed
             for(MethodNode method : classNode.methods) {
@@ -59,7 +59,7 @@ public interface IASMPlugin extends Opcodes
         }
         else informConsole(classNode.name, null);
         //writes the changes
-        final ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        final ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
         classNode.accept(writer);
         //returns the transformed class
         return writer.toByteArray();

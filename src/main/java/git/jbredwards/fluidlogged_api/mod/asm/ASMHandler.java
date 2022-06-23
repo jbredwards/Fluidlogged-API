@@ -47,6 +47,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new PluginBiomesOPlenty()) //fix BOP fluid block mixing
                 .put("cofh.thermaldynamics.block.BlockTDBase", new PluginThermalDynamics()) //fix fluidlogged duct explosion resistance
                 .put("cofh.thermaldynamics.duct.tiles.TileGrid", new PluginThermalDynamics()) //ray trace now skips fluids
+                .put("io.github.lxgaming.sledgehammer.mixin.core.block.BlockDynamicLiquidMixin", new PluginSledgehammer()) //remove redundant transformer
                 .put("crafttweaker.mc1120.block.MCWorldBlock", new PluginCraftTweaker()) //MCWorldBlock.getFluid can read FluidStates
                 .put("org.spongepowered.common.mixin.core.entity.EntityMixin", new PluginSpongeForge()) //spongeforge no longer mixins into conflicting methods
                 .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat

@@ -635,7 +635,7 @@ public final class ASMHooks
     }
 
     //PluginBlockFluidClassic
-    public static boolean getOptimalFlowDirections(@Nonnull World world, @Nonnull BlockPos offset, @Nonnull BlockPos pos, @Nonnull BlockFluidClassic block, @Nonnull IBlockState here, int side) {
+    public static boolean getOptimalFlowDirections(@Nonnull BlockFluidClassic block, @Nonnull IBlockAccess world, @Nonnull BlockPos offset, @Nonnull BlockPos pos, @Nonnull IBlockState here, int side) {
         return !canFluidFlow(world, pos, here, SIDES.get(side)) || block.isSourceBlock(world, offset);
     }
 
@@ -1786,6 +1786,12 @@ public final class ASMHooks
     //======
     //MODDED
     //======
+
+    //PluginBetweenlands
+    public static boolean fixBetweenlandsPlace(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState fluid, int flags, @Nonnull IFluidBlock block, @Nonnull IBlockState here) {
+        if(isStateFluidloggable(here, world, pos, block.getFluid())) return setFluidState(world, pos, here, FluidState.of(block.getFluid()), true, true, flags);
+        else return world.setBlockState(pos, fluid, flags);
+    }
 
     //PluginBiomesOPlenty
     public static boolean canBOPFluidFlow(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing) {
