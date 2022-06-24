@@ -31,9 +31,9 @@ public interface IASMPlugin extends Opcodes
     //used to add local variables, returns true if variables were added
     default boolean addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) { return false; }
     //ran when the handler transforms the class
-    default byte[] transform(@Nonnull byte[] basicClass, boolean obfuscated, boolean isObfuscatedVanillaClass) {
+    default byte[] transform(@Nonnull byte[] basicClass, boolean obfuscated) {
         final ClassNode classNode = new ClassNode();
-        new ClassReader(basicClass).accept(classNode, isObfuscatedVanillaClass ? 0 : ClassReader.SKIP_FRAMES);
+        new ClassReader(basicClass).accept(classNode, recalcFrames(obfuscated) ? ClassReader.SKIP_FRAMES : 0);
         if(transformClass(classNode, obfuscated)) {
             //runs through each method in the class to find the one that has to be transformed
             for(MethodNode method : classNode.methods) {
@@ -59,7 +59,7 @@ public interface IASMPlugin extends Opcodes
         }
         else informConsole(classNode.name, null);
         //writes the changes
-        final ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | (isObfuscatedVanillaClass ? 0 : ClassWriter.COMPUTE_FRAMES));
+        final ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | (recalcFrames(obfuscated) ? ClassWriter.COMPUTE_FRAMES : 0));
         classNode.accept(writer);
         //returns the transformed class
         return writer.toByteArray();
@@ -187,4 +187,8 @@ public interface IASMPlugin extends Opcodes
     default boolean checkField(@Nullable AbstractInsnNode insn, @Nonnull String name) {
         return insn instanceof FieldInsnNode && ((FieldInsnNode)insn).name.equals(name);
     }
+
+    //disable recalc frames by default since some classes don't like it (mainly obfuscated vanilla ones)
+    //that being said, the option exists to enable them for transformers that need it
+    default boolean recalcFrames(boolean obfuscated) { return false; }
 }

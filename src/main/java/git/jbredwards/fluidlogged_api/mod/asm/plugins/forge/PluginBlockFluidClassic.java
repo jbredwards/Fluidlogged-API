@@ -177,4 +177,8 @@ public final class PluginBlockFluidClassic implements IASMPlugin
         method.localVariables.add(new LocalVariableNode("here", "Lnet/minecraft/block/state/IBlockState;", null, start, end, 5));
         return true;
     }
+
+    //the getOptimalFlowDirections transformer needs this
+    @Override
+    public boolean recalcFrames(boolean obfuscated) { return true; }
 }
