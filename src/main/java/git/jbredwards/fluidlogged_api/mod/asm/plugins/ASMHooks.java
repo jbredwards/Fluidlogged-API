@@ -127,14 +127,10 @@ public final class ASMHooks
     //PluginBlockFluidBase
     public static boolean shouldFluidSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, int densityDir) {
         if(!canFluidFlow(world, pos, world.getBlockState(pos), side) && !FluidState.get(world, pos).isEmpty()) return true;
-
         final IBlockState neighbor = world.getBlockState(pos.offset(side));
         //this check exists for mods like coral reef that don't have proper block sides
         if(isCompatibleFluid(getFluidFromState(state), getFluidFromState(neighbor))) return false;
-        //special case for surface
-        else if(side == (densityDir > 0 ? DOWN : UP)) return true;
-        //normal cases
-        else if(neighbor.doesSideBlockRendering(world, pos.offset(side), side.getOpposite())) return false;
+        else if(side != (densityDir > 0 ? DOWN : UP) && neighbor.doesSideBlockRendering(world, pos.offset(side), side.getOpposite())) return false;
         return !isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluidFromState(state))
                 || !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite());
     }
