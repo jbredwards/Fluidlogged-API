@@ -421,7 +421,7 @@ public final class ASMHooks
     //PluginBlockFluidBase
     @Nullable
     public static Boolean isEntityInsideFluid(@Nonnull Block block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
-        if(materialIn != state.getMaterial()) return null;
+        if(materialIn != state.getMaterial() || !(state instanceof IExtendedBlockState)) return null;
         else if(!testingHead) return isWithinFluid(block, world, pos, entity.getEntityBoundingBox());
         return isWithinFluid(block, (IExtendedBlockState)block.getExtendedState(state, world, pos), world, pos, new Vec3d(entity.posX, yToTest, entity.posZ));
     }
@@ -435,11 +435,15 @@ public final class ASMHooks
     //PluginBlockFluidBase
     public static boolean isWithinFluid(@Nonnull Block block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
         bb = bb.intersect(new AxisAlignedBB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1));
-        final IExtendedBlockState state = (IExtendedBlockState)block.getExtendedState(getFluidOrReal(world, pos), world, pos);
-        return isWithinFluid(block, state, world, pos, new Vec3d(bb.minX, bb.minY, bb.minZ))
-                || isWithinFluid(block, state, world, pos, new Vec3d(bb.minX, bb.minY, bb.maxZ))
-                || isWithinFluid(block, state, world, pos, new Vec3d(bb.maxX, bb.minY, bb.minZ))
-                || isWithinFluid(block, state, world, pos, new Vec3d(bb.maxX, bb.minY, bb.maxZ));
+
+        final IBlockState state = block.getExtendedState(getFluidOrReal(world, pos), world, pos);
+        if(!(state instanceof IExtendedBlockState)) return true;
+
+        final IExtendedBlockState extendedState = (IExtendedBlockState)state;
+        return isWithinFluid(block, extendedState, world, pos, new Vec3d(bb.minX, bb.minY, bb.minZ))
+                || isWithinFluid(block, extendedState, world, pos, new Vec3d(bb.minX, bb.minY, bb.maxZ))
+                || isWithinFluid(block, extendedState, world, pos, new Vec3d(bb.maxX, bb.minY, bb.minZ))
+                || isWithinFluid(block, extendedState, world, pos, new Vec3d(bb.maxX, bb.minY, bb.maxZ));
     }
 
     //PluginBlockFluidBase helper
