@@ -95,7 +95,8 @@ public final class PluginWorld implements IASMPlugin
             list.add(new VarInsnNode(ALOAD, 1));
             list.add(new VarInsnNode(ALOAD, 2));
             list.add(new VarInsnNode(ALOAD, 3));
-            list.add(genMethodNode("neighborChanged", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;Lnet/minecraft/util/math/BlockPos;)V"));
+            list.add(new VarInsnNode(ALOAD, 4));
+            list.add(genMethodNode("neighborChanged", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)V"));
 
             instructions.insert(insn, list);
             return true;

@@ -17,7 +17,20 @@ public final class PluginChunkCache implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
+        //moved from cubic chunks for compat
+        if(insn.getOpcode() == IF_ICMPGE) {
+            ((JumpInsnNode)insn).setOpcode(IFNE);
+            removeFrom(instructions, insn.getPrevious(), -5);
+
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new FieldInsnNode(GETFIELD, "net/minecraft/world/ChunkCache", obfuscated ? "field_72815_e" : "world", "Lnet/minecraft/world/World;"));
+            list.add(new VarInsnNode(ALOAD, 2));
+            list.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/world/World", obfuscated ? "func_189509_E" : "isOutsideBuildHeight", "(Lnet/minecraft/util/math/BlockPos;)Z", false));
+            instructions.insertBefore(insn, list);
+        }
+        //use FluidState if possible
+        else if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
             instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.remove(insn);
             return true;

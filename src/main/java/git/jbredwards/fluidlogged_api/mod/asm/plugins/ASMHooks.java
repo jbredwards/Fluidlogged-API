@@ -491,7 +491,7 @@ public final class ASMHooks
     //PluginBlockFluidClassic
     private static final List<EnumFacing> SIDES = Collections.unmodifiableList(Arrays.asList(WEST, EAST, NORTH, SOUTH));
     public static void fluidUpdateTick(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, int quantaPerBlock, int densityDir, boolean canCreateSources) {
-        if(!world.isAreaLoaded(pos, quantaPerBlock / 2)) return; // Forge: avoid loading unloaded chunks
+        if(world.isRemote || !world.isAreaLoaded(pos, quantaPerBlock / 2)) return; // Forge: avoid loading unloaded chunks
 
         final IBlockState here = world.getBlockState(pos); //fluidlogged fluids will have a different state here than the state input
         final EnumFacing facingDir = (densityDir > 0) ? UP : DOWN;
@@ -537,7 +537,7 @@ public final class ASMHooks
 
                 if(expQuanta <= 0) world.setBlockToAir(pos);
                 else {
-                    world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, quantaPerBlock - expQuanta), Constants.BlockFlags.SEND_TO_CLIENTS);
+                    world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, quantaPerBlock - expQuanta), Constants.BlockFlags.DEFAULT_AND_RERENDER);
                     world.scheduleUpdate(pos, block, block.tickRate(world));
                     world.notifyNeighborsRespectDebug(pos, block, false);
                 }
@@ -796,6 +796,7 @@ public final class ASMHooks
 
     //PluginBlockDynamicLiquid
     public static void updateLiquidTick(@Nonnull BlockDynamicLiquid block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
+        if(world.isRemote) return;
         final int lavaDif = (state.getMaterial() == Material.LAVA && !world.provider.doesWaterVaporize()) ? 2 : 1;
         if(!world.isAreaLoaded(pos, 3 - lavaDif)) return; // Forge: avoid loading unloaded chunks
 
@@ -849,7 +850,7 @@ public final class ASMHooks
 
                 if(expQuanta <= 0 ) world.setBlockToAir(pos);
                 else {
-                    world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, 8 - expQuanta), Constants.BlockFlags.SEND_TO_CLIENTS);
+                    world.setBlockState(pos, state.withProperty(BlockLiquid.LEVEL, 8 - expQuanta), Constants.BlockFlags.DEFAULT_AND_RERENDER);
                     world.scheduleUpdate(pos, block, block.tickRate(world));
                     world.notifyNeighborsRespectDebug(pos, block, false);
                 }
@@ -986,7 +987,7 @@ public final class ASMHooks
                 if(fluid == FluidRegistry.LAVA) block.triggerMixEffects(world, pos);
             }
 
-            world.setBlockState(pos, block.getDefaultState().withProperty(BlockLiquid.LEVEL, meta));
+            world.setBlockState(pos, block.getDefaultState().withProperty(BlockLiquid.LEVEL, meta), Constants.BlockFlags.DEFAULT_AND_RERENDER);
         }
     }
 
@@ -1578,9 +1579,18 @@ public final class ASMHooks
     }
 
     //PluginWorld
-    public static void neighborChanged(World world, BlockPos pos, Block blockIn, BlockPos fromPos) {
+    public static void neighborChanged(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos, @Nonnull IBlockState here) {
         final FluidState fluidState = FluidState.get(world, pos);
-        if(!fluidState.isEmpty()) fluidState.getState().neighborChanged(world, pos, blockIn, fromPos);
+        if(!fluidState.isEmpty()) {
+            fluidState.getState().neighborChanged(world, pos, blockIn, fromPos);
+            //update neighboring fluids in case the block here uses getActualState for canFluidFlow
+            for(EnumFacing facing : VALUES) {
+                if(!canFluidFlow(world, pos, here, facing)) {
+                    getFluidState(world, pos.offset(facing)).getState()
+                            .neighborChanged(world, pos.offset(facing), here.getBlock(), pos);
+                }
+            }
+        }
     }
 
     //PluginWorld
@@ -1761,22 +1771,26 @@ public final class ASMHooks
         //actual block
         if(Block.isEqualTo(compare, here.getBlock())) return here;
         //fluid
-        final FluidState fluidState = FluidState.get(world, pos);
-        if(!fluidState.isEmpty() && Block.isEqualTo(compare, fluidState.getBlock())) return fluidState.getState();
+        else if(getFluidFromBlock(compare) != null) {
+            final FluidState fluidState = FluidState.get(world, pos);
+            if(!fluidState.isEmpty() && Block.isEqualTo(compare, fluidState.getBlock())) return fluidState.getState();
+        }
         //default
         return here;
     }
 
     //PluginWorldServer
     public static boolean tickUpdates(boolean flag, WorldServer world, NextTickListEntry entry) {
-        final FluidState fluidState = FluidState.get(world, entry.position);
-        if(!fluidState.isEmpty() && Block.isEqualTo(fluidState.getBlock(), entry.getBlock())) {
-            try { fluidState.getBlock().updateTick(world, entry.position, fluidState.getState(), world.rand); }
-            catch(Throwable throwable) {
-                final CrashReport report = CrashReport.makeCrashReport(throwable, "Exception while ticking a fluid");
-                CrashReportCategory.addBlockInfo(report.makeCategory("Fluid being ticked"), entry.position, fluidState.getState());
+        if(getFluidFromBlock(entry.getBlock()) != null) {
+            final FluidState fluidState = FluidState.get(world, entry.position);
+            if(!fluidState.isEmpty() && Block.isEqualTo(fluidState.getBlock(), entry.getBlock())) {
+                try { fluidState.getBlock().updateTick(world, entry.position, fluidState.getState(), world.rand); }
+                catch(Throwable throwable) {
+                    final CrashReport report = CrashReport.makeCrashReport(throwable, "Exception while ticking a fluid");
+                    CrashReportCategory.addBlockInfo(report.makeCategory("Fluid being ticked"), entry.position, fluidState.getState());
 
-                throw new ReportedException(report);
+                    throw new ReportedException(report);
+                }
             }
         }
 
