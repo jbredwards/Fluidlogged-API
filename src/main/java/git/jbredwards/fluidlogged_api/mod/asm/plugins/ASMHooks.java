@@ -716,7 +716,14 @@ public final class ASMHooks
     //=======
 
     //PluginBlock
-    public static boolean canSustainPlant(BlockBush bush, IBlockState state, IBlockAccess world, BlockPos pos) {
+    public static void initInternalFluidloggable(@Nonnull Block block) {
+        ASMNatives.setFluidloggable(block, event -> block instanceof IFluidloggable && (event.fluid.getJavaFluid() == null
+                ? ((IFluidloggable)block).isFluidloggable(event.state.getJavaState(), event.world.getJavaWorld(), event.pos.getJavaPos())
+                : ((IFluidloggable)block).isFluidValid(event.state.getJavaState(), event.world.getJavaWorld(), event.pos.getJavaPos(), event.fluid.getJavaFluid())));
+    }
+
+    //PluginBlock
+    public static boolean canSustainPlant(@Nonnull BlockBush bush, @Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
         //add special case for lily pads
         if(bush instanceof BlockLilyPad) {
             return state.getMaterial() == Material.ICE

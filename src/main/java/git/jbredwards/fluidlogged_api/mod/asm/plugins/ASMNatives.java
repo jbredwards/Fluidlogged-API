@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBush;
 import net.minecraft.block.state.IBlockState;
@@ -14,6 +15,7 @@ import net.minecraftforge.fluids.Fluid;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.function.Predicate;
 
 /**
  * methods for this class are built during runtime via PluginASMNatives
@@ -25,9 +27,9 @@ public final class ASMNatives
     /**
      * {@link Block}
      */
-    @Nullable
-    public static native Boolean getCanFluidFlow(@Nonnull Block block);
-    public static native void setCanFluidFlow(@Nonnull Block block, @Nullable Boolean canFluidFlow);
+    @Nonnull
+    public static native Predicate<ConfigHandler.ConfigFluidloggable.Event> getFluidloggable(@Nonnull Block block);
+    public static native void setFluidloggable(@Nonnull Block block, @Nonnull Predicate<ConfigHandler.ConfigFluidloggable.Event> func);
 
     /**
      * {@link BlockBush}

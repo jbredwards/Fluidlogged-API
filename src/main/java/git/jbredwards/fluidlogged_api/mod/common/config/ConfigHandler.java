@@ -1,34 +1,35 @@
 package git.jbredwards.fluidlogged_api.mod.common.config;
 
-import com.google.gson.*;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMHooks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMNatives;
+import git.jbredwards.fluidlogged_api.mod.common.config.js.JSFluid;
+import git.jbredwards.fluidlogged_api.mod.common.config.js.JSPos;
+import git.jbredwards.fluidlogged_api.mod.common.config.js.JSState;
+import git.jbredwards.fluidlogged_api.mod.common.config.js.JSWorld;
 import it.unimi.dsi.fastutil.ints.Int2BooleanMap;
 import it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.nbt.NBTException;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.util.EnumActionResult;
-import net.minecraftforge.common.util.Constants;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Loader;
-import org.apache.commons.io.IOUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.*;
-import java.lang.reflect.Type;
-import java.nio.charset.Charset;
-import java.util.HashMap;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 /**
  *
@@ -37,313 +38,159 @@ import java.util.function.BiPredicate;
  */
 public final class ConfigHandler
 {
-    @Nonnull
-    private static final Gson GSON = new GsonBuilder()
-            .registerTypeAdapter(ConfigPredicateBuilder.class, new ConfigPredicateDeserializer())
-            .create();
+    @Nonnull static final ScriptEngine ENGINE = new ScriptEngineManager(null).getEngineByName("JavaScript");
+    //stores the set of invalid blocks when the config is loaded, if this isn't empty when the config is done, print the set & crash
+    @Nonnull static final Set<String> INVALID_BLOCKS = new HashSet<>();
+    //stores the set of invalid fluids when the config is loaded, if this isn't empty when the config is done, print the set & crash
+    @Nonnull static final Set<String> INVALID_FLUIDS = new HashSet<>();
 
-    @Nonnull private static final Map<String, Set<Fluid>> FLUID_TAGS = new HashMap<>();
-    @Nonnull public static final Map<Block, ConfigPredicate> WHITELIST = new HashMap<>();
-    @Nonnull public static final Map<Block, ConfigPredicate> BLACKLIST = new HashMap<>();
+    @SuppressWarnings("unchecked")
+    static final class API
+    {
+        public static void whitelist(@Nonnull String name) { whitelist(name, ConfigFluidloggable.ALWAYS_TRUE); }
+        public static void whitelist(@Nonnull String name, @Nullable Object o) {
+            final @Nullable Block block = Block.getBlockFromName(name);
+            if(block == null || !(o instanceof Predicate)) INVALID_BLOCKS.add(name);
+            else ASMNatives.setFluidloggable(block, event -> fromObject(o).test(event)
+                    || ASMNatives.getFluidloggable(block).test(event));
+        }
 
-    @Nullable
-    private static Config config;
+        public static void blacklist(@Nonnull String name) { blacklist(name, ConfigFluidloggable.ALWAYS_TRUE); }
+        public static void blacklist(@Nonnull String name, @Nullable Object o) {
+            final @Nullable Block block = Block.getBlockFromName(name);
+            if(block == null || !(o instanceof Predicate)) INVALID_BLOCKS.add(name);
+            else ASMNatives.setFluidloggable(block, event -> !fromObject(o).test(event)
+                    && ASMNatives.getFluidloggable(block).test(event));
+        }
 
-    public static boolean applyDefaults = true;
-    public static boolean fluidsBreakTorches = true;
-    public static boolean debugASMPlugins = false;
-    public static int fluidloggedFluidSpread = 2;
-    public static boolean verticalFluidloggedFluidSpread = true;
+        public static void override(@Nonnull String name) { override(name, ConfigFluidloggable.ALWAYS_TRUE); }
+        public static void override(@Nonnull String name, @Nullable Object o) {
+            final @Nullable Block block = Block.getBlockFromName(name);
+            if(block == null || !(o instanceof Predicate)) INVALID_BLOCKS.add(name);
+            else ASMNatives.setFluidloggable(block, fromObject(o));
+        }
 
-    //checks if the input state is fluidloggable, according to the config settings
-    public static EnumActionResult isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
-        //check whitelist
-        final @Nullable ConfigPredicate whitelist = WHITELIST.get(state.getBlock());
-        if(whitelist != null && whitelist.test(state, fluid)) return EnumActionResult.SUCCESS;
-        //skip blacklist check
-        else if(!applyDefaults) return EnumActionResult.FAIL;
-        //check blacklist
-        final @Nullable ConfigPredicate blacklist = BLACKLIST.get(state.getBlock());
-        if(blacklist != null && blacklist.test(state, fluid)) return EnumActionResult.FAIL;
-        //default
-        return EnumActionResult.PASS;
-    }
+        public static void reset(@Nonnull String name) {
+            final @Nullable Block block = Block.getBlockFromName(name);
+            if(block == null) INVALID_BLOCKS.add(name);
+            else ASMHooks.initInternalFluidloggable(block);
+        }
 
-    //initializes the config (internal use only!)
-    public static void init() {
-        final File cfg = new File("config", "fluidlogged_api.cfg");
+        public static boolean isModLoaded(@Nonnull String modId) { return Loader.isModLoaded(modId); }
 
-        try {
-            //creates a new cfg file
-            if(cfg.createNewFile()) {
-                //default config file contents
-                final String contents =
-                        "#determines how certain \"infinite\" fluids (ie. water not lava) can spread between fluidloggable blocks\n" +
-                        "#case 0: fluids cannot flow into fluidloggable blocks\n" +
-                        "#case 1: fluids can flow into fluidloggable blocks, but only from fluidlogged blocks (legacy mod behavior)\n" +
-                        "#case 2: fluids can flow into fluidloggable blocks from fluidlogged blocks & normal fluid blocks (1.13 behavior)\n" +
-                        "fluidloggedFluidSpread:2,\n" +
-                        "\n" +
-                        "#flowing fluid blocks break torches (vanilla behavior)\n" +
-                        "fluidsBreakTorches:true,\n" +
-                        "\n" +
-                        "#this mod by default allows certain blocks to be fluidlogged\n" +
-                        "applyDefaults:true,\n" +
-                        "\n" +
-                        "#whitelist for adding new fluidloggable blocks (this is in addition to the defaults)\n" +
-                        "#info about the format for this can be found on this mod's wiki\n" +
-                        "whitelist:[],\n" +
-                        "\n" +
-                        "#blacklist blocks from the defaults\n" +
-                        "#info about the format for this can be found on this mod's wiki\n" +
-                        "blacklist:[],\n" +
-                        "\n" +
-                        "#otuput to the console for every ASM transformation, useful for debugging\n" +
-                        "debugASMPlugins:false,\n" +
-                        "\n" +
-                        "#remove the ability for \"infinite\" fluids to fluidlog blocks below\n" +
-                        "removeVerticalFluidloggedFluidSpread:false";
+        //internal
+        @Nonnull
+        static Predicate<ConfigFluidloggable.Event> fromObject(@Nullable Object o) {
+            if(o == null) return event -> false;
+            else if(o instanceof Predicate) return (Predicate<ConfigFluidloggable.Event>)o;
 
-                //writes the default entries to the new cfg file
-                final FileWriter writer = new FileWriter(cfg);
-                writer.write(contents);
-                writer.close();
-
-                //ensure defaults are applied
-                fluidloggedFluidSpread = 2;
-                fluidsBreakTorches = true;
-                applyDefaults = true;
-                debugASMPlugins = false;
-                verticalFluidloggedFluidSpread = true;
+            //read from js
+            else for(Method method : o.getClass().getDeclaredMethods()) {
+                if(method.getParameterCount() == 1) {
+                    method.setAccessible(true);
+                    return event -> {
+                        try { return (Boolean)method.invoke(null, event); }
+                        catch (IllegalAccessException | InvocationTargetException e) { e.printStackTrace(); }
+                        return false;
+                    };
+                }
             }
 
-            //reads an already existing cfg file
-            else {
-                config = GSON.fromJson('{' + IOUtils.toString(new FileInputStream(cfg), Charset.defaultCharset()) + '}', Config.class);
+            //====================
+            //build legacy adapter
+            //====================
 
-                fluidloggedFluidSpread = config.fluidloggedFluidSpread;
-                fluidsBreakTorches = config.fluidsBreakTorches;
-                applyDefaults = config.applyDefaults;
-                debugASMPlugins = config.debugASMPlugins;
-                verticalFluidloggedFluidSpread = !config.removeVerticalFluidloggedFluidSpread;
+            //scan for metadata arg
+            int[] metadata = new int[0];
+            try {
+                final Field field = o.getClass().getDeclaredField("metadata");
+                field.setAccessible(true);
+
+                if(field.getType().equals(int.class)) metadata = new int[] { field.getInt(o) };
+                else if(field.getType().equals(int[].class)) metadata = (int[])field.get(o);
+
+            }
+            //no metadata arg, ignore
+            catch (NoSuchFieldException | IllegalAccessException ignored) {}
+
+            //scan for fluids arg
+            String[] fluids = new String[0];
+            try {
+                final Field field = o.getClass().getDeclaredField("fluids");
+                field.setAccessible(true);
+
+                if(field.getType().equals(String.class)) fluids = new String[] { (String)field.get(o) };
+                else if(field.getType().equals(String[].class)) fluids = (String[])field.get(o);
+            }
+            //no fluids arg, ignore
+            catch (NoSuchFieldException | IllegalAccessException ignored) {}
+
+            //if no metadata and no fluids, the condition is always true
+            if(metadata.length == 0 && fluids.length == 0) return ConfigFluidloggable.ALWAYS_TRUE;
+            else return new LegacyPredicate(metadata, fluids);
+        }
+    }
+
+    @FunctionalInterface
+    public interface ConfigFluidloggable extends Predicate<ConfigFluidloggable.Event>
+    {
+        @Nonnull ConfigFluidloggable ALWAYS_TRUE = event -> true;
+
+        class Event
+        {
+            @Nonnull public final JSWorld world;
+            @Nonnull public final JSPos pos;
+            @Nonnull public final JSState state;
+            @Nonnull public final JSFluid fluid;
+
+            public Event(@Nonnull World worldIn, @Nonnull BlockPos posIn, @Nonnull IBlockState stateIn, @Nonnull FluidState fluidIn) {
+                world = new JSWorld(worldIn);
+                pos = new JSPos(posIn);
+                state = new JSState(stateIn);
+                fluid = new JSFluid(fluidIn);
             }
 
-            WHITELIST.clear();
-            BLACKLIST.clear();
-        }
+            @Nonnull
+            public JSWorld getWorld() { return world; }
 
-        //oops
-        catch(IOException e) { e.printStackTrace(); }
-    }
+            @Nonnull
+            public JSPos getPos() { return pos; }
 
-    //sets up the whitelist & blacklist (internal use only!)
-    public static void complete() throws IOException {
-        //allow other mods to add to the whitelist & blacklist
-        for(String modId : Loader.instance().getIndexedModList().keySet()) {
-            //fluid tags
-            final @Nullable InputStream fluidTags = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/fluidTags.json", modId));
-            if(fluidTags != null) readFluidTags(GSON.fromJson(IOUtils.toString(fluidTags, Charset.defaultCharset()), FluidTag[].class));
-            //whitelist
-            final @Nullable InputStream whitelist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/whitelist.json", modId));
-            if(whitelist != null) readPredicates(WHITELIST, GSON.fromJson(IOUtils.toString(whitelist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
-            //blacklist
-            final @Nullable InputStream blacklist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/blacklist.json", modId));
-            if(blacklist != null) readPredicates(BLACKLIST, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
-            //clear fluid tags before reading the next mod, as to prevent possible conflicts
-            FLUID_TAGS.clear();
-        }
-        //gives the user final say regarding the whitelist & blacklist
-        //config will be null if the file doesn't exist (first launch)
-        if(config != null) {
-            readFluidTags(config.fluidTags);
-            readPredicates(WHITELIST, config.whitelist);
-            readPredicates(BLACKLIST, config.blacklist);
-            FLUID_TAGS.clear();
-            config = null;
+            @Nonnull
+            public JSState getState() { return state; }
+
+            @Nonnull
+            public JSFluid getFluid() { return fluid; }
         }
     }
 
-    private static void readFluidTags(@Nullable FluidTag[] tags) {
-        //no tags defined by config
-        if(tags == null) return;
-
-        //build tags
-        for(FluidTag tag : tags) {
-            if(FLUID_TAGS.containsKey(tag.id))
-                throw new JsonParseException("Fluidlogged API Config: two fluidTags found with the same id: " + tag.id + ", please either merge them or remove the duplicate");
-
-            final Set<Fluid> fluids = new HashSet<>();
-            for(String fluidName : tag.fluids) {
-                @Nullable Block fluidBlock = Block.getBlockFromName(fluidName);
-                @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(fluidBlock);
-
-                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(fluidBlock)) fluids.add(fluid);
-                else throw new JsonParseException("Fluidlogged API Config: Unable to parse fluid: " + fluidName + " from fluidTag: " + tag.id);
-            }
-
-            FLUID_TAGS.put(tag.id, fluids);
-        }
-     }
-
-    private static void readPredicates(Map<Block, ConfigPredicate> map, ConfigPredicateBuilder[] builders) {
-        for(ConfigPredicateBuilder builder : builders) {
-            ConfigPredicate predicate = builder.build();
-            map.put(predicate.block, predicate);
-
-            ASMNatives.setCanFluidFlow(predicate.block, builder.canFluidFlow);
-        }
-    }
-
-    //gson
-    public static class Config
+    static final class LegacyPredicate implements Predicate<ConfigFluidloggable.Event>
     {
-        public final int fluidloggedFluidSpread;
-        public final boolean removeVerticalFluidloggedFluidSpread;
-        public final boolean fluidsBreakTorches;
-        public final boolean applyDefaults;
-        public final @Nullable FluidTag[] fluidTags;
-        public final ConfigPredicateBuilder[] whitelist;
-        public final ConfigPredicateBuilder[] blacklist;
-        public final boolean debugASMPlugins;
+        @Nonnull final Int2BooleanMap metadata = new Int2BooleanOpenHashMap();
+        @Nonnull final Object2BooleanMap<Fluid> fluids = new Object2BooleanOpenHashMap<>();
 
-        public Config(int fluidloggedFluidSpread, boolean removeVerticalFluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, @Nullable FluidTag[] fluidTags, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins) {
-            this.fluidloggedFluidSpread = fluidloggedFluidSpread;
-            this.removeVerticalFluidloggedFluidSpread = removeVerticalFluidloggedFluidSpread;
-            this.fluidsBreakTorches = fluidsBreakTorches;
-            this.applyDefaults = applyDefaults;
-            this.fluidTags = fluidTags;
-            this.whitelist = whitelist;
-            this.blacklist = blacklist;
-            this.debugASMPlugins = debugASMPlugins;
-        }
-    }
-
-    //allows fluids to be added to the whitelist & blacklist based on fluidTags
-    public static class FluidTag
-    {
-        @Nonnull protected final String id;
-        @Nonnull protected final String[] fluids;
-
-        public FluidTag(@Nonnull String id, @Nonnull String[] fluids) {
-            this.id = id;
-            this.fluids = fluids;
-        }
-    }
-
-    //checks if the state & fluid match the criteria set by the cfg
-    public static class ConfigPredicate implements BiPredicate<IBlockState, Fluid>
-    {
-        @Nonnull protected final Block block;
-        @Nonnull protected final Int2BooleanMap metadata;
-        @Nonnull protected final Object2BooleanMap<Fluid> validFluids;
-
-        public ConfigPredicate(@Nonnull Block block, @Nonnull int[] metadata, @Nonnull Fluid[] validFluids) {
-            this.block = block;
-            this.metadata = new Int2BooleanOpenHashMap();
-            this.validFluids = new Object2BooleanOpenHashMap<>();
-
+        public LegacyPredicate(int[] metadata, String[] fluids) {
             for(int meta : metadata) this.metadata.put(meta, true);
-            for(Fluid fluid : validFluids) this.validFluids.put(fluid, true);
+            for(@Nullable String fluidName : fluids) {
+                if(fluidName != null) {
+                    @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(Block.getBlockFromName(fluidName));
+                    if(fluid == null) fluid = FluidRegistry.getFluid(fluidName);
+
+                    //no fluid was found for the name provided, add to the set
+                    if(fluid == null) INVALID_FLUIDS.add(fluidName);
+                    else this.fluids.put(fluid, true);
+                }
+            }
         }
 
         @Override
-        public boolean test(@Nonnull IBlockState stateIn, @Nullable Fluid fluidIn) {
-            //check fluidIn
-            if(fluidIn != null && !validFluids.isEmpty() && !validFluids.containsKey(fluidIn))
+        public boolean test(@Nonnull ConfigFluidloggable.Event event) {
+            //check fluid
+            if(!event.fluid.isEmpty() && !fluids.isEmpty() && !fluids.containsKey(event.fluid.getJavaFluid()))
                 return false;
 
             //check stateIn
-            return metadata.isEmpty() || metadata.containsKey(block.getMetaFromState(stateIn));
-        }
-    }
-
-    //exists to allow the config to be loaded early
-    public static class ConfigPredicateBuilder
-    {
-        @Nonnull protected final String blockName;
-        @Nonnull protected final int[] metadata;
-        @Nonnull protected final String[] fluids;
-        @Nonnull protected final String[] fluidTags;
-        @Nullable protected final Boolean canFluidFlow;
-
-        public ConfigPredicateBuilder(@Nonnull String blockName, @Nonnull int[] metadata, @Nonnull String[] fluids, @Nonnull String[] fluidTags, @Nullable Boolean canFluidFlow) {
-            this.metadata = metadata;
-            this.fluids = fluids;
-            this.fluidTags = fluidTags;
-            this.canFluidFlow = canFluidFlow;
-            this.blockName = blockName;
-        }
-
-        public ConfigPredicate build() {
-            final @Nullable Block block = Block.getBlockFromName(blockName);
-            if(block == null) throw new JsonParseException("Fluidlogged API Config: Unable to parse block from blockId: " + blockName);
-
-            //handle fluids
-            final Set<Fluid> validFluids = new HashSet<>();
-            for(String fluidName : fluids) {
-                @Nullable Block fluidBlock = Block.getBlockFromName(fluidName);
-                @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(fluidBlock);
-
-                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(fluidBlock)) validFluids.add(fluid);
-                else throw new JsonParseException("Fluidlogged API Config: Unable to parse fluid from fluids: " + fluidName);
-            }
-
-            //handle fluid tags
-            for(String id : fluidTags) {
-                @Nullable Set<Fluid> tag = FLUID_TAGS.get(id);
-
-                if(tag != null) validFluids.addAll(tag);
-                else throw new JsonParseException("Fluidlogged API Config: Unable to parse tag from fluidTags: " + id);
-            }
-
-            return new ConfigPredicate(block, metadata, validFluids.toArray(new Fluid[0]));
-        }
-    }
-
-    //gson
-    public static class ConfigPredicateDeserializer implements JsonDeserializer<ConfigPredicateBuilder>
-    {
-        @Nonnull
-        @Override
-        public ConfigPredicateBuilder deserialize(@Nonnull JsonElement json, @Nullable Type typeOfT, @Nullable JsonDeserializationContext context) throws JsonParseException {
-            try {
-                final NBTTagCompound nbt = JsonToNBT.getTagFromJson(json.toString());
-                if(nbt.hasKey("blockId", Constants.NBT.TAG_STRING)) {
-                    final String blockName = nbt.getString("blockId");
-                    final Set<String> fluids = new HashSet<>();
-                    final Set<String> fluidTags = new HashSet<>();
-                    int[] metadata = new int[0];
-                    Boolean canFluidFlow = null;
-
-                    //get state meta
-                    if(nbt.hasKey("metadata", Constants.NBT.TAG_INT_ARRAY))
-                        metadata = nbt.getIntArray("metadata");
-
-                    //get fluids
-                    if(nbt.hasKey("fluids", Constants.NBT.TAG_LIST)) {
-                        final NBTTagList list = nbt.getTagList("fluids", Constants.NBT.TAG_STRING);
-                        for(int i = 0; i < list.tagCount(); i++) fluids.add(list.getStringTagAt(i));
-                    }
-                    
-                    //get fluid tags
-                    if(nbt.hasKey("fluidTags", Constants.NBT.TAG_LIST)) {
-                        final NBTTagList list = nbt.getTagList("fluidTags", Constants.NBT.TAG_STRING);
-                        for(int i = 0; i < list.tagCount(); i++) fluidTags.add(list.getStringTagAt(i));
-                    }
-
-                    //get canFluidFlow
-                    if(nbt.hasKey("canFluidFlow", Constants.NBT.TAG_BYTE))
-                        canFluidFlow = nbt.getBoolean("canFluidFlow");
-
-                    return new ConfigPredicateBuilder(blockName, metadata, fluids.toArray(new String[0]), fluidTags.toArray(new String[0]), canFluidFlow);
-                }
-
-                //no blockId specified
-                else throw new JsonParseException("Fluidlogged API Config: blockId argument not found!");
-            }
-
-            //invalid json, probably
-            catch(NBTException e) { throw new JsonParseException(e); }
+            return metadata.isEmpty() || metadata.containsKey(event.state.getMeta());
         }
     }
 }
