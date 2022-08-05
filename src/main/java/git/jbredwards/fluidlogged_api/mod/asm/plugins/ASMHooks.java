@@ -889,12 +889,25 @@ public final class ASMHooks
         int flowMeta = 8 - quantaRemaining + lavaDif;
         if(flowMeta >= 8 || flowMeta <= 0) return;
 
-        if(isSourceBlock((IFluidBlock)block, world, pos, here, null) || !hasVerticalFlow(world, pos.down(), fluid, -1)) {
+        if(isSourceBlock((IFluidBlock)block, world, pos, here, null) || !isLiquidFlowingVertically(world, pos, fluid, -1)) {
             final boolean[] flowTo = getOptimalFlowDirections((IFluidBlock)block, world, pos, here);
             for(int i = 0; i < 4; i++)
                 if(flowTo[i] && canFluidFlow(world, pos, here, SIDES.get(i)))
                     flowIntoBlock(block, world, pos.offset(SIDES.get(i)), fluid, flowMeta);
         }
+    }
+
+    //PluginBlockDynamicLiquid helper
+    public static boolean isLiquidFlowingVertically(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, int densityDir) {
+        final EnumFacing facingDir = (densityDir < 0) ? UP : DOWN;
+
+        final IBlockState here = world.getBlockState(pos);
+        if(!canFluidFlow(world, pos, here, facingDir.getOpposite())) return false;
+
+        final IBlockState neighbor = world.getBlockState(pos.up(densityDir));
+        return isCompatibleFluid(getFluidState(world, pos.up(densityDir), neighbor).getFluid(), fluid)
+                || (isCompatibleFluid(getFluidState(world, pos, here).getFluid(), fluid)
+                && canDisplace(world, pos.up(densityDir), fluid));
     }
 
     //PluginBlockDynamicLiquid helper
