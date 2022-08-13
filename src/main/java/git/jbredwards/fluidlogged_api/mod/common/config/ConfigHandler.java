@@ -16,8 +16,11 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumActionResult;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Loader;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,16 +41,19 @@ import java.util.function.BiPredicate;
 public final class ConfigHandler
 {
     @Nonnull
-    private static final Gson GSON = new GsonBuilder()
+    static final Gson GSON = new GsonBuilder()
             .registerTypeAdapter(ConfigPredicateBuilder.class, new ConfigPredicateDeserializer())
             .create();
 
-    @Nonnull private static final Map<String, Set<Fluid>> FLUID_TAGS = new HashMap<>();
+    @Nonnull
+    static final Logger LOGGER = LogManager.getFormatterLogger("Fluidlogged API Config");
+
+    @Nonnull static final Map<String, Set<Fluid>> FLUID_TAGS = new HashMap<>();
     @Nonnull public static final Map<Block, ConfigPredicate> WHITELIST = new HashMap<>();
     @Nonnull public static final Map<Block, ConfigPredicate> BLACKLIST = new HashMap<>();
 
     @Nullable
-    private static Config config;
+    static Config config;
 
     public static boolean applyDefaults = true;
     public static boolean fluidsBreakTorches = true;
@@ -91,11 +97,13 @@ public final class ConfigHandler
                         "applyDefaults:true,\n" +
                         "\n" +
                         "#whitelist for adding new fluidloggable blocks (this is in addition to the defaults)\n" +
-                        "#info about the format for this can be found on this mod's wiki\n" +
+                        "#info about the format for this can be found on this mod's wiki:\n" +
+                        "#https://github.com/CleanroomMC/Fluidlogged-API/wiki/Config\n" +
                         "whitelist:[],\n" +
                         "\n" +
                         "#blacklist blocks from the defaults\n" +
-                        "#info about the format for this can be found on this mod's wiki\n" +
+                        "#info about the format for this can be found on this mod's wiki:\n" +
+                        "#https://github.com/CleanroomMC/Fluidlogged-API/wiki/Config\n" +
                         "blacklist:[],\n" +
                         "\n" +
                         "#otuput to the console for every ASM transformation, useful for debugging\n" +
@@ -126,6 +134,11 @@ public final class ConfigHandler
                 applyDefaults = config.applyDefaults;
                 debugASMPlugins = config.debugASMPlugins;
                 verticalFluidloggedFluidSpread = !config.removeVerticalFluidloggedFluidSpread;
+
+                if(ConfigPredicateDeserializer.containsMissingEntries) {
+                    ConfigPredicateDeserializer.containsMissingEntries = false;
+                    LOGGER.info("If you're unclear on how to format the whitelist or blacklist of the config, check out this mod's config wiki: https://github.com/CleanroomMC/Fluidlogged-API/wiki/Config");
+                }
             }
 
             WHITELIST.clear();
@@ -187,10 +200,13 @@ public final class ConfigHandler
 
     private static void readPredicates(Map<Block, ConfigPredicate> map, ConfigPredicateBuilder[] builders) {
         for(ConfigPredicateBuilder builder : builders) {
-            ConfigPredicate predicate = builder.build();
-            map.put(predicate.block, predicate);
-
-            ASMNatives.setCanFluidFlow(predicate.block, builder.canFluidFlow);
+            if(builder != ConfigPredicateDeserializer.EMPTY) {
+                @Nullable ConfigPredicate predicate = builder.build();
+                if(predicate != null) {
+                    map.put(predicate.block, predicate);
+                    ASMNatives.setCanFluidFlow(predicate.block, builder.canFluidFlow);
+                }
+            }
         }
     }
 
@@ -274,18 +290,23 @@ public final class ConfigHandler
             this.blockName = blockName;
         }
 
+        @Nullable
         public ConfigPredicate build() {
             final @Nullable Block block = Block.getBlockFromName(blockName);
-            if(block == null) throw new JsonParseException("Fluidlogged API Config: Unable to parse block from blockId: " + blockName);
+            if(block == null) {
+                LOGGER.warn(String.format("Unable to parse block from blockId: %s, skipping...", blockName));
+                return null;
+            }
 
             //handle fluids
             final Set<Fluid> validFluids = new HashSet<>();
             for(String fluidName : fluids) {
                 @Nullable Block fluidBlock = Block.getBlockFromName(fluidName);
                 @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(fluidBlock);
+                if(fluid == null) fluid = FluidRegistry.getFluid(fluidName);
 
                 if(fluid != null && FluidloggedUtils.isFluidloggableFluid(fluidBlock)) validFluids.add(fluid);
-                else throw new JsonParseException("Fluidlogged API Config: Unable to parse fluid from fluids: " + fluidName);
+                else LOGGER.warn(String.format("Unable to parse fluid from fluids: %s, skipping...", fluidName));
             }
 
             //handle fluid tags
@@ -293,7 +314,7 @@ public final class ConfigHandler
                 @Nullable Set<Fluid> tag = FLUID_TAGS.get(id);
 
                 if(tag != null) validFluids.addAll(tag);
-                else throw new JsonParseException("Fluidlogged API Config: Unable to parse tag from fluidTags: " + id);
+                else LOGGER.warn(String.format("Unable to parse tag from fluidTags: %s, skipping...", id));
             }
 
             return new ConfigPredicate(block, metadata, validFluids.toArray(new Fluid[0]));
@@ -303,6 +324,10 @@ public final class ConfigHandler
     //gson
     public static class ConfigPredicateDeserializer implements JsonDeserializer<ConfigPredicateBuilder>
     {
+        @Nonnull
+        protected static final ConfigPredicateBuilder EMPTY = new ConfigPredicateBuilder("", new int[0], new String[0], new String[0], null);
+        protected static boolean containsMissingEntries = false;
+
         @Nonnull
         @Override
         public ConfigPredicateBuilder deserialize(@Nonnull JsonElement json, @Nullable Type typeOfT, @Nullable JsonDeserializationContext context) throws JsonParseException {
@@ -339,7 +364,11 @@ public final class ConfigHandler
                 }
 
                 //no blockId specified
-                else throw new JsonParseException("Fluidlogged API Config: blockId argument not found!");
+                else {
+                    LOGGER.warn(String.format("required \"blockId\" string argument not found within args: %s, skipping...", nbt));
+                    containsMissingEntries = true;
+                    return EMPTY;
+                }
             }
 
             //invalid json, probably

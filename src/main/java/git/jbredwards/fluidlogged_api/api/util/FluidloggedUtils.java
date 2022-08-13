@@ -144,7 +144,8 @@ public final class FluidloggedUtils
                 world.markAndNotifyBlock(pos, chunk, here, here, blockFlags);
 
             //update fluids only
-            else notifyFluids(world, pos, fluidState, false);
+            //commenting this out temporarily since it causes issue#115, plus I don't remember why it's here lol
+            //else notifyFluids(world, pos, fluidState, false);
         }
     }
 

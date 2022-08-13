@@ -689,7 +689,7 @@ public final class ASMHooks
     @Nullable
     public static IFluidHandler getFluidHandler(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
         final FluidState fluidState = getFluidState(world, pos, state);
-        return fluidState.isEmpty() ? null : new FluidBlockWrapper(fluidState.getBlock(), world, pos);
+        return fluidState.isValid() ? new FluidBlockWrapper(fluidState.getBlock(), world, pos) : null;
     }
 
     //PluginFluidUtil
