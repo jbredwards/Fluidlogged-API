@@ -344,6 +344,16 @@ public final class ConfigHandler
                     if(nbt.hasKey("metadata", Constants.NBT.TAG_INT_ARRAY))
                         metadata = nbt.getIntArray("metadata");
 
+                    //sometimes vanilla recognises the int array as a list for some reason
+                    //this is the fix for now
+                    else if(nbt.hasKey("metadata", Constants.NBT.TAG_LIST)) {
+                        NBTTagList metaList = nbt.getTagList("metadata", Constants.NBT.TAG_INT);
+                        metadata = new int[metaList.tagCount()];
+
+                        for(int i = 0; i < metadata.length; i++)
+                            metadata[i] = metaList.getIntAt(i);
+                    }
+
                     //get fluids
                     if(nbt.hasKey("fluids", Constants.NBT.TAG_LIST)) {
                         final NBTTagList list = nbt.getTagList("fluids", Constants.NBT.TAG_STRING);
