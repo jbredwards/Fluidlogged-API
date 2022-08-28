@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBush;
 import net.minecraft.block.state.IBlockState;
@@ -26,8 +27,8 @@ public final class ASMNatives
      * {@link Block}
      */
     @Nullable
-    public static native Boolean getCanFluidFlow(@Nonnull Block block);
-    public static native void setCanFluidFlow(@Nonnull Block block, @Nullable Boolean canFluidFlow);
+    public static native ConfigHandler.ICanFluidFlowHandler getCanFluidFlow(@Nonnull Block block);
+    public static native void setCanFluidFlow(@Nonnull Block block, @Nullable ConfigHandler.ICanFluidFlowHandler canFluidFlow);
 
     /**
      * {@link BlockBush}

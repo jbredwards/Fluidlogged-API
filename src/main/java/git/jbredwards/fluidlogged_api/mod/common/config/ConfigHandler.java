@@ -14,6 +14,9 @@ import net.minecraft.nbt.NBTException;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumActionResult;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -196,18 +199,34 @@ public final class ConfigHandler
 
             FLUID_TAGS.put(tag.id, fluids);
         }
-     }
+    }
 
-    private static void readPredicates(Map<Block, ConfigPredicate> map, ConfigPredicateBuilder[] builders) {
+    private static void readPredicates(@Nonnull Map<Block, ConfigPredicate> map, @Nonnull ConfigPredicateBuilder[] builders) {
         for(ConfigPredicateBuilder builder : builders) {
             if(builder != ConfigPredicateDeserializer.EMPTY) {
                 @Nullable ConfigPredicate predicate = builder.build();
                 if(predicate != null) {
                     map.put(predicate.block, predicate);
-                    ASMNatives.setCanFluidFlow(predicate.block, builder.canFluidFlow);
+                    ASMNatives.setCanFluidFlow(predicate.block,
+                            builder.canFluidFlow == null ?
+                                    (builder.useDeprecatedSideCheck ? ICanFluidFlowHandler.DEPRECATED_CHECK : null) :
+                                    (builder.canFluidFlow ? ICanFluidFlowHandler.ALWAYS_FLOW : ICanFluidFlowHandler.NEVER_FLOW));
                 }
             }
         }
+    }
+
+    //allows for custom canFluidFlow actions
+    //TODO crafttweaker/groovyscript support maybe?
+    @FunctionalInterface
+    public interface ICanFluidFlowHandler
+    {
+        @Nonnull ICanFluidFlowHandler
+                ALWAYS_FLOW = (world, pos, state, side) -> true,
+                NEVER_FLOW = (world, pos, state, side) -> false,
+                DEPRECATED_CHECK = (world, pos, state, side) -> !state.isSideSolid(world, pos, side);
+
+        boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing side);
     }
 
     //gson
@@ -281,13 +300,15 @@ public final class ConfigHandler
         @Nonnull protected final String[] fluids;
         @Nonnull protected final String[] fluidTags;
         @Nullable protected final Boolean canFluidFlow;
+        protected final boolean useDeprecatedSideCheck;
 
-        public ConfigPredicateBuilder(@Nonnull String blockName, @Nonnull int[] metadata, @Nonnull String[] fluids, @Nonnull String[] fluidTags, @Nullable Boolean canFluidFlow) {
+        public ConfigPredicateBuilder(@Nonnull String blockName, @Nonnull int[] metadata, @Nonnull String[] fluids, @Nonnull String[] fluidTags, @Nullable Boolean canFluidFlow, boolean useDeprecatedSideCheck) {
             this.metadata = metadata;
             this.fluids = fluids;
             this.fluidTags = fluidTags;
             this.canFluidFlow = canFluidFlow;
             this.blockName = blockName;
+            this.useDeprecatedSideCheck = useDeprecatedSideCheck;
         }
 
         @Nullable
@@ -325,7 +346,7 @@ public final class ConfigHandler
     public static class ConfigPredicateDeserializer implements JsonDeserializer<ConfigPredicateBuilder>
     {
         @Nonnull
-        protected static final ConfigPredicateBuilder EMPTY = new ConfigPredicateBuilder("", new int[0], new String[0], new String[0], null);
+        protected static final ConfigPredicateBuilder EMPTY = new ConfigPredicateBuilder("", new int[0], new String[0], new String[0], null, false);
         protected static boolean containsMissingEntries = false;
 
         @Nonnull
@@ -339,6 +360,7 @@ public final class ConfigHandler
                     final Set<String> fluidTags = new HashSet<>();
                     int[] metadata = new int[0];
                     Boolean canFluidFlow = null;
+                    boolean useDeprecatedSideCheck = false;
 
                     //get state meta
                     if(nbt.hasKey("metadata", Constants.NBT.TAG_INT_ARRAY))
@@ -370,7 +392,11 @@ public final class ConfigHandler
                     if(nbt.hasKey("canFluidFlow", Constants.NBT.TAG_BYTE))
                         canFluidFlow = nbt.getBoolean("canFluidFlow");
 
-                    return new ConfigPredicateBuilder(blockName, metadata, fluids.toArray(new String[0]), fluidTags.toArray(new String[0]), canFluidFlow);
+                    //get useDeprecatedSideCheck
+                    if(nbt.hasKey("useDeprecatedSideCheck", Constants.NBT.TAG_BYTE))
+                        useDeprecatedSideCheck = nbt.getBoolean("useDeprecatedSideCheck");
+
+                    return new ConfigPredicateBuilder(blockName, metadata, fluids.toArray(new String[0]), fluidTags.toArray(new String[0]), canFluidFlow, useDeprecatedSideCheck);
                 }
 
                 //no blockId specified

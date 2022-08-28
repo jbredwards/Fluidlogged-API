@@ -11,7 +11,7 @@ buildscript {
 apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'maven-publish'
 
-version = 'v1.8.1d-mc1.12.2'
+version = 'v1.8.1e-mc1.12.2'
 group = 'git.jbredwards.fluidlogged_api'
 archivesBaseName = 'Fluidlogged-API'
 sourceCompatibility = targetCompatibility = '1.8'

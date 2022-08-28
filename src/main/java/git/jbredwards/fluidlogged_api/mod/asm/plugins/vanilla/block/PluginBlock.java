@@ -138,7 +138,7 @@ public final class PluginBlock implements IASMPlugin
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
         //used for overriding canFluidFlow behavior via the config
-        classNode.fields.add(new FieldNode(ACC_PUBLIC, "canFluidFlow", "Ljava/lang/Boolean;", null, null));
+        classNode.fields.add(new FieldNode(ACC_PUBLIC, "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/mod/common/config/ConfigHandler$ICanFluidFlowHandler;", null, null));
         return true;
     }
 }

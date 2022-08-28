@@ -197,8 +197,8 @@ public final class FluidloggedUtils
     //2: returns true if a fluid can flow into this block from the specified side
     public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing side) {
         //config override
-        final @Nullable Boolean overrideCanFluidFlow = ASMNatives.getCanFluidFlow(state.getBlock());
-        if(overrideCanFluidFlow != null) return overrideCanFluidFlow;
+        final @Nullable ConfigHandler.ICanFluidFlowHandler override = ASMNatives.getCanFluidFlow(state.getBlock());
+        if(override != null) return override.canFluidFlow(world, pos, state, side);
         //built-in behavior
         return (state.getBlock() instanceof IFluidloggable)
                 ? ((IFluidloggable)state.getBlock()).canFluidFlow(world, pos, state, side)

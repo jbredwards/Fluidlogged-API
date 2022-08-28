@@ -20,14 +20,14 @@ public final class PluginASMNatives implements IASMPlugin
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
         classNode.methods.removeIf(method -> (method.access & ACC_NATIVE) != 0);
         //Block
-        addMethod(classNode, "getCanFluidFlow", "(Lnet/minecraft/block/Block;)Ljava/lang/Boolean;", generator -> {
+        addMethod(classNode, "getCanFluidFlow", "(Lnet/minecraft/block/Block;)Lgit/jbredwards/fluidlogged_api/mod/common/config/ConfigHandler$ICanFluidFlowHandler;", generator -> {
             generator.visitVarInsn(ALOAD, 0);
-            generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", "canFluidFlow", "Ljava/lang/Boolean;");
+            generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/mod/common/config/ConfigHandler$ICanFluidFlowHandler;");
         });
-        addMethod(classNode, "setCanFluidFlow", "(Lnet/minecraft/block/Block;Ljava/lang/Boolean;)V", generator -> {
+        addMethod(classNode, "setCanFluidFlow", "(Lnet/minecraft/block/Block;Lgit/jbredwards/fluidlogged_api/mod/common/config/ConfigHandler$ICanFluidFlowHandler;)V", generator -> {
             generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ALOAD, 1);
-            generator.visitFieldInsn(PUTFIELD, "net/minecraft/block/Block", "canFluidFlow", "Ljava/lang/Boolean;");
+            generator.visitFieldInsn(PUTFIELD, "net/minecraft/block/Block", "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/mod/common/config/ConfigHandler$ICanFluidFlowHandler;");
         });
         //BlockBush
         addMethod(classNode, "canSustainBush", "(Lnet/minecraft/block/BlockBush;Lnet/minecraft/block/state/IBlockState;)Z", generator -> {
