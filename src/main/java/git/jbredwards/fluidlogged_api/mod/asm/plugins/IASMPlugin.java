@@ -18,8 +18,8 @@ import java.util.function.Supplier;
  */
 public interface IASMPlugin extends Opcodes
 {
-    //exists to let other mods to more easily use this interface, like njarm
-    @Nonnull default String getHookClass() { return "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks"; }
+    //exists to let other mods to more easily use this interface
+    @Nonnull default String getHookClass() { return getClass().getName().replace('.', '/') + "$Hooks"; }
     //returns the method index, which is passed into this#transform, returning 0 will skip the method
     default int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) { return isMethodValid(method, obfuscated) ? 1 : 0; }
     //utility method that makes life easier if only one method is being transformed

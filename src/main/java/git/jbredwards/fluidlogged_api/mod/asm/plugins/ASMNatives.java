@@ -9,7 +9,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.template.Template;
-import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
 
@@ -34,12 +33,6 @@ public final class ASMNatives
      * {@link BlockBush}
      */
     public static native boolean canSustainBush(@Nonnull BlockBush bush, @Nonnull IBlockState state);
-
-    /**
-     * {@link BlockFluidBase}
-     */
-    public static native int getFlowDecay(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos);
-    public static native boolean hasVerticalFlow(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos);
 
     /**
      * {@link BlockFluidClassic}

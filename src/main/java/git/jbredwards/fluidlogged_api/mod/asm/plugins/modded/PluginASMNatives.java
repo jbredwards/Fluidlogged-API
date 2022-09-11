@@ -42,12 +42,6 @@ public final class PluginASMNatives implements IASMPlugin
             generator.visitVarInsn(ALOAD, 2);
             generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidBase", "getFlowDecay_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", false);
         });
-        addMethod(classNode, "hasVerticalFlow", "(Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitVarInsn(ALOAD, 2);
-            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidBase", "hasVerticalFlow_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", false);
-        });
         //BlockFluidClassic
         addMethod(classNode, "getOptimalFlowDirections", "(Lnet/minecraftforge/fluids/BlockFluidClassic;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)[Z", generator -> {
             generator.visitVarInsn(ALOAD, 0);
