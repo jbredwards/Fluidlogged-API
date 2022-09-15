@@ -35,40 +35,6 @@ public final class PluginASMNatives implements IASMPlugin
             generator.visitVarInsn(ALOAD, 1);
             generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/block/BlockBush", "canSustainBush_Public", "(Lnet/minecraft/block/state/IBlockState;)Z", false);
         });
-        //BlockFluidBase
-        addMethod(classNode, "getFlowDecay", "(Lnet/minecraftforge/fluids/BlockFluidBase;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitVarInsn(ALOAD, 2);
-            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidBase", "getFlowDecay_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", false);
-        });
-        //BlockFluidClassic
-        addMethod(classNode, "getOptimalFlowDirections", "(Lnet/minecraftforge/fluids/BlockFluidClassic;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)[Z", generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitVarInsn(ALOAD, 2);
-            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidClassic", "getOptimalFlowDirections_Public", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)[Z", false);
-        });
-        addMethod(classNode, "getLargerQuanta", "(Lnet/minecraftforge/fluids/BlockFluidClassic;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;I)I", generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitVarInsn(ALOAD, 2);
-            generator.visitVarInsn(ILOAD, 3);
-            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidClassic", "getLargerQuanta_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;I)I", false);
-        });
-        addMethod(classNode, "canFlowInto", "(Lnet/minecraftforge/fluids/BlockFluidClassic;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitVarInsn(ALOAD, 2);
-            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidClassic", "canFlowInto_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", false);
-        });
-        addMethod(classNode, "flowIntoBlock", "(Lnet/minecraftforge/fluids/BlockFluidClassic;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;I)V", generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitVarInsn(ALOAD, 2);
-            generator.visitVarInsn(ILOAD, 3);
-            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidClassic", "flowIntoBlock_Public", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;I)V", false);
-        });
         //Fluid
         addMethod(classNode, "getDefaultFluidState", "(Lnet/minecraftforge/fluids/Fluid;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;", generator -> {
             generator.visitVarInsn(ALOAD, 0);

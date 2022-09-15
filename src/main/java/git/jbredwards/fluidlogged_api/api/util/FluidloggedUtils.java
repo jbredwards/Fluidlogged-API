@@ -215,7 +215,15 @@ public final class FluidloggedUtils
 
     //convenience method that takes in an IBlockState rather than a Block
     @Nullable
-    public static Fluid getFluidFromState(@Nullable IBlockState fluid) { return (fluid != null) ? getFluidFromBlock(fluid.getBlock()) : null; }
+    public static Fluid getFluidFromState(@Nullable IBlockState fluid) {
+        if(fluid == null) return null;
+        else if(fluid.getBlock() instanceof IFluidBlock)
+            return ((IFluidBlock)fluid.getBlock()).getFluid();
+
+        final Material material = fluid.getMaterial();
+        if(material == Material.WATER) return FluidRegistry.WATER;
+        else return material == Material.LAVA ? FluidRegistry.LAVA : null;
+    }
 
     //fork of IFluidBlock#getFluid
     //(BlockLiquid extends IFluidBlock during runtime through asm)

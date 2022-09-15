@@ -100,9 +100,18 @@ public class FluidState extends Pair<Fluid, IBlockState>
     //it's advised to check for this before running IFluidBlock logic
     public boolean isValid() { return state.getBlock() instanceof IFluidBlock; }
 
-    @SuppressWarnings("unchecked")
-    public <T extends Block & IFluidBlock> T getBlock() { return (T)state.getBlock(); }
+    @Nonnull
+    public IFluidBlock getFluidBlock() {
+        if(isValid()) return (IFluidBlock)state.getBlock();
+        else throw new IllegalStateException(
+                "Invalid FluidState, please report this to the Fluidlogged API bug tracker!"
+        );
+    }
 
+    @Nonnull
+    public Block getBlock() { return state.getBlock(); }
+
+    @Nonnull
     public Material getMaterial() { return state.getMaterial(); }
 
     public int getLevel() { return level >= 0 ? level : (level = state.getValue(BlockLiquid.LEVEL)); }

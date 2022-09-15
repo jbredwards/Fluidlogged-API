@@ -41,7 +41,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
         if(checkMethod(method, "<init>", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/material/Material;Lnet/minecraft/block/material/MapColor;)V")) return 1;
         else if(checkMethod(method, "<clinit>", "()V")) return 2;
         else if(method.name.equals("canDisplace")) return 3;
-        else if(method.name.equals("getFlowDirection") || method.name.equals("getDensity")) return 4;
+        else if(method.name.equals("getFlowDirection") || method.name.equals("getDensity") || method.name.equals("getTemperature")) return 4;
         else if(method.name.equals("getFluid")) return 5;
         else if(checkMethod(method, "getFilledPercentage", "(Lnet/minecraft.world.IBlockAccess;Lnet/minecraft/util/math/BlockPos;)F")) return 6;
         else return method.name.equals("getStateAtViewpoint") ? 7 : 0;
@@ -100,7 +100,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
             return true;
         }
         /*
-         * getFlowDirection: (changes are around line 653)
+         * getFlowDirection, getDensity, and getTemperature: (changes are around lines 653, 594, and 612)
          * Old code:
          * IBlockState state = world.getBlockState(pos);
          *
@@ -285,6 +285,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
          * isEntityInsideMaterial:
          * New code:
          * //better entity fluid collision
+         * @ASMGenerated
          * public Boolean isEntityInsideMaterial(IBlockAccess world, BlockPos blockpos, IBlockState iblockstate, Entity entity, double yToTest, Material materialIn, boolean testingHead)
          * {
          *     return Hooks.isEntityInsideFluid(this, world, blockpos, iblockstate, entity, yToTest, materialIn, testingHead);
@@ -306,6 +307,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
          * isAABBInsideMaterial:
          * New code:
          * //better entity fluid collision
+         * @ASMGenerated
          * public Boolean isAABBInsideMaterial(World world, BlockPos pos, AxisAlignedBB boundingBox, Material materialIn)
          * {
          *     return Hooks.isAABBInsideMaterial(this, world, pos, boundingBox, materialIn);
@@ -324,6 +326,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
          * isAABBInsideLiquid:
          * New code:
          * //better entity fluid collision
+         * @ASMGenerated
          * public Boolean isAABBInsideLiquid(World world, BlockPos pos, AxisAlignedBB boundingBox)
          * {
          *     return Boolean.valueOf(Hooks.isWithinFluid(this, world, pos, boundingBox));
@@ -338,15 +341,16 @@ public final class PluginBlockFluidBase implements IASMPlugin
             generator.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
         });
         /*
-         * IFlowDecayAccessor:
+         * Accessor:
          * New code:
          * //add public accessor for private method
+         * @ASMGenerated
          * public int getFlowDecay_Public(@Nonnull IBlockAccess world, @Nonnull BlockPos pos)
          * {
          *     return this.getFlowDecay(world, pos);
          * }
          */
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/plugins/forge/PluginBlockFluidBase$IFlowDecaySupplier");
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/plugins/forge/PluginBlockFluidBase$Accessor");
         addMethod(classNode, "getFlowDecay_Public", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", null, null, generator -> {
             generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ALOAD, 1);
@@ -437,7 +441,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
                 for(int i = 0; i < 2; i++)
                     for(int j = 0; j < 2; j++)
                         corner[i][j] = 1;
-                //no fluid block above this
+            //no fluid block above this
             else {
                 //get corner heights from all 8 sides
                 for(int i = 0; i < 3; i++) {
@@ -507,7 +511,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
                 if(states[i][0][j].getBlock().isAir(states[i][0][j], world, pos.add(i - 1, 0, j - 1)))
                     return 0;
 
-                    //fluid block
+                //fluid block
                 else if(isCompatibleFluid(fluids[1][0][1].getFluid(), fluids[i][0][j].getFluid())) {
                     int lowest = fluids[i][0][j].getLevel();
                     if(lowest == 0) return quantaFraction;
@@ -629,15 +633,15 @@ public final class PluginBlockFluidBase implements IASMPlugin
             final IBlockState here = world.getBlockState(pos);
             Vec3d vec = Vec3d.ZERO;
 
-            final int decay = ((IFlowDecayAccessor)block).getFlowDecay_Public(world, pos);
+            final int decay = ((Accessor)block).getFlowDecay_Public(world, pos);
             for(EnumFacing facing : HORIZONTALS) {
                 if(canFluidFlow(world, pos, here, facing)) {
                     BlockPos offset = pos.offset(facing);
                     if(canFluidFlow(world, offset, world.getBlockState(offset), facing.getOpposite())) {
-                        int otherDecay = ((IFlowDecayAccessor)block).getFlowDecay_Public(world, offset);
+                        int otherDecay = ((Accessor)block).getFlowDecay_Public(world, offset);
 
                         if(otherDecay >= quantaPerBlock) {
-                            otherDecay = ((IFlowDecayAccessor)block).getFlowDecay_Public(world, offset.up(densityDir));
+                            otherDecay = ((Accessor)block).getFlowDecay_Public(world, offset.up(densityDir));
 
                             if(otherDecay < quantaPerBlock) {
                                 int power = otherDecay - (decay - quantaPerBlock);
@@ -756,8 +760,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
         }
     }
 
-    //accessor
-    public interface IFlowDecayAccessor
+    public interface Accessor
     {
         int getFlowDecay_Public(@Nonnull IBlockAccess world, @Nonnull BlockPos pos);
     }

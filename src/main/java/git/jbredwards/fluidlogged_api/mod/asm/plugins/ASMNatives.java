@@ -5,11 +5,7 @@ import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBush;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.template.Template;
-import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
 
 import javax.annotation.Nonnull;
@@ -33,15 +29,6 @@ public final class ASMNatives
      * {@link BlockBush}
      */
     public static native boolean canSustainBush(@Nonnull BlockBush bush, @Nonnull IBlockState state);
-
-    /**
-     * {@link BlockFluidClassic}
-     */
-    @Nonnull
-    public static native boolean[] getOptimalFlowDirections(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos);
-    public static native int getLargerQuanta(@Nonnull BlockFluidClassic block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int compare);
-    public static native boolean canFlowInto(@Nonnull BlockFluidClassic block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos);
-    public static native void flowIntoBlock(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos, int meta);
 
     /**
      * {@link Fluid}

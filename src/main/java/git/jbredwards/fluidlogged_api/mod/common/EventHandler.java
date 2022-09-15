@@ -161,7 +161,7 @@ public final class EventHandler
     private static boolean tryBucketFill_Internal(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer player, @Nonnull IFluidHandlerItem handler) {
         final FluidState fluidState = FluidState.get(world, pos);
 
-        if(!fluidState.isEmpty() && handler.fill(fluidState.getBlock().drain(world, pos, true), true) == Fluid.BUCKET_VOLUME) {
+        if(!fluidState.isEmpty() && fluidState.isValid() && handler.fill(fluidState.getFluidBlock().drain(world, pos, true), true) == Fluid.BUCKET_VOLUME) {
             world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluidState.getFluid().getFillSound(), SoundCategory.BLOCKS, 1, 1);
             return true;
         }
@@ -170,15 +170,15 @@ public final class EventHandler
     }
 
     private static boolean tryBucketDrain_Internal(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer player, @Nonnull IFluidHandlerItem handler, @Nonnull FluidStack stack) {
-        final IBlockState state = world.getBlockState(pos);
         final Fluid fluid = stack.getFluid();
+        if(isFluidloggableFluid(fluid.getBlock()) && isStateFluidloggable(world.getBlockState(pos), world, pos, fluid)) {
+            final FluidState fluidState = FluidState.of(fluid);
+            if(fluidState.isValid() && handler.drain(new FluidStack(stack, fluidState.getFluidBlock().place(world, pos, stack.copy(), true)), true) != null) {
+                if(!world.provider.doesWaterVaporize() || !fluid.doesVaporize(stack))
+                    world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluid.getEmptySound(stack), SoundCategory.BLOCKS, 1, 1);
 
-        final boolean isFluidloggable = isFluidloggableFluid(fluid.getBlock()) && isStateFluidloggable(state, world, pos, fluid);
-        if(isFluidloggable && handler.drain(new FluidStack(stack, FluidState.of(fluid).getBlock().place(world, pos, stack.copy(), true)), true) != null) {
-            if(!world.provider.doesWaterVaporize() || !fluid.doesVaporize(stack))
-                world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluid.getEmptySound(stack), SoundCategory.BLOCKS, 1, 1);
-
-            return true;
+                return true;
+            }
         }
 
         return false;
