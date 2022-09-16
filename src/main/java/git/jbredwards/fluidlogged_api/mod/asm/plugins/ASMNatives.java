@@ -1,12 +1,10 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins;
 
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBush;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.gen.structure.template.Template;
-import net.minecraftforge.fluids.Fluid;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,12 +27,6 @@ public final class ASMNatives
      * {@link BlockBush}
      */
     public static native boolean canSustainBush(@Nonnull BlockBush bush, @Nonnull IBlockState state);
-
-    /**
-     * {@link Fluid}
-     */
-    @Nonnull public static native FluidState getDefaultFluidState(@Nonnull Fluid fluid);
-    @Nonnull public static native FluidState setDefaultFluidState(@Nonnull Fluid fluid, @Nonnull FluidState fluidState);
 
     /**
      * {@link Template}

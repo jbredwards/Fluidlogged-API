@@ -46,8 +46,6 @@ import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.*;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.Pair;
@@ -68,36 +66,6 @@ import static net.minecraft.util.EnumFacing.*;
 @SuppressWarnings("unused")
 public final class ASMHooks
 {
-    //=====
-    //FORGE
-    //=====
-
-    //PluginFluidUtil
-    @Nullable
-    public static IFluidHandler getFluidHandler(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
-        final FluidState fluidState = getFluidState(world, pos, state);
-        return fluidState.isValid() ? new FluidBlockWrapper(fluidState.getFluidBlock(), world, pos) : null;
-    }
-
-    //PluginFluidUtil
-    public static boolean tryPlaceFluid(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, @Nonnull IBlockState destBlockState) {
-        return world.isAirBlock(pos) || isStateFluidloggable(destBlockState, world, pos, fluid);
-    }
-
-    //PluginModelFluid
-    public static float fixTextureFightingZ(float old, int index) {
-        final EnumFacing facing = byHorizontalIndex(5 - index); // [W, S, E, N]
-        if(facing.getAxis() == Axis.X) return old;
-        else return old == 1 ? 0.998f : 0.002f;
-    }
-
-    //PluginModelFluid
-    public static float fixTextureFightingX(float old, int index) {
-        final EnumFacing facing = byHorizontalIndex(5 - index); // [W, S, E, N]
-        if(facing.getAxis() == Axis.Z) return old;
-        else return old == 1 ? 0.998f : 0.002f;
-    }
-
     //=======
     //VANILLA
     //=======

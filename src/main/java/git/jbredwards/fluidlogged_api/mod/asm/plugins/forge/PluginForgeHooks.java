@@ -17,6 +17,15 @@ public final class PluginForgeHooks implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * isInsideOfMaterial: (changes are around line 1034)
+         * Old code:
+         * IBlockState state = entity.world.getBlockState(pos);
+         *
+         * New code:
+         * //allow FluidStates to be used
+         * IBlockState state = FluidloggedUtils.getFluidOrReal(entity.world, pos);
+         */
         if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
             instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.remove(insn);

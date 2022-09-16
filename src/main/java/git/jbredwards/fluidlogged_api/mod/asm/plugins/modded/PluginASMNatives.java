@@ -35,17 +35,6 @@ public final class PluginASMNatives implements IASMPlugin
             generator.visitVarInsn(ALOAD, 1);
             generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/block/BlockBush", "canSustainBush_Public", "(Lnet/minecraft/block/state/IBlockState;)Z", false);
         });
-        //Fluid
-        addMethod(classNode, "getDefaultFluidState", "(Lnet/minecraftforge/fluids/Fluid;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;", generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/Fluid", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;");
-        });
-        addMethod(classNode, "setDefaultFluidState", "(Lnet/minecraftforge/fluids/Fluid;Lgit/jbredwards/fluidlogged_api/api/util/FluidState;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;", generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitInsn(DUP_X1);
-            generator.visitFieldInsn(PUTFIELD, "net/minecraftforge/fluids/Fluid", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;");
-        });
         //Template
         addMethod(classNode, "setKeepOldFluidStates", "(Lnet/minecraft/world/gen/structure/template/Template;Z)V", generator -> {
             generator.visitVarInsn(ALOAD, 0);
