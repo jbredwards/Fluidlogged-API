@@ -134,8 +134,6 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.world.ChunkCache", new PluginChunkCache()) //fix lighting bugs
                 .put("net.minecraft.world.World", new PluginWorld()) //corrects a lot of FluidState related interactions
                 .put("net.minecraft.world.WorldServer", new PluginWorldServer()) //FluidStates now get ticked
-                //internal
-                .put("git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMNatives", new PluginASMNatives())
                 .build();
 
         @Override

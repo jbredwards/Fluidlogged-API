@@ -91,13 +91,13 @@ public final class PluginModelFluid implements IASMPlugin
     {
         public static float fixTextureFightingX(float old, int index) {
             //[W, S, E, N]
-            if(EnumFacing.byHorizontalIndex(5 - index).getXOffset() == 0) return old;
+            if(EnumFacing.byHorizontalIndex(5 - index).getDirectionVec().getX() == 0) return old;
             else return old == 1 ? 0.998f : 0.002f;
         }
 
         public static float fixTextureFightingZ(float old, int index) {
             //[W, S, E, N]
-            if(EnumFacing.byHorizontalIndex(5 - index).getZOffset() == 0) return old;
+            if(EnumFacing.byHorizontalIndex(5 - index).getDirectionVec().getZ() == 0) return old;
             else return old == 1 ? 0.998f : 0.002f;
         }
     }

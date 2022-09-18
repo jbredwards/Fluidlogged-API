@@ -35,7 +35,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
     protected int level = -1;
 
     //using FluidState#of rather than the constructor directly is advised
-    public FluidState(Fluid fluidIn, IBlockState stateIn) {
+    public FluidState(@Nullable Fluid fluidIn, @Nonnull IBlockState stateIn) {
         fluid = fluidIn;
         state = stateIn;
     }

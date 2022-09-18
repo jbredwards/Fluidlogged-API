@@ -14,10 +14,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.fluids.BlockFluidClassic;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidBlock;
+import net.minecraftforge.fluids.*;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -556,8 +553,13 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                 final IBlockState here = world.getBlockState(pos);
 
                 if(isStateFluidloggable(here, world, pos, block.getFluid())) {
-                    if(!setFluidState(world, pos, here, FluidState.of(block.getFluid()), true)) return 0; }
-                else world.setBlockState(pos, defaultState, Constants.BlockFlags.DEFAULT_AND_RERENDER);
+                    if(!setFluidState(world, pos, here, FluidState.of(block.getFluid()), true))
+                        return 0;
+                }
+                else {
+                    FluidUtil.destroyBlockOnFluidPlacement(world, pos);
+                    world.setBlockState(pos, defaultState, Constants.BlockFlags.DEFAULT_AND_RERENDER);
+                }
             }
 
             return Fluid.BUCKET_VOLUME;

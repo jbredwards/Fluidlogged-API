@@ -1,6 +1,13 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.modded;
 
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraftforge.fluids.FluidUtil;
+import net.minecraftforge.fluids.IFluidBlock;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -21,6 +28,17 @@ public final class PluginBetweenlands implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * isReplaceable:
+         * Old code:
+         * IBlockState state = world.getBlockState(pos);
+         *
+         * New code:
+         * //The block here will always be this (unless there's some *really* poorly coded mod out there)
+         * //Since the state properties don't matter for this check, use defaultState to improve performance
+         * //instead of calling FluidloggedUtils#getFluidOrReal
+         * IBlockState state = this.getDefaultState();
+         */
         if(index == 1 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
             //add this.getDefaultState()
             instructions.insert(insn, new MethodInsnNode(INVOKESPECIAL, "net/minecraft/block/Block", obfuscated ? "func_176223_P" : "getDefaultState", "()Lnet/minecraft/block/state/IBlockState;", false));
@@ -31,12 +49,25 @@ public final class PluginBetweenlands implements IASMPlugin
             instructions.remove(insn);
             return true;
         }
-        else if(index == 2 && checkMethod(insn, obfuscated ? "func_180501_a" : "setBlockState")) {
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 5));
-            instructions.insertBefore(insn, genMethodNode("fixBetweenlandsPlace", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;ILnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/block/state/IBlockState;)Z"));
-            instructions.remove(insn);
-            return true;
+        /*
+         * place:
+         * Old code:
+         * FluidUtil.destroyBlockOnFluidPlacement(world, pos);
+         * world.setBlockState(pos, this.getDefaultState(), 11);
+         *
+         * New code:
+         * //allow the betweenlands place method to fluidlog blocks if possible
+         * Hooks.fixBetweenlandsPlace(world, pos, this.getDefaultState(), 11, this, state);
+         */
+        else if(index == 2) {
+            if(checkMethod(insn, "destroyBlockOnFluidPlacement")) removeFrom(instructions, insn, -2);
+            else if(checkMethod(insn, obfuscated ? "func_180501_a" : "setBlockState")) {
+                instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
+                instructions.insertBefore(insn, new VarInsnNode(ALOAD, 5));
+                instructions.insertBefore(insn, genMethodNode("fixBetweenlandsPlace", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;ILnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/block/state/IBlockState;)Z"));
+                instructions.remove(insn);
+                return true;
+            }
         }
 
         return false;
@@ -56,5 +87,19 @@ public final class PluginBetweenlands implements IASMPlugin
                 || method.name.equals(obfuscated ? "func_176225_a" : "shouldSideBeRendered"));
 
         return true;
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Hooks
+    {
+        public static boolean fixBetweenlandsPlace(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState fluid, int flags, @Nonnull IFluidBlock block, @Nonnull IBlockState here) {
+            if(FluidloggedUtils.isStateFluidloggable(here, world, pos, block.getFluid()))
+                return FluidloggedUtils.setFluidState(world, pos, here, FluidState.of(block.getFluid()), true, true, flags);
+
+            else {
+                FluidUtil.destroyBlockOnFluidPlacement(world, pos);
+                return world.setBlockState(pos, fluid, flags);
+            }
+        }
     }
 }

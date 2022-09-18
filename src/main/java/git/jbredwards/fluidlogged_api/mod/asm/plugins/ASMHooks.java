@@ -1164,29 +1164,4 @@ public final class ASMHooks
 
         return flag;
     }
-
-    //======
-    //MODDED
-    //======
-
-    //PluginBetweenlands
-    public static boolean fixBetweenlandsPlace(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState fluid, int flags, @Nonnull IFluidBlock block, @Nonnull IBlockState here) {
-        if(isStateFluidloggable(here, world, pos, block.getFluid())) return setFluidState(world, pos, here, FluidState.of(block.getFluid()), true, true, flags);
-        else return world.setBlockState(pos, fluid, flags);
-    }
-
-    //PluginBiomesOPlenty
-    public static boolean canBOPFluidFlow(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing) {
-        final IBlockState here = world.getBlockState(pos);
-        return here.getBlock().isReplaceable(world, pos)
-                && canFluidFlow(world, pos, here, facing)
-                && canFluidFlow(world, pos.offset(facing), world.getBlockState(pos.offset(facing)), facing.getOpposite());
-    }
-
-    //PluginBiomesOPlenty
-    @Nonnull
-    public static IBlockState getBOPFluidOrAir(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
-        final FluidState fluidState = getFluidState(world, pos);
-        return fluidState.isEmpty() ? state : fluidState.getState();
-    }
 }

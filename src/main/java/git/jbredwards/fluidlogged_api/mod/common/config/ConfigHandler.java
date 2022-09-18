@@ -1,10 +1,9 @@
 package git.jbredwards.fluidlogged_api.mod.common.config;
 
+import com.google.common.primitives.Ints;
 import com.google.gson.*;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMNatives;
-import it.unimi.dsi.fastutil.ints.Int2BooleanMap;
-import it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import net.minecraft.block.Block;
@@ -30,10 +29,7 @@ import javax.annotation.Nullable;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiPredicate;
 
 /**
@@ -269,15 +265,16 @@ public final class ConfigHandler
     public static class ConfigPredicate implements BiPredicate<IBlockState, Fluid>
     {
         @Nonnull protected final Block block;
-        @Nonnull protected final Int2BooleanMap metadata;
+        @Nonnull protected final boolean[] metadata;
         @Nonnull protected final Object2BooleanMap<Fluid> validFluids;
 
         public ConfigPredicate(@Nonnull Block block, @Nonnull int[] metadata, @Nonnull Fluid[] validFluids) {
             this.block = block;
-            this.metadata = new Int2BooleanOpenHashMap();
             this.validFluids = new Object2BooleanOpenHashMap<>();
+            this.metadata = new boolean[metadata.length == 0 ? 0 : Ints.max(metadata)];
+            Arrays.fill(this.metadata, false);
 
-            for(int meta : metadata) this.metadata.put(meta, true);
+            for(int meta : metadata) this.metadata[meta] = true;
             for(Fluid fluid : validFluids) this.validFluids.put(fluid, true);
         }
 
@@ -288,7 +285,7 @@ public final class ConfigHandler
                 return false;
 
             //check stateIn
-            return metadata.isEmpty() || metadata.containsKey(block.getMetaFromState(stateIn));
+            return metadata.length == 0 || metadata[block.getMetaFromState(stateIn)];
         }
     }
 

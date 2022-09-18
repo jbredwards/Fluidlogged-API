@@ -17,6 +17,21 @@ public final class PluginGardenOfGlass implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * onPlayerInteract:
+         * Old code:
+         * if (event.getWorld().getBlockState(rtr.getBlockPos()).getMaterial() == Material.WATER)
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //
+         * if (FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(event.getWorld(), rtr.getBlockPos()).getFluid(), FluidRegistry.WATER))
+         * {
+         *     ...
+         * }
+         */
         if(checkMethod(insn.getNext(), obfuscated ? "func_185904_a" : "getMaterial")) {
             ((JumpInsnNode)getNext(insn, 3)).setOpcode(IFEQ);
             final InsnList list = new InsnList();
