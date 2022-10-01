@@ -3,7 +3,7 @@ package git.jbredwards.fluidlogged_api.mod.common.config;
 import com.google.common.primitives.Ints;
 import com.google.gson.*;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMNatives;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.PluginBlock;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import net.minecraft.block.Block;
@@ -203,10 +203,9 @@ public final class ConfigHandler
                 @Nullable ConfigPredicate predicate = builder.build();
                 if(predicate != null) {
                     map.put(predicate.block, predicate);
-                    ASMNatives.setCanFluidFlow(predicate.block,
-                            builder.canFluidFlow == null ?
-                                    (builder.useDeprecatedSideCheck ? ICanFluidFlowHandler.DEPRECATED_CHECK : null) :
-                                    (builder.canFluidFlow ? ICanFluidFlowHandler.ALWAYS_FLOW : ICanFluidFlowHandler.NEVER_FLOW));
+                    ((PluginBlock.Accessor)predicate.block).setCanFluidFlow(builder.canFluidFlow == null ?
+                            (builder.useDeprecatedSideCheck ? ICanFluidFlowHandler.DEPRECATED_CHECK : null) :
+                            (builder.canFluidFlow ? ICanFluidFlowHandler.ALWAYS_FLOW : ICanFluidFlowHandler.NEVER_FLOW));
                 }
             }
         }

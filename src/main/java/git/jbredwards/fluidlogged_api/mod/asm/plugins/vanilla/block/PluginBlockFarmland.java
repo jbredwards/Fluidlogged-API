@@ -17,6 +17,21 @@ public final class PluginBlockFarmland implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * hasWater: (changes are around line 119)
+         * Old code:
+         * if (worldIn.getBlockState(blockpos$mutableblockpos).getMaterial() == Material.WATER)
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //check for fluidlogged blocks
+         * if (FluidloggedUtils.getFluidOrReal(worldIn, blockpos$mutableblockpos).getMaterial() == Material.WATER)
+         * {
+         *     ...
+         * }
+         */
         if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
             instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.remove(insn);

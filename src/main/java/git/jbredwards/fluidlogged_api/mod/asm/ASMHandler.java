@@ -48,12 +48,13 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new PluginBiomesOPlenty()) //fix BOP fluid block mixing
                 .put("cofh.thermaldynamics.block.BlockTDBase", new PluginThermalDynamics()) //fix fluidlogged duct explosion resistance
                 .put("cofh.thermaldynamics.duct.tiles.TileGrid", new PluginThermalDynamics()) //ray trace now skips fluids
+                .put("crafttweaker.mc1120.block.MCWorldBlock", new PluginCraftTweaker()) //MCWorldBlock.getFluid can read FluidStates
+                .put("exnihilocreatio.barrel.modes.fluid.BarrelModeFluid", new PluginExNihiloCreatio()) //allow "fluid on top" barrel crafting to accept FluidStates
                 .put("io.github.lxgaming.sledgehammer.mixin.core.block.BlockDynamicLiquidMixin", new PluginSledgehammer()) //remove redundant transformer
                 .put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()) //move mixins to asm to prevent crash
-                .put("crafttweaker.mc1120.block.MCWorldBlock", new PluginCraftTweaker()) //MCWorldBlock.getFluid can read FluidStates
                 .put("org.spongepowered.common.mixin.core.entity.EntityMixin", new PluginSpongeForge()) //spongeforge no longer mixins into conflicting methods
-                .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
                 .put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()) //better builders wands compat
+                .put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()) //betweenlands compat
                 .put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()) //wooden bowls can now be filled by using water FluidStates
                 //vanilla (client)
                 .put("net.minecraft.client.multiplayer.WorldClient", new PluginWorldClient()) //non-empty FluidStates call randomDisplayTick & move hardcoded barrier stuff to barrier.randomDisplayTick
@@ -75,10 +76,12 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 .put("net.minecraft.block.BlockDoor", new PluginBlockDoor()) // update upper FluidState & correct canFluidFlow
                 .put("net.minecraft.block.BlockDynamicLiquid", new PluginBlockDynamicLiquid()) //fixes a bunch of liquid interactions while fluidlogged
                 .put("net.minecraft.block.BlockFarmland", new PluginBlockFarmland()) //farmland blocks now recognise water FluidStates
+                .put("net.minecraft.block.BlockGrass", new PluginBlockGrass()) //use World#getBlockLightOpacity for FluidState sensitivity
                 .put("net.minecraft.block.BlockLeaves", new PluginFluidloggableBlocksFlowable()) //for this it makes sense to have the fluid flow from any side
                 .put("net.minecraft.block.BlockLilyPad", new PluginBlockLilyPad()) //lily pads can stay on certain water FluidStates
                 .put("net.minecraft.block.BlockLiquid", new PluginBlockLiquid()) //significantly changes the BlockLiquid class to work with the mod
                 .put("net.minecraft.block.BlockMobSpawner", new PluginFluidloggableBlocksFlowable()) //for this it makes sense to have the fluid flow from any side
+                .put("net.minecraft.block.BlockMycelium", new PluginBlockMycelium()) //use World#getBlockLightOpacity for FluidState sensitivity
                 .put("net.minecraft.block.BlockPistonBase", new PluginBlockPistonBase()) //piston bases are fluidloggable while extended
                 .put("net.minecraft.block.BlockReed", new PluginBlockReed()) //sugar cane blocks now recognise water FluidStates
                 .put("net.minecraft.block.BlockSkull", new PluginBlockSkull()) //wither skulls no longer void the FluidState here when summoning the wither
@@ -128,6 +131,7 @@ public final class ASMHandler implements IFMLLoadingPlugin
                 //vanilla (item)
                 .put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()) //glass bottles can only be filled with water from actual water fluid blocks
                 //vanilla (world)
+                .put("net.minecraft.world.chunk.Chunk", new PluginChunk()) //use FluidState light opacity
                 .put("net.minecraft.world.end.DragonSpawnManager$3", new PluginDragonSpawnManager()) //summoning the ender dragon will now void FluidStates at the pillar locations
                 .put("net.minecraft.world.gen.feature.WorldGenDungeons", new PluginWorldGenDungeons()) //spawner dungeons now void FluidStates when they generate
                 .put("net.minecraft.world.gen.structure.template.Template", new PluginTemplate()) //structures can load saved FluidStates

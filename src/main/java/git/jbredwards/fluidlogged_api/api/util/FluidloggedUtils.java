@@ -4,11 +4,11 @@ import git.jbredwards.fluidlogged_api.mod.Main;
 import git.jbredwards.fluidlogged_api.api.fluid.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.PluginBlock;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.api.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.mod.common.message.FluidStateMessage;
 import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMNatives;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
@@ -67,7 +67,7 @@ public final class FluidloggedUtils
     //if none return input state
     @Nonnull
     public static IBlockState getFluidOrReal(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
-        if(getFluidFromState(here) != null) return here;
+        if(isFluid(here)) return here;
         final FluidState fluidState = FluidState.get(world, pos);
         return fluidState.isEmpty() ? here : fluidState.getState();
     }
@@ -197,7 +197,7 @@ public final class FluidloggedUtils
     //2: returns true if a fluid can flow into this block from the specified side
     public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing side) {
         //config override
-        final @Nullable ConfigHandler.ICanFluidFlowHandler override = ASMNatives.getCanFluidFlow(state.getBlock());
+        final @Nullable ConfigHandler.ICanFluidFlowHandler override = ((PluginBlock.Accessor)state.getBlock()).getCanFluidFlow();
         if(override != null) return override.canFluidFlow(world, pos, state, side);
         //built-in behavior
         return (state.getBlock() instanceof IFluidloggable)
@@ -236,6 +236,10 @@ public final class FluidloggedUtils
         if(material == Material.WATER) return FluidRegistry.WATER;
         else return material == Material.LAVA ? FluidRegistry.LAVA : null;
     }
+
+    //return true if the input state or block is a fluid
+    public static boolean isFluid(@Nonnull Block fluid) { return getFluidFromBlock(fluid) != null; }
+    public static boolean isFluid(@Nonnull IBlockState fluid) { return getFluidFromState(fluid) != null; }
 
     //return true if the fluid not yet in the world can be fluidlogged
     public static boolean isFluidloggableFluid(@Nullable Block fluid) {
