@@ -4,23 +4,20 @@ import com.google.common.primitives.Ints;
 import com.google.gson.*;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.PluginBlock;
-import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
-import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.block.Block;
+import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.nbt.NBTException;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Loader;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -97,12 +94,12 @@ public final class ConfigHandler
                         "\n" +
                         "#whitelist for adding new fluidloggable blocks (this is in addition to the defaults)\n" +
                         "#info about the format for this can be found on this mod's wiki:\n" +
-                        "#https://github.com/CleanroomMC/Fluidlogged-API/wiki/Config\n" +
+                        "#https://github.com/jbredwards/Fluidlogged-API/wiki/Config\n" +
                         "whitelist:[],\n" +
                         "\n" +
                         "#blacklist blocks from the defaults\n" +
                         "#info about the format for this can be found on this mod's wiki:\n" +
-                        "#https://github.com/CleanroomMC/Fluidlogged-API/wiki/Config\n" +
+                        "#https://github.com/jbredwards/Fluidlogged-API/wiki/Config\n" +
                         "blacklist:[],\n" +
                         "\n" +
                         "#otuput to the console for every ASM transformation, useful for debugging\n" +
@@ -136,7 +133,7 @@ public final class ConfigHandler
 
                 if(ConfigPredicateDeserializer.containsMissingEntries) {
                     ConfigPredicateDeserializer.containsMissingEntries = false;
-                    LOGGER.info("If you're unclear on how to format the whitelist or blacklist of the config, check out this mod's config wiki: https://github.com/CleanroomMC/Fluidlogged-API/wiki/Config");
+                    LOGGER.info("If you're unclear on how to format the whitelist or blacklist of the config, check out this mod's config wiki: https://github.com/jbredwards/Fluidlogged-API/wiki/Config");
                 }
             }
 
@@ -265,22 +262,21 @@ public final class ConfigHandler
     {
         @Nonnull protected final Block block;
         @Nonnull protected final boolean[] metadata;
-        @Nonnull protected final Object2BooleanMap<Fluid> validFluids;
+        @Nonnull protected final Set<Fluid> validFluids;
 
-        public ConfigPredicate(@Nonnull Block block, @Nonnull int[] metadata, @Nonnull Fluid[] validFluids) {
+        public ConfigPredicate(@Nonnull Block block, @Nonnull int[] metadata, @Nonnull Set<Fluid> validFluids) {
             this.block = block;
-            this.validFluids = new Object2BooleanOpenHashMap<>();
-            this.metadata = new boolean[metadata.length == 0 ? 0 : Ints.max(metadata)];
+            this.validFluids = validFluids;
+            this.metadata = new boolean[metadata.length == 0 ? 0 : (Ints.max(metadata) + 1)];
             Arrays.fill(this.metadata, false);
 
             for(int meta : metadata) this.metadata[meta] = true;
-            for(Fluid fluid : validFluids) this.validFluids.put(fluid, true);
         }
 
         @Override
         public boolean test(@Nonnull IBlockState stateIn, @Nullable Fluid fluidIn) {
             //check fluidIn
-            if(fluidIn != null && !validFluids.isEmpty() && !validFluids.containsKey(fluidIn))
+            if(fluidIn != null && !validFluids.isEmpty() && !validFluids.contains(fluidIn))
                 return false;
 
             //check stateIn
@@ -292,14 +288,16 @@ public final class ConfigHandler
     public static class ConfigPredicateBuilder
     {
         @Nonnull protected final String blockName;
-        @Nonnull protected final int[] metadata;
+        @Nonnull protected final IntSet metadata;
+        @Nonnull protected final JsonObject[] states;
         @Nonnull protected final String[] fluids;
         @Nonnull protected final String[] fluidTags;
         @Nullable protected final Boolean canFluidFlow;
         protected final boolean useDeprecatedSideCheck;
 
-        public ConfigPredicateBuilder(@Nonnull String blockName, @Nonnull int[] metadata, @Nonnull String[] fluids, @Nonnull String[] fluidTags, @Nullable Boolean canFluidFlow, boolean useDeprecatedSideCheck) {
+        public ConfigPredicateBuilder(@Nonnull String blockName, @Nonnull IntSet metadata, @Nonnull JsonObject[] states, @Nonnull String[] fluids, @Nonnull String[] fluidTags, @Nullable Boolean canFluidFlow, boolean useDeprecatedSideCheck) {
             this.metadata = metadata;
+            this.states = states;
             this.fluids = fluids;
             this.fluidTags = fluidTags;
             this.canFluidFlow = canFluidFlow;
@@ -313,6 +311,35 @@ public final class ConfigHandler
             if(block == null) {
                 LOGGER.warn(String.format("Unable to parse block from blockId: %s, skipping...", blockName));
                 return null;
+            }
+
+            //handle states
+            for(JsonObject stateJson : states) {
+                //sets up the properties that the state must have
+                final List<Map.Entry<IProperty<?>, String[]>> validProperties = new ArrayList<>();
+                for(Map.Entry<String, JsonElement> entry : stateJson.entrySet()) {
+                    final IProperty<?> property = block.getBlockState().getProperty(entry.getKey());
+                    if(property != null) {
+                        final JsonElement validValuesJson = entry.getValue();
+                        final Set<String> validValues = new HashSet<>();
+                        if(!validValuesJson.isJsonArray()) validValues.add(validValuesJson.getAsString());
+                        else validValuesJson.getAsJsonArray().forEach(element -> validValues.add(element.getAsString()));
+                        validProperties.add(Pair.of(property, validValues.toArray(new String[0])));
+                    }
+
+                    //unknown property property
+                    else LOGGER.warn(String.format(
+                            "Unable to parse block property for %s: \"%s\", skipping property...",
+                            blockName, entry.getKey()
+                    ));
+                }
+
+                //serialize all valid states
+                if(!validProperties.isEmpty()) {
+                    for(IBlockState state : block.getBlockState().getValidStates()) {
+                        gatherStatesMetadata(validProperties, 0, validProperties.get(0).getKey(), state, metadata);
+                    }
+                }
             }
 
             //handle fluids
@@ -334,7 +361,17 @@ public final class ConfigHandler
                 else LOGGER.warn(String.format("Unable to parse tag from fluidTags: %s, skipping...", id));
             }
 
-            return new ConfigPredicate(block, metadata, validFluids.toArray(new Fluid[0]));
+            return new ConfigPredicate(block, metadata.toIntArray(), validFluids);
+        }
+
+        <T extends Comparable<T>> void gatherStatesMetadata(@Nonnull List<Map.Entry<IProperty<?>, String[]>> validProperties, int propertyIndex, @Nonnull IProperty<T> property, @Nonnull IBlockState stateIn, @Nonnull IntSet metadata) {
+            for(String valueStr : validProperties.get(propertyIndex).getValue()) {
+                property.parseValue(valueStr).toJavaUtil().ifPresent(value -> {
+                    final IBlockState state = stateIn.withProperty(property, value);
+                    if(propertyIndex - 1 == validProperties.size()) metadata.add(state.getBlock().getMetaFromState(state));
+                    else gatherStatesMetadata(validProperties, propertyIndex + 1, validProperties.get(propertyIndex + 1).getKey(), state, metadata);
+                });
+            }
         }
     }
 
@@ -342,69 +379,77 @@ public final class ConfigHandler
     public static class ConfigPredicateDeserializer implements JsonDeserializer<ConfigPredicateBuilder>
     {
         @Nonnull
-        protected static final ConfigPredicateBuilder EMPTY = new ConfigPredicateBuilder("", new int[0], new String[0], new String[0], null, false);
+        protected static final ConfigPredicateBuilder EMPTY = new ConfigPredicateBuilder("", new IntOpenHashSet(), new JsonObject[0], new String[0], new String[0], null, false);
         protected static boolean containsMissingEntries = false;
 
         @Nonnull
         @Override
-        public ConfigPredicateBuilder deserialize(@Nonnull JsonElement json, @Nullable Type typeOfT, @Nullable JsonDeserializationContext context) throws JsonParseException {
-            try {
-                final NBTTagCompound nbt = JsonToNBT.getTagFromJson(json.toString());
-                if(nbt.hasKey("blockId", Constants.NBT.TAG_STRING)) {
-                    final String blockName = nbt.getString("blockId");
-                    final Set<String> fluids = new HashSet<>();
-                    final Set<String> fluidTags = new HashSet<>();
-                    int[] metadata = new int[0];
-                    Boolean canFluidFlow = null;
-                    boolean useDeprecatedSideCheck = false;
-
-                    //get state meta
-                    if(nbt.hasKey("metadata", Constants.NBT.TAG_INT_ARRAY))
-                        metadata = nbt.getIntArray("metadata");
-
-                    //sometimes vanilla recognises the int array as a list for some reason
-                    //this is the fix for now
-                    else if(nbt.hasKey("metadata", Constants.NBT.TAG_LIST)) {
-                        NBTTagList metaList = nbt.getTagList("metadata", Constants.NBT.TAG_INT);
-                        metadata = new int[metaList.tagCount()];
-
-                        for(int i = 0; i < metadata.length; i++)
-                            metadata[i] = metaList.getIntAt(i);
-                    }
-
-                    //get fluids
-                    if(nbt.hasKey("fluids", Constants.NBT.TAG_LIST)) {
-                        final NBTTagList list = nbt.getTagList("fluids", Constants.NBT.TAG_STRING);
-                        for(int i = 0; i < list.tagCount(); i++) fluids.add(list.getStringTagAt(i));
-                    }
-                    
-                    //get fluid tags
-                    if(nbt.hasKey("fluidTags", Constants.NBT.TAG_LIST)) {
-                        final NBTTagList list = nbt.getTagList("fluidTags", Constants.NBT.TAG_STRING);
-                        for(int i = 0; i < list.tagCount(); i++) fluidTags.add(list.getStringTagAt(i));
-                    }
-
-                    //get canFluidFlow
-                    if(nbt.hasKey("canFluidFlow", Constants.NBT.TAG_BYTE))
-                        canFluidFlow = nbt.getBoolean("canFluidFlow");
-
-                    //get useDeprecatedSideCheck
-                    if(nbt.hasKey("useDeprecatedSideCheck", Constants.NBT.TAG_BYTE))
-                        useDeprecatedSideCheck = nbt.getBoolean("useDeprecatedSideCheck");
-
-                    return new ConfigPredicateBuilder(blockName, metadata, fluids.toArray(new String[0]), fluidTags.toArray(new String[0]), canFluidFlow, useDeprecatedSideCheck);
-                }
-
+        public ConfigPredicateBuilder deserialize(@Nonnull JsonElement jsonIn, @Nullable Type typeOfT, @Nullable JsonDeserializationContext context) throws JsonParseException {
+            if(jsonIn.isJsonObject()) {
+                final JsonObject json = jsonIn.getAsJsonObject();
                 //no blockId specified
-                else {
-                    LOGGER.warn(String.format("required \"blockId\" string argument not found within args: %s, skipping...", nbt));
+                if(!json.has("blockId")) {
+                    LOGGER.warn(String.format("required \"blockId\" string argument not found within args: %s, skipping...", json.toString()));
                     containsMissingEntries = true;
                     return EMPTY;
                 }
+
+                //get valid metadata values
+                final IntSet metadata = new IntOpenHashSet();
+                if(json.has("metadata")) {
+                    final JsonElement metadataJson = json.get("metadata");
+                    //allow one value to be provided
+                    if(!metadataJson.isJsonArray()) metadata.add(metadataJson.getAsInt());
+                    //allow multiple values to be provided
+                    else metadataJson.getAsJsonArray().forEach(element -> metadata.add(element.getAsInt()));
+                }
+
+                //get valid state values
+                final Set<JsonObject> states = new HashSet<>();
+                if(json.has("states")) {
+                    final JsonElement statesJson = json.get("states");
+                    if(!statesJson.isJsonArray()) states.add(statesJson.getAsJsonObject());
+                    else statesJson.getAsJsonArray().forEach(element -> states.add(element.getAsJsonObject()));
+                }
+
+                //get fluids
+                final Set<String> fluids = new HashSet<>();
+                if(json.has("fluids")) {
+                    final JsonElement fluidsJson = json.get("fluids");
+                    //allow one value to be provided
+                    if(!fluidsJson.isJsonArray()) fluids.add(fluidsJson.getAsString());
+                    //allow multiple values to be provided
+                    else fluidsJson.getAsJsonArray().forEach(element -> fluids.add(element.getAsString()));
+                }
+
+                //get fluid tags
+                final Set<String> fluidTags = new HashSet<>();
+                if(json.has("fluidTags")) {
+                    final JsonElement fluidTagsJson = json.get("fluidTags");
+                    //allow one value to be provided
+                    if(!fluidTagsJson.isJsonArray()) fluidTags.add(fluidTagsJson.getAsString());
+                    //allow multiple values to be provided
+                    else fluidTagsJson.getAsJsonArray().forEach(element -> fluidTags.add(element.getAsString()));
+                }
+
+                //get canFluidFlow
+                final Boolean canFluidFlow = json.has("canFluidFlow") ? json.get("canFluidFlow").getAsBoolean() : null;
+
+                //get useDeprecatedSideCheck
+                final boolean useDeprecatedSideCheck = json.has("useDeprecatedSideCheck")
+                        && json.get("useDeprecatedSideCheck").getAsBoolean();
+
+                return new ConfigPredicateBuilder(
+                        json.get("blockId").getAsString(), metadata,
+                        states.toArray(new JsonObject[0]),
+                        fluids.toArray(new String[0]),
+                        fluidTags.toArray(new String[0]),
+                        canFluidFlow, useDeprecatedSideCheck);
             }
 
-            //invalid json, probably
-            catch(NBTException e) { throw new JsonParseException(e); }
+            LOGGER.warn(String.format("bad json %s, skipping...", jsonIn.toString()));
+            containsMissingEntries = true;
+            return EMPTY;
         }
     }
 }

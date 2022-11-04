@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
 
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import net.minecraft.util.EnumFacing;
 import org.objectweb.asm.tree.*;
 

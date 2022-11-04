@@ -2,7 +2,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.modded;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -22,12 +22,35 @@ public final class PluginBetweenlands implements IASMPlugin
 {
     @Override
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
-        if(method.name.equals(obfuscated ? "func_176200_f" : "isReplaceable")) return 1;
-        else return method.name.equals("place") ? 2 : 0;
+        if(method.name.equals("<init>")) return 1;
+        else if(method.name.equals(obfuscated ? "func_176200_f" : "isReplaceable")) return 2;
+        else return method.name.equals("place") ? 3 : 0;
     }
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * Constructor:
+         * Old code:
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //betweenlands swamp water can create sources
+         * {
+         *     ...
+         *     this.canCreateSources = true;
+         * }
+         */
+        if(index == 1 && insn.getOpcode() == INVOKESPECIAL) {
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new InsnNode(ICONST_1));
+            list.add(new FieldInsnNode(PUTFIELD, "net/minecraftforge/fluids/BlockFluidClassic", "canCreateSources", "Z"));
+            instructions.insert(insn, list);
+            return true;
+        }
         /*
          * isReplaceable:
          * Old code:
@@ -39,7 +62,7 @@ public final class PluginBetweenlands implements IASMPlugin
          * //instead of calling FluidloggedUtils#getFluidOrReal
          * IBlockState state = this.getDefaultState();
          */
-        if(index == 1 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
+        else if(index == 2 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
             //add this.getDefaultState()
             instructions.insert(insn, new MethodInsnNode(INVOKESPECIAL, "net/minecraft/block/Block", obfuscated ? "func_176223_P" : "getDefaultState", "()Lnet/minecraft/block/state/IBlockState;", false));
             instructions.insert(insn, new VarInsnNode(ALOAD, 0));
@@ -59,7 +82,7 @@ public final class PluginBetweenlands implements IASMPlugin
          * //allow the betweenlands place method to fluidlog blocks if possible
          * Hooks.fixBetweenlandsPlace(world, pos, this.getDefaultState(), 11, this, state);
          */
-        else if(index == 2) {
+        else if(index == 3) {
             if(checkMethod(insn, "destroyBlockOnFluidPlacement")) removeFrom(instructions, insn, -2);
             else if(checkMethod(insn, obfuscated ? "func_180501_a" : "setBlockState")) {
                 instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));

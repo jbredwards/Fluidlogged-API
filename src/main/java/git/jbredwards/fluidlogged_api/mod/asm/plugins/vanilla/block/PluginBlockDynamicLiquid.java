@@ -3,7 +3,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 import com.google.common.primitives.Ints;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidBase;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidClassic;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;

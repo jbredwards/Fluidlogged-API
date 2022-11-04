@@ -130,9 +130,6 @@ public final class ASMHooks
                 : here.getBlock().getStateAtViewpoint(here, world, pos, viewpoint);
     }
 
-    //PluginBlockPistonBase
-    public static boolean isPistonFluidloggable(@Nonnull IBlockState state) { return state.getValue(BlockPistonBase.EXTENDED); }
-
     //PluginBlockSlab
     public static boolean isSlabFluidloggable(@Nonnull BlockSlab slab) { return !slab.isDouble(); }
 

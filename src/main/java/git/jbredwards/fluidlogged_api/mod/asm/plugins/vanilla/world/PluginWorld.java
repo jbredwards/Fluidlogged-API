@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import org.apache.logging.log4j.core.util.Loader;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -63,8 +64,8 @@ public final class PluginWorld implements IASMPlugin
         //setBlockState, line 401
         if(index == 1 && checkMethod(insn, obfuscated ? "func_177436_a" : "setBlockState", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Lnet/minecraft/block/state/IBlockState;")) {
             final InsnList list = new InsnList();
-            //oldState local var
-            list.add(new VarInsnNode(ALOAD, 6));
+            //oldState local var, check for Galaxy Space mod cause that mod shifts local variable indexes, gross...
+            list.add(new VarInsnNode(ALOAD, Loader.isClassAvailable("galaxyspace.core.hooklib.minecraft.HookLibPlugin") ? 7 : 6));
             //params
             list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ILOAD, 3));
