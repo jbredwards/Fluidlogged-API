@@ -195,14 +195,14 @@ public final class FluidloggedUtils
     //has two purposes:
     //1: returns true if the contained fluid can flow from the specified side
     //2: returns true if a fluid can flow into this block from the specified side
-    public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing side) {
+    public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull EnumFacing side) {
         //config override
-        final @Nullable ConfigHandler.ICanFluidFlowHandler override = ((PluginBlock.Accessor)state.getBlock()).getCanFluidFlow();
-        if(override != null) return override.canFluidFlow(world, pos, state, side);
+        final @Nullable ConfigHandler.ICanFluidFlowHandler override = ((PluginBlock.Accessor)here.getBlock()).getCanFluidFlow();
+        if(override != null) return override.canFluidFlow(world, pos, here, side);
         //built-in behavior
-        return (state.getBlock() instanceof IFluidloggable)
-                ? ((IFluidloggable)state.getBlock()).canFluidFlow(world, pos, state, side)
-                : state.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
+        return (here.getBlock() instanceof IFluidloggable)
+                ? ((IFluidloggable)here.getBlock()).canFluidFlow(world, pos, here, side)
+                : here.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
     //checks if two fluids are compatible

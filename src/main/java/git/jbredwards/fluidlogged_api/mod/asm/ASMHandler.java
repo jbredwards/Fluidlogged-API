@@ -48,6 +48,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()); //move mixins to asm to prevent crash
             plugins.put("org.spongepowered.common.mixin.core.block.BlockLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.entity.EntityMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
+            plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockFluidBase", new PluginPlusTweaks()); //fix crash with PlusTweaks mod fluid interactions
+            plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockLiquid", new PluginPlusTweaks()); //fix crash with PlusTweaks mod fluid interactions
             plugins.put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()); //better builders wands compat
             plugins.put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()); //betweenlands compat
             plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); //wooden bowls can now be filled by using water FluidStates

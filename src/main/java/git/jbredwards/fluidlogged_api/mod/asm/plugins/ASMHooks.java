@@ -67,69 +67,6 @@ public final class ASMHooks
     //VANILLA
     //=======
 
-    //PluginBlockLiquid
-    public static boolean checkForMixing(@Nonnull BlockLiquid block, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState stateIn) {
-        if(stateIn.getMaterial() == Material.LAVA) {
-            //get state here, since this method can also be executed from a FluidState
-            final IBlockState here = worldIn.getBlockState(pos);
-            if(here.getBlock().isReplaceable(worldIn, pos)) {
-                for(EnumFacing facing : values()) {
-                    if(facing == DOWN  || !canFluidFlow(worldIn, pos, here, facing))
-                        continue;
-
-                    BlockPos offset = pos.offset(facing);
-                    IBlockState state = worldIn.getBlockState(offset);
-
-                    if(!canFluidFlow(worldIn, offset, state, facing.getOpposite())) continue;
-                    FluidState fluidState = getFluidState(worldIn, offset, state);
-
-                    if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) {
-                        final int level = stateIn.getValue(BlockLiquid.LEVEL);
-
-                        worldIn.setBlockState(pos, ForgeEventFactory.fireFluidPlaceBlockEvent(worldIn, pos, pos, level == 0 ? Blocks.OBSIDIAN.getDefaultState() : Blocks.COBBLESTONE.getDefaultState()));
-                        block.triggerMixEffects(worldIn, pos);
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    //PluginBlockLiquid
-    public static float getBlockLiquidHeight(@Nonnull IBlockState state, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
-        final IBlockState up = worldIn.getBlockState(pos.up());
-        final boolean flag = isCompatibleFluid(getFluidState(worldIn, pos.up(), up).getFluid(), getFluidFromState(state))
-                && canFluidFlow(worldIn, pos.up(), up, DOWN)
-                && canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), UP);
-
-        return flag ? 1 : 1 - (BlockLiquid.getLiquidHeightPercent(state.getValue(BlockLiquid.LEVEL)) - 1f/9);
-    }
-
-    //PluginBlockLiquid helper, exists to fix issue#59
-    public static double getSlopeAngle(@Nonnull BlockLiquid block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-        final Vec3d vec = block.getFlow(world, pos, world.getBlockState(pos));
-        return vec.x == 0 && vec.z == 0 ? -1000 : MathHelper.atan2(vec.z, vec.x) - Math.PI / 2;
-    }
-
-    //PluginBlockLiquid
-    @Nonnull
-    public static Fluid getLiquid(@Nonnull Material material) { return material == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA; }
-
-    //PluginBlockLiquid
-    public static boolean canDrain(@Nonnull World world, @Nonnull BlockPos pos) { return getFluidState(world, pos).getLevel() == 0; }
-
-    //PluginBlockLiquid
-    @Nonnull
-    public static IBlockState getStateAtViewpoint(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Vec3d viewpoint) {
-        if(PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), (IExtendedBlockState)state.getBlock().getExtendedState(state, world, pos), world, pos, viewpoint)) return state;
-        //return the other block here if the player isn't within the fluid
-        final IBlockState here = world.getBlockState(pos);
-        return here == state ? Blocks.AIR.getDefaultState()
-                : here.getBlock().getStateAtViewpoint(here, world, pos, viewpoint);
-    }
-
     //PluginBlockSlab
     public static boolean isSlabFluidloggable(@Nonnull BlockSlab slab) { return !slab.isDouble(); }
 
