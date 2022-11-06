@@ -1,9 +1,5 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins;
 
-import com.google.common.primitives.Ints;
-import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidBase;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidClassic;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.BFReflector;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.OFReflector;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
@@ -12,7 +8,6 @@ import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.material.MaterialLogic;
-import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -26,7 +21,6 @@ import net.minecraft.crash.CrashReport;
 import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.EntityWaterMob;
-import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -40,10 +34,7 @@ import net.minecraft.world.gen.structure.template.PlacementSettings;
 import net.minecraft.world.gen.structure.template.Template;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.common.ForgeHooks;
-import net.minecraftforge.common.property.IExtendedBlockState;
-import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.*;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -66,75 +57,6 @@ public final class ASMHooks
     //=======
     //VANILLA
     //=======
-
-    //PluginBlockSlab
-    public static boolean isSlabFluidloggable(@Nonnull BlockSlab slab) { return !slab.isDouble(); }
-
-    //PluginBlockSponge
-    private static boolean available = true;
-    public static boolean absorb(@Nonnull World world, @Nonnull BlockPos origin) {
-        //temporary fix for strange update bug
-        if(available) {
-            available = false;
-            final Queue<Pair<BlockPos, Integer>> queue = new LinkedList<>();
-            queue.add(Pair.of(origin, 0));
-            int absorbed = 0;
-
-            while(!queue.isEmpty()) {
-                final Pair<BlockPos, Integer> entry = queue.poll();
-                final BlockPos pos = entry.getKey();
-                final int distance = entry.getValue();
-
-                for(EnumFacing facing : values()) {
-                    final BlockPos offset = pos.offset(facing);
-                    final FluidState fluidState = getFluidState(world, offset);
-
-                    if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) {
-                        //don't drain bad fluid blocks (looking at you BOP kelp)
-                        if(fluidState.isValid()) {
-                            fluidState.getFluidBlock().drain(world, offset, true);
-                            if(distance < 6) queue.add(Pair.of(offset, distance + 1));
-                            absorbed++;
-                        }
-                        //drain bad fluid blocks
-                        else if(world.setBlockToAir(pos)) {
-                            world.playEvent(Constants.WorldEvents.BREAK_BLOCK_EFFECTS, offset, Block.getStateId(fluidState.getState()));
-                            fluidState.getBlock().dropBlockAsItem(world, offset, fluidState.getState(), 0);
-                            if(distance < 6) queue.add(Pair.of(offset, distance + 1));
-                            absorbed++;
-                        }
-                    }
-                }
-            }
-
-            available = true;
-            return absorbed > 0;
-        }
-
-        return false;
-    }
-
-    //PluginBlockTrapDoor
-    public static boolean canTrapDoorFluidFlow(IBlockState here, EnumFacing side) {
-        final boolean isOpen = here.getValue(BlockTrapDoor.OPEN);
-
-        if(side.getAxis().isHorizontal()) return !isOpen || here.getValue(BlockTrapDoor.FACING).getOpposite() != side;
-        else if(side == UP) return isOpen || here.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.BOTTOM;
-        else return isOpen || here.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.TOP;
-    }
-
-    //PluginBlockTorch
-    @Nonnull private static final Material TORCH = new MaterialLogic(Material.CIRCUITS.getMaterialMapColor()) {
-        @Nonnull
-        @Override
-        public Material setNoPushMobility() { return super.setNoPushMobility(); }
-    }.setNoPushMobility();
-
-    //PluginBlockTorch
-    @Nonnull
-    public static Material getTorchMaterial(@Nonnull Material material, @Nonnull Block block) {
-        return !ConfigHandler.fluidsBreakTorches || block instanceof BlockRedstoneTorch ? material : TORCH;
-    }
 
     //PluginChunkCache
     @Nullable
@@ -208,9 +130,6 @@ public final class ASMHooks
         return fluidState.isEmpty() || fluidState.getMaterial() != Material.LAVA
             || !canFluidFlow(world, pos, here, UP);
     }
-
-    //PluginMaterialLogic
-    public static boolean isMaterialCircuit(@Nonnull Material material) { return material == Material.CIRCUITS; }
 
     //PluginParticle
     public static int fixParticleBrightness(@Nonnull World world, @Nonnull BlockPos pos) {
