@@ -53,16 +53,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()); //better builders wands compat
             plugins.put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()); //betweenlands compat
             plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); //wooden bowls can now be filled by using water FluidStates
-            //vanilla (client)
-            plugins.put("net.minecraft.client.multiplayer.WorldClient", new PluginWorldClient()); //non-empty FluidStates call randomDisplayTick & move hardcoded barrier stuff to barrier.randomDisplayTick
-            plugins.put("net.minecraft.client.particle.Particle", new PluginParticle()); //fix particle lighting while within fluidlogged blocks
-            plugins.put("net.minecraft.client.particle.ParticleBubble", new PluginWaterParticles()); //this doesn't instantly disappear while inside water FluidStates
-            plugins.put("net.minecraft.client.particle.ParticleDrip", new PluginWaterParticles()); //this doesn't instantly disappear while inside water FluidStates
-            plugins.put("net.minecraft.client.particle.ParticleRain", new PluginParticleRain()); //fix all fluid-related rain collisions
-            plugins.put("net.minecraft.client.particle.ParticleSuspend", new PluginWaterParticles()); //this doesn't instantly disappear while inside water FluidStates
-            plugins.put("net.minecraft.client.renderer.chunk.RenderChunk", new PluginRenderChunk()); //allows the game to render FluidStates
-            plugins.put("net.minecraft.client.renderer.ActiveRenderInfo", new PluginActiveRenderInfo()); //get block fog color from possible FluidState
-            plugins.put("net.minecraft.client.renderer.EntityRenderer", new PluginEntityRenderer()); //fixes graphical underwater block selection; lava FluidStates now emit smoke while raining; fixes FluidState fog color
             //vanilla (blocks)
             plugins.put("net.minecraft.block.material.MaterialLogic", new PluginMaterialLogic()); //prevents fluids from destroying "circuit" blocks
             plugins.put("net.minecraft.block.Block", new PluginBlock()); //fixes some lighting, canSustainPlant, and explosion related issues
@@ -117,6 +107,16 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.block.BlockStairs", new PluginFluidloggableBlocks());
             plugins.put("net.minecraft.block.BlockTripWire", new PluginFluidloggableBlocks());
             plugins.put("net.minecraft.block.BlockTripWireHook", new PluginFluidloggableBlocks());
+            //vanilla (client)
+            plugins.put("net.minecraft.client.multiplayer.WorldClient", new PluginWorldClient()); //non-empty FluidStates call randomDisplayTick & move hardcoded barrier stuff to barrier.randomDisplayTick
+            plugins.put("net.minecraft.client.particle.Particle", new PluginParticle()); //fix particle lighting while within fluidlogged blocks
+            plugins.put("net.minecraft.client.particle.ParticleBubble", new PluginWaterParticles()); //this doesn't instantly disappear while inside water FluidStates
+            plugins.put("net.minecraft.client.particle.ParticleDrip", new PluginWaterParticles()); //this doesn't instantly disappear while inside water FluidStates
+            plugins.put("net.minecraft.client.particle.ParticleRain", new PluginParticleRain()); //fix all fluid-related rain collisions
+            plugins.put("net.minecraft.client.particle.ParticleSuspend", new PluginWaterParticles()); //this doesn't instantly disappear while inside water FluidStates
+            plugins.put("net.minecraft.client.renderer.chunk.RenderChunk", new PluginRenderChunk()); //allows the game to render FluidStates
+            plugins.put("net.minecraft.client.renderer.ActiveRenderInfo", new PluginActiveRenderInfo()); //get block fog color from possible FluidState
+            plugins.put("net.minecraft.client.renderer.EntityRenderer", new PluginEntityRenderer()); //fixes graphical underwater block selection; lava FluidStates now emit smoke while raining; fixes FluidState fog color
             //vanilla (entity)
             plugins.put("net.minecraft.entity.ai.EntityAIPanic", new PluginEntityAIPanic()); //water FluidStates are now seen as water blocks
             plugins.put("net.minecraft.entity.ai.RandomPositionGenerator", new PluginRandomPositionGenerator()); //water FluidStates are now seen as water blocks

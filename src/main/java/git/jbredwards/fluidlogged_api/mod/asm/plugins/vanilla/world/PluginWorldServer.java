@@ -1,9 +1,20 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.crash.CrashReport;
+import net.minecraft.crash.CrashReportCategory;
+import net.minecraft.util.ReportedException;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.NextTickListEntry;
+import net.minecraft.world.WorldServer;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+
+import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.getFluidFromBlock;
 
 /**
  * FluidStates now get ticked
@@ -76,5 +87,49 @@ public final class PluginWorldServer implements IASMPlugin
         }
 
         return false;
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Hooks
+    {
+        @Nonnull
+        public static IBlockState updateBlockTick(@Nonnull WorldServer world, @Nonnull BlockPos pos, @Nonnull Block compare) {
+            final IBlockState here = world.getBlockState(pos);
+            //actual block
+            if(Block.isEqualTo(compare, here.getBlock())) return here;
+            //fluid
+            else if(getFluidFromBlock(compare) != null) {
+                final FluidState fluidState = FluidState.get(world, pos);
+                if(!fluidState.isEmpty() && Block.isEqualTo(compare, fluidState.getBlock())) return fluidState.getState();
+            }
+            //default
+            return here;
+        }
+
+        public static void updateBlocks(@Nonnull WorldServer world, @Nonnull BlockPos pos) {
+            final FluidState fluidState = FluidState.get(world, pos);
+            if(!fluidState.isEmpty() && fluidState.getBlock().getTickRandomly())
+                fluidState.getBlock().randomTick(world, pos, fluidState.getState(), world.rand);
+
+            //restore old code
+            world.profiler.endSection();
+        }
+
+        public static boolean tickUpdates(boolean flag, @Nonnull WorldServer world, @Nonnull NextTickListEntry entry) {
+            if(getFluidFromBlock(entry.getBlock()) != null) {
+                final FluidState fluidState = FluidState.get(world, entry.position);
+                if(!fluidState.isEmpty() && Block.isEqualTo(fluidState.getBlock(), entry.getBlock())) {
+                    try { fluidState.getBlock().updateTick(world, entry.position, fluidState.getState(), world.rand); }
+                    catch(Throwable throwable) {
+                        final CrashReport report = CrashReport.makeCrashReport(throwable, "Exception while ticking a fluid");
+                        CrashReportCategory.addBlockInfo(report.makeCategory("Fluid being ticked"), entry.position, fluidState.getState());
+
+                        throw new ReportedException(report);
+                    }
+                }
+            }
+
+            return flag;
+        }
     }
 }

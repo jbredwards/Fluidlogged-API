@@ -64,14 +64,11 @@ public final class PluginBlockConcretePowder implements IASMPlugin
          *     ...
          * }
          */
-        else if(index == 2 && insn.getOpcode() == INVOKEINTERFACE) {
-            //EnumFacing local var
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 8));
-            //add new
-            instructions.insertBefore(insn, genMethodNode("tryTouchWater", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z"));
-            ((JumpInsnNode)getNext(insn, 3)).setOpcode(IFEQ);
-            //remove old
-            removeFrom(instructions, insn, 2);
+        else if(index == 2 && checkField(insn, obfuscated ? "field_151586_h" : "WATER")) {
+            ((JumpInsnNode)insn.getNext()).setOpcode(IFEQ);
+            instructions.insert(insn, genMethodNode("tryTouchWater", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z"));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 8));
+            removeFrom(instructions, insn, -2);
             return true;
         }
 

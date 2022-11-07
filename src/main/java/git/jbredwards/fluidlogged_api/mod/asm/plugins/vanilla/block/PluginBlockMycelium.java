@@ -35,7 +35,7 @@ public final class PluginBlockMycelium implements IASMPlugin
              */
             if(getPrevious(insn, 4).getOpcode() == INVOKEVIRTUAL) {
                 instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/world/World", "getBlockLightOpacity", "(Lnet/minecraft/util/math/BlockPos;)I", false));
-                removeFrom(instructions, insn, 4);
+                removeFrom(instructions, insn, -4);
             }
             /*
              * updateTick (changes are around line 61):
@@ -68,9 +68,9 @@ public final class PluginBlockMycelium implements IASMPlugin
          * //this variable is no longer used, change to null to improve performance
          * IBlockState iblockstate1 = null;
          */
-        else if(insn.getNext().getOpcode() == ASTORE && ((VarInsnNode)insn.getNext()).var == 8) {
+        else if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState") && insn.getPrevious().getOpcode() == INVOKEVIRTUAL && insn.getNext().getOpcode() != INVOKEINTERFACE) {
             instructions.insert(insn, new InsnNode(ACONST_NULL));
-            removeFrom(instructions, insn, 3);
+            removeFrom(instructions, insn, -3);
         }
 
         return false;

@@ -522,6 +522,9 @@ public final class PluginBlockLiquid implements IASMPlugin
         return false;
     }
 
+    @Override
+    public boolean recalcFrames(boolean obfuscated) { return true; }
+
     @SuppressWarnings("unused")
     public static final class Hooks
     {
@@ -588,12 +591,13 @@ public final class PluginBlockLiquid implements IASMPlugin
         }
 
         @Nonnull
-        public static Supplier<IBlockState> getHereSuppler(@Nonnull World world, @Nonnull BlockPos pos) {
+        public static Supplier<IBlockState> getHereSupplier(@Nonnull World world, @Nonnull BlockPos pos) {
             return new Supplier<IBlockState>() {
                 IBlockState here;
 
+                @Nonnull
                 @Override
-                public IBlockState get() { return here == null ? here = world.getBlockState(pos) : null; }
+                public IBlockState get() { return here == null ? here = world.getBlockState(pos) : here; }
             };
         }
 

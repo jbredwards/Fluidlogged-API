@@ -1,9 +1,12 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.chunk.Chunk;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * fix lighting bugs
@@ -55,5 +58,16 @@ public final class PluginChunkCache implements IASMPlugin
         );
 
         return true;
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Hooks
+    {
+        @Nullable
+        public static Chunk getChunkFromChunkCache(@Nonnull BlockPos pos, @Nonnull Chunk[][] chunkArray, int chunkX, int chunkZ) {
+            final int x = (pos.getX() >> 4) - chunkX;
+            final int z = (pos.getZ() >> 4) - chunkZ;
+            return x >= 0 && x < chunkArray.length && z >= 0 && z < chunkArray[x].length ? chunkArray[x][z] : null;
+        }
     }
 }

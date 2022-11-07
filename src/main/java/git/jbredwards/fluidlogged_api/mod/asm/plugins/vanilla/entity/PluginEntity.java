@@ -1,9 +1,24 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.passive.EntityWaterMob;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
+import net.minecraftforge.common.ForgeHooks;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.getFluidFromBlock;
+import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.getFluidState;
 
 /**
  *
@@ -66,5 +81,61 @@ public final class PluginEntity implements IASMPlugin
         }
 
         return false;
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Hooks
+    {
+        public static float doWaterSplashEffect(@Nonnull Entity entity) {
+            final @Nullable RayTraceResult result = entity.world.rayTraceBlocks(
+                    new Vec3d(entity.posX - entity.motionX, entity.posY - entity.motionY, entity.posZ - entity.motionZ),
+                    new Vec3d(entity.posX, entity.posY, entity.posZ),
+                    true, true, false);
+
+            //use the exact point where the entity collided with water
+            if(result != null) {
+                final BlockPos pos = result.getBlockPos();
+                final FluidState fluidState = getFluidState(entity.world, pos);
+                if(!fluidState.isEmpty() && fluidState.isValid()) {
+                    final float filled = fluidState.getFluidBlock().getFilledPercentage(entity.world, pos);
+                    return pos.getY() + (filled < 0 ? filled + 1.1f : filled - 0.1f);
+                }
+            }
+
+            //estimate (should never pass)
+            return (float)(entity.posY + entity.motionY * -0.7 - 0.1);
+        }
+
+        public static double fixSquidWaterCollision(double factor, @Nonnull Entity entity) { return entity instanceof EntityWaterMob ? factor : 0; }
+
+        @Nullable
+        public static Boolean isEntityInsideFluidState(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
+            @Nullable Boolean result = block.isEntityInsideMaterial(world, pos, here, entity, yToTest, materialIn, testingHead);
+            if(result != null) return result;
+                //check for FluidState if block here is not a fluid
+            else if(getFluidFromBlock(block) == null) {
+                final FluidState fluidState = FluidState.get(world, pos);
+                if(!fluidState.isEmpty()) {
+                    result = fluidState.getBlock().isEntityInsideMaterial(world, pos, fluidState.getState(), entity, yToTest, materialIn, testingHead);
+                    if(result != null) return result;
+                    else if(fluidState.getMaterial() == materialIn)
+                        return ForgeHooks.isInsideOfMaterial(materialIn, entity, pos);
+                }
+            }
+
+            return null;
+        }
+
+        public static void onEntityCollidedWithFluidState(@Nonnull Block block, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull Entity entityIn) {
+            //check if the entity is inside the block before doing collisions
+            if(!Boolean.FALSE.equals(block.isAABBInsideLiquid(worldIn, pos, entityIn.getEntityBoundingBox())))
+                block.onEntityCollision(worldIn, pos, here, entityIn);
+
+            //don't check for FluidState if block here is a fluid
+            if(getFluidFromBlock(block) != null) return;
+            final FluidState fluidState = FluidState.get(worldIn, pos);
+            if(!fluidState.isEmpty() && !Boolean.FALSE.equals(fluidState.getBlock().isAABBInsideLiquid(worldIn, pos, entityIn.getEntityBoundingBox())))
+                fluidState.getBlock().onEntityCollision(worldIn, pos, fluidState.getState(), entityIn);
+        }
     }
 }

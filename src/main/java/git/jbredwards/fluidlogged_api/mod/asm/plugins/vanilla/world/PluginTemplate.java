@@ -1,9 +1,23 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import net.minecraft.block.Block;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraft.world.gen.structure.template.PlacementSettings;
+import net.minecraft.world.gen.structure.template.Template;
+import net.minecraftforge.common.util.Constants;
+import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.List;
 
 /**
  * structures can load saved FluidStates
@@ -109,6 +123,72 @@ public final class PluginTemplate implements IASMPlugin
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
         classNode.fields.add(new FieldNode(ACC_PUBLIC, "keepOldFluidStates", "Z", null, null));
         classNode.fields.add(new FieldNode(ACC_PUBLIC | ACC_FINAL, "fluidStates", "Ljava/util/List;", "Ljava/util/List<Lorg/apache/commons/lang3/tuple/Pair<Lnet/minecraft/util/math/BlockPos;Lgit/jbredwards/fluidlogged_api/api/util/FluidState;>;>;", null));
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/plugins/vanilla/world/PluginTemplate$Accessor");
+        addMethod(classNode, "setKeepOldFluidStates", "(Z)V", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ILOAD, 1);
+            generator.visitFieldInsn(PUTFIELD, "net/minecraft/world/gen/structure/template/Template", "keepOldFluidStates", "Z");
+        });
+
         return true;
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Hooks
+    {
+        public static void addFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull BlockPos transformedPos, @Nullable Block toIgnore, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
+            final FluidState fluidState = FluidState.get(world, pos);
+            if(!fluidState.isEmpty() && fluidState.getBlock() != toIgnore)
+                fluidStates.add(Pair.of(transformedPos, fluidState));
+        }
+
+        public static void addFluidsToWorld(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull BlockPos size, @Nonnull PlacementSettings settings, int flags, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
+            if(!fluidStates.isEmpty() && size.getX() > 0 && size.getZ() > 0) {
+                for(Pair<BlockPos, FluidState> entry : fluidStates) {
+                    BlockPos transformedPos = Template.transformedBlockPos(settings, entry.getKey()).add(pos);
+                    FluidloggedUtils.setFluidState(world, transformedPos, null, entry.getValue(), false, true, flags);
+                }
+            }
+        }
+
+        public static int keepOldFlag(int blockFlags, boolean keepOldFluidStates) { return keepOldFluidStates ? blockFlags : (blockFlags | 32); }
+
+        public static void readTemplate(@Nonnull Template template, @Nonnull NBTTagCompound compound, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
+            fluidStates.clear();
+
+            if(compound.hasKey("fluidStates", Constants.NBT.TAG_LIST)) {
+                for(NBTBase nbtBase : compound.getTagList("fluidStates", Constants.NBT.TAG_COMPOUND)) {
+                    NBTTagCompound nbt = (NBTTagCompound)nbtBase;
+                    FluidState fluidState = FluidState.of(Block.getBlockFromName(nbt.getString("state")));
+
+                    if(!fluidState.isEmpty())
+                        fluidStates.add(Pair.of(BlockPos.fromLong(nbt.getLong("pos")), fluidState));
+                }
+            }
+
+            if(compound.hasKey("keepOldFluidStates", Constants.NBT.TAG_BYTE))
+                ((Accessor)template).setKeepOldFluidStates(compound.getBoolean("keepOldFluidStates"));
+        }
+
+        public static void writeTemplate(@Nonnull NBTTagCompound compound, boolean keepOldFluidStates, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
+            if(!fluidStates.isEmpty()) {
+                final NBTTagList list = new NBTTagList();
+                for(Pair<BlockPos, FluidState> entry : fluidStates) {
+                    NBTTagCompound nbt = new NBTTagCompound();
+                    nbt.setString("state", String.valueOf(entry.getValue().getBlock().getRegistryName()));
+                    nbt.setLong("pos", entry.getKey().toLong());
+                    list.appendTag(nbt);
+                }
+
+                compound.setTag("fluidStates", list);
+            }
+
+            compound.setBoolean("keepOldFluidStates", keepOldFluidStates);
+        }
+    }
+
+    public interface Accessor
+    {
+        void setKeepOldFluidStates(boolean keepOldFluidStates);
     }
 }
