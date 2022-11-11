@@ -1,6 +1,5 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
 
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import org.objectweb.asm.tree.*;
 
@@ -55,7 +54,7 @@ public final class PluginFluid implements IASMPlugin
          * Accessors
          * =========
          */
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/plugins/forge/PluginFluid$Accessor");
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/asm/impl/IFluidStateProvider");
         /*
          * Accessor:
          * New code:
@@ -87,12 +86,5 @@ public final class PluginFluid implements IASMPlugin
         });
 
         return true;
-    }
-
-    public interface Accessor
-    {
-        @Nonnull
-        FluidState getDefaultFluidState();
-        void setDefaultFluidState(@Nonnull FluidState fluidState);
     }
 }

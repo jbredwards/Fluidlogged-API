@@ -5,3 +5,4 @@ commands.setfluid.noChange=The fluid block couldn't be placed
 commands.reloadFluidloggedAPI.usage=/reloadFluidloggedAPI
 commands.reloadFluidloggedAPI.success=Successfully reloaded the Fluidlogged API server config
 commands.reloadFluidloggedAPI.desyncWarning=Unable to reload server config with multiple players online, doing so would result in a desync, please have each player update their configs manually
+debugOverlay.fluidloggedAPI=fluid: %s

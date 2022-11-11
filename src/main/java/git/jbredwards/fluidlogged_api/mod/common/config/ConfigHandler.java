@@ -2,20 +2,18 @@ package git.jbredwards.fluidlogged_api.mod.common.config;
 
 import com.google.common.primitives.Ints;
 import com.google.gson.*;
+import git.jbredwards.fluidlogged_api.api.asm.impl.ICanFluidFlowHandler;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.PluginBlock;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.block.Block;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.eventhandler.Event;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
@@ -58,17 +56,18 @@ public final class ConfigHandler
     public static boolean verticalFluidloggedFluidSpread = true;
 
     //checks if the input state is fluidloggable, according to the config settings
-    public static EnumActionResult isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
+    @Nonnull
+    public static Event.Result isStateFluidloggable(@Nonnull IBlockState state, @Nullable Fluid fluid) {
         //check whitelist
         final @Nullable ConfigPredicate whitelist = WHITELIST.get(state.getBlock());
-        if(whitelist != null && whitelist.test(state, fluid)) return EnumActionResult.SUCCESS;
+        if(whitelist != null && whitelist.test(state, fluid)) return Event.Result.ALLOW;
         //skip blacklist check
-        else if(!applyDefaults) return EnumActionResult.FAIL;
+        else if(!applyDefaults) return Event.Result.DENY;
         //check blacklist
         final @Nullable ConfigPredicate blacklist = BLACKLIST.get(state.getBlock());
-        if(blacklist != null && blacklist.test(state, fluid)) return EnumActionResult.FAIL;
+        if(blacklist != null && blacklist.test(state, fluid)) return Event.Result.DENY;
         //default
-        return EnumActionResult.PASS;
+        return Event.Result.DEFAULT;
     }
 
     //initializes the config (internal use only!)
@@ -200,25 +199,12 @@ public final class ConfigHandler
                 @Nullable ConfigPredicate predicate = builder.build();
                 if(predicate != null) {
                     map.put(predicate.block, predicate);
-                    ((PluginBlock.Accessor)predicate.block).setCanFluidFlow(builder.canFluidFlow == null ?
+                    ICanFluidFlowHandler.Accessor.setOverride(predicate.block, builder.canFluidFlow == null ?
                             (builder.useDeprecatedSideCheck ? ICanFluidFlowHandler.DEPRECATED_CHECK : null) :
                             (builder.canFluidFlow ? ICanFluidFlowHandler.ALWAYS_FLOW : ICanFluidFlowHandler.NEVER_FLOW));
                 }
             }
         }
-    }
-
-    //allows for custom canFluidFlow actions
-    //TODO crafttweaker/groovyscript support maybe?
-    @FunctionalInterface
-    public interface ICanFluidFlowHandler
-    {
-        @Nonnull ICanFluidFlowHandler
-                ALWAYS_FLOW = (world, pos, state, side) -> true,
-                NEVER_FLOW = (world, pos, state, side) -> false,
-                DEPRECATED_CHECK = (world, pos, state, side) -> !state.isSideSolid(world, pos, side);
-
-        boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull EnumFacing side);
     }
 
     //gson

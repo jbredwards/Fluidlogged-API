@@ -23,6 +23,14 @@ minecraft {
     makeObfSourceJar = false
 }
 
+repositories {
+    maven { url 'https://oss.sonatype.org/content/repositories/public/' }
+}
+
+dependencies {
+    deobfProvided 'io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0-SNAPSHOT'
+}
+
 processResources {
     // this will ensure that this task is redone when the versions change.
     inputs.property 'version', project.version

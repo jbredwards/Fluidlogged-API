@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.mod.common.legacy;
 
-import git.jbredwards.fluidlogged_api.mod.Constants;
+import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.block.Block;
@@ -30,7 +31,7 @@ import java.util.List;
  * introduced in v1.7.
  * <dl><dt>This is accomplished through replacing the fluidlogged_te blocks with their stored blocks by reading the NBT data, and sets the original fluid to an IFluidStateCapability.</dt>
  */
-@Mod.EventBusSubscriber(modid = Constants.MODID)
+@Mod.EventBusSubscriber(modid = FluidloggedAPI.MODID)
 public final class LegacyDataFixer implements IFixableData {
     /**
      * A map which stores the block ID of the fluidlogged tile entity mapped to the corresponding fluid name.
@@ -119,7 +120,7 @@ public final class LegacyDataFixer implements IFixableData {
             for(Iterator<NBTBase> it = tileEntities.iterator(); it.hasNext();) {
                 //check if the te is from a legacy version, if it is: add it to fix list
                 final NBTTagCompound nbt = (NBTTagCompound)it.next();
-                if(nbt.getString("id").equals(Constants.MODID + ":te")) {
+                if(nbt.getString("id").equals(FluidloggedAPI.MODID + ":te")) {
                     final BlockPos pos = new BlockPos(nbt.getInteger("x"), nbt.getInteger("y"), nbt.getInteger("z"));
                     final int sectionY = pos.getY() >> 4;
                     //get fluidlogged te's from the section
@@ -146,11 +147,11 @@ public final class LegacyDataFixer implements IFixableData {
                 }
                 //initialise or get IFluidStateCapability nbt
                 final NBTTagList cap;
-                if(forgeCaps.hasKey(Constants.MODID + ":fluid_states", NBT.TAG_LIST))
-                    cap = forgeCaps.getTagList(Constants.MODID + ":fluid_states", NBT.TAG_COMPOUND);
+                if(forgeCaps.hasKey(IFluidStateCapability.CAPABILITY_ID.toString(), NBT.TAG_LIST))
+                    cap = forgeCaps.getTagList(IFluidStateCapability.CAPABILITY_ID.toString(), NBT.TAG_COMPOUND);
                 else {
                     cap = new NBTTagList();
-                    forgeCaps.setTag(Constants.MODID + ":fluid_states", cap);
+                    forgeCaps.setTag(IFluidStateCapability.CAPABILITY_ID.toString(), cap);
                 }
                 final NBTTagList sections = level.getTagList("Sections", NBT.TAG_COMPOUND);
                 for(int i = 0; i < sections.tagCount(); ++i) {

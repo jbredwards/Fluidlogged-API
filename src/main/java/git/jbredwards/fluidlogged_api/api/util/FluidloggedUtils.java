@@ -1,25 +1,23 @@
 package git.jbredwards.fluidlogged_api.api.util;
 
-import git.jbredwards.fluidlogged_api.mod.Main;
+import git.jbredwards.fluidlogged_api.api.asm.impl.ICanFluidFlowHandler;
+import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.api.event.FluidloggableEvent;
 import git.jbredwards.fluidlogged_api.api.fluid.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.PluginBlock;
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.api.event.FluidloggedEvent;
-import git.jbredwards.fluidlogged_api.mod.common.message.FluidStateMessage;
-import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
+import git.jbredwards.fluidlogged_api.api.network.message.MessageFluidState;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.server.management.PlayerChunkMapEntry;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.EnumSkyBlock;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldType;
+import net.minecraft.world.*;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.Constants;
@@ -29,7 +27,6 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fml.common.eventhandler.Event;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -52,7 +49,7 @@ public final class FluidloggedUtils
     //forms the FluidState from the IBlockState here if it's a fluid block,
     //if not a fluid block, return FluidState stored via the capability
     @Nonnull
-    public static FluidState getFluidState(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
+    public static FluidState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
         final @Nullable Fluid fluidHere = getFluidFromState(here);
         return (fluidHere != null) ? new FluidState(fluidHere, here) : FluidState.get(world, pos);
     }
@@ -66,7 +63,7 @@ public final class FluidloggedUtils
     //tries to get the fluid at the pos (prioritizing ones physically in the world, then the fluid capability),
     //if none return input state
     @Nonnull
-    public static IBlockState getFluidOrReal(@Nullable IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
+    public static IBlockState getFluidOrReal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
         if(isFluid(here)) return here;
         final FluidState fluidState = FluidState.get(world, pos);
         return fluidState.isEmpty() ? here : fluidState.getState();
@@ -116,19 +113,18 @@ public final class FluidloggedUtils
         if(cap == null) throw new NullPointerException("There was a critical internal error involving the Fluidlogged API mod, notify the mod author!");
 
         //fix small graphical flicker with blocks placed inside fluids
-        if(world.isRemote) { if(!fluidState.isEmpty()) cap.setFluidState(pos.toLong(), fluidState); }
+        if(world.isRemote) { if(!fluidState.isEmpty()) cap.getContainer(pos).setFluidState(pos, fluidState); }
 
         //only do these on server
         else {
             //send changes to server
-            cap.setFluidState(pos.toLong(), fluidState);
+            cap.getContainer(pos).setFluidState(pos, fluidState);
 
             //send changes to client
             if((blockFlags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {
-                Main.wrapper.sendToAllAround(
-                        new FluidStateMessage(pos, fluidState, doRenderUpdate),
-                        new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64)
-                );
+                final PlayerChunkMapEntry entry = ((WorldServer)world).getPlayerChunkMap().getEntry(chunk.x, chunk.z);
+                if(entry != null) entry.getWatchingPlayers().forEach(player -> FluidloggedAPINetworkHandler.INSTANCE
+                        .sendTo(new MessageFluidState(pos, fluidState, doRenderUpdate), player));
             }
 
             //update light levels
@@ -197,7 +193,7 @@ public final class FluidloggedUtils
     //2: returns true if a fluid can flow into this block from the specified side
     public static boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull EnumFacing side) {
         //config override
-        final @Nullable ConfigHandler.ICanFluidFlowHandler override = ((PluginBlock.Accessor)here.getBlock()).getCanFluidFlow();
+        final @Nullable ICanFluidFlowHandler override = ICanFluidFlowHandler.Accessor.getOverride(here.getBlock());
         if(override != null) return override.canFluidFlow(world, pos, here, side);
         //built-in behavior
         return (here.getBlock() instanceof IFluidloggable)
@@ -255,9 +251,12 @@ public final class FluidloggedUtils
     }
 
     public static boolean isStateFluidloggable(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nullable Fluid fluid) {
-        //config
-        final EnumActionResult result = ConfigHandler.isStateFluidloggable(state, fluid);
-        if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;
+        //always prevent fluidloggable fluid blocks
+        if(isFluid(state)) return false;
+        //event (config is called through this)
+        final FluidloggableEvent event = new FluidloggableEvent(state, world, pos, fluid);
+        MinecraftForge.EVENT_BUS.post(event);
+        if(event.getResult() != Event.Result.DEFAULT) return event.getResult() == Event.Result.ALLOW;
         //defaults
         return (state.getBlock() instanceof IFluidloggable) && (fluid != null
                 ? ((IFluidloggable)state.getBlock()).isFluidValid(state, world, pos, fluid)

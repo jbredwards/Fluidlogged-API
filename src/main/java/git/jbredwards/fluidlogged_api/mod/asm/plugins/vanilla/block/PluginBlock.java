@@ -3,7 +3,6 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLilyPad;
 import net.minecraft.block.material.Material;
@@ -150,13 +149,13 @@ public final class PluginBlock implements IASMPlugin
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
         //used for overriding canFluidFlow behavior via the config
-        classNode.fields.add(new FieldNode(ACC_PUBLIC, "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/mod/common/config/ConfigHandler$ICanFluidFlowHandler;", null, null));
+        classNode.fields.add(new FieldNode(ACC_PUBLIC, "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;", null, null));
         /*
          * =========
          * Accessors
          * =========
          */
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/plugins/vanilla/block/PluginBlock$Accessor");
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler$Accessor");
         /*
          * Accessor:
          * New code:
@@ -167,9 +166,9 @@ public final class PluginBlock implements IASMPlugin
          *     return this.canFluidFlow;
          * }
          */
-        addMethod(classNode, "getCanFluidFlow", "()Lgit/jbredwards/fluidlogged_api/mod/common/config/ConfigHandler$ICanFluidFlowHandler;", null, null, generator -> {
+        addMethod(classNode, "getCanFluidFlowOverride", "()Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;", null, null, generator -> {
             generator.visitVarInsn(ALOAD, 0);
-            generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/mod/common/config/ConfigHandler$ICanFluidFlowHandler;");
+            generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;");
         });
         /*
          * Accessor:
@@ -181,10 +180,10 @@ public final class PluginBlock implements IASMPlugin
          *     this.canFluidFlow = canFluidFlow;
          * }
          */
-        addMethod(classNode, "setCanFluidFlow", "(Lgit/jbredwards/fluidlogged_api/mod/common/config/ConfigHandler$ICanFluidFlowHandler;)V", null, null, generator -> {
+        addMethod(classNode, "setCanFluidFlowOverride", "(Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;)V", null, null, generator -> {
             generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ALOAD, 1);
-            generator.visitFieldInsn(PUTFIELD, "net/minecraft/block/Block", "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/mod/common/config/ConfigHandler$ICanFluidFlowHandler;");
+            generator.visitFieldInsn(PUTFIELD, "net/minecraft/block/Block", "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;");
         });
 
         return true;
@@ -210,12 +209,5 @@ public final class PluginBlock implements IASMPlugin
             return Math.max(fluidState.getBlock().getExplosionResistance(world, pos, exploder, explosion),
                     block.getExplosionResistance(exploder));
         }
-    }
-
-    public interface Accessor
-    {
-        @Nullable
-        ConfigHandler.ICanFluidFlowHandler getCanFluidFlow();
-        void setCanFluidFlow(@Nullable ConfigHandler.ICanFluidFlowHandler canFluidFlow);
     }
 }

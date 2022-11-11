@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.api.block;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.BlockBush;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
@@ -8,15 +9,12 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 
 import javax.annotation.Nonnull;
-
-import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
 
 /**
  * A basic implementation of an always waterlogged plant for mod devs to use
@@ -41,10 +39,10 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
      */
     @Override
     public boolean canPlaceBlockAt(@Nonnull World worldIn, @Nonnull BlockPos pos) {
-        final FluidState fluidState = getFluidState(worldIn, pos);
+        final FluidState fluidState = FluidloggedUtils.getFluidState(worldIn, pos);
         return !fluidState.isEmpty()
                 && isFluidValid(getDefaultState(), worldIn, pos, fluidState.getFluid())
-                && isFluidloggableFluid(fluidState.getState(), worldIn, pos)
+                && FluidloggedUtils.isFluidloggableFluid(fluidState.getState(), worldIn, pos)
                 && super.canPlaceBlockAt(worldIn, pos);
     }
 
@@ -53,7 +51,7 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
      */
     @Override
     public boolean isFluidValid(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Fluid fluid) {
-        return isCompatibleFluid(parentFluid, fluid);
+        return FluidloggedUtils.isCompatibleFluid(parentFluid, fluid);
     }
 
     /**
