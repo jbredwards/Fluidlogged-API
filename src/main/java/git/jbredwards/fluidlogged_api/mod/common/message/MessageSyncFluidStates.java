@@ -7,8 +7,8 @@ import git.jbredwards.fluidlogged_api.api.network.message.AbstractMessage;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import io.netty.buffer.ByteBuf;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.chars.CharOpenHashSet;
+import it.unimi.dsi.fastutil.chars.CharSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -30,7 +30,7 @@ import java.util.List;
 public final class MessageSyncFluidStates extends AbstractMessage
 {
     @Nonnull
-    public List<Pair<Integer, Integer>> data = new ArrayList<>();
+    public List<Pair<Character, Integer>> data = new ArrayList<>();
     public int x, y, z;
 
     public MessageSyncFluidStates() {}
@@ -56,7 +56,7 @@ public final class MessageSyncFluidStates extends AbstractMessage
         z = buf.readInt();
         //read data
         final int size = buf.readInt();
-        for(int i = 0; i < size; i++) data.add(Pair.of(buf.readInt(), buf.readInt()));
+        for(int i = 0; i < size; i++) data.add(Pair.of(buf.readChar(), buf.readInt()));
     }
 
     @Override
@@ -68,7 +68,7 @@ public final class MessageSyncFluidStates extends AbstractMessage
         //write data
         buf.writeInt(data.size());
         data.forEach(entry -> {
-            buf.writeInt(entry.getKey());
+            buf.writeChar(entry.getKey());
             buf.writeInt(entry.getValue());
         });
     }
@@ -86,7 +86,7 @@ public final class MessageSyncFluidStates extends AbstractMessage
             if(cap != null) {
                 final IFluidStateContainer container = cap.getContainer(message.x, message.y, message.z);
                 //clear any old fluid states
-                final IntSet removed = new IntOpenHashSet();
+                final CharSet removed = new CharOpenHashSet();
                 container.forEach((pos, fluidState) -> removed.add(pos));
                 container.clearFluidStates();
                 //add any new fluid states
@@ -96,8 +96,8 @@ public final class MessageSyncFluidStates extends AbstractMessage
                     //send changes to client
                     container.setFluidState(entry.getKey(), fluidState);
                     //re-render block
-                    FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
                     world.markBlockRangeForRenderUpdate(pos, pos);
+                    FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
                 });
                 //update removed light levels & renders
                 removed.forEach(serializedPos -> {
@@ -105,8 +105,8 @@ public final class MessageSyncFluidStates extends AbstractMessage
                     if(!container.hasFluidState(serializedPos)) {
                         //re-render block
                         final BlockPos pos = container.deserializePos(serializedPos);
-                        FluidloggedUtils.relightFluidBlock(world, pos, FluidState.EMPTY);
                         world.markBlockRangeForRenderUpdate(pos, pos);
+                        FluidloggedUtils.relightFluidBlock(world, pos, FluidState.EMPTY);
                     }
                 });
             }

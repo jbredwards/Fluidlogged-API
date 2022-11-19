@@ -24,7 +24,6 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
-import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
@@ -86,9 +85,8 @@ public final class FluidloggedUtils
         //default
         else {
             //if the world is to warm for the fluid, vaporize it
-            final @Nullable Fluid fluid = event.fluidState.getFluid();
-            if(event.checkVaporize && fluid != null && world.provider.doesWaterVaporize() && fluid.doesVaporize(new FluidStack(fluid, Fluid.BUCKET_VOLUME))) {
-                fluid.vaporize(null, world, pos, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
+            if(event.doesVaporize()) {
+                event.fluidState.getFluid().vaporize(null, world, pos, event.getFluidStack());
                 return true;
             }
 

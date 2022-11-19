@@ -9,7 +9,6 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.block.Block;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.EnumActionResult;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.Loader;
@@ -51,9 +50,10 @@ public final class ConfigHandler
 
     public static boolean applyDefaults = true;
     public static boolean fluidsBreakTorches = true;
-    public static boolean debugASMPlugins = false;
+    public static boolean debugASMPlugins = true;
     public static int fluidloggedFluidSpread = 2;
     public static boolean verticalFluidloggedFluidSpread = true;
+    public static boolean lavalogVaporizeFlammable = false;
 
     //checks if the input state is fluidloggable, according to the config settings
     @Nonnull
@@ -91,6 +91,9 @@ public final class ConfigHandler
                         "#this mod by default allows certain blocks to be fluidlogged\n" +
                         "applyDefaults:true,\n" +
                         "\n" +
+                        "#true if flammable blocks should be destroyed when fluidlogged with a hot or burning liquid (like lava)\n" +
+                        "lavalogVaporizeFlammable:false,\n" +
+                        "\n" +
                         "#whitelist for adding new fluidloggable blocks (this is in addition to the defaults)\n" +
                         "#info about the format for this can be found on this mod's wiki:\n" +
                         "#https://github.com/jbredwards/Fluidlogged-API/wiki/Config\n" +
@@ -102,7 +105,7 @@ public final class ConfigHandler
                         "blacklist:[],\n" +
                         "\n" +
                         "#otuput to the console for every ASM transformation, useful for debugging\n" +
-                        "debugASMPlugins:false,\n" +
+                        "debugASMPlugins:true,\n" +
                         "\n" +
                         "#remove the ability for \"infinite\" fluids to fluidlog blocks below\n" +
                         "removeVerticalFluidloggedFluidSpread:false";
@@ -116,8 +119,9 @@ public final class ConfigHandler
                 fluidloggedFluidSpread = 2;
                 fluidsBreakTorches = true;
                 applyDefaults = true;
-                debugASMPlugins = false;
+                debugASMPlugins = true;
                 verticalFluidloggedFluidSpread = true;
+                lavalogVaporizeFlammable = false;
             }
 
             //reads an already existing cfg file
@@ -129,6 +133,7 @@ public final class ConfigHandler
                 applyDefaults = config.applyDefaults;
                 debugASMPlugins = config.debugASMPlugins;
                 verticalFluidloggedFluidSpread = !config.removeVerticalFluidloggedFluidSpread;
+                lavalogVaporizeFlammable = config.lavalogVaporizeFlammable;
 
                 if(ConfigPredicateDeserializer.containsMissingEntries) {
                     ConfigPredicateDeserializer.containsMissingEntries = false;
@@ -218,8 +223,9 @@ public final class ConfigHandler
         public final ConfigPredicateBuilder[] whitelist;
         public final ConfigPredicateBuilder[] blacklist;
         public final boolean debugASMPlugins;
+        public boolean lavalogVaporizeFlammable;
 
-        public Config(int fluidloggedFluidSpread, boolean removeVerticalFluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, @Nullable FluidTag[] fluidTags, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins) {
+        public Config(int fluidloggedFluidSpread, boolean removeVerticalFluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, @Nullable FluidTag[] fluidTags, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins, boolean lavalogVaporizeFlammable) {
             this.fluidloggedFluidSpread = fluidloggedFluidSpread;
             this.removeVerticalFluidloggedFluidSpread = removeVerticalFluidloggedFluidSpread;
             this.fluidsBreakTorches = fluidsBreakTorches;
@@ -228,6 +234,7 @@ public final class ConfigHandler
             this.whitelist = whitelist;
             this.blacklist = blacklist;
             this.debugASMPlugins = debugASMPlugins;
+            this.lavalogVaporizeFlammable = lavalogVaporizeFlammable;
         }
     }
 

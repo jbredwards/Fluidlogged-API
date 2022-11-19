@@ -83,12 +83,8 @@ public final class ClientEventHandler
             if(!fluidState.isEmpty()) {
                 //separate the fluid info from the block info
                 event.getRight().add("");
-                //fluid block id
-                event.getRight().add(String.valueOf(fluidState.getBlock() instanceof BlockLiquid
-                        ? BlockLiquid.getStaticBlock(fluidState.getMaterial()).getRegistryName()
-                        : fluidState.getBlock().getRegistryName()));
-
-                //fluid id
+                //display FluidState block & fluid
+                event.getRight().add(String.valueOf(fluidState.getBlock().getRegistryName()));
                 event.getRight().add(I18n.format("debugOverlay.fluidloggedAPI", fluidState.getFluid().getName()));
             }
         }

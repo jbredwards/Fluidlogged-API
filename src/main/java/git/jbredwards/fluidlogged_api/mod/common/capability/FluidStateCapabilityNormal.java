@@ -7,8 +7,8 @@ import git.jbredwards.fluidlogged_api.api.capability.IFluidStateContainer;
 import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageSyncFluidStates;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.chars.CharArrayList;
+import it.unimi.dsi.fastutil.chars.CharList;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
@@ -34,8 +34,8 @@ import java.util.function.BiConsumer;
 public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluidStateContainer
 {
     @Nonnull protected final List<FluidState> keys = Lists.newArrayList(FluidState.EMPTY);
-    @Nonnull protected final IntSet indexedPositions = new IntOpenHashSet();
-    protected int[] data = new int[65535];
+    @Nonnull protected final CharList indexedPositions = new CharArrayList();
+    protected char[] data = new char[65536];
 
     protected final int chunkX, chunkZ;
     public FluidStateCapabilityNormal(int chunkXIn, int chunkZIn) {
@@ -61,32 +61,32 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
     }
 
     @Override
-    public void forEach(@Nonnull BiConsumer<Integer, FluidState> action) {
+    public void forEach(@Nonnull BiConsumer<Character, FluidState> action) {
         indexedPositions.forEach(indexedPos -> action.accept(indexedPos, keys.get(data[indexedPos])));
     }
 
     @Override
-    public boolean hasFluidState(int serializedPos) {
-        return data.length > serializedPos && serializedPos >= 0 && data[serializedPos] != 0;
+    public boolean hasFluidState(char serializedPos) {
+        return data.length > serializedPos && data[serializedPos] != 0;
     }
 
     @Override
-    public int serializePos(@Nonnull BlockPos pos) {
-        return pos.getY() << 8 | (pos.getZ() & 15) << 4 | (pos.getX() & 15);
+    public char serializePos(@Nonnull BlockPos pos) {
+        return (char)(pos.getY() << 8 | (pos.getZ() & 15) << 4 | (pos.getX() & 15));
     }
 
     @Nonnull
     @Override
-    public BlockPos deserializePos(int serializedPos) {
-        final int x = (chunkX << 4) + (serializedPos & 15);
+    public BlockPos deserializePos(char serializedPos) {
+        final int x = (chunkX << 4) | (serializedPos & 15);
         final int y = serializedPos >> 8;
-        final int z = (chunkZ << 4) + ((serializedPos >> 4) & 15);
+        final int z = (chunkZ << 4) | ((serializedPos >> 4) & 15);
         return new BlockPos(x, y, z);
     }
 
     @Override
     public void clearFluidStates() {
-        data = new int[data.length];
+        data = new char[data.length];
         indexedPositions.clear();
         keys.clear();
         keys.add(FluidState.EMPTY);
@@ -98,9 +98,9 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
     }
 
     @Override
-    public void setFluidState(int serializedPos, @Nonnull FluidState fluidState) {
+    public void setFluidState(char serializedPos, @Nonnull FluidState fluidState) {
         if(fluidState.isEmpty()) {
-            indexedPositions.remove(serializedPos);
+            indexedPositions.rem(serializedPos);
             data[serializedPos] = 0;
         }
 
@@ -111,8 +111,10 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
                 keys.add(fluidState);
             }
 
-            indexedPositions.add(serializedPos);
-            data[serializedPos] = indexedState;
+            if(!indexedPositions.contains(serializedPos))
+                indexedPositions.add(serializedPos);
+
+            data[serializedPos] = (char)indexedState;
         }
     }
 
@@ -124,7 +126,7 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
 
     @Nonnull
     @Override
-    public FluidState getFluidState(int serializedPos, @Nonnull FluidState fallback) {
+    public FluidState getFluidState(char serializedPos, @Nonnull FluidState fallback) {
         return hasFluidState(serializedPos) ? keys.get(data[serializedPos]) : fallback;
     }
 
@@ -163,7 +165,7 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
                         NBTTagCompound tag = (NBTTagCompound)tagIn;
                         if(tag.hasKey("id", NBT.TAG_STRING) && tag.hasKey("pos", NBT.TAG_INT)) {
                             FluidState state = FluidState.of(Block.getBlockFromName(tag.getString("id")));
-                            if(!state.isEmpty()) setFluidState(tag.getInteger("pos"), state);
+                            if(!state.isEmpty()) setFluidState((char)tag.getInteger("pos"), state);
                         }
                     }
                 });
@@ -171,6 +173,7 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
             //only thrown if the user downgrades fluidlogged api to a version unable to read possible new data
             else throw new IllegalStateException("Could not read chunk data, please update Fluidlogged API to the latest version!");
         }
+
         //compatibility with pre v1.8.2 chunks
         else if(nbtIn instanceof NBTTagList) {
             for(NBTBase tag : (NBTTagList)nbtIn) {

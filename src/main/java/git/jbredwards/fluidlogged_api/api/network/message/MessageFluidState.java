@@ -63,8 +63,8 @@ public final class MessageFluidState extends AbstractMessage
                 //send changes to client
                 cap.getContainer(pos).setFluidState(pos, fluidState);
                 //re-render block
-                FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
                 if(message.doRenderUpdate) world.markBlockRangeForRenderUpdate(pos, pos);
+                FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
             }
         }
     }

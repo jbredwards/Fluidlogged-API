@@ -1,7 +1,10 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.asm.impl.IChunkProvider;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.chunk.Chunk;
 import org.objectweb.asm.tree.*;
 
@@ -15,6 +18,35 @@ import javax.annotation.Nullable;
  */
 public final class PluginChunkCache implements IASMPlugin
 {
+    @Override
+    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return method.name.equals(obfuscated ? "func_175629_a" : "getLightForExt"); }
+
+    @Override
+    public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * getLightForExt: (changes are around line 134)
+         * Old code:
+         * if (this.getBlockState(pos).useNeighborBrightness())
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //fix neighbor brightness related bugs
+         * if (Hooks.useNeighborBrightness(this, pos))
+         * {
+         *     ...
+         * }
+         */
+        if(checkMethod(insn, obfuscated ? "func_185916_f" : "useNeighborBrightness")) {
+            instructions.insert(insn, genMethodNode("useNeighborBrightness", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z"));
+            removeFrom(instructions, insn, -1);
+            return true;
+        }
+
+        return false;
+    }
+
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
         classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/asm/impl/IChunkProvider");
@@ -30,7 +62,7 @@ public final class PluginChunkCache implements IASMPlugin
             }
         );
 
-        return false;
+        return true;
     }
 
     @SuppressWarnings("unused")
@@ -41,6 +73,16 @@ public final class PluginChunkCache implements IASMPlugin
             final int x = (pos.getX() >> 4) - chunkX;
             final int z = (pos.getZ() >> 4) - chunkZ;
             return x >= 0 && x < chunkArray.length && z >= 0 && z < chunkArray[x].length ? chunkArray[x][z] : null;
+        }
+
+        public static boolean useNeighborBrightness(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+            final @Nullable Chunk chunk = IChunkProvider.getChunk(world, pos);
+            if(chunk != null && chunk.getBlockState(pos).useNeighborBrightness()) {
+                final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
+                return fluidState.isEmpty() || fluidState.getState().useNeighborBrightness();
+            }
+
+            return false;
         }
     }
 }

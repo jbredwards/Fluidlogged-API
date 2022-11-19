@@ -9,6 +9,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.item.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.*;
+import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
@@ -59,7 +60,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.block.BlockCocoa", new PluginBlockCocoa()); //exists in case cocoa beans are added to the config whitelist
             plugins.put("net.minecraft.block.BlockConcretePowder", new PluginBlockConcretePowder()); //concrete forms from concrete powder while its next to flowing water FluidStates
             //plugins.put("net.minecraft.block.BlockDoor", new PluginBlockDoor()); // update upper FluidState & correct canFluidFlow
-            //plugins.put("net.minecraft.block.BlockDynamicLiquid", new PluginBlockDynamicLiquid()); //fixes a bunch of liquid interactions while fluidlogged
+            plugins.put("net.minecraft.block.BlockDynamicLiquid", new PluginBlockDynamicLiquid()); //fixes a bunch of liquid interactions while fluidlogged
             plugins.put("net.minecraft.block.BlockFarmland", new PluginBlockFarmland()); //farmland blocks now recognise water FluidStates
             plugins.put("net.minecraft.block.BlockGrass", new PluginBlockGrass()); //use World#getBlockLightOpacity for FluidState sensitivity
             plugins.put("net.minecraft.block.BlockLeaves", new PluginFluidloggableBlocksFlowable()); //for this it makes sense to have the fluid flow from any side
@@ -71,7 +72,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.block.BlockReed", new PluginBlockReed()); //sugar cane blocks now recognise water FluidStates
             plugins.put("net.minecraft.block.BlockSkull", new PluginBlockSkull()); //wither skulls no longer void the FluidState here when summoning the wither
             plugins.put("net.minecraft.block.BlockSlab", new PluginBlockSlab()); //half slabs are fluidloggable
-            //plugins.put("net.minecraft.block.BlockSponge", new PluginBlockSponge()); //fixes drain interactions across all modded fluids & FluidStates
+            plugins.put("net.minecraft.block.BlockSponge", new PluginBlockSponge()); //fixes drain interactions across all modded fluids & FluidStates
+            plugins.put("net.minecraft.block.BlockStaticLiquid", new PluginBlockStaticLiquid()); //update FluidStates
             //plugins.put("net.minecraft.block.BlockTrapDoor", new PluginBlockTrapDoor()); //fluids flow from correct sides
             plugins.put("net.minecraft.block.BlockTorch", new PluginBlockTorch()); //allow torches to be destroyed by flowing fluid blocks
             plugins.put("net.minecraft.block.BlockWall", new PluginBlockWall()); //fixes a bug with walls that caused the post to unintentionally render
@@ -126,7 +128,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             //vanilla (item)
             plugins.put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()); //glass bottles can only be filled with water from actual water fluid blocks
             //vanilla (world)
-            plugins.put("net.minecraft.world.chunk.Chunk", new PluginChunk()); //use FluidState light opacity
+            plugins.put("net.minecraft.world.chunk.Chunk", new PluginChunk()); //account for FluidState light opacity & light values
+            plugins.put("net.minecraft.world.chunk.ChunkPrimer", new PluginChunkPrimer()); //allow mods to generate FluidStates more optimally during world gen
             plugins.put("net.minecraft.world.end.DragonSpawnManager$3", new PluginDragonSpawnManager()); //summoning the ender dragon will now void FluidStates at the pillar locations
             plugins.put("net.minecraft.world.gen.feature.WorldGenDungeons", new PluginWorldGenDungeons()); //spawner dungeons now void FluidStates when they generate
             plugins.put("net.minecraft.world.gen.structure.template.Template", new PluginTemplate()); //structures can load saved FluidStates
@@ -145,5 +148,5 @@ public final class ASMHandler implements BasicLoadingPlugin
     public String getPluginClass() { return "git.jbredwards.fluidlogged_api.mod.asm.ASMHandler$Transformer"; }
 
     @Override
-    public void injectData(@Nonnull Map<String, Object> data) {  }
+    public void injectData(@Nonnull Map<String, Object> data) { ConfigHandler.init(); }
 }

@@ -26,7 +26,7 @@ public class FluidStateCapabilityICube extends FluidStateCapabilityNormal
     public FluidStateCapabilityICube(int chunkXIn, int chunkYIn, int chunkZIn) {
         super(chunkXIn, chunkZIn);
         chunkY = chunkYIn;
-        data = new int[4095];
+        data = new char[4096];
     }
 
     @SubscribeEvent
@@ -48,16 +48,16 @@ public class FluidStateCapabilityICube extends FluidStateCapabilityNormal
     }
 
     @Override
-    public int serializePos(@Nonnull BlockPos pos) {
-        return (pos.getY() & 15) << 8 | (pos.getZ() & 15) << 4 | (pos.getX() & 15);
+    public char serializePos(@Nonnull BlockPos pos) {
+        return (char)((pos.getY() & 15) << 8 | (pos.getZ() & 15) << 4 | (pos.getX() & 15));
     }
 
     @Nonnull
     @Override
-    public BlockPos deserializePos(int serializedPos) {
-        final int x = (chunkX << 4) + (serializedPos & 15);
-        final int y = (chunkY << 4) + ((serializedPos >> 8) & 15);
-        final int z = (chunkZ << 4) + ((serializedPos >> 4) & 15);
+    public BlockPos deserializePos(char serializedPos) {
+        final int x = (chunkX << 4) | (serializedPos & 15);
+        final int y = (chunkY << 4) | ((serializedPos >> 8) & 15);
+        final int z = (chunkZ << 4) | ((serializedPos >> 4) & 15);
         return new BlockPos(x, y, z);
     }
 }

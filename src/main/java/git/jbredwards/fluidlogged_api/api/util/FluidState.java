@@ -53,7 +53,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
         final Block block = fluidIn.getBlock();
         final FluidState fluidState = new FluidState(fluidIn, (block instanceof BlockLiquid)
                 //ensure flowing blocks are used for vanilla fluids
-                ? BlockLiquid.getFlowingBlock(block.getDefaultState().getMaterial()).getDefaultState()
+                ? BlockLiquid.getStaticBlock(block.getDefaultState().getMaterial()).getDefaultState()
                 : block.getDefaultState());
 
         IFluidStateProvider.setDefaultFluidState(fluidIn, fluidState);

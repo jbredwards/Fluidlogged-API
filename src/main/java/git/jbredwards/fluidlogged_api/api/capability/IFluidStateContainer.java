@@ -14,16 +14,16 @@ import java.util.function.BiConsumer;
 public interface IFluidStateContainer
 {
     //internal methods, only use these if you have to!
-    void forEach(@Nonnull BiConsumer<Integer, FluidState> action);
-    boolean hasFluidState(int serializedPos);
+    void forEach(@Nonnull BiConsumer<Character, FluidState> action);
+    boolean hasFluidState(char serializedPos);
 
-    int serializePos(@Nonnull BlockPos pos);
-    @Nonnull BlockPos deserializePos(int serializedPos);
+    char serializePos(@Nonnull BlockPos pos);
+    @Nonnull BlockPos deserializePos(char serializedPos);
 
     //internal, just make sure to sync any changes between the server & client!
     void clearFluidStates();
     void setFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fluidState);
-    void setFluidState(int serializedPos, @Nonnull FluidState fluidState);
+    void setFluidState(char serializedPos, @Nonnull FluidState fluidState);
     @Nonnull FluidState getFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fallback);
-    @Nonnull FluidState getFluidState(int serializedPos, @Nonnull FluidState fallback);
+    @Nonnull FluidState getFluidState(char serializedPos, @Nonnull FluidState fallback);
 }

@@ -2,23 +2,24 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.*;
+import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.core.util.Loader;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
 import static net.minecraft.util.EnumFacing.*;
 
 /**
@@ -59,9 +60,7 @@ public final class PluginWorld implements IASMPlugin
         //changes some methods to use FluidloggedUtils#getFluidOrReal
         else if(checkMethod(method, obfuscated ? "func_72953_d" : "containsAnyLiquid", null)
         || checkMethod(method, obfuscated ? "func_147470_e" : "isFlammableWithin", null)
-        || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null)
-        || checkMethod(method, obfuscated ? "func_175705_a" : "getLightFromNeighborsFor", null)
-        || checkMethod(method, obfuscated ? "func_175721_c" : "getLight", "(Lnet/minecraft/util/math/BlockPos;Z)I"))
+        || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null))
             return 6;
 
         //isFlammableWithin, fix bug with lava level
@@ -71,12 +70,188 @@ public final class PluginWorld implements IASMPlugin
         else if(checkMethod(method, obfuscated ? "func_147447_a" : "rayTraceBlocks", "(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;ZZZ)Lnet/minecraft/util/math/RayTraceResult;"))
             return 8;
 
+        //fix neighbor brightness related bugs
+        else if(checkMethod(method, obfuscated ? "func_175721_c" : "getLight", "(Lnet/minecraft/util/math/BlockPos;Z)I")
+        || method.name.equals(obfuscated ? "func_175705_a" : "getLightFromNeighborsFor"))
+            return 9;
+
+        else if(method.name.equals(obfuscated ? "func_180500_c" : "checkLightFor")) return 10;
         return 0;
     }
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        return true;
+        //setBlockState
+        if(index == 1) {
+            /*
+             * setBlockState: (changes are around line 409)
+             * Old code:
+             * IBlockState oldState = getBlockState(pos);
+             *
+             * New code:
+             * //optimize by calling from already cached chunk value, cause why not
+             * IBlockState oldState = chunk.getBlockState(pos);
+             */
+            if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
+                if(obfuscated) ((MethodInsnNode)insn).name = "func_177435_g";
+                ((MethodInsnNode)insn).owner = "net/minecraft/world/chunk/Chunk";
+                ((VarInsnNode)getPrevious(insn, 2)).var = Loader.isClassAvailable("galaxyspace.core.hooklib.minecraft.HookLibPlugin") ? 5 : 4;
+            }
+            /*
+             * setBlockState: (changes are around lines 410 & 411)
+             * Old code:
+             * int oldLight = oldState.getLightValue(this, pos);
+             * int oldOpacity = oldState.getLightOpacity(this, pos);
+             *
+             * New code:
+             * //cache FluidState light levels
+             * int oldLight = Hooks.getLightValue(oldState, this, pos, chunk);
+             * int oldOpacity = Hooks.getLightOpacity(oldState, this, pos, chunk);
+             */
+            else if(checkMethod(insn, "getLightValue") || checkMethod(insn, "getLightOpacity")) {
+                instructions.insertBefore(insn, new VarInsnNode(ALOAD, Loader.isClassAvailable("galaxyspace.core.hooklib.minecraft.HookLibPlugin") ? 5 : 4));
+                instructions.insertBefore(insn, genMethodNode(((MethodInsnNode)insn).name, "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/chunk/Chunk;)I"));
+                instructions.remove(insn);
+            }
+            /*
+             * setBlockState: (changes are around line 413)
+             * Old code:
+             * IBlockState iblockstate = chunk.setBlockState(pos, newState);
+             *
+             * New code:
+             * //remove FluidState here if the new state can't be fluidlogged, or move fluid block here to FluidState
+             * IBlockState iblockstate = chunk.setBlockState(pos, newState);
+             * Hooks.handleOldFluidState(this, pos, chunk, oldState, newState, iblockstate, flags);
+             */
+            else if(checkMethod(insn, obfuscated ? "func_177436_a" : "setBlockState")) {
+                final boolean doShift = Loader.isClassAvailable("galaxyspace.core.hooklib.minecraft.HookLibPlugin");
+                final InsnList list = new InsnList();
+                list.add(new VarInsnNode(ALOAD, 0));
+                list.add(new VarInsnNode(ALOAD, 1));
+                list.add(new VarInsnNode(ALOAD, doShift ? 5 : 4));
+                list.add(new VarInsnNode(ALOAD, doShift ? 7 : 6));
+                list.add(new VarInsnNode(ALOAD, 2));
+                list.add(new VarInsnNode(ALOAD, doShift ? 10 : 9));
+                list.add(new VarInsnNode(ILOAD, 3));
+                list.add(genMethodNode("handleOldFluidState", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/chunk/Chunk;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/block/state/IBlockState;I)V"));
+                instructions.insert(insn.getNext(), list);
+            }
+
+            //end method transform
+            else return checkMethod(insn, "markAndNotifyBlock");
+        }
+        /*
+         * setBlockToAir & destroyBlock: (changes are around lines 468 & 492):
+         * Old code:
+         * return this.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
+         *
+         * New code:
+         * //replace block here with FluidState here instead of air
+         * return this.setBlockState(pos, FluidState.get(this, pos).getState(), 3);
+         */
+        else if(index == 2 && checkMethod(insn, obfuscated ? "func_176223_P" : "getDefaultState", "()Lnet/minecraft/block/state/IBlockState;")) {
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new VarInsnNode(ALOAD, 1));
+            list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidState", "get", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
+            list.add(new MethodInsnNode(INVOKEVIRTUAL, "git/jbredwards/fluidlogged_api/api/util/FluidState", "getState", "()Lnet/minecraft/block/state/IBlockState;", false));
+            instructions.insert(insn, list);
+            removeFrom(instructions, insn, -1);
+            return true;
+        }
+        /*
+         * handleMaterialAcceleration: (changes are around line 2455):
+         * Old code:
+         * blockpos$pooledmutableblockpos.release();
+         *
+         * New code:
+         * //account for FluidStates
+         * blockpos$pooledmutableblockpos.release();
+         * Pair flags = Hooks.handleFluidAcceleration(world, materialIn, entityIn, vec3d, flag, j2, k2, l2, i3, j3, k3);
+         * flag = ((Boolean)flags.getKey()).booleanValue();
+         * vec3d = (Vec3d)flags.getValue();
+         */
+        else if(index == 4 && checkMethod(insn, obfuscated ? "func_185344_t" : "release", "()V")) {
+            final InsnList list = new InsnList();
+            //handleFluidAcceleration
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new VarInsnNode(ALOAD, 2));
+            list.add(new VarInsnNode(ALOAD, 3));
+            //vec3d
+            list.add(new VarInsnNode(ALOAD, 11));
+            //flag
+            list.add(new VarInsnNode(ILOAD, 10));
+            //aabb positions
+            list.add(new VarInsnNode(ILOAD, 4));
+            list.add(new VarInsnNode(ILOAD, 5));
+            list.add(new VarInsnNode(ILOAD, 6));
+            list.add(new VarInsnNode(ILOAD, 7));
+            list.add(new VarInsnNode(ILOAD, 8));
+            list.add(new VarInsnNode(ILOAD, 9));
+            //adds new code
+            list.add(genMethodNode("handleFluidAcceleration", "(Lnet/minecraft/world/World;Lnet/minecraft/block/material/Material;Lnet/minecraft/entity/Entity;Lnet/minecraft/util/math/Vec3d;ZIIIIII)Lorg/apache/commons/lang3/tuple/Pair;"));
+            list.add(new VarInsnNode(ASTORE, 22));
+            //flags.getKey()
+            list.add(new VarInsnNode(ALOAD, 22));
+            list.add(new MethodInsnNode(INVOKEVIRTUAL, "org/apache/commons/lang3/tuple/Pair", "getKey", "()Ljava/lang/Object;", false));
+            list.add(new TypeInsnNode(CHECKCAST, "java/lang/Boolean"));
+            list.add(new MethodInsnNode(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false));
+            list.add(new VarInsnNode(ISTORE, 10));
+            //flags.getValue()
+            list.add(new VarInsnNode(ALOAD, 22));
+            list.add(new MethodInsnNode(INVOKEVIRTUAL, "org/apache/commons/lang3/tuple/Pair", "getValue", "()Ljava/lang/Object;", false));
+            list.add(new TypeInsnNode(CHECKCAST, "net/minecraft/util/math/Vec3d"));
+            list.add(new VarInsnNode(ASTORE, 11));
+
+            instructions.insert(insn, list);
+            return true;
+        }
+        /*
+         * getLight & getLightFromNeighborsFor: (changes around lines 768 & 899):
+         * Old code:
+         * if (checkNeighbors && this.getBlockState(pos).useNeighborBrightness())
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //fix neighbor brightness related bugs
+         * if (checkNeighbors && Hooks.useNeighborBrightness(this, pos))
+         * {
+         *     ...
+         * }
+         */
+        else if(index == 9 && checkMethod(insn, obfuscated ? "func_185916_f" : "useNeighborBrightness")) {
+            instructions.insert(insn, genMethodNode("useNeighborBrightness", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z"));
+            removeFrom(instructions, insn, -1);
+            return true;
+        }
+        /*
+         * checkLightFor: (changes are around line 3165)
+         * Old code:
+         * IBlockState bs = this.getBlockState(blockpos$pooledmutableblockpos);
+         * int i7 = Math.max(1, bs.getBlock().getLightOpacity(bs, this, blockpos$pooledmutableblockpos));
+         *
+         * New code:
+         * //use forge-added opacity getter
+         * IBlockState bs = null;
+         * int i7 = Math.max(1, this.getBlockLightOpacity(blockpos$pooledmutableblockpos));
+         */
+        else if(index == 10) {
+            //don't collect block state here, it's unused
+            if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
+                instructions.insert(insn, new InsnNode(ACONST_NULL));
+                removeFrom(instructions, insn, -2);
+            }
+            else if(checkMethod(insn, "getLightOpacity")) {
+                removeFrom(instructions, getPrevious(insn, 3), -2);
+                instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/world/World", "getBlockLightOpacity", "(Lnet/minecraft/util/math/BlockPos;)I", false));
+                instructions.remove(insn);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -98,70 +273,88 @@ public final class PluginWorld implements IASMPlugin
                 generator.visitVarInsn(ILOAD, 5);
             }
         );
+        /*
+         * getRawLight:
+         * New code:
+         * //account for FluidStates when calculating raw light & opacity values
+         * private int getRawLight(BlockPos pos, EnumSkyBlock lightType)
+         * {
+         *     return Hooks.getRawLight(this, pos, lightType);
+         * }
+         */
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_175638_a" : "getRawLight"),
+            "getRawLight", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/EnumSkyBlock;)I", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitVarInsn(ALOAD, 1);
+                generator.visitVarInsn(ALOAD, 2);
+            }
+        );
 
         return true;
+    }
+
+    @Override
+    public boolean addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) {
+        if(index == 4) {
+            method.localVariables.add(new LocalVariableNode("flags", "Lorg/apache/commons/lang3/tuple/Pair;", null, start, end, 22));
+            return true;
+        }
+
+        return false;
     }
 
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static boolean isFlammableWithin(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
-            if(getFluidFromBlock(block) == FluidRegistry.LAVA) return Boolean.TRUE.equals(block.isAABBInsideLiquid(world, pos, bb));
-            final FluidState fluidState = FluidState.get(world, pos); //handle possible lava FluidState
-            return fluidState.getFluid() == FluidRegistry.LAVA && Boolean.TRUE.equals(fluidState.getBlock().isAABBInsideLiquid(world, pos, bb));
+        public static int getLightOpacity(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Chunk chunk) {
+            return PluginChunk.Hooks.getFluidLightOpacity(state, world, pos, chunk);
         }
 
-        public static boolean isMaterialInBB(@Nonnull World world, @Nonnull AxisAlignedBB bb, @Nonnull Material materialIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
-            for(int x = minX; x < maxX; ++x) {
-                for(int y = minY; y < maxY; ++y) {
-                    for(int z = minZ; z < maxZ; ++z) {
-                        BlockPos pos = new BlockPos(x, y, z);
-                        FluidState fluidState = FluidState.get(world, pos);
+        public static int getLightValue(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Chunk chunk) {
+            return PluginChunk.Hooks.getFluidLightValue(state, world, pos, chunk);
+        }
 
-                        if(!fluidState.isEmpty()) {
-                            @Nullable Boolean result = fluidState.getBlock().isAABBInsideMaterial(world, pos, bb, materialIn);
-                            if(result != null) {
-                                if(!result) continue;
-                                return true;
-                            }
-                            else if(fluidState.getMaterial() == materialIn)
-                                return true;
-                        }
-                    }
-                }
+        public static int getRawLight(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumSkyBlock lightType) {
+            if(lightType == EnumSkyBlock.SKY && world.canSeeSky(pos)) return 15;
+            final Chunk chunk = world.getChunk(pos);
+            final IBlockState state = chunk.getBlockState(pos);
+
+            int light = lightType == EnumSkyBlock.SKY ? 0 : getLightValue(state, world, pos, chunk);
+            int opacity = Math.max(getLightOpacity(state, world, pos, chunk), 1);
+            if(opacity >= 15) return light; // Forge: fix MC-119932
+            else if(light >= 14) return light;
+
+            for(EnumFacing facing : values()) {
+                final BlockPos offset = pos.offset(facing);
+                final int neighborLight = world.getLightFor(lightType, offset) - opacity;
+
+                if(neighborLight > light) light = neighborLight;
+                if(light >= 14) return light;
             }
 
-            return false;
+            return light;
         }
 
-        public static boolean handleMaterialAcceleration(@Nonnull BlockPos.PooledMutableBlockPos pos, @Nonnull World world, @Nonnull Material material, @Nonnull Entity entity, @Nonnull Vec3d vec3dIn, boolean flagIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
-            boolean flag = flagIn;
-
-            for(int x = minX; x < maxX; ++x) {
-                for(int y = minY; y < maxY; ++y) {
-                    for(int z = minZ; z < maxZ; ++z) {
-                        FluidState fluidState = FluidState.get(world, pos.setPos(x, y, z));
+        @Nonnull
+        public static Pair<Boolean, Vec3d> handleFluidAcceleration(@Nonnull World world, @Nonnull Material material, @Nonnull Entity entity, @Nonnull Vec3d vec3dIn, boolean flagIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+            for(int x = minX; x < maxX; x++) {
+                for(int y = minY; y < maxY; y++) {
+                    for(int z = minZ; z < maxZ; z++) {
+                        final BlockPos pos = new BlockPos(x, y, z);
+                        final FluidState fluidState = FluidState.get(world, pos);
                         if(!fluidState.isEmpty()) {
-                            Block block = fluidState.getBlock();
-
-                            @Nullable Boolean result = block.isEntityInsideMaterial(world, pos, fluidState.getState(), entity, maxY, material, false);
+                            final Block block = fluidState.getBlock();
+                            final @Nullable Boolean result = block.isEntityInsideMaterial(world, pos, fluidState.getState(), entity, maxY, material, false);
                             if(Boolean.TRUE.equals(result)) {
-                                Vec3d vec3d = block.modifyAcceleration(world, pos, entity, vec3dIn);
-                                vec3dIn.x = vec3d.x;
-                                vec3dIn.y = vec3d.y;
-                                vec3dIn.z = vec3d.z;
-                                flag = true;
+                                vec3dIn = block.modifyAcceleration(world, pos, entity, vec3dIn);
+                                flagIn = true;
                             }
 
                             else if(!Boolean.FALSE.equals(result) && fluidState.getMaterial() == material) {
                                 //check for fluid height
-                                double fluidHeight = y + 1 - (1 / 9.0f);
-                                if(maxY >= fluidHeight) {
-                                    Vec3d vec3d = block.modifyAcceleration(world, pos, entity, vec3dIn);
-                                    vec3dIn.x = vec3d.x;
-                                    vec3dIn.y = vec3d.y;
-                                    vec3dIn.z = vec3d.z;
-                                    flag = true;
+                                if(maxY >= y + 1 - (1 / 9.0f)) {
+                                    vec3dIn = block.modifyAcceleration(world, pos, entity, vec3dIn);
+                                    flagIn = true;
                                 }
                             }
                         }
@@ -169,54 +362,39 @@ public final class PluginWorld implements IASMPlugin
                 }
             }
 
-            pos.release();
-            return flag;
+            return Pair.of(flagIn, vec3dIn);
         }
 
-        public static void neighborChanged(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos, @Nonnull IBlockState here) {
-            final FluidState fluidState = FluidState.get(world, pos);
-            if(!fluidState.isEmpty()) {
-                fluidState.getState().neighborChanged(world, pos, blockIn, fromPos);
-                //update neighboring fluids in case the block here uses getActualState for canFluidFlow
-                for(EnumFacing facing : VALUES) {
-                    if(!canFluidFlow(world, pos, here, facing)) {
-                        getFluidState(world, pos.offset(facing)).getState()
-                                .neighborChanged(world, pos.offset(facing), here.getBlock(), pos);
-                    }
-                }
-            }
-        }
-
-        @Nullable
-        public static IBlockState setBlockState(@Nonnull Chunk chunk, @Nonnull BlockPos pos, @Nonnull IBlockState newState, @Nonnull IBlockState oldState, @Nonnull World world, int flags) {
-            final @Nullable IBlockState chunkState = chunk.setBlockState(pos, newState);
-            if(chunkState != null) {
+        public static void handleOldFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Chunk chunk, @Nonnull IBlockState oldState, @Nonnull IBlockState newState, @Nullable IBlockState iblockstate, int blockFlags) {
+            if(iblockstate != null) {
                 final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
                 //this mod adds a special flag (x | 32, example: Constants.BlockFlags.DEFAULT | 32) that removes any FluidState here
-                if((flags & 32) != 0) {
-                    if(!fluidState.isEmpty())
-                        setFluidState(world, pos, newState, FluidState.EMPTY, false, false, flags);
+                if((blockFlags & 32) != 0) {
+                    if(!fluidState.isEmpty()) FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, false, blockFlags);
+                    return;
                 }
 
-                //without the flag preserves FluidState / sets FluidState using oldState if it's a full fluid & if newState is fluidloggable
-                else {
-                    //remove FluidState here, new state isn't fluidloggable
-                    if(!fluidState.isEmpty()) {
-                        if(!isStateFluidloggable(newState, world, pos, fluidState.getFluid()))
-                            setFluidState(world, pos, newState, FluidState.EMPTY, false, false, flags);
-                            //ensure fluids are updated when the block here changes
-                        else if(world.isAreaLoaded(pos, 1)) notifyFluids(world, pos, fluidState, true);
-                    }
-                    //save oldState as FluidState
-                    else {
-                        final @Nullable Fluid fluid = getFluidFromState(oldState);
-                        if(fluid != null && isFluidloggableFluid(oldState, world, pos) && isStateFluidloggable(newState, world, pos, fluid))
-                            setFluidState(world, pos, newState, FluidState.of(fluid), false, false, flags);
-                    }
+                //if the new state isn't fluidloggable, remove the FluidState here
+                if(!fluidState.isEmpty()) {
+                    if(!FluidloggedUtils.isStateFluidloggable(newState, world, pos, fluidState.getFluid()))
+                        FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, false, blockFlags);
+
+                    //ensure fluids are updated when the block here changes
+                    else if(world.isAreaLoaded(pos, 1)) FluidloggedUtils.notifyFluids(world, pos, fluidState, true);
+                    return;
                 }
+
+                //save oldState as FluidState if possible
+                final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(oldState);
+                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(oldState, world, pos) && FluidloggedUtils.isStateFluidloggable(newState, world, pos, fluid))
+                    FluidloggedUtils.setFluidState(world, pos, newState, FluidState.of(fluid), false, false, blockFlags);
             }
+        }
 
-            return chunkState;
+        public static boolean isFlammableWithin(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
+            if(block.getDefaultState().getMaterial() == Material.LAVA) return Boolean.TRUE.equals(block.isAABBInsideLiquid(world, pos, bb));
+            final FluidState fluidState = FluidState.get(world, pos); //handle possible lava FluidState
+            return fluidState.getMaterial() == Material.LAVA && Boolean.TRUE.equals(fluidState.getBlock().isAABBInsideLiquid(world, pos, bb));
         }
 
         @SuppressWarnings("ConstantConditions")
@@ -245,7 +423,7 @@ public final class PluginWorld implements IASMPlugin
             }
 
             IBlockState state = world.getBlockState(pos);
-            if(state.getBlock().canCollideCheck(state, stopOnLiquid) && (stopOnLiquid && getFluidFromState(state) != null || !ignoreBlockWithoutBoundingBox || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
+            if(state.getBlock().canCollideCheck(state, stopOnLiquid) && (stopOnLiquid && FluidloggedUtils.isFluid(state) || !ignoreBlockWithoutBoundingBox || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
                 result = state.collisionRayTrace(world, pos, vec, end);
                 if(result != null) { return result; }
             }
@@ -324,7 +502,7 @@ public final class PluginWorld implements IASMPlugin
                 }
 
                 state = world.getBlockState(pos);
-                if(!ignoreBlockWithoutBoundingBox || state.getMaterial() == Material.PORTAL || stopOnLiquid && getFluidFromState(state) != null || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB) {
+                if(!ignoreBlockWithoutBoundingBox || state.getMaterial() == Material.PORTAL || stopOnLiquid && FluidloggedUtils.isFluid(state) || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB) {
                     if(state.getBlock().canCollideCheck(state, stopOnLiquid)) {
                         result = state.collisionRayTrace(world, pos, vec, end);
                         if(result != null) return result;
@@ -335,6 +513,10 @@ public final class PluginWorld implements IASMPlugin
             }
 
             return returnLastUncollidableBlock ? lastResult : null;
+        }
+
+        public static boolean useNeighborBrightness(@Nonnull World world, @Nonnull BlockPos pos) {
+            return PluginChunkCache.Hooks.useNeighborBrightness(world, pos);
         }
     }
 }
