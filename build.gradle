@@ -2,13 +2,16 @@ buildscript {
     repositories {
         mavenCentral()
         maven { url 'https://files.minecraftforge.net/maven' }
+        maven { url 'https://plugins.gradle.org/m2/' }
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath 'gradle.plugin.com.matthewprenger:CurseGradle:1.4.0'
     }
 }
 
 apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'com.matthewprenger.cursegradle'
 apply plugin: 'maven-publish'
 
 version = 'v1.8.2-mc1.12.2'
@@ -25,10 +28,14 @@ minecraft {
 
 repositories {
     maven { url 'https://oss.sonatype.org/content/repositories/public/' }
+    maven { url 'https://cursemaven.com' }
 }
 
 dependencies {
+    //optional mod compat
     deobfProvided 'io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0-SNAPSHOT'
+    deobfProvided 'curse.maven:better-foliage-228529:3393955'
+    deobfProvided 'curse.maven:dynamic-lights-227874:2563244'
 }
 
 processResources {

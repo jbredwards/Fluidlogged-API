@@ -5,6 +5,8 @@ import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateContainer;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
+import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -163,6 +165,8 @@ public final class PluginChunk implements IASMPlugin
     public static final class Hooks
     {
         public static void generateFluidStates(@Nonnull Chunk chunk, @Nonnull IFluidStatePrimer primer) {
+            //TODO add identical cubic chunks mod functionality
+            if(FluidloggedAPI.isCubicChunks && CCHooks.isCubicWorld(chunk.getWorld())) return;
             final IFluidStateCapability cap = IFluidStateCapability.get(chunk);
             if(cap != null) {
                 IFluidStateContainer container = cap.getContainer(chunk.x, 0, chunk.z);
@@ -198,6 +202,14 @@ public final class PluginChunk implements IASMPlugin
 
         public static int getFluidLightValue(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Chunk chunk) {
             return Math.max(state.getLightValue(world, pos), FluidState.getFromProvider(chunk, pos).getState().getLightValue(world, pos));
+        }
+    }
+
+    //hold Cubic Chunks methods in separate class to avoid crash
+    public static final class CCHooks
+    {
+        public static boolean isCubicWorld(@Nonnull World world) {
+            return world instanceof ICubicWorld && ((ICubicWorld)world).isCubicWorld();
         }
     }
 }

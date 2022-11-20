@@ -1,8 +1,10 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
+import atomicstryker.dynamiclights.client.DynamicLights;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -318,9 +320,11 @@ public final class PluginWorld implements IASMPlugin
             if(lightType == EnumSkyBlock.SKY && world.canSeeSky(pos)) return 15;
             final Chunk chunk = world.getChunk(pos);
             final IBlockState state = chunk.getBlockState(pos);
-
-            int light = lightType == EnumSkyBlock.SKY ? 0 : getLightValue(state, world, pos, chunk);
-            int opacity = Math.max(getLightOpacity(state, world, pos, chunk), 1);
+            final IBlockState fluidState = FluidState.getFromProvider(chunk, pos).getState();
+            int light = lightType == EnumSkyBlock.SKY ? 0 : FluidloggedAPI.isDynamicLights
+                    ? DLHooks.getLightValue(state, world, pos, fluidState)
+                    : Math.max(state.getLightValue(world, pos), fluidState.getLightValue(world, pos));
+            int opacity = Math.max(Math.max(state.getLightOpacity(world, pos), fluidState.getLightOpacity(world, pos)), 1);
             if(opacity >= 15) return light; // Forge: fix MC-119932
             else if(light >= 14) return light;
 
@@ -517,6 +521,14 @@ public final class PluginWorld implements IASMPlugin
 
         public static boolean useNeighborBrightness(@Nonnull World world, @Nonnull BlockPos pos) {
             return PluginChunkCache.Hooks.useNeighborBrightness(world, pos);
+        }
+    }
+
+    //hold Dynamic Lights methods in separate class to avoid crash
+    public static final class DLHooks
+    {
+        public static int getLightValue(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState fluidState) {
+            return Math.max(DynamicLights.getLightValue(state.getBlock(), state, world, pos), fluidState.getLightValue(world, pos));
         }
     }
 }

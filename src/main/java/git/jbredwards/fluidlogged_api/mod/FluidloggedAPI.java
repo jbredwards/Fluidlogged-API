@@ -40,6 +40,10 @@ public final class FluidloggedAPI
     //mod id constants
     @Nonnull
     public static final String MODID = "fluidlogged_api", NAME  = "Fluidlogged API", VERSION = "1.8.2";
+    public static final boolean //compat id constants
+            isBetterFoliage = Loader.isModLoaded("betterfoliage"),
+            isCubicChunks   = Loader.isModLoaded("cubicchunks"),
+            isDynamicLights = Loader.isModLoaded("dynamiclights");
 
     @Mod.EventHandler
     static void preInit(@Nonnull FMLPreInitializationEvent event) {
@@ -51,7 +55,7 @@ public final class FluidloggedAPI
         INSTANCE.registerMessage(MessageSyncFluidStates.Handler.INSTANCE, MessageSyncFluidStates.class, 2, Side.CLIENT);
         INSTANCE.registerMessage(MessageReloadConfig.Handler.INSTANCE, MessageReloadConfig.class, 3, Side.CLIENT);
         //no cubic chunks
-        if(!Loader.isModLoaded("cubicchunks")) MinecraftForge.EVENT_BUS.register(FluidStateCapabilityNormal.class);
+        if(!isCubicChunks) MinecraftForge.EVENT_BUS.register(FluidStateCapabilityNormal.class);
         //cubic chunks
         else {
             MinecraftForge.EVENT_BUS.register(FluidStateCapabilityIColumn.class);

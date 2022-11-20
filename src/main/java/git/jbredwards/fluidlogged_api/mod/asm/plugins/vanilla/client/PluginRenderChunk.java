@@ -3,7 +3,8 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.BFReflector;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -19,9 +20,6 @@ import net.minecraftforge.client.ForgeHooksClient;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
-import java.lang.reflect.InvocationTargetException;
-
-import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.getFluidFromState;
 
 /**
  * allows the game to render FluidStates
@@ -127,12 +125,12 @@ public final class PluginRenderChunk implements IASMPlugin
         return false;
     }
 
+    @SuppressWarnings("unused")
     public static final class Hooks
     {
-
         public static boolean renderChunk(Block block, IBlockState state, BlockRenderLayer layerIn, boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
             //only run fluid renderer once
-            if(layerIn.ordinal() == 0 && getFluidFromState(state) == null) {
+            if(layerIn.ordinal() == 0 && !FluidloggedUtils.isFluid(state)) {
                 final FluidState fluidState = FluidState.get(pos);
                 if(!fluidState.isEmpty() && fluidState.getState().getRenderType() == EnumBlockRenderType.MODEL
                         && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock())
@@ -163,16 +161,24 @@ public final class PluginRenderChunk implements IASMPlugin
             }
 
             //always return old code
-            try { return BFReflector.canRenderBlockInLayer != null
-                    ? (boolean)BFReflector.canRenderBlockInLayer.invoke(null, block, state, layerIn)
-                    : block.canRenderInLayer(state, layerIn);}
-            catch (IllegalAccessException | InvocationTargetException e) {
-                return block.canRenderInLayer(state, layerIn);
-            }
+            return canRenderBlockInLayer(block, state, layerIn);
         }
 
         public static boolean renderChunkOF(Object blockIn, Object ignored, Object[] args, boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
             return renderChunk((Block)blockIn, (IBlockState)args[0], (BlockRenderLayer)args[1], array, generator, compiledChunk, world, pos, chunkPos);
+        }
+
+        //helper
+        public static boolean canRenderBlockInLayer(@Nonnull Block block, @Nonnull IBlockState state, @Nonnull BlockRenderLayer layer) {
+            return FluidloggedAPI.isBetterFoliage ? BFHooks.canRenderBlockInLayer(block, state, layer) : block.canRenderInLayer(state, layer);
+        }
+    }
+
+    //hold Better Foliage methods in separate class to avoid crash
+    public static final class BFHooks
+    {
+        public static boolean canRenderBlockInLayer(@Nonnull Block block, @Nonnull IBlockState state, @Nonnull BlockRenderLayer layer) {
+            return mods.betterfoliage.client.Hooks.canRenderBlockInLayer(block, state, layer);
         }
     }
 }
