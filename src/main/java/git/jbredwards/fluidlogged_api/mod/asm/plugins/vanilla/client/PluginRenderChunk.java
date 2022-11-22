@@ -128,10 +128,10 @@ public final class PluginRenderChunk implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static boolean renderChunk(Block block, IBlockState state, BlockRenderLayer layerIn, boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
+        public static boolean renderChunk(@Nonnull Block block, @Nonnull IBlockState state, @Nonnull BlockRenderLayer layerIn, @Nonnull boolean[] array, @Nonnull ChunkCompileTaskGenerator generator, @Nonnull CompiledChunk compiledChunk, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull BlockPos chunkPos) {
             //only run fluid renderer once
             if(layerIn.ordinal() == 0 && !FluidloggedUtils.isFluid(state)) {
-                final FluidState fluidState = FluidState.get(pos);
+                final FluidState fluidState = FluidState.get(world, pos);
                 if(!fluidState.isEmpty() && fluidState.getState().getRenderType() == EnumBlockRenderType.MODEL
                         && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock())
                                 .shouldFluidRender(world, pos, state, fluidState))) {
@@ -164,7 +164,7 @@ public final class PluginRenderChunk implements IASMPlugin
             return canRenderBlockInLayer(block, state, layerIn);
         }
 
-        public static boolean renderChunkOF(Object blockIn, Object ignored, Object[] args, boolean[] array, ChunkCompileTaskGenerator generator, CompiledChunk compiledChunk, IBlockAccess world, BlockPos pos, BlockPos chunkPos) {
+        public static boolean renderChunkOF(@Nonnull Object blockIn, @Nonnull Object ignored, @Nonnull Object[] args, @Nonnull boolean[] array, @Nonnull ChunkCompileTaskGenerator generator, @Nonnull CompiledChunk compiledChunk, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull BlockPos chunkPos) {
             return renderChunk((Block)blockIn, (IBlockState)args[0], (BlockRenderLayer)args[1], array, generator, compiledChunk, world, pos, chunkPos);
         }
 

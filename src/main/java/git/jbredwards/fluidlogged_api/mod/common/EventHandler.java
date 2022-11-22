@@ -17,11 +17,13 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
+import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -39,6 +41,11 @@ import javax.annotation.Nullable;
 @Mod.EventBusSubscriber(modid = FluidloggedAPI.MODID)
 public final class EventHandler
 {
+    @SubscribeEvent(priority = EventPriority.LOW)
+    static void forceForgeCascadingFix(@Nonnull ConfigChangedEvent.PostConfigChangedEvent event) {
+        if(event.getModID().equals("forge")) ForgeModContainer.fixVanillaCascading = true;
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGH)
     static void handleConfigOverrides(@Nonnull FluidloggableEvent event) {
         final Event.Result result = ConfigHandler.isStateFluidloggable(event.state, event.fluid);
@@ -132,7 +139,7 @@ public final class EventHandler
         if(fluidState.isValid()) {
             if(world.isRemote) return true; //prevent desync
             else if(handler.fill(fluidState.getFluidBlock().drain(world, pos, true), true) == Fluid.BUCKET_VOLUME) {
-                world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluidState.getFluid().getFillSound(), SoundCategory.BLOCKS, 1, 1);
+                world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluidState.getFluid().getFillSound(world, pos), SoundCategory.BLOCKS, 1, 1);
                 return true;
             }
         }

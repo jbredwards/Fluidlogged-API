@@ -1,6 +1,11 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import net.minecraft.block.material.Material;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -27,17 +32,31 @@ public final class PluginBlockFarmland implements IASMPlugin
          *
          * New code:
          * //check for fluidlogged blocks
-         * if (FluidloggedUtils.getFluidOrReal(worldIn, blockpos$mutableblockpos).getMaterial() == Material.WATER)
+         * if (Hooks.getWaterBlock(worldIn, blockpos$mutableblockpos) == Material.WATER)
          * {
          *     ...
          * }
          */
-        if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
-            instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
-            instructions.remove(insn);
+        //separate obfuscated check to resolve foamfix conflict
+        if(obfuscated && checkMethod(insn, "func_180495_p") || checkMethod(insn, "getBlockState")) {
+            instructions.insertBefore(insn, genMethodNode("getWaterBlock", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/material/Material;"));
+            removeFrom(instructions, insn, 1);
             return true;
         }
 
         return false;
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Hooks
+    {
+        @Nonnull
+        public static Material getWaterBlock(@Nonnull World world, @Nonnull BlockPos pos) {
+            final Chunk chunk = world.getChunkProvider().getLoadedChunk(pos.getX() >> 4, pos.getZ() >> 4);
+            if(chunk == null) return Material.AIR;
+
+            return chunk.getBlockState(pos).getMaterial() == Material.WATER ? Material.WATER
+                    : FluidState.getFromProvider(chunk, pos).getMaterial();
+        }
     }
 }

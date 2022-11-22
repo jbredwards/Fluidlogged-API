@@ -15,6 +15,7 @@ import git.jbredwards.fluidlogged_api.mod.common.message.MessageReloadConfig;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.init.Items;
 import net.minecraft.util.datafix.FixTypes;
+import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fluids.DispenseFluidContainer;
@@ -67,6 +68,8 @@ public final class FluidloggedAPI
     static void init(@Nonnull FMLInitializationEvent event) throws IOException {
         //finalize this mod's config
         ConfigHandler.complete();
+        //fixes cascading world gen
+        ForgeModContainer.fixVanillaCascading = true;
         //fixes the vanilla bucket dispenser actions by replacing them with the forge one
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET,  DispenseFluidContainer.getInstance());
