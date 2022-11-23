@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.asm.impl.IChunkProvider;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.chunk.Chunk;
@@ -77,9 +78,13 @@ public final class PluginChunkCache implements IASMPlugin
 
         public static boolean useNeighborBrightness(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
             final @Nullable Chunk chunk = IChunkProvider.getChunk(world, pos);
-            if(chunk != null && chunk.getBlockState(pos).useNeighborBrightness()) {
+            if(chunk == null) return false;
+
+            final IBlockState state = chunk.getBlockState(pos);
+            if(state.useNeighborBrightness()) {
                 final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
-                return fluidState.isEmpty() || fluidState.getState().useNeighborBrightness();
+                if(fluidState.isEmpty() || fluidState.getState().useNeighborBrightness()) return true;
+                return state.getLightOpacity(world, pos) > fluidState.getState().getLightOpacity(world, pos);
             }
 
             return false;

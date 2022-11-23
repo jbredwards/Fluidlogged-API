@@ -48,6 +48,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()); //fix mixin annotation to target fluidlogged api transform
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingEngine", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingHooks", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
+            plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); //better optifine compat
             plugins.put("org.spongepowered.common.mixin.core.block.BlockLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.entity.EntityMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockFluidBase", new PluginPlusTweaks()); //fix crash with PlusTweaks mod fluid interactions
@@ -112,7 +113,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.block.BlockTripWireHook", new PluginFluidloggableBlocks());
             //vanilla (client)
             plugins.put("net.minecraft.client.multiplayer.WorldClient", new PluginWorldClient()); //non-empty FluidStates call randomDisplayTick & move hardcoded barrier stuff to barrier.randomDisplayTick
-            plugins.put("net.minecraft.client.particle.Particle", new PluginParticle()); //fix particle lighting while within fluidlogged blocks
             plugins.put("net.minecraft.client.particle.ParticleBubble", new PluginWaterParticles()); //this doesn't instantly disappear while inside water FluidStates
             plugins.put("net.minecraft.client.particle.ParticleDrip", new PluginWaterParticles()); //this doesn't instantly disappear while inside water FluidStates
             plugins.put("net.minecraft.client.particle.ParticleRain", new PluginParticleRain()); //fix all fluid-related rain collisions
