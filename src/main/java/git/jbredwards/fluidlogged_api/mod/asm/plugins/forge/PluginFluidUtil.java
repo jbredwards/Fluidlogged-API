@@ -43,7 +43,7 @@ public final class PluginFluidUtil implements IASMPlugin
             final InsnList list = new InsnList();
             list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ALOAD, 1));
-            list.add(genMethodNode("getFluidHandler", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraftforge/fluids/capability/IFluidHandler;"));
+            list.add(genMethodNode("getFluidStateHandler", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraftforge/fluids/capability/IFluidHandler;"));
             instructions.insert(insn, list);
             instructions.remove(insn);
             return true;

@@ -65,31 +65,28 @@ public final class EventHandler
 
     @SubscribeEvent(priority = EventPriority.LOW)
     static void destroyBurnables(@Nonnull FluidloggedEvent event) {
-        if(ConfigHandler.lavalogVaporizeFlammable && !event.doesVaporize() && !event.fluidState.isEmpty()) {
-            //check temperature, fallback on blocks that light entities on fire
-            if(event.fluidState.getFluid().getTemperature() >= 1000 || event.fluidState.getMaterial() == Material.LAVA) {
-                //check game rule
-                if(event.world.getGameRules().getBoolean("doFireTick")) {
-                    boolean isFlammable = event.here.getMaterial().getCanBurn();
-                    if(!isFlammable) {
-                        for(EnumFacing facing : EnumFacing.values()) {
-                            if(event.here.getBlock().isFlammable(event.world, event.pos, facing)) {
-                                isFlammable = true;
-                                break;
-                            }
+        if(ConfigHandler.lavalogVaporizeFlammable && !event.doesVaporize() && event.fluidState.getMaterial() == Material.LAVA) {
+            //check game rule
+            if(event.world.getGameRules().getBoolean("doFireTick")) {
+                boolean isFlammable = event.here.getMaterial().getCanBurn();
+                if(!isFlammable) {
+                    for(EnumFacing facing : EnumFacing.values()) {
+                        if(event.here.getBlock().isFlammable(event.world, event.pos, facing)) {
+                            isFlammable = true;
+                            break;
                         }
                     }
+                }
 
-                    if(isFlammable) {
-                        final IBlockState state = event.fluidState.getBlock() instanceof BlockLiquid
-                                ? BlockLiquid.getFlowingBlock(Material.LAVA).getDefaultState()
-                                : event.fluidState.getState();
+                if(isFlammable) {
+                    final IBlockState state = event.fluidState.getBlock() instanceof BlockLiquid
+                            ? BlockLiquid.getFlowingBlock(Material.LAVA).getDefaultState()
+                            : event.fluidState.getState();
 
-                        event.fluidState.getFluid().vaporize(null, event.world, event.pos, event.getFluidStack());
-                        event.world.setBlockState(event.pos, state, event.blockFlags);
-                        event.setResult(Event.Result.ALLOW);
-                        event.setCanceled(true);
-                    }
+                    event.fluidState.getFluid().vaporize(null, event.world, event.pos, event.getFluidStack());
+                    event.world.setBlockState(event.pos, state, event.blockFlags);
+                    event.setResult(Event.Result.ALLOW);
+                    event.setCanceled(true);
                 }
             }
         }

@@ -23,7 +23,9 @@ import java.util.function.Supplier;
 public interface IASMPlugin extends Opcodes
 {
     //set this to your mod's active transformer, this is to display the correct debug info in the console
-    @Nonnull StringHolder ACTIVE_TRANSFORMER = new StringHolder("Fluidlogged API Plugin");
+    @Nonnull StringHolder ACTIVE_PLUGIN = new StringHolder("Unknown Plugin");
+    static void resetActivePlugin() { ACTIVE_PLUGIN.value = "Unknown Plugin"; }
+    static void setActivePlugin(@Nonnull String plugin) { ACTIVE_PLUGIN.value = plugin; }
 
     //exists to let other mods to more easily use this interface
     @Nonnull default String getHookClass() { return getClass().getName().replace('.', '/') + "$Hooks"; }
@@ -75,8 +77,8 @@ public interface IASMPlugin extends Opcodes
     //can be useful for easily troubleshooting plugins
     default void informConsole(@Nonnull String className, @Nullable MethodNode method) {
         if(ConfigHandler.debugASMPlugins) {
-            if(method == null) System.out.printf("%s: transforming... %s%n", ACTIVE_TRANSFORMER.value, className);
-            else System.out.printf("%s: transforming... %s.%s%s%n", ACTIVE_TRANSFORMER.value, className, method.name, method.desc);
+            if(method == null) System.out.printf("%s: transforming... %s%n", ACTIVE_PLUGIN.value, className);
+            else System.out.printf("%s: transforming... %s.%s%s%n", ACTIVE_PLUGIN.value, className, method.name, method.desc);
         }
     }
 

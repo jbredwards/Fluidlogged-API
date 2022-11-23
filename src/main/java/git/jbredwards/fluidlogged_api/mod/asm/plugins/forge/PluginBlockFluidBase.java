@@ -513,7 +513,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
 
                 //fluid block
                 else if(isCompatibleFluid(fluids[1][0][1].getFluid(), fluids[i][0][j].getFluid())) {
-                    int lowest = fluids[i][0][j].getLevel();
+                    int lowest = capLowest(fluids[i][0][j].getLevel());
                     if(lowest == 0) return quantaFraction;
 
                     //diagonals check if nearby have lower levels to connect
@@ -525,16 +525,19 @@ public final class PluginBlockFluidBase implements IASMPlugin
 
                             //check indirect adjacent
                             if((!canFluidFlow(world, pos, states[1][0][1], other)
-                                    || !canFluidFlow(world, pos.offset(other), getOrSet(states, () -> world.getBlockState(pos.offset(other)), other), other.getOpposite()))
-                                    && canFluidFlow(world, pos, states[1][0][1], facing)
-                                    && canFluidFlow(world, offset, neighbor, facing.getOpposite())
-                                    && canFluidFlow(world, offset, neighbor, other)
-                                    && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], other.getOpposite())
-                                    && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, offset, neighbor), facing).getFluid())
-                                    && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], facing.getOpposite())
-                                    && canFluidFlow(world, pos.offset(other), getOrSet(states, () -> world.getBlockState(pos.offset(other)), other), facing)
-                                    && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, pos.offset(other), get(states, other)), other).getFluid())
-                                    && lowest > get(fluids, other).getLevel()) lowest = get(fluids, other).getLevel();
+                            || !canFluidFlow(world, pos.offset(other), getOrSet(states, () -> world.getBlockState(pos.offset(other)), other), other.getOpposite()))
+                            && canFluidFlow(world, pos, states[1][0][1], facing)
+                            && canFluidFlow(world, offset, neighbor, facing.getOpposite())
+                            && canFluidFlow(world, offset, neighbor, other)
+                            && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], other.getOpposite())
+                            && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, offset, neighbor), facing).getFluid())
+                            && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], facing.getOpposite())
+                            && canFluidFlow(world, pos.offset(other), getOrSet(states, () -> world.getBlockState(pos.offset(other)), other), facing)
+                            && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, pos.offset(other), get(states, other)), other).getFluid())
+                            && lowest > get(fluids, other).getLevel()) {
+                                lowest = capLowest(get(fluids, other).getLevel());
+                                if(lowest == 0) break;
+                            }
                         }
                     }
 
@@ -546,6 +549,9 @@ public final class PluginBlockFluidBase implements IASMPlugin
             //default
             return -1;
         }
+
+        //helper
+        public static int capLowest(int lowest) { return lowest >= 8 ? 0 : lowest; }
 
         //helper
         public static float getFluidHeightAverage(float quantaFraction, @Nonnull float... heights) {

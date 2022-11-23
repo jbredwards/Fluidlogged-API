@@ -23,8 +23,11 @@ public abstract class AbstractClassTransformer implements IClassTransformer
         final IASMPlugin plugin = plugins.get(transformedName);
         if(plugin == null) return basicClass;
 
-        IASMPlugin.ACTIVE_TRANSFORMER.value = getPluginName();
-        return plugin.transform(basicClass, !FMLLaunchHandler.isDeobfuscatedEnvironment());
+        IASMPlugin.setActivePlugin(getPluginName());
+        basicClass = plugin.transform(basicClass, !FMLLaunchHandler.isDeobfuscatedEnvironment());
+        IASMPlugin.resetActivePlugin();
+
+        return basicClass;
     }
 
     @Nonnull
