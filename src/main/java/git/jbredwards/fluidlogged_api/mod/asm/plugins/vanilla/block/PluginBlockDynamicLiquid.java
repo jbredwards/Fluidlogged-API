@@ -3,6 +3,8 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidClassic;
+import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.block.BlockDynamicLiquid;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -13,9 +15,13 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.IFluidBlock;
+import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.tree.ClassNode;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -64,7 +70,8 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
             final IBlockState here = world.getBlockState(pos);
             int level = state.getValue(BlockLiquid.LEVEL);
 
-            final int flowCost = state.getMaterial() == Material.LAVA && !world.provider.doesWaterVaporize() ? 2 : 1;
+            final boolean isWater = state.getMaterial() == Material.WATER;
+            final int flowCost = isWater || world.provider.doesWaterVaporize() ? 1 : 2;
             int tickRate = block.tickRate(world);
 
             //update level if non-source
@@ -95,14 +102,14 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
                 }
 
                 //create source block
-                if(adjacentSourceBlocks >= 2 && ForgeEventFactory.canCreateFluidSource(world, pos, state, state.getMaterial() == Material.WATER)) {
+                if(adjacentSourceBlocks >= 2 && ForgeEventFactory.canCreateFluidSource(world, pos, state, isWater)) {
                     final IBlockState down = world.getBlockState(pos.down());
                     if(down.getMaterial().isSolid()) newLevel = 0;
                     else if(getDepth(fluid, world, pos.down(), down, EnumFacing.UP) == 0) newLevel = 0;
                 }
 
                 //randomize lava update ticks (vanilla feature)
-                if(state.getMaterial() == Material.LAVA && newLevel < 8 && newLevel > level && rand.nextInt(4) != 0)
+                if(!isWater && newLevel < 8 && newLevel > level && rand.nextInt(4) != 0)
                     tickRate *= 4;
 
                 //no change, place static block
@@ -121,13 +128,21 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
                 }
             }
 
-            //place static block if source
-            else if(here == state) block.placeStaticBlock(world, pos, state);
+            else {
+                //place static block if source
+                if(here == state) block.placeStaticBlock(world, pos, state);
+                //try flowing to nearby fluidloggable blocks
+                PluginBlockFluidClassic.Hooks.tryFlowIntoFluidloggable((IFluidBlock)block, world, pos, EnumFacing.DOWN, state, here, 8, isWater, EnumFacing.HORIZONTALS);
+            }
+
+            //fluidlog vertical if possible
+            if(ConfigHandler.verticalFluidloggedFluidSpread)
+                PluginBlockFluidClassic.Hooks.tryFlowIntoFluidloggable((IFluidBlock)block, world, pos, EnumFacing.DOWN, state, here, 8, isWater, EnumFacing.DOWN);
 
             //flow down if possible
             final IBlockState down = world.getBlockState(pos.down());
             if(canFlowInto(fluid, block, world, pos, here, down, EnumFacing.DOWN)) {
-                if(state.getMaterial() == Material.LAVA && down.getMaterial() == Material.WATER) {
+                if(!isWater && down.getMaterial() == Material.WATER) {
                     world.setBlockState(pos.down(), ForgeEventFactory.fireFluidPlaceBlockEvent(world, pos.down(), pos, Blocks.STONE.getDefaultState()));
                     block.triggerMixEffects(world, pos.down());
                     return;
@@ -137,8 +152,40 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
             }
 
             //flow from the sides if possible
-            else if(level >= 0 && (level == 0 || block.isBlocked(world, pos.down(), down))) {
+            else if(level >= 0 && (level == 0 || block.isBlocked(world, pos.down(), down)) || !FluidloggedUtils.canFluidFlow(world, pos, here, EnumFacing.DOWN)) {
+                final int newLevel = level >= 8 ? 1 : level + flowCost;
+                if(newLevel >= 8) return;
 
+                //find sides to flow into
+                int lowestPriority = 1000;
+                final List<Pair<EnumFacing, IBlockState>> positionsToFlow = new ArrayList<>();
+                for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+                    if(FluidloggedUtils.canFluidFlow(world, pos, here, facing)) {
+                        final BlockPos neighborPos = pos.offset(facing);
+                        final IBlockState neighbor = world.getBlockState(neighborPos);
+
+                        if(!block.isBlocked(world, neighborPos, neighbor)) {
+                            final FluidState fluidState = FluidloggedUtils.getFluidState(world, neighborPos, neighbor);
+                            if(!FluidloggedUtils.isCompatibleFluid(fluidState.getFluid(), fluid) || fluidState.getLevel() > 0) {
+                                final int priority = block.isBlocked(world, neighborPos.down(), world.getBlockState(neighborPos.down()))
+                                    ? getSlopeDistance(block, world, neighborPos, 1, facing.getOpposite(), fluid) : 0;
+
+                                if(priority < lowestPriority)
+                                    positionsToFlow.clear();
+
+                                if(priority <= lowestPriority) {
+                                    positionsToFlow.add(Pair.of(facing, neighbor));
+                                    lowestPriority = priority;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                //flow into sides
+                for(Pair<EnumFacing, IBlockState> entry : positionsToFlow)
+                    if(canFlowInto(fluid, block, world, pos, here, entry.getValue(), entry.getKey()))
+                        flowInto(block, world, pos.offset(entry.getKey()), state, entry.getValue(), newLevel);
             }
         }
 
@@ -156,6 +203,30 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
         }
 
         //helper
+        public static int getSlopeDistance(@Nonnull BlockDynamicLiquid block, @Nonnull World world, @Nonnull BlockPos pos, int distance, @Nonnull EnumFacing sourceFacing, @Nonnull Fluid sourceFluid) {
+            int lowestPriority = 1000;
+            for(EnumFacing facing : EnumFacing.HORIZONTALS) {
+                if(facing != sourceFacing) {
+                    final BlockPos neighborPos = pos.offset(facing);
+                    final IBlockState neighbor = world.getBlockState(neighborPos);
+
+                    if(!block.isBlocked(world, neighborPos, neighbor)) {
+                        final FluidState fluidState = FluidloggedUtils.getFluidState(world, neighborPos, neighbor);
+                        if(!FluidloggedUtils.isCompatibleFluid(fluidState.getFluid(), sourceFluid) || fluidState.getLevel() > 0) {
+                            if(!block.isBlocked(world, neighborPos.down(), world.getBlockState(neighborPos.down()))) return distance;
+                            if(distance < block.getSlopeFindDistance(world)) {
+                                final int priority = getSlopeDistance(block, world, neighborPos, distance + 1, facing.getOpposite(), sourceFluid);
+                                if(priority < lowestPriority) lowestPriority = priority;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return lowestPriority;
+        }
+
+        //helper
         public static boolean canFlowInto(@Nonnull Fluid fluid, @Nonnull BlockDynamicLiquid block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull IBlockState neighbor, @Nonnull EnumFacing facing) {
             if(!FluidloggedUtils.canFluidFlow(world, pos, here, facing)) return false;
 
@@ -169,8 +240,8 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
         public static void flowInto(@Nonnull BlockDynamicLiquid block, @Nonnull World world, @Nonnull BlockPos neighborPos, @Nonnull IBlockState state, @Nonnull IBlockState neighbor, int level) {
             if(neighbor.getMaterial() != Material.AIR) {
                 if(state.getMaterial() == Material.LAVA) block.triggerMixEffects(world, neighborPos);
-                else if(state.getMaterial().isToolNotRequired())
-                    state.getBlock().dropBlockAsItem(world, neighborPos, neighbor, 0);
+                else if(neighbor.getMaterial().isToolNotRequired())
+                    neighbor.getBlock().dropBlockAsItem(world, neighborPos, neighbor, 0);
             }
 
             world.setBlockState(neighborPos, block.getDefaultState().withProperty(BlockLiquid.LEVEL, level));

@@ -28,8 +28,6 @@ public interface IChunkProvider
 
     @Nullable
     @SideOnly(Side.CLIENT)
-    static Chunk getClientChunk(@Nonnull BlockPos pos) {
-        return Minecraft.getMinecraft().world != null ? Minecraft.getMinecraft().world.getChunk(pos) : null;
-    }
+    static Chunk getClientChunk(@Nonnull BlockPos pos) { return getChunk(Minecraft.getMinecraft().world, pos); }
 }
 

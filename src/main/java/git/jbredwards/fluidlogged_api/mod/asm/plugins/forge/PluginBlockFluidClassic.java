@@ -466,7 +466,7 @@ public final class PluginBlockFluidClassic implements IASMPlugin
 
         //helper
         public static void tryFlowIntoFluidloggable(@Nonnull IFluidBlock block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing facingDir, @Nonnull IBlockState state, @Nonnull IBlockState here, int quantaPerBlock, boolean canCreateSources, @Nonnull EnumFacing... flowInto) {
-            if(quantaPerBlock > 0 && ConfigHandler.fluidloggedFluidSpread > 0 && canCreateSources && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, world, pos))) {
+            if(quantaPerBlock > 0 && ConfigHandler.fluidloggedFluidSpread > 0 && (ConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, world, pos)) && ForgeEventFactory.canCreateFluidSource(world, pos, state, canCreateSources)) {
                 for(EnumFacing facing : flowInto) {
                     if(canFluidFlow(world, pos, here, facing)) {
                         BlockPos offset = pos.offset(facing);

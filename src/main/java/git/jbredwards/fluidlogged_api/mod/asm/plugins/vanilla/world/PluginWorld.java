@@ -380,11 +380,12 @@ public final class PluginWorld implements IASMPlugin
 
                 //if the new state isn't fluidloggable, remove the FluidState here
                 if(!fluidState.isEmpty()) {
-                    if(!FluidloggedUtils.isStateFluidloggable(newState, world, pos, fluidState.getFluid()))
+                    if(!FluidloggedUtils.isStateFluidloggable(newState, world, pos, fluidState.getFluid())) {
                         FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, false, blockFlags);
+                        //ensure fluids are updated when the block here changes
+                        if(world.isAreaLoaded(pos, 1)) FluidloggedUtils.notifyFluids(world, pos, fluidState, true);
+                    }
 
-                    //ensure fluids are updated when the block here changes
-                    else if(world.isAreaLoaded(pos, 1)) FluidloggedUtils.notifyFluids(world, pos, fluidState, true);
                     return;
                 }
 
