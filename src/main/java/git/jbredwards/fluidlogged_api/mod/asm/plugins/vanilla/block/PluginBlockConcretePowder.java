@@ -1,9 +1,17 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+
+import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.canFluidFlow;
+import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.getFluidOrReal;
 
 /**
  * concrete forms from concrete powder while its next to flowing water FluidStates
@@ -20,29 +28,60 @@ public final class PluginBlockConcretePowder implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        //onEndFalling, look for a FluidState rather than just the old IBlockState
+        /*
+         * onEndFalling: (changes are around line 32)
+         * Old code:
+         * if (hitState.getMaterial().isLiquid())
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //check for FluidState
+         * if (FluidloggedUtils.getFluidOrReal(worldIn, pos, hitState).getMaterial().isLiquid())
+         * {
+         *     ...
+         * }
+         */
         if(index == 1 && insn.getOpcode() == ALOAD) {
             instructions.insertBefore(insn, new VarInsnNode(ALOAD, 1));
             instructions.insertBefore(insn, new VarInsnNode(ALOAD, 2));
             instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Lnet/minecraft/block/state/IBlockState;"));
             return true;
         }
-        //tryTouchWater, line 48
-        else if(index == 2 && getPrevious(insn, 2).getOpcode() == INVOKEINTERFACE) {
-            final InsnList list = new InsnList();
-            //EnumFacing local var
-            list.add(new VarInsnNode(ALOAD, 8));
-            //add new
-            list.add(genMethodNode("tryTouchWater", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z"));
-            //remove old
-            instructions.remove(getPrevious(insn, 3));
-            instructions.remove(getPrevious(insn, 2));
-            instructions.remove(getPrevious(insn, 1));
-            instructions.insertBefore(insn, list);
-            ((JumpInsnNode)insn).setOpcode(IFEQ);
+        /*
+         * tryTouchWater: (changes are around line 48)
+         * Old code:
+         * if (worldIn.getBlockState(blockpos).getMaterial() == Material.WATER)
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //
+         * if (Hooks.tryTouchWater(worldIn, blockpos, enumfacing)))
+         * {
+         *     ...
+         * }
+         */
+        else if(index == 2 && checkField(insn, obfuscated ? "field_151586_h" : "WATER")) {
+            ((JumpInsnNode)insn.getNext()).setOpcode(IFEQ);
+            instructions.insert(insn, genMethodNode("tryTouchWater", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z"));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 8));
+            removeFrom(instructions, insn, -2);
             return true;
         }
 
         return false;
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Hooks
+    {
+        public static boolean tryTouchWater(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing) {
+            final IBlockState state = world.getBlockState(pos);
+            return getFluidOrReal(world, pos, state).getMaterial() == Material.WATER
+                    && canFluidFlow(world, pos, state, facing.getOpposite());
+        }
     }
 }

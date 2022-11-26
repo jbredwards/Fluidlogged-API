@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.modded;
 
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -17,13 +17,29 @@ public final class PluginBuildersWands implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        //remove bad checks #1 & #2
+        /*
+         * shouldContinue:
+         * Old code:
+         * if(!targetBlock.canPlaceBlockAt(world.getWorld(), new BlockPos(currentCandidate.x, currentCandidate.y, currentCandidate.z))) return false;
+         * if(!targetBlock.isReplaceable(world.getWorld(), new BlockPos(currentCandidate.x, currentCandidate.y, currentCandidate.z))) return false;
+         *
+         * New code:
+         * //remove buggy checks
+         */
         if(checkMethod(insn, obfuscated ? "func_176196_c" : "canPlaceBlockAt") || checkMethod(insn, obfuscated ? "func_176200_f" : "isReplaceable")) {
             instructions.insert(insn, new InsnNode(ICONST_1));
             removeFrom(instructions, insn, -13);
             return false;
         }
-        //remove bad check #3 & add built-in vanilla check
+        /*
+         * shouldContinue:
+         * Old code:
+         * return !world.entitiesInBox(blockBB);
+         *
+         * New code:
+         * //add built-in vanilla method instead
+         * this.world.getWorld().mayPlace(targetBlock, new BlockPos(currentCandidate.x, currentCandidate.y, currentCandidate.z), false, facing, this.player.getPlayer());
+         */
         else if(checkMethod(insn, "entitiesInBox")) {
             final InsnList list = new InsnList();
             //get world instance
@@ -45,7 +61,10 @@ public final class PluginBuildersWands implements IASMPlugin
             //add additional params
             list.add(new InsnNode(ICONST_0));
             list.add(new VarInsnNode(ALOAD, 4));
-            list.add(new InsnNode(ACONST_NULL));
+            //placer
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new FieldInsnNode(GETFIELD, "portablejim/bbw/core/WandWorker", "player", "Lportablejim/bbw/shims/IPlayerShim;"));
+            list.add(new MethodInsnNode(INVOKEINTERFACE, "portablejim/bbw/shims/IPlayerShim", "getPlayer", "()Lnet/minecraft/entity/player/EntityPlayer;", true));
             list.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/world/World", obfuscated ? "func_190527_a" : "mayPlace", "(Lnet/minecraft/block/Block;Lnet/minecraft/util/math/BlockPos;ZLnet/minecraft/util/EnumFacing;Lnet/minecraft/entity/Entity;)Z", false));
             //remove '!' from check
             ((JumpInsnNode)insn.getNext()).setOpcode(IFEQ);

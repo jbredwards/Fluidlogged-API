@@ -1,8 +1,8 @@
 package git.jbredwards.fluidlogged_api.mod.common.command;
 
-import git.jbredwards.fluidlogged_api.mod.Main;
+import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
-import git.jbredwards.fluidlogged_api.mod.common.message.ReloadCfgMessage;
+import git.jbredwards.fluidlogged_api.mod.common.message.MessageReloadConfig;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -17,7 +17,7 @@ import java.io.IOException;
  * @author jbred
  *
  */
-public class CommandReloadCfg extends CommandBase
+public class CommandReloadConfig extends CommandBase
 {
     @Nonnull
     @Override
@@ -38,7 +38,7 @@ public class CommandReloadCfg extends CommandBase
 
             ConfigHandler.init();
             ConfigHandler.complete();
-            Main.wrapper.sendToServer(new ReloadCfgMessage());
+            FluidloggedAPINetworkHandler.INSTANCE.sendToAll(new MessageReloadConfig(true));
             notifyCommandListener(sender, this, "commands.reloadFluidloggedAPI.success");
         }
         //oops

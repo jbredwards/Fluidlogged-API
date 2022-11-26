@@ -1,9 +1,13 @@
-package git.jbredwards.fluidlogged_api.mod.asm.plugins;
+package git.jbredwards.fluidlogged_api.api.asm;
 
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
-import org.objectweb.asm.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.tree.*;
+import org.omg.CORBA.StringHolder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -18,8 +22,13 @@ import java.util.function.Supplier;
  */
 public interface IASMPlugin extends Opcodes
 {
-    //exists to let other mods to more easily use this interface, like njarm
-    @Nonnull default String getHookClass() { return "git/jbredwards/fluidlogged_api/mod/asm/plugins/ASMHooks"; }
+    //set this to your mod's active transformer, this is to display the correct debug info in the console
+    @Nonnull StringHolder ACTIVE_PLUGIN = new StringHolder("Unknown Plugin");
+    static void resetActivePlugin() { ACTIVE_PLUGIN.value = "Unknown Plugin"; }
+    static void setActivePlugin(@Nonnull String plugin) { ACTIVE_PLUGIN.value = plugin; }
+
+    //exists to let other mods to more easily use this interface
+    @Nonnull default String getHookClass() { return getClass().getName().replace('.', '/') + "$Hooks"; }
     //returns the method index, which is passed into this#transform, returning 0 will skip the method
     default int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) { return isMethodValid(method, obfuscated) ? 1 : 0; }
     //utility method that makes life easier if only one method is being transformed
@@ -68,8 +77,8 @@ public interface IASMPlugin extends Opcodes
     //can be useful for easily troubleshooting plugins
     default void informConsole(@Nonnull String className, @Nullable MethodNode method) {
         if(ConfigHandler.debugASMPlugins) {
-            if(method == null) System.out.printf("Fluidlogged API Plugin: transforming... %s%n", className);
-            else System.out.printf("Fluidlogged API Plugin: transforming... %s.%s%s%n", className, method.name, method.desc);
+            if(method == null) System.out.printf("%s: transforming... %s%n", ACTIVE_PLUGIN.value, className);
+            else System.out.printf("%s: transforming... %s.%s%s%n", ACTIVE_PLUGIN.value, className, method.name, method.desc);
         }
     }
 
@@ -116,7 +125,9 @@ public interface IASMPlugin extends Opcodes
 
     //same as method below, but uses hook class
     @Nonnull
-    default MethodInsnNode genMethodNode(@Nonnull String name, @Nonnull String desc) { return genMethodNode(getHookClass(), name, desc); }
+    default MethodInsnNode genMethodNode(@Nonnull String name, @Nonnull String desc) {
+        return genMethodNode(getHookClass(), name, desc);
+    }
 
     //generates a new method node
     @Nonnull

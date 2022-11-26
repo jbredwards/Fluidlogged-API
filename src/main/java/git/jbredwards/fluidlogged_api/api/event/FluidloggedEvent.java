@@ -5,6 +5,8 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.common.eventhandler.Cancelable;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
@@ -38,4 +40,13 @@ public class FluidloggedEvent extends Event
         this.checkVaporize = checkVaporize;
         this.blockFlags = blockFlags;
     }
+
+    public boolean doesVaporize() {
+        return checkVaporize && !fluidState.isEmpty() && world.provider.doesWaterVaporize()
+                && fluidState.getFluid().doesVaporize(getFluidStack());
+    }
+
+    //throws an exception if fluidState is empty
+    @Nonnull
+    public FluidStack getFluidStack() { return new FluidStack(fluidState.getFluid(), Fluid.BUCKET_VOLUME); }
 }

@@ -1,8 +1,8 @@
 package git.jbredwards.fluidlogged_api.api.util;
 
-import git.jbredwards.fluidlogged_api.mod.Main;
-import git.jbredwards.fluidlogged_api.mod.common.capability.IFluidStateCapability;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.ASMNatives;
+import git.jbredwards.fluidlogged_api.api.asm.impl.IChunkProvider;
+import git.jbredwards.fluidlogged_api.api.asm.impl.IFluidStateProvider;
+import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -13,6 +13,8 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.IFluidBlock;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
@@ -35,7 +37,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
     protected int level = -1;
 
     //using FluidState#of rather than the constructor directly is advised
-    public FluidState(Fluid fluidIn, IBlockState stateIn) {
+    public FluidState(@Nullable Fluid fluidIn, @Nonnull IBlockState stateIn) {
         fluid = fluidIn;
         state = stateIn;
     }
@@ -44,16 +46,18 @@ public class FluidState extends Pair<Fluid, IBlockState>
     @Nonnull
     public static FluidState of(@Nullable Fluid fluidIn) {
         if(fluidIn == null || !fluidIn.canBePlacedInWorld()) return EMPTY;
-        final FluidState defaultFluidState = ASMNatives.getDefaultFluidState(fluidIn);
+        final FluidState defaultFluidState = IFluidStateProvider.getDefaultFluidState(fluidIn);
         //use the fluid's default state if present
         if(!defaultFluidState.isEmpty()) return defaultFluidState;
         //generate new instance if default not present
         final Block block = fluidIn.getBlock();
-        return ASMNatives.setDefaultFluidState(fluidIn,
-                new FluidState(fluidIn, (block instanceof BlockLiquid)
+        final FluidState fluidState = new FluidState(fluidIn, (block instanceof BlockLiquid)
                 //ensure flowing blocks are used for vanilla fluids
-                ? BlockLiquid.getFlowingBlock(block.getDefaultState().getMaterial()).getDefaultState()
-                : block.getDefaultState()));
+                ? BlockLiquid.getStaticBlock(block.getDefaultState().getMaterial()).getDefaultState()
+                : block.getDefaultState());
+
+        IFluidStateProvider.setDefaultFluidState(fluidIn, fluidState);
+        return fluidState;
     }
 
     //convenience method that takes in a Block
@@ -66,19 +70,22 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     //gets the stored state present in the world at the block pos
     @Nonnull
-    public static FluidState get(@Nullable IBlockAccess world, @Nonnull BlockPos pos) {
-        return getFromProvider(Main.proxy.getChunk(world, pos), pos);
+    public static FluidState get(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+        return getFromProvider(IChunkProvider.getChunk(world, pos), pos);
     }
 
-    //(intended use only by client) gets the stored state from Minecraft#world instance
+    //gets the stored state from Minecraft#world instance, mainly used for rendering
     @Nonnull
-    public static FluidState get(@Nonnull BlockPos pos) { return get(null, pos); }
+    @SideOnly(Side.CLIENT)
+    public static FluidState get(@Nonnull BlockPos pos) {
+        return getFromProvider(IChunkProvider.getClientChunk(pos), pos);
+    }
 
     //gets the stored state present in the capability provider (usually chunk) at the block pos
     @Nonnull
     public static FluidState getFromProvider(@Nullable ICapabilityProvider p, @Nonnull BlockPos pos) {
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(p);
-        return cap == null ? EMPTY : cap.getFluidState(pos.toLong(), EMPTY);
+        return cap == null ? EMPTY : cap.getContainer(pos).getFluidState(pos, EMPTY);
     }
 
     //creates a new FluidState from the serialized one
@@ -100,9 +107,18 @@ public class FluidState extends Pair<Fluid, IBlockState>
     //it's advised to check for this before running IFluidBlock logic
     public boolean isValid() { return state.getBlock() instanceof IFluidBlock; }
 
-    @SuppressWarnings("unchecked")
-    public <T extends Block & IFluidBlock> T getBlock() { return (T)state.getBlock(); }
+    @Nonnull
+    public IFluidBlock getFluidBlock() {
+        if(isValid()) return (IFluidBlock)state.getBlock();
+        else throw new IllegalStateException(
+                "Invalid FluidState, please report this to the Fluidlogged API bug tracker!"
+        );
+    }
 
+    @Nonnull
+    public Block getBlock() { return state.getBlock(); }
+
+    @Nonnull
     public Material getMaterial() { return state.getMaterial(); }
 
     public int getLevel() { return level >= 0 ? level : (level = state.getValue(BlockLiquid.LEVEL)); }

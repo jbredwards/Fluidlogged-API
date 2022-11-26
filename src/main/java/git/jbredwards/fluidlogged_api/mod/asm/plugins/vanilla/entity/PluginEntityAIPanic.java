@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity;
 
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -17,7 +17,15 @@ public final class PluginEntityAIPanic implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        //getRandPos, line 106
+        /*
+         * getRandPos: (changes are around line 106):
+         * Old code:
+         * IBlockState iblockstate = worldIn.getBlockState(blockpos$mutableblockpos);
+         *
+         * New code:
+         * //account for FluidStates
+         * IBlockState iblockstate = FluidloggedUtils.getFluidOrReal(worldIn, blockpos$mutableblockpos);
+         */
         if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
             instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.remove(insn);

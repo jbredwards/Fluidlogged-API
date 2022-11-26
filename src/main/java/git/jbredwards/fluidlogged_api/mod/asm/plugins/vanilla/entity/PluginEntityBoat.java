@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity;
 
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -22,6 +22,15 @@ public final class PluginEntityBoat implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * getWaterLevelAbove, checkInWater, getUnderwaterStatus, updateFallState: (changes are around lines 502, 613, 668, and 945)
+         * Old code:
+         * IBlockState iblockstate = this.world.getBlockState(blockpos$pooledmutableblockpos);
+         *
+         * New code:
+         * //account for FluidStates
+         * IBlockState iblockstate = FluidloggedUtils.getFluidOrReal(this.world, blockpos$pooledmutableblockpos);
+         */
         if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
             instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.remove(insn);

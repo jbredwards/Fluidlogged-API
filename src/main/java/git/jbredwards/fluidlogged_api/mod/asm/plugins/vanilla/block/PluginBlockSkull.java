@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -18,17 +18,24 @@ public final class PluginBlockSkull implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        //dropBlock, line 153
+        /*
+         * checkWitherSpawn: (changes are around line 245)
+         * Old code:
+         * worldIn.setBlockState(blockworldstate1.getPos(), Blocks.AIR.getDefaultState(), 2);
+         *
+         * New code:
+         * worldIn.setBlockState(blockworldstate1.getPos(), FluidState.get(worldIn, pos).getState(), 2);
+         */
         if(checkField(insn, obfuscated ? "field_150350_a" : "AIR", "Lnet/minecraft/block/Block;")) {
             final InsnList list = new InsnList();
             //parameters
             list.add(new VarInsnNode(ALOAD, 1));
             list.add(new VarInsnNode(ALOAD, 2));
             //adds new code
-            list.add(genMethodNode("getFluidOrAir", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
+            list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidState", "get", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
+            list.add(new MethodInsnNode(INVOKEVIRTUAL, "git/jbredwards/fluidlogged_api/api/util/FluidState", "getState", "()Lnet/minecraft/block/state/IBlockState;", false));
             instructions.insertBefore(insn, list);
-            instructions.remove(insn.getNext());
-            instructions.remove(insn);
+            removeFrom(instructions, insn, 1);
             return true;
         }
 
