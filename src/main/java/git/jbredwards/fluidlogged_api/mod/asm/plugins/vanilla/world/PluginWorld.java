@@ -16,7 +16,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fluids.Fluid;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.core.util.Loader;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -31,6 +30,9 @@ import static net.minecraft.util.EnumFacing.*;
  */
 public final class PluginWorld implements IASMPlugin
 {
+    //special case local var shift for galaxy space
+    boolean isGalaxySpace = false;
+
     @Override
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         //setBlockState
@@ -81,6 +83,9 @@ public final class PluginWorld implements IASMPlugin
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
         //setBlockState
         if(index == 1) {
+            //look for galaxy space code, if present the mod must be installed
+            if(!isGalaxySpace && insn.getOpcode() == INVOKESTATIC && ((MethodInsnNode)insn).owner.equals("galaxyspace/core/hooks/GSHooksManager"))
+                isGalaxySpace = true;
             /*
              * setBlockState: (changes are around line 409)
              * Old code:
@@ -93,7 +98,7 @@ public final class PluginWorld implements IASMPlugin
             if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
                 if(obfuscated) ((MethodInsnNode)insn).name = "func_177435_g";
                 ((MethodInsnNode)insn).owner = "net/minecraft/world/chunk/Chunk";
-                ((VarInsnNode)getPrevious(insn, 2)).var = Loader.isClassAvailable("galaxyspace.core.hooklib.minecraft.HookLibPlugin") ? 5 : 4;
+                ((VarInsnNode)getPrevious(insn, 2)).var = isGalaxySpace ? 5 : 4;
             }
             /*
              * setBlockState: (changes are around lines 410 & 411)
@@ -107,7 +112,7 @@ public final class PluginWorld implements IASMPlugin
              * int oldOpacity = Hooks.getLightOpacity(oldState, this, pos, chunk);
              */
             else if(checkMethod(insn, "getLightValue") || checkMethod(insn, "getLightOpacity")) {
-                instructions.insertBefore(insn, new VarInsnNode(ALOAD, Loader.isClassAvailable("galaxyspace.core.hooklib.minecraft.HookLibPlugin") ? 5 : 4));
+                instructions.insertBefore(insn, new VarInsnNode(ALOAD, isGalaxySpace ? 5 : 4));
                 instructions.insertBefore(insn, genMethodNode(((MethodInsnNode)insn).name, "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/chunk/Chunk;)I"));
                 instructions.remove(insn);
             }
@@ -122,14 +127,13 @@ public final class PluginWorld implements IASMPlugin
              * Hooks.handleOldFluidState(this, pos, chunk, oldState, newState, iblockstate, flags);
              */
             else if(checkMethod(insn, obfuscated ? "func_177436_a" : "setBlockState")) {
-                final boolean doShift = Loader.isClassAvailable("galaxyspace.core.hooklib.minecraft.HookLibPlugin");
                 final InsnList list = new InsnList();
                 list.add(new VarInsnNode(ALOAD, 0));
                 list.add(new VarInsnNode(ALOAD, 1));
-                list.add(new VarInsnNode(ALOAD, doShift ? 5 : 4));
-                list.add(new VarInsnNode(ALOAD, doShift ? 7 : 6));
+                list.add(new VarInsnNode(ALOAD, isGalaxySpace ? 5 : 4));
+                list.add(new VarInsnNode(ALOAD, isGalaxySpace ? 7 : 6));
                 list.add(new VarInsnNode(ALOAD, 2));
-                list.add(new VarInsnNode(ALOAD, doShift ? 10 : 9));
+                list.add(new VarInsnNode(ALOAD, isGalaxySpace ? 10 : 9));
                 list.add(new VarInsnNode(ILOAD, 3));
                 list.add(genMethodNode("handleOldFluidState", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/chunk/Chunk;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/block/state/IBlockState;I)V"));
                 instructions.insert(insn.getNext(), list);

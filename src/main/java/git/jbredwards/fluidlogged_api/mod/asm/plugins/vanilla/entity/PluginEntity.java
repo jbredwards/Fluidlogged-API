@@ -39,12 +39,34 @@ public final class PluginEntity implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        //don't change the AABB prior to checking lava collision
+        /*
+         * isInLava: (changes are around line 1466)
+         * Old code:
+         * return this.world.isMaterialInBB(this.getEntityBoundingBox().grow(-0.10000000149011612D, -0.4000000059604645D, -0.10000000149011612D), Material.LAVA);
+         *
+         * New code:
+         * //don't change the AABB prior to checking lava collision
+         * return this.world.isMaterialInBB(this.getEntityBoundingBox(), Material.LAVA);
+         */
         if(index == 1 && checkMethod(insn, obfuscated ? "func_72314_b" : "grow")) {
             removeFrom(instructions, insn, -3);
             return true;
         }
-        //don't change the AABB prior to checking water collision unless squid
+        /*
+         * handleWaterMovement: (changes are around 1357)
+         * Old code:
+         * else if (this.world.handleMaterialAcceleration(this.getEntityBoundingBox().grow(0.0D, -0.4000000059604645D, 0.0D).shrink(0.001D), Material.WATER, this))
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //don't change the AABB prior to checking water collision unless squid
+         * else if (this.world.handleMaterialAcceleration(this.getEntityBoundingBox().grow(0.0D, Hooks.fixSquidWaterCollision(-0.4000000059604645D, this), 0.0D).shrink(0.001D), Material.WATER, this))
+         * {
+         *     ...
+         * }
+         */
         else if(index == 2 && checkMethod(getNext(insn, 2), obfuscated ? "func_72314_b" : "grow")) {
             instructions.insert(insn, genMethodNode("fixSquidWaterCollision", "(DLnet/minecraft/entity/Entity;)D"));
             instructions.insert(insn, new VarInsnNode(ALOAD, 0));
@@ -52,14 +74,29 @@ public final class PluginEntity implements IASMPlugin
         }
         //doWaterSplashEffect
         else if(index == 3) {
+            /*
+             * doWaterSplashEffect: (changes are around line 1392)
+             * Old code:
+             * float f2 = (float)MathHelper.floor(this.getEntityBoundingBox().minY);
+             *
+             * New code:
+             * //fix height where the splash particles spawn
+             * float f2 = Hooks.fixWaterSplashEffect(this);
+             */
             if(checkMethod(insn.getPrevious(), obfuscated ? "func_76128_c" : "floor")) {
-                instructions.insert(insn, genMethodNode("doWaterSplashEffect", "(Lnet/minecraft/entity/Entity;)F"));
+                instructions.insert(insn, genMethodNode("fixWaterSplashEffect", "(Lnet/minecraft/entity/Entity;)F"));
                 removeFrom(instructions, insn, -3);
             }
-            //remove offset, not needed
-            else if(insn.getOpcode() == FADD && insn.getPrevious().getOpcode() == FCONST_1)
-                removeFrom(instructions, insn, -1);
-            //remove bubble particle motion
+            /*
+             * doWaterSplashEffect: (changes are around lines 1398 & 1405)
+             * Old code:
+             * this.world.spawnParticle(EnumParticleTypes.WATER_BUBBLE, this.posX + (double)f3, (double)(f2 + 1.0F), this.posZ + (double)f4, this.motionX, this.motionY - (double)(this.rand.nextFloat() * 0.2F), this.motionZ);
+             *
+             * New code:
+             * //remove y offset & particle motion
+             * this.world.spawnParticle(EnumParticleTypes.WATER_BUBBLE, this.posX + (double)f3, (double)(f2), this.posZ + (double)f4, 0, 0, 0);
+             */
+            else if(insn.getOpcode() == FADD && insn.getPrevious().getOpcode() == FCONST_1) removeFrom(instructions, insn, -1);
             else if(checkField(insn, "WATER_BUBBLE")) {
                 removeFrom(instructions, getNext(insn, 15), 12);
                 instructions.insert(getNext(insn, 14), new InsnNode(DCONST_0));
@@ -67,13 +104,29 @@ public final class PluginEntity implements IASMPlugin
                 instructions.insert(getNext(insn, 14), new InsnNode(DCONST_0));
             }
         }
-        //isInsideOfMaterial, add FluidState functionality
+        /*
+         * isInsideOfMaterial: (changes are around line 1450)
+         * Old code:
+         * Boolean result = iblockstate.getBlock().isEntityInsideMaterial(this.world, blockpos, iblockstate, this, d0, materialIn, true);
+         *
+         * New code:
+         * //add FluidState functionality
+         * Boolean result = Hooks.isEntityInsideFluidState(iblockstate.getBlock(), this.world, blockpos, iblockstate, this, d0, materialIn, true);
+         */
         else if(index == 4 && checkMethod(insn, "isEntityInsideMaterial")) {
             instructions.insert(insn, genMethodNode("isEntityInsideFluidState", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;DLnet/minecraft/block/material/Material;Z)Ljava/lang/Boolean;"));
             instructions.remove(insn);
             return true;
         }
-        //doBlockCollisions, fix fluid collisions & add FluidState functionality
+        /*
+         * doBlockCollisions: (changes are around line 1158)
+         * Old code:
+         * iblockstate.getBlock().onEntityCollision(this.world, blockpos$pooledmutableblockpos2, iblockstate, this);
+         *
+         * New code:
+         * //fix fluid collisions & add FluidState functionality
+         * Hooks.onEntityCollidedWithFluidState(iblockstate.getBlock(), this.world, blockpos$pooledmutableblockpos2, iblockstate, this);
+         */
         else if(index == 5 && checkMethod(insn, obfuscated ? "func_180634_a" : "onEntityCollision")) {
             instructions.insert(insn, genMethodNode("onEntityCollidedWithFluidState", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;)V"));
             instructions.remove(insn);
@@ -86,7 +139,11 @@ public final class PluginEntity implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static float doWaterSplashEffect(@Nonnull Entity entity) {
+        public static double fixSquidWaterCollision(double factor, @Nonnull Entity entity) {
+            return entity instanceof EntityWaterMob ? factor : 0;
+        }
+
+        public static float fixWaterSplashEffect(@Nonnull Entity entity) {
             final @Nullable RayTraceResult result = entity.world.rayTraceBlocks(
                     new Vec3d(entity.posX - entity.motionX, entity.posY - entity.motionY, entity.posZ - entity.motionZ),
                     new Vec3d(entity.posX, entity.posY, entity.posZ),
@@ -106,13 +163,11 @@ public final class PluginEntity implements IASMPlugin
             return (float)(entity.posY + entity.motionY * -0.7 - 0.1);
         }
 
-        public static double fixSquidWaterCollision(double factor, @Nonnull Entity entity) { return entity instanceof EntityWaterMob ? factor : 0; }
-
         @Nullable
         public static Boolean isEntityInsideFluidState(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
             @Nullable Boolean result = block.isEntityInsideMaterial(world, pos, here, entity, yToTest, materialIn, testingHead);
             if(result != null) return result;
-                //check for FluidState if block here is not a fluid
+            //check for FluidState if block here is not a fluid
             else if(getFluidFromBlock(block) == null) {
                 final FluidState fluidState = FluidState.get(world, pos);
                 if(!fluidState.isEmpty()) {

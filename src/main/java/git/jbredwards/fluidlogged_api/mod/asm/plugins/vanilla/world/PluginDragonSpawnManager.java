@@ -17,6 +17,15 @@ public final class PluginDragonSpawnManager implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * process: (changes are around line 72)
+         * Old code:
+         * worldIn.setBlockToAir(blockpos$mutableblockpos);
+         *
+         * New code:
+         * void FluidStates at the pillar locations
+         * worldIn.setBlockState(blockpos$mutableblockpos, Blocks.AIR.getDefaultState());
+         */
         if(checkMethod(insn, obfuscated ? "func_175698_g" : "setBlockToAir")) {
             final InsnList list = new InsnList();
             list.add(new FieldInsnNode(GETSTATIC, "net/minecraft/init/Blocks", obfuscated ? "field_150350_a" : "AIR", "Lnet/minecraft/block/Block;"));

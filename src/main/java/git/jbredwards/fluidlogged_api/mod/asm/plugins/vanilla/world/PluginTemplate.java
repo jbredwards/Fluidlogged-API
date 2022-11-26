@@ -39,7 +39,15 @@ public final class PluginTemplate implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        //initialize fluidStates list
+        /*
+         * Constructor:
+         * New code:
+         * //initialize fluidStates list
+         * {
+         *     this.fluidStates = new ArrayList<>();
+         *     ...
+         * }
+         */
         if(index == 1) {
             final InsnList list = new InsnList();
             list.add(new VarInsnNode(ALOAD, 0));
@@ -50,15 +58,34 @@ public final class PluginTemplate implements IASMPlugin
             instructions.insert(insn, list);
             return true;
         }
+        //takeBlocksFromWorld
         else if(index == 2) {
-            //clear existing FluidState list before storing new
+            /*
+             * takeBlocksFromWorld: (changes are around line 72)
+             * Old code:
+             * BlockPos blockpos = startPos.add(size).add(-1, -1, -1);
+             *
+             * New code:
+             * //clear existing FluidState list before storing new
+             * BlockPos blockpos = startPos.add(size).add(-1, -1, -1);
+             * this.fluidStates.clear();
+             */
             if(checkMethod(insn.getPrevious(), obfuscated ? "func_177982_a" : "add", "(III)Lnet/minecraft/util/math/BlockPos;")) {
                 instructions.insert(insn, new MethodInsnNode(INVOKEINTERFACE, "java/util/List", "clear", "()V", true));
                 instructions.insert(insn, new FieldInsnNode(GETFIELD, "net/minecraft/world/gen/structure/template/Template", "fluidStates", "Ljava/util/List;"));
                 instructions.insert(insn, new VarInsnNode(ALOAD, 0));
                 return false;
             }
-            //gather FluidStates
+            /*
+             * takeBlocksFromWorld: (changes are around line 87)
+             * Old code:
+             * TileEntity tileentity = worldIn.getTileEntity(blockpos$mutableblockpos);
+             *
+             * New code:
+             * //gather FluidStates
+             * TileEntity tileentity = worldIn.getTileEntity(blockpos$mutableblockpos);
+             * Hooks.addFluidState(worldIn, blockpos$mutableblockpos, blockpos3, toIgnore, this.fluidStates);
+             */
             else if(checkMethod(insn.getPrevious(), obfuscated ? "func_175625_s" : "getTileEntity")) {
                 final InsnList list = new InsnList();
                 list.add(new VarInsnNode(ALOAD, 1));
@@ -73,14 +100,41 @@ public final class PluginTemplate implements IASMPlugin
             }
         }
         else if(index == 3) {
-            //keep old fluids here
+            /*
+             * addBlocksToWorld: (changes are around lines 281 & 285)
+             * Old code:
+             * if (worldIn.setBlockState(blockpos, iblockstate1, flags) && template$blockinfo1.tileentityData != null)
+             * {
+             *     ...
+             * }
+             *
+             * New code:
+             * //keep old fluids here
+             * if (worldIn.setBlockState(blockpos, iblockstate1, Hooks.keepOldFlag(flags, this.keepOldFluidStates)) && template$blockinfo1.tileentityData != null)
+             * {
+             *     ...
+             * }
+             */
             if(checkMethod(insn, obfuscated ? "func_180501_a" : "setBlockState")) {
                 instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
                 instructions.insertBefore(insn, new FieldInsnNode(GETFIELD, "net/minecraft/world/gen/structure/template/Template", "keepOldFluidStates", "Z"));
                 instructions.insertBefore(insn, genMethodNode("keepOldFlag", "(IZ)I"));
                 return false;
             }
-            //place stored FluidStates
+            /*
+             * addBlocksToWorld: (changes are around line 330)
+             * Old code:
+             * {
+             *     ...
+             * }
+             *
+             * New code:
+             * //place stored FluidStates
+             * {
+             *     ...
+             *     Hooks.addFluidsToWorld(worldIn, pos, this.size, placementIn, flags, this.fluidStates);
+             * }
+             */
             else if(insn.getOpcode() == RETURN) {
                 instructions.insertBefore(insn, new VarInsnNode(ALOAD, 1));
                 instructions.insertBefore(insn, new VarInsnNode(ALOAD, 2));
@@ -94,7 +148,20 @@ public final class PluginTemplate implements IASMPlugin
                 return true;
             }
         }
-        //write FluidStates
+        /*
+         * writeToNBT: (Changes are around line 522)
+         * Old code:
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //write FluidStates
+         * {
+         *     Hooks.writeTemplate(nbt, this.keepOldFluidStates, this.fluidStates);
+         *     ...
+         * }
+         */
         if(index == 4) {
             final InsnList list = new InsnList();
             list.add(new VarInsnNode(ALOAD, 1));
@@ -105,6 +172,20 @@ public final class PluginTemplate implements IASMPlugin
             list.add(genMethodNode("writeTemplate", "(Lnet/minecraft/nbt/NBTTagCompound;ZLjava/util/List;)V"));
             return true;
         }
+        /*
+         * writeToNBT: (Changes are around line 574)
+         * Old code:
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //read FluidStates
+         * {
+         *     Hooks.readTemplate(this, nbt, this.fluidStates);
+         *     ...
+         * }
+         */
         //read FluidStates
         if(index == 5) {
             final InsnList list = new InsnList();
@@ -124,6 +205,15 @@ public final class PluginTemplate implements IASMPlugin
         classNode.fields.add(new FieldNode(ACC_PUBLIC, "keepOldFluidStates", "Z", null, null));
         classNode.fields.add(new FieldNode(ACC_PUBLIC | ACC_FINAL, "fluidStates", "Ljava/util/List;", "Ljava/util/List<Lorg/apache/commons/lang3/tuple/Pair<Lnet/minecraft/util/math/BlockPos;Lgit/jbredwards/fluidlogged_api/api/util/FluidState;>;>;", null));
         classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/plugins/vanilla/world/PluginTemplate$Accessor");
+        /*
+         * New code:
+         * //allows the internal field to be set outside asm
+         * @ASMGenerated
+         * public void setKeepOldFluidStates(boolean keepOldFluidStates)
+         * {
+         *     this.keepOldFluidStates = keepOldFluidStates;
+         * }
+         */
         addMethod(classNode, "setKeepOldFluidStates", "(Z)V", null, null, generator -> {
             generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ILOAD, 1);

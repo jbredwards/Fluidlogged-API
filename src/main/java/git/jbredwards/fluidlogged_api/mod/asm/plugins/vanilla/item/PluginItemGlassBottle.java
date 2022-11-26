@@ -17,6 +17,21 @@ public final class PluginItemGlassBottle implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * onItemRightClick: (changes are around line 71)
+         * Old code:
+         * if (worldIn.getBlockState(blockpos).getMaterial() == Material.WATER)
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //check for specifically water and account for FluidStates
+         * if (FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(worldIn, blockpos).getFluid(), FluidRegistry.WATER))
+         * {
+         *     ...
+         * }
+         */
         if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
             ((JumpInsnNode)getNext(insn, 3)).setOpcode(IFEQ);
             final InsnList list = new InsnList();

@@ -17,7 +17,21 @@ public final class PluginEntityItem implements IASMPlugin
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
-        //use world#isMaterialInBB rather than world#getBlockState
+        /*
+         * onUpdate: (changes are around line 137)
+         * Old code:
+         * if (this.world.getBlockState(new BlockPos(this)).getMaterial() == Material.LAVA)
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //use better lava check that accounts for FluidStates
+         * if (this.world.isMaterialInBB(this.getEntityBoundingBox(), Material.LAVA))
+         * {
+         *     ...
+         * }
+         */
         if(checkField(insn, obfuscated ? "field_151587_i" : "LAVA")) {
             ((JumpInsnNode)insn.getNext()).setOpcode(IFEQ);
             removeFrom(instructions, insn.getPrevious(), -2);

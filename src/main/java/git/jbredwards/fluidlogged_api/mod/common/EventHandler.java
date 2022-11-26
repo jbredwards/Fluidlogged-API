@@ -91,7 +91,7 @@ public final class EventHandler
         }
 
         //if bucket has a fluid, try fluidlogging it
-        else if(FluidloggedUtils.isFluidloggableFluid(contained.getFluid().getBlock())) {
+        else if(!player.isSneaking() && FluidloggedUtils.isFluidloggableFluid(contained.getFluid().getBlock())) {
             if(tryBucketDrain(world, pos, player, handler, contained) || tryBucketDrain(world, pos.offset(trace.sideHit), player, handler, contained)) {
                 event.setFilledBucket(handler.getContainer());
                 event.setResult(Event.Result.ALLOW);

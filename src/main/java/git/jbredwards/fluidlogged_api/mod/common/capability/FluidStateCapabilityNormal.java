@@ -154,11 +154,11 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
 
     @Override
     public void deserializeNBT(@Nonnull NBTBase nbtIn) {
-        //chunks saved after v1.8.2
+        //chunks saved after v1.8.x
         if(nbtIn instanceof NBTTagCompound) {
             final NBTTagCompound nbt = (NBTTagCompound)nbtIn;
             final int version = nbt.getInteger("version");
-            //v1.8.2
+            //v1.9.0.0
             if(version == 1) {
                 nbt.getTagList("data", NBT.TAG_COMPOUND).forEach(tagIn -> {
                     if(tagIn instanceof NBTTagCompound) {
@@ -174,7 +174,7 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
             else throw new IllegalStateException("Could not read chunk data, please update Fluidlogged API to the latest version!");
         }
 
-        //compatibility with pre v1.8.2 chunks
+        //compatibility with v1.8.x chunks
         else if(nbtIn instanceof NBTTagList) {
             for(NBTBase tag : (NBTTagList)nbtIn) {
                 if(tag instanceof NBTTagCompound) {

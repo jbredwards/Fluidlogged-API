@@ -51,6 +51,15 @@ public final class PluginChunkCache implements IASMPlugin
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
         classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/asm/impl/IChunkProvider");
+        /*
+         * New code:
+         * //allows this to provide its chunks, which allows this mod to access its FluidStates
+         * @ASMGenerated
+         * public Chunk getChunkFromBlockCoords(BlockPos pos)
+         * {
+         *     return Hooks.getChunkFromChunkCache(pos, this.chunkArray, this.chunkX, this.chunkZ);
+         * }
+         */
         addMethod(classNode, "getChunkFromBlockCoords", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;",
             "getChunkFromChunkCache", "(Lnet/minecraft/util/math/BlockPos;[[Lnet/minecraft/world/chunk/Chunk;II)Lnet/minecraft/world/chunk/Chunk;", generator -> {
                 generator.visitVarInsn(ALOAD, 1);
