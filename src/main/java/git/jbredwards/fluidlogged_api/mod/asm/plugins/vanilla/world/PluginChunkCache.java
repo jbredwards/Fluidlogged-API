@@ -78,9 +78,11 @@ public final class PluginChunkCache implements IASMPlugin
 
         public static boolean useNeighborBrightness(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
             final @Nullable Chunk chunk = IChunkProvider.getChunk(world, pos);
-            if(chunk == null) return false;
+            return chunk != null && useNeighborBrightness(chunk.getBlockState(pos), world, pos, chunk);
+        }
 
-            final IBlockState state = chunk.getBlockState(pos);
+        //helper
+        public static boolean useNeighborBrightness(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Chunk chunk) {
             if(state.useNeighborBrightness()) {
                 final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
                 if(fluidState.isEmpty() || fluidState.getState().useNeighborBrightness()) return true;

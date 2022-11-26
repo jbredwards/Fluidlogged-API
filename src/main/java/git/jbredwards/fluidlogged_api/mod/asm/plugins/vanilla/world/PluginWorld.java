@@ -33,28 +33,28 @@ public final class PluginWorld implements IASMPlugin
 {
     @Override
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
-        //setBlockState, line 401
+        //setBlockState
         if(checkMethod(method, obfuscated ? "func_180501_a" : "setBlockState", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"))
             return 1;
 
-        //setBlockToAir, line 456
+        //setBlockToAir
         else if(checkMethod(method, obfuscated ? "func_175698_g" : "setBlockToAir", null))
             return 2;
 
-        //destroyBlock, line 480
+        //destroyBlock
         else if(checkMethod(method, obfuscated ? "func_175655_b" : "destroyBlock", null))
             return 2;
 
-        //neighborChanged, line 626
+        //neighborChanged
         else if(checkMethod(method, obfuscated ? "func_190524_a" : "neighborChanged", null))
             return 3;
 
-        //handleMaterialAcceleration, line 2443
+        //handleMaterialAcceleration
         else if(checkMethod(method, obfuscated ? "func_72918_a" : "handleMaterialAcceleration", null)) {
             return 4;
         }
 
-        //isMaterialInBB, line 2494
+        //isMaterialInBB
         else if(checkMethod(method, obfuscated ? "func_72875_a" : "isMaterialInBB", null)) {
             return 5;
         }
@@ -68,16 +68,12 @@ public final class PluginWorld implements IASMPlugin
         //isFlammableWithin, fix bug with lava level
         else if(method.name.equals(obfuscated ? "func_147470_e" : "isFlammableWithin")) return 7;
 
-        //rayTraceBlocks, ray traces now include fluidlogged fluid blocks
-        else if(checkMethod(method, obfuscated ? "func_147447_a" : "rayTraceBlocks", "(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;ZZZ)Lnet/minecraft/util/math/RayTraceResult;"))
-            return 8;
-
         //fix neighbor brightness related bugs
         else if(checkMethod(method, obfuscated ? "func_175721_c" : "getLight", "(Lnet/minecraft/util/math/BlockPos;Z)I")
         || method.name.equals(obfuscated ? "func_175705_a" : "getLightFromNeighborsFor"))
-            return 9;
+            return 8;
 
-        else if(method.name.equals(obfuscated ? "func_180500_c" : "checkLightFor")) return 10;
+        else if(method.name.equals(obfuscated ? "func_180500_c" : "checkLightFor")) return 9;
         return 0;
     }
 
@@ -161,6 +157,54 @@ public final class PluginWorld implements IASMPlugin
             removeFrom(instructions, insn, -1);
             return true;
         }
+        //neighborChanged
+        else if(index == 3) {
+            /*
+             * neighborChanged: (changes are around line 634)
+             * Old code:
+             * IBlockState iblockstate = this.getBlockState(pos);
+             *
+             * New code:
+             * //save chunk for later use
+             * Chunk chunk = this.getChunk(pos);
+             * IBlockState iblockstate = chunk.getBlockState(pos);
+             */
+            if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
+                final InsnList list = new InsnList();
+                list.add(new VarInsnNode(ALOAD, 0));
+                list.add(new VarInsnNode(ALOAD, 1));
+                list.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/world/World", obfuscated ? "func_175726_f" : "getChunk", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;", false));
+                list.add(new VarInsnNode(ASTORE, 8));
+                list.add(new VarInsnNode(ALOAD, 8));
+                instructions.insertBefore(getPrevious(insn, 2), list);
+                //change getBlockState method
+                instructions.remove(getPrevious(insn, 2));
+                if(obfuscated) ((MethodInsnNode)insn).name = "func_177435_g";
+                ((MethodInsnNode)insn).owner = "net/minecraft/world/chunk/Chunk";
+            }
+            /*
+             * neighborChanged: (changes are around line 638)
+             * Old code:
+             * iblockstate.neighborChanged(this, pos, blockIn, fromPos);
+             *
+             * New code:
+             * //update FluidStates
+             * iblockstate.neighborChanged(this, pos, blockIn, fromPos);
+             * Hooks.fluidNeighborChanged(this, pos, blockIn, fromPos, chunk);
+             */
+            else if(checkMethod(insn, obfuscated ? "func_189546_a" : "neighborChanged", null)) {
+                final InsnList list = new InsnList();
+                list.add(new VarInsnNode(ALOAD, 0));
+                list.add(new VarInsnNode(ALOAD, 1));
+                list.add(new VarInsnNode(ALOAD, 2));
+                list.add(new VarInsnNode(ALOAD, 3));
+                list.add(new VarInsnNode(ALOAD, 8));
+                list.add(genMethodNode("fluidNeighborChanged", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/chunk/Chunk;)V"));
+
+                instructions.insert(insn, list);
+                return true;
+            }
+        }
         /*
          * handleMaterialAcceleration: (changes are around line 2455):
          * Old code:
@@ -209,6 +253,66 @@ public final class PluginWorld implements IASMPlugin
             return true;
         }
         /*
+         * isMaterialInBB: (changes are around line 2506)
+         * Old code:
+         * return false;
+         *
+         * New code:
+         * //check FluidStates
+         * return Hooks.isMaterialInFluidBB(this, bb, materialIn, j2, k2, l2, i3, j3, k3);
+         */
+        else if(index == 5 && insn.getOpcode() == ICONST_0) {
+            final InsnList list = new InsnList();
+            //params
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new VarInsnNode(ALOAD, 1));
+            list.add(new VarInsnNode(ALOAD, 2));
+            //aabb positions
+            list.add(new VarInsnNode(ILOAD, 3));
+            list.add(new VarInsnNode(ILOAD, 4));
+            list.add(new VarInsnNode(ILOAD, 5));
+            list.add(new VarInsnNode(ILOAD, 6));
+            list.add(new VarInsnNode(ILOAD, 7));
+            list.add(new VarInsnNode(ILOAD, 8));
+            //adds new code
+            list.add(genMethodNode("isMaterialInFluidBB", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/AxisAlignedBB;Lnet/minecraft/block/material/Material;IIIIII)Z"));
+
+            instructions.insert(insn, list);
+            instructions.remove(insn);
+            return true;
+        }
+        //changes some methods to use FluidloggedUtils#getFluidOrReal
+        else if(index == 6 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;")) {
+            instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
+            instructions.remove(insn);
+            return true;
+        }
+        /*
+         * isFlammableWithin: (changes are around line 2379)
+         * Old code:
+         * if (block == Blocks.FIRE || block == Blocks.FLOWING_LAVA || block == Blocks.LAVA)
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //account for FluidStates
+         * if (block == Blocks.FIRE || Hooks.isFlammableFluidWithin(block, this, blockpos$pooledmutableblockpos, bb))
+         * {
+         *     ...
+         * }
+         */
+        else if(index == 7 && checkField(insn, obfuscated ? "field_150353_l" : "LAVA")) {
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new VarInsnNode(ALOAD, 8));
+            list.add(new VarInsnNode(ALOAD, 1));
+            list.add(genMethodNode("isFlammableFluidWithin", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Z"));
+            instructions.insert(insn, list);
+            removeFrom(instructions, insn, -3);
+            return true;
+        }
+        /*
          * getLight & getLightFromNeighborsFor: (changes around lines 768 & 899):
          * Old code:
          * if (checkNeighbors && this.getBlockState(pos).useNeighborBrightness())
@@ -223,7 +327,7 @@ public final class PluginWorld implements IASMPlugin
          *     ...
          * }
          */
-        else if(index == 9 && checkMethod(insn, obfuscated ? "func_185916_f" : "useNeighborBrightness")) {
+        else if(index == 8 && checkMethod(insn, obfuscated ? "func_185916_f" : "useNeighborBrightness")) {
             instructions.insert(insn, genMethodNode("useNeighborBrightness", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z"));
             removeFrom(instructions, insn, -1);
             return true;
@@ -239,7 +343,7 @@ public final class PluginWorld implements IASMPlugin
          * IBlockState bs = null;
          * int i7 = Math.max(1, this.getBlockLightOpacity(blockpos$pooledmutableblockpos));
          */
-        else if(index == 10) {
+        else if(index == 9) {
             //don't collect block state here, it's unused
             if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
                 instructions.insert(insn, new InsnNode(ACONST_NULL));
@@ -297,7 +401,12 @@ public final class PluginWorld implements IASMPlugin
 
     @Override
     public boolean addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) {
-        if(index == 4) {
+        if(index == 3) {
+            method.localVariables.add(new LocalVariableNode("chunk", "Lnet/minecraft/world/chunk/Chunk;", null, start, end, 8));
+            return true;
+        }
+
+        else if(index == 4) {
             method.localVariables.add(new LocalVariableNode("flags", "Lorg/apache/commons/lang3/tuple/Pair;", null, start, end, 22));
             return true;
         }
@@ -308,6 +417,11 @@ public final class PluginWorld implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
+        public static void fluidNeighborChanged(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos, @Nonnull Chunk chunk) {
+            final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
+            if(!fluidState.isEmpty()) fluidState.getState().neighborChanged(world, pos, blockIn, fromPos);
+        }
+
         public static int getLightOpacity(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Chunk chunk) {
             return PluginChunk.Hooks.getFluidLightOpacity(state, world, pos, chunk);
         }
@@ -382,10 +496,11 @@ public final class PluginWorld implements IASMPlugin
                 if(!fluidState.isEmpty()) {
                     if(!FluidloggedUtils.isStateFluidloggable(newState, world, pos, fluidState.getFluid())) {
                         FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, false, blockFlags);
-                        //ensure fluids are updated when the block here changes
-                        if(world.isAreaLoaded(pos, 1)) FluidloggedUtils.notifyFluids(world, pos, fluidState, true);
+                        if(world.isAreaLoaded(pos, 1)) FluidloggedUtils.notifyFluids(world, pos, fluidState, false);
                     }
 
+                    //ensure fluids are updated when the block here changes
+                    else if(world.isAreaLoaded(pos, 1)) FluidloggedUtils.notifyFluids(world, pos, fluidState, true);
                     return;
                 }
 
@@ -396,10 +511,33 @@ public final class PluginWorld implements IASMPlugin
             }
         }
 
-        public static boolean isFlammableWithin(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
+        public static boolean isFlammableFluidWithin(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
             if(block.getDefaultState().getMaterial() == Material.LAVA) return Boolean.TRUE.equals(block.isAABBInsideLiquid(world, pos, bb));
             final FluidState fluidState = FluidState.get(world, pos); //handle possible lava FluidState
             return fluidState.getMaterial() == Material.LAVA && Boolean.TRUE.equals(fluidState.getBlock().isAABBInsideLiquid(world, pos, bb));
+        }
+
+        public static boolean isMaterialInFluidBB(@Nonnull World world, @Nonnull AxisAlignedBB bb, @Nonnull Material materialIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+            for(int x = minX; x < maxX; ++x) {
+                for(int y = minY; y < maxY; ++y) {
+                    for(int z = minZ; z < maxZ; ++z) {
+                        final BlockPos pos = new BlockPos(x, y, z);
+                        final FluidState fluidState = FluidState.get(world, pos);
+
+                        if(!fluidState.isEmpty()) {
+                            @Nullable Boolean result = fluidState.getBlock().isAABBInsideMaterial(world, pos, bb, materialIn);
+                            if(result != null) {
+                                if(!result) continue;
+                                return true;
+                            }
+                            else if(fluidState.getMaterial() == materialIn)
+                                return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
 
         @SuppressWarnings("ConstantConditions")

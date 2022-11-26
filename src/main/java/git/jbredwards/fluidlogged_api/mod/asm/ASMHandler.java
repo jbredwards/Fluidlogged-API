@@ -44,10 +44,12 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("cofh.thermaldynamics.duct.tiles.TileGrid", new PluginThermalDynamics()); //ray trace now skips fluids
             plugins.put("crafttweaker.mc1120.block.MCWorldBlock", new PluginCraftTweaker()); //MCWorldBlock.getFluid can read FluidStates
             plugins.put("exnihilocreatio.barrel.modes.fluid.BarrelModeFluid", new PluginExNihiloCreatio()); //allow "fluid on top" barrel crafting to accept FluidStates
+            plugins.put("hellfirepvp.astralsorcery.common.block.fluid.FluidBlockLiquidStarlight", new PluginAstralSorcery()); //fixes weird mixing interactions
             plugins.put("io.github.lxgaming.sledgehammer.mixin.core.block.BlockDynamicLiquidMixin", new PluginSledgehammer()); //remove redundant transformer
             plugins.put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()); //fix mixin annotation to target fluidlogged api transform
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingEngine", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingHooks", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
+            plugins.put("meldexun.nothirium.mc.renderer.chunk.RenderChunk$ChunkCache", new PluginNothirium()); //better nothirium compat
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); //better optifine compat
             plugins.put("org.spongepowered.common.mixin.core.block.BlockLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.entity.EntityMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
@@ -63,7 +65,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.block.BlockBush", new PluginBlockBush()); //exists for fluidloggable plants that parent from this class
             plugins.put("net.minecraft.block.BlockCocoa", new PluginBlockCocoa()); //exists in case cocoa beans are added to the config whitelist
             plugins.put("net.minecraft.block.BlockConcretePowder", new PluginBlockConcretePowder()); //concrete forms from concrete powder while its next to flowing water FluidStates
-            //plugins.put("net.minecraft.block.BlockDoor", new PluginBlockDoor()); // update upper FluidState & correct canFluidFlow
+            plugins.put("net.minecraft.block.BlockDoor", new PluginBlockDoor()); //update upper FluidState & correct canFluidFlow
             plugins.put("net.minecraft.block.BlockDynamicLiquid", new PluginBlockDynamicLiquid()); //fixes a bunch of liquid interactions while fluidlogged
             plugins.put("net.minecraft.block.BlockFarmland", new PluginBlockFarmland()); //farmland blocks now recognise water FluidStates
             plugins.put("net.minecraft.block.BlockGrass", new PluginBlockGrass()); //use World#getBlockLightOpacity for FluidState sensitivity
@@ -78,7 +80,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.block.BlockSlab", new PluginBlockSlab()); //half slabs are fluidloggable
             plugins.put("net.minecraft.block.BlockSponge", new PluginBlockSponge()); //fixes drain interactions across all modded fluids & FluidStates
             plugins.put("net.minecraft.block.BlockStaticLiquid", new PluginBlockStaticLiquid()); //update FluidStates
-            //plugins.put("net.minecraft.block.BlockTrapDoor", new PluginBlockTrapDoor()); //fluids flow from correct sides
+            plugins.put("net.minecraft.block.BlockTrapDoor", new PluginBlockTrapDoor()); //makes trap doors fluidloggable by default
             plugins.put("net.minecraft.block.BlockTorch", new PluginBlockTorch()); //allow torches to be destroyed by flowing fluid blocks
             plugins.put("net.minecraft.block.BlockWall", new PluginBlockWall()); //fixes a bug with walls that caused the post to unintentionally render
             //vanilla (basic fluidlogging implementation for certain blocks)

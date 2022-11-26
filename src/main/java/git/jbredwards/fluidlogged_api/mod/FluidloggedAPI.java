@@ -12,6 +12,7 @@ import git.jbredwards.fluidlogged_api.mod.common.command.CommandSetFluidState;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.legacy.LegacyDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageReloadConfig;
+import git.jbredwards.fluidlogged_api.mod.common.message.MessageVaporizeEffects;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.init.Items;
 import net.minecraft.util.datafix.FixTypes;
@@ -55,6 +56,7 @@ public final class FluidloggedAPI
         INSTANCE.registerMessage(MessageFluidState.Handler.INSTANCE, MessageFluidState.class, 1, Side.CLIENT);
         INSTANCE.registerMessage(MessageSyncFluidStates.Handler.INSTANCE, MessageSyncFluidStates.class, 2, Side.CLIENT);
         INSTANCE.registerMessage(MessageReloadConfig.Handler.INSTANCE, MessageReloadConfig.class, 3, Side.CLIENT);
+        INSTANCE.registerMessage(MessageVaporizeEffects.Handler.INSTANCE, MessageVaporizeEffects.class, 4, Side.CLIENT);
         //no cubic chunks
         if(!isCubicChunks) MinecraftForge.EVENT_BUS.register(FluidStateCapabilityNormal.class);
         //cubic chunks

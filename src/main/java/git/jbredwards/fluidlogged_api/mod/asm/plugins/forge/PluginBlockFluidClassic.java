@@ -1,11 +1,14 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
 
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
+import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
+import git.jbredwards.fluidlogged_api.mod.common.message.MessageVaporizeEffects;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
@@ -15,6 +18,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.*;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -386,7 +390,9 @@ public final class PluginBlockFluidClassic implements IASMPlugin
         public static void fluidUpdateTick(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, int quantaPerBlock, int densityDir, boolean canCreateSources) {
             if(world.isRemote || !world.isAreaLoaded(pos, quantaPerBlock / 2)) return; // Forge: avoid loading unloaded chunks
 
-            final IBlockState here = world.getBlockState(pos); //fluidlogged fluids will have a different state here than the state input
+            IBlockState here = world.getBlockState(pos); //fluidlogged fluids will have a different state here than the state input
+            if(tryVaporizeHere(block.getFluid(), state, here, world, pos)) here = state; //try vaporize block here
+
             final EnumFacing facingDir = (densityDir > 0) ? UP : DOWN;
             int quantaRemaining = quantaPerBlock - state.getValue(BlockLiquid.LEVEL);
 
@@ -462,6 +468,48 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                     if(flowTo[i] && canFluidFlow(world, pos, here, SIDES[i]))
                         ((Accessor)block).flowIntoBlock_Public(world, pos.offset(SIDES[i]), flowMeta);
             }
+        }
+
+        //helper
+        public static boolean tryVaporizeHere(@Nonnull Fluid fluid, @Nonnull IBlockState state, @Nonnull IBlockState here, @Nonnull World world, @Nonnull BlockPos pos) {
+            if(ConfigHandler.lavalogVaporizeFlammable && here != state && state.getMaterial() == Material.LAVA) {
+                //check game rule
+                if(world.getGameRules().getBoolean("doFireTick")) {
+                    boolean isFlammable = here.getMaterial().getCanBurn();
+                    if(!isFlammable) {
+                        for(EnumFacing facing : EnumFacing.values()) {
+                            if(here.getBlock().isFlammable(world, pos, facing)) {
+                                isFlammable = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if(isFlammable) {
+                        //certain blocks only call world.setBlockState on the server, like wooden signs for example
+                        if(!world.isRemote) {
+                            //handle clientside particles
+                            FluidloggedAPINetworkHandler.INSTANCE.sendToAllAround(
+                                    new MessageVaporizeEffects(fluid, pos),
+                                    new NetworkRegistry.TargetPoint(
+                                            world.provider.getDimension(),
+                                            pos.getX() + 0.5,
+                                            pos.getY() + 0.5,
+                                            pos.getZ() + 0.5,
+                                            64
+                                    )
+                            );
+
+                            //handle serverside sound
+                            fluid.vaporize(null, world, pos, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
+                        }
+
+                        return world.setBlockState(pos, state);
+                    }
+                }
+            }
+
+            return false;
         }
 
         //helper

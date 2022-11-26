@@ -8,10 +8,7 @@ import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -60,35 +57,6 @@ public final class EventHandler
         if(!event.doesVaporize() && !event.fluidState.isEmpty()) {
             final Block block = event.fluidState.getBlock();
             if(block instanceof BlockLiquid) event.world.scheduleUpdate(event.pos, block, block.tickRate(event.world));
-        }
-    }
-
-    @SubscribeEvent(priority = EventPriority.LOW)
-    static void destroyBurnables(@Nonnull FluidloggedEvent event) {
-        if(ConfigHandler.lavalogVaporizeFlammable && !event.doesVaporize() && event.fluidState.getMaterial() == Material.LAVA) {
-            //check game rule
-            if(event.world.getGameRules().getBoolean("doFireTick")) {
-                boolean isFlammable = event.here.getMaterial().getCanBurn();
-                if(!isFlammable) {
-                    for(EnumFacing facing : EnumFacing.values()) {
-                        if(event.here.getBlock().isFlammable(event.world, event.pos, facing)) {
-                            isFlammable = true;
-                            break;
-                        }
-                    }
-                }
-
-                if(isFlammable) {
-                    final IBlockState state = event.fluidState.getBlock() instanceof BlockLiquid
-                            ? BlockLiquid.getFlowingBlock(Material.LAVA).getDefaultState()
-                            : event.fluidState.getState();
-
-                    event.fluidState.getFluid().vaporize(null, event.world, event.pos, event.getFluidStack());
-                    event.world.setBlockState(event.pos, state, event.blockFlags);
-                    event.setResult(Event.Result.ALLOW);
-                    event.setCanceled(true);
-                }
-            }
         }
     }
 

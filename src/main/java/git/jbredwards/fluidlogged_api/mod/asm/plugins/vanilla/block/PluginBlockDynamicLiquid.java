@@ -66,8 +66,8 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
             final Fluid fluid = FluidloggedUtils.getFluidFromState(state);
             if(fluid == null) throw new IllegalStateException("A critical error has occurred, please issue a bug report!");
 
-            //here state is different than the input one if fluidlogged
-            final IBlockState here = world.getBlockState(pos);
+            IBlockState here = world.getBlockState(pos); //here state is different than the input one if fluidlogged
+            if(PluginBlockFluidClassic.Hooks.tryVaporizeHere(fluid, state, here, world, pos)) here = state; //try vaporize block here
             int level = state.getValue(BlockLiquid.LEVEL);
 
             final boolean isWater = state.getMaterial() == Material.WATER;

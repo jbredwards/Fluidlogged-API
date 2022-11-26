@@ -108,7 +108,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
          * //ensure that FluidStates render their flow vectors
          * IBlockState state = FluidloggedUtils.getFluidOrReal(world, pos);
          */
-        else if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
+        else if(index == 4 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
             instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.remove(insn);
             return true;
@@ -146,7 +146,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
         /*
          * getStateAtViewpoint: (changes are around line 864)
          * Old code:
-         * return world.getBlockState(pos.down(densityDir));
+         * return world.getBlockState(pos.down(this.densityDir));
          *
          * New code:
          * //return the other block here if the player isn't within the fluid
@@ -156,7 +156,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
             instructions.insert(insn, genMethodNode("getStateAtViewpoint", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.insert(insn, new VarInsnNode(ALOAD, 4));
             instructions.insert(insn, new VarInsnNode(ALOAD, 1));
-            removeFrom(instructions, insn, -2);
+            removeFrom(instructions, insn, -3);
             return true;
         }
 
