@@ -16,7 +16,8 @@ public final class PluginSpongeForge implements IASMPlugin
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
         classNode.methods.removeIf(method
                 -> method.name.equals("spongeImpl$onEntityCollideWithBlockState")
-                || method.name.equals("impl$CheckForLiquidMixing"));
+                || method.name.equals("impl$CheckForLiquidMixing")
+                || method.name.equals("impl$throwModifyForLavaToStone"));
 
         return false;
     }

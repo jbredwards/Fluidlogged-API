@@ -53,6 +53,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingHooks", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
             plugins.put("meldexun.nothirium.mc.renderer.chunk.RenderChunk$ChunkCache", new PluginNothirium()); //better nothirium compat
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); //better optifine compat
+            plugins.put("org.spongepowered.common.mixin.core.block.BlockDynamicLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.block.BlockLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.entity.EntityMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockFluidBase", new PluginPlusTweaks()); //fix crash with PlusTweaks mod fluid interactions
