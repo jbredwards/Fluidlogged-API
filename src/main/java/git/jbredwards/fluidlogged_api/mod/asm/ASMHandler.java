@@ -34,6 +34,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraftforge.fluids.BlockFluidBase", new PluginBlockFluidBase()); //modded fluids work properly with the mod & prevent startup crash
             plugins.put("net.minecraftforge.fluids.BlockFluidClassic", new PluginBlockFluidClassic()); //modded fluids work properly with the mod
             plugins.put("net.minecraftforge.fluids.Fluid", new PluginFluid()); //store one internal FluidState for each Fluid, as to decrease ram usage
+            plugins.put("net.minecraftforge.fluids.FluidRegistry$1", new PluginFluidWater()); //add water's biome colors to its fluid class
             plugins.put("net.minecraftforge.fluids.FluidUtil", new PluginFluidUtil()); //changes some of this class's util functions to be FluidState sensitive
             //modded
             plugins.put("biomesoplenty.common.fluids.blocks.BlockBloodFluid", new PluginBiomesOPlenty()); //fix BOP fluid block mixing
@@ -55,7 +56,10 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); //better optifine compat
             plugins.put("org.spongepowered.common.mixin.core.block.BlockDynamicLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.block.BlockLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
+            plugins.put("org.spongepowered.common.mixin.core.block.BlockStaticLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.entity.EntityMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
+            plugins.put("org.spongepowered.common.mixin.optimization.world.chunk.ChunkMixin_Async_Lighting", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
+            plugins.put("org.spongepowered.mod.mixin.core.forge.fluids.BlockFluidClassicMixin_Forge", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockFluidBase", new PluginPlusTweaks()); //fix crash with PlusTweaks mod fluid interactions
             plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockLiquid", new PluginPlusTweaks()); //fix crash with PlusTweaks mod fluid interactions
             plugins.put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()); //better builders wands compat
@@ -82,6 +86,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.block.BlockSkull", new PluginBlockSkull()); //wither skulls no longer void the FluidState here when summoning the wither
             plugins.put("net.minecraft.block.BlockSlab", new PluginBlockSlab()); //half slabs are fluidloggable
             plugins.put("net.minecraft.block.BlockSponge", new PluginBlockSponge()); //fixes drain interactions across all modded fluids & FluidStates
+            plugins.put("net.minecraft.block.BlockStairs", new PluginBlockStairs()); //update neighboring fluids when this changes shape
             plugins.put("net.minecraft.block.BlockStaticLiquid", new PluginBlockStaticLiquid()); //update FluidStates
             plugins.put("net.minecraft.block.BlockTrapDoor", new PluginBlockTrapDoor()); //makes trap doors fluidloggable by default
             plugins.put("net.minecraft.block.BlockTorch", new PluginBlockTorch()); //allow torches to be destroyed by flowing fluid blocks
@@ -113,7 +118,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.block.BlockRedstoneTorch", new PluginFluidloggableBlocks());
             plugins.put("net.minecraft.block.BlockRedstoneWire", new PluginFluidloggableBlocks());
             plugins.put("net.minecraft.block.BlockSign", new PluginFluidloggableBlocks());
-            plugins.put("net.minecraft.block.BlockStairs", new PluginFluidloggableBlocks());
             plugins.put("net.minecraft.block.BlockTripWire", new PluginFluidloggableBlocks());
             plugins.put("net.minecraft.block.BlockTripWireHook", new PluginFluidloggableBlocks());
             //vanilla (client)
@@ -150,10 +154,6 @@ public final class ASMHandler implements BasicLoadingPlugin
         @Override
         public String getPluginName() { return "Fluidlogged API Plugin"; }
     }
-
-    @Nonnull
-    @Override
-    public String getPluginClass() { return "git.jbredwards.fluidlogged_api.mod.asm.ASMHandler$Transformer"; }
 
     @Override
     public void injectData(@Nonnull Map<String, Object> data) { ConfigHandler.init(); }

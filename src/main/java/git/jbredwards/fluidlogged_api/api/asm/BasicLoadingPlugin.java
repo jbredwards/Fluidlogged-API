@@ -14,7 +14,7 @@ import java.util.Map;
 public interface BasicLoadingPlugin extends IFMLLoadingPlugin
 {
     @Nonnull
-    String getPluginClass();
+    default String getPluginClass() { return getClass().getName() + "$Transformer"; }
 
     @Nonnull
     @Override
