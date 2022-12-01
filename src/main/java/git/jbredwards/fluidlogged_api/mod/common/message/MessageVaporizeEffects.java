@@ -2,7 +2,6 @@ package git.jbredwards.fluidlogged_api.mod.common.message;
 
 import git.jbredwards.fluidlogged_api.api.network.IClientMessageHandler;
 import git.jbredwards.fluidlogged_api.api.network.message.AbstractMessage;
-import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
@@ -32,15 +31,15 @@ public final class MessageVaporizeEffects extends AbstractMessage
     }
 
     @Override
-    public void read(@Nonnull ByteBuf buf) {
-        fluid = FluidRegistry.getFluid(new PacketBuffer(buf).readString(32767));
-        pos = BlockPos.fromLong(buf.readLong());
+    public void read(@Nonnull PacketBuffer buf) {
+        fluid = FluidRegistry.getFluid(buf.readString(32767));
+        pos = buf.readBlockPos();
     }
 
     @Override
-    public void write(@Nonnull ByteBuf buf) {
-        new PacketBuffer(buf).writeString(FluidRegistry.getFluidName(fluid));
-        buf.writeLong(pos.toLong());
+    public void write(@Nonnull PacketBuffer buf) {
+        buf.writeString(FluidRegistry.getFluidName(fluid));
+        buf.writeBlockPos(pos);
     }
 
     public enum Handler implements IClientMessageHandler<MessageVaporizeEffects>

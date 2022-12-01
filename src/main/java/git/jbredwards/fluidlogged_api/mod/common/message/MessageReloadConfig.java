@@ -3,7 +3,7 @@ package git.jbredwards.fluidlogged_api.mod.common.message;
 import git.jbredwards.fluidlogged_api.api.network.IClientMessageHandler;
 import git.jbredwards.fluidlogged_api.api.network.message.AbstractMessage;
 import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
-import io.netty.buffer.ByteBuf;
+import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -21,10 +21,10 @@ public class MessageReloadConfig extends AbstractMessage
     public MessageReloadConfig(boolean isValid) { this.isValid = isValid; }
 
     @Override
-    public void read(@Nonnull ByteBuf buf) {}
+    public void read(@Nonnull PacketBuffer buf) {}
 
     @Override
-    public void write(@Nonnull ByteBuf buf) {}
+    public void write(@Nonnull PacketBuffer buf) {}
 
     public enum Handler implements IClientMessageHandler<MessageReloadConfig>
     {

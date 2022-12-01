@@ -6,10 +6,10 @@ import git.jbredwards.fluidlogged_api.api.network.IClientMessageHandler;
 import git.jbredwards.fluidlogged_api.api.network.message.AbstractMessage;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.chars.CharOpenHashSet;
 import it.unimi.dsi.fastutil.chars.CharSet;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -49,27 +49,27 @@ public final class MessageSyncFluidStates extends AbstractMessage
     }
 
     @Override
-    public void read(@Nonnull ByteBuf buf) {
+    public void read(@Nonnull PacketBuffer buf) {
         //read pos
-        x = buf.readInt();
-        y = buf.readInt();
-        z = buf.readInt();
+        x = buf.readVarInt();
+        y = buf.readVarInt();
+        z = buf.readVarInt();
         //read data
-        final int size = buf.readInt();
-        for(int i = 0; i < size; i++) data.add(Pair.of(buf.readChar(), buf.readInt()));
+        final int size = buf.readVarInt();
+        for(int i = 0; i < size; i++) data.add(Pair.of(buf.readChar(), buf.readVarInt()));
     }
 
     @Override
-    public void write(@Nonnull ByteBuf buf) {
+    public void write(@Nonnull PacketBuffer buf) {
         //write pos
-        buf.writeInt(x);
-        buf.writeInt(y);
-        buf.writeInt(z);
+        buf.writeVarInt(x);
+        buf.writeVarInt(y);
+        buf.writeVarInt(z);
         //write data
-        buf.writeInt(data.size());
+        buf.writeVarInt(data.size());
         data.forEach(entry -> {
             buf.writeChar(entry.getKey());
-            buf.writeInt(entry.getValue());
+            buf.writeVarInt(entry.getValue());
         });
     }
 

@@ -14,14 +14,12 @@ import git.jbredwards.fluidlogged_api.mod.common.legacy.LegacyDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageReloadConfig;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageVaporizeEffects;
 import net.minecraft.block.BlockDispenser;
-import net.minecraft.init.Biomes;
 import net.minecraft.init.Items;
 import net.minecraft.util.datafix.FixTypes;
 import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fluids.DispenseFluidContainer;
-import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
@@ -43,7 +41,7 @@ public final class FluidloggedAPI
 {
     //mod id constants
     @Nonnull
-    public static final String MODID = "fluidlogged_api", NAME  = "Fluidlogged API", VERSION = "1.9.0.2";
+    public static final String MODID = "fluidlogged_api", NAME  = "Fluidlogged API", VERSION = "1.9.0.3";
     public static final boolean //compat id constants
             isBetterFoliage = Loader.isModLoaded("betterfoliage"),
             isCubicChunks   = Loader.isModLoaded("cubicchunks"),
@@ -81,8 +79,6 @@ public final class FluidloggedAPI
         FMLCommonHandler.instance().getDataFixer()
                 .init(MODID, LegacyDataFixer.DATA_VERSION)
                 .registerFix(FixTypes.CHUNK, new LegacyDataFixer());
-        //apply default biome color to water fluid
-        FluidRegistry.WATER.setColor(Biomes.DEFAULT.getWaterColorMultiplier());
     }
 
     @Mod.EventHandler
