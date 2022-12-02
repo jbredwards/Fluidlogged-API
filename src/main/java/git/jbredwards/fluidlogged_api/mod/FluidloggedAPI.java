@@ -41,7 +41,7 @@ public final class FluidloggedAPI
 {
     //mod id constants
     @Nonnull
-    public static final String MODID = "fluidlogged_api", NAME  = "Fluidlogged API", VERSION = "1.9.0.3";
+    public static final String MODID = "fluidlogged_api", NAME  = "Fluidlogged API", VERSION = "1.9.0.4";
     public static final boolean //compat id constants
             isBetterFoliage = Loader.isModLoaded("betterfoliage"),
             isCubicChunks   = Loader.isModLoaded("cubicchunks"),

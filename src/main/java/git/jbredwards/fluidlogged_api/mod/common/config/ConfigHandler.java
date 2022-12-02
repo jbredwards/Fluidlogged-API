@@ -273,7 +273,9 @@ public final class ConfigHandler
                 return false;
 
             //check stateIn
-            return metadata.length == 0 || metadata[block.getMetaFromState(stateIn)];
+            if(metadata.length == 0) return true;
+            final int meta = block.getMetaFromState(stateIn);
+            return metadata.length > meta && metadata[meta];
         }
     }
 
@@ -361,7 +363,7 @@ public final class ConfigHandler
             for(String valueStr : validProperties.get(propertyIndex).getValue()) {
                 property.parseValue(valueStr).toJavaUtil().ifPresent(value -> {
                     final IBlockState state = stateIn.withProperty(property, value);
-                    if(propertyIndex - 1 == validProperties.size()) metadata.add(state.getBlock().getMetaFromState(state));
+                    if(propertyIndex + 1 == validProperties.size()) metadata.add(state.getBlock().getMetaFromState(state));
                     else gatherStatesMetadata(validProperties, propertyIndex + 1, validProperties.get(propertyIndex + 1).getKey(), state, metadata);
                 });
             }
@@ -382,7 +384,7 @@ public final class ConfigHandler
                 final JsonObject json = jsonIn.getAsJsonObject();
                 //no blockId specified
                 if(!json.has("blockId")) {
-                    LOGGER.warn(String.format("required \"blockId\" string argument not found within args: %s, skipping...", json.toString()));
+                    LOGGER.warn(String.format("required \"blockId\" string argument not found within args: %s, skipping...", json));
                     containsMissingEntries = true;
                     return EMPTY;
                 }
@@ -440,7 +442,7 @@ public final class ConfigHandler
                         canFluidFlow, useDeprecatedSideCheck);
             }
 
-            LOGGER.warn(String.format("bad json %s, skipping...", jsonIn.toString()));
+            LOGGER.warn(String.format("bad json %s, skipping...", jsonIn));
             containsMissingEntries = true;
             return EMPTY;
         }
