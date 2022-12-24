@@ -9,7 +9,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.item.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.*;
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
@@ -64,7 +64,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockLiquid", new PluginPlusTweaks()); //fix crash with PlusTweaks mod fluid interactions
             plugins.put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()); //better builders wands compat
             plugins.put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()); //betweenlands compat
-            plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); //wooden bowls can now be filled by using water FluidStates
+            plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); //wooden bowls account for FluidStates when filled
             //vanilla (blocks)
             plugins.put("net.minecraft.block.material.MaterialLogic", new PluginMaterialLogic()); //prevents fluids from destroying "circuit" blocks
             plugins.put("net.minecraft.block.Block", new PluginBlock()); //fixes some lighting, canSustainPlant, and explosion related issues
@@ -138,7 +138,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.entity.projectile.EntityFishHook", new PluginEntityFishHook()); //fishhook entities generate the fishing particles at water FluidStates
             plugins.put("net.minecraft.entity.Entity", new PluginEntity());
             //vanilla (item)
-            plugins.put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()); //glass bottles can only be filled with water from actual water fluid blocks
+            plugins.put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()); //glass bottles account for FluidStates when filled
             //vanilla (world)
             plugins.put("net.minecraft.world.chunk.Chunk", new PluginChunk()); //account for FluidState light opacity & light values
             plugins.put("net.minecraft.world.chunk.ChunkPrimer", new PluginChunkPrimer()); //allow mods to generate FluidStates more optimally during world gen
@@ -156,5 +156,5 @@ public final class ASMHandler implements BasicLoadingPlugin
     }
 
     @Override
-    public void injectData(@Nonnull Map<String, Object> data) { ConfigHandler.init(); }
+    public void injectData(@Nonnull Map<String, Object> data) { FluidloggedAPIConfigHandler.init(); }
 }

@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- * wooden bowls can now be filled by using water FluidStates
+ * wooden bowls account for FluidStates when filled
  * @author jbred
  *
  */
@@ -27,21 +27,14 @@ public final class PluginGardenOfGlass implements IASMPlugin
          *
          * New code:
          * //
-         * if (FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(event.getWorld(), rtr.getBlockPos()).getFluid(), FluidRegistry.WATER))
+         * if (FluidloggedUtils.getFluidOrReal(event.getWorld(), rtr.getBlockPos()).getMaterial() == Material.WATER)
          * {
          *     ...
          * }
          */
         if(checkMethod(insn.getNext(), obfuscated ? "func_185904_a" : "getMaterial")) {
-            ((JumpInsnNode)getNext(insn, 3)).setOpcode(IFEQ);
-            final InsnList list = new InsnList();
-            list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidState", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
-            list.add(new MethodInsnNode(INVOKEVIRTUAL, "git/jbredwards/fluidlogged_api/api/util/FluidState", "getFluid", "()Lnet/minecraftforge/fluids/Fluid;", false));
-            list.add(new FieldInsnNode(GETSTATIC, "net/minecraftforge/fluids/FluidRegistry", "WATER", "Lnet/minecraftforge/fluids/Fluid;"));
-            list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "isCompatibleFluid", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraftforge/fluids/Fluid;)Z"));
-
-            instructions.insertBefore(insn, list);
-            removeFrom(instructions, insn, 2);
+            instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
+            instructions.remove(insn);
             return true;
         }
 

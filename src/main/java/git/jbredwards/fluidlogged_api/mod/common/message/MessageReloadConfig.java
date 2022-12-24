@@ -2,7 +2,7 @@ package git.jbredwards.fluidlogged_api.mod.common.message;
 
 import git.jbredwards.fluidlogged_api.api.network.IClientMessageHandler;
 import git.jbredwards.fluidlogged_api.api.network.message.AbstractMessage;
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -34,8 +34,8 @@ public class MessageReloadConfig extends AbstractMessage
         @Override
         public void handleMessage(@Nonnull MessageReloadConfig message) {
             try {
-                ConfigHandler.init();
-                ConfigHandler.complete();
+                FluidloggedAPIConfigHandler.init();
+                FluidloggedAPIConfigHandler.complete();
             }
 
             //oops

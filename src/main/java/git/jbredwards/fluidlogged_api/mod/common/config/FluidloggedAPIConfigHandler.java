@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.function.BiPredicate;
 
@@ -31,7 +32,7 @@ import java.util.function.BiPredicate;
  * @author jbred
  *
  */
-public final class ConfigHandler
+public final class FluidloggedAPIConfigHandler
 {
     @Nonnull
     static final Gson GSON = new GsonBuilder()
@@ -126,7 +127,7 @@ public final class ConfigHandler
 
             //reads an already existing cfg file
             else {
-                config = GSON.fromJson('{' + IOUtils.toString(new FileInputStream(cfg), Charset.defaultCharset()) + '}', Config.class);
+                config = GSON.fromJson('{' + IOUtils.toString(Files.newInputStream(cfg.toPath()), Charset.defaultCharset()) + '}', Config.class);
 
                 fluidloggedFluidSpread = config.fluidloggedFluidSpread;
                 fluidsBreakTorches = config.fluidsBreakTorches;

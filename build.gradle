@@ -14,7 +14,7 @@ apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'com.matthewprenger.cursegradle'
 apply plugin: 'maven-publish'
 
-version = 'v1.9.0.4-mc1.12.2'
+version = 'v1.9.0.5-mc1.12.2'
 group = 'git.jbredwards.fluidlogged_api'
 archivesBaseName = 'Fluidlogged-API'
 sourceCompatibility = targetCompatibility = '1.8'

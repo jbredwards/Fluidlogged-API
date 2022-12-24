@@ -279,6 +279,18 @@ public final class PluginBlockLiquid implements IASMPlugin
             }
         );
         /*
+         * requiresUpdates:
+         * New code:
+         * //prevents a possible stack overflow bug
+         * @ASMGenerated
+         * public boolean requiresUpdates()
+         * {
+         *     return false;
+         * }
+         */
+        addMethod(classNode, obfuscated ? "func_149698_L" : "requiresUpdates", "()Z", null, null,
+                generator -> generator.visitInsn(ICONST_0));
+        /*
          * getExtendedState:
          * New code:
          * //fix corner heights

@@ -3,6 +3,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -113,30 +114,32 @@ public final class PluginRenderChunk implements IASMPlugin
     public static final class Hooks
     {
         public static void renderFluidState(@Nonnull IBlockState state, @Nonnull boolean[] array, @Nonnull ChunkCompileTaskGenerator generator, @Nonnull CompiledChunk compiledChunk, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull BlockPos chunkPos) {
-            final FluidState fluidState = FluidState.get(world, pos);
-            if(!fluidState.isEmpty() && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
-                //renders the fluid in each layer
-                for(BlockRenderLayer layer : BlockRenderLayer.values()) {
-                    if(FluidloggedAPI.isBetterFoliage
-                            ? !BFHooks.canRenderBlockInLayer(fluidState.getState(), layer)
-                            : !fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer)) continue;
+            if(!FluidloggedUtils.isFluid(state)) {
+                final FluidState fluidState = FluidState.get(world, pos);
+                if(!fluidState.isEmpty() && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
+                    //renders the fluid in each layer
+                    for(BlockRenderLayer layer : BlockRenderLayer.values()) {
+                        if(FluidloggedAPI.isBetterFoliage
+                                ? !BFHooks.canRenderBlockInLayer(fluidState.getState(), layer)
+                                : !fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer)) continue;
 
-                    ForgeHooksClient.setRenderLayer(layer);
-                    BufferBuilder buffer = generator.getRegionRenderCacheBuilder().getWorldRendererByLayer(layer);
+                        ForgeHooksClient.setRenderLayer(layer);
+                        BufferBuilder buffer = generator.getRegionRenderCacheBuilder().getWorldRendererByLayer(layer);
 
-                    if(!compiledChunk.isLayerStarted(layer)) {
-                        compiledChunk.setLayerStarted(layer);
-                        buffer.begin(7, DefaultVertexFormats.BLOCK);
-                        buffer.setTranslation(-chunkPos.getX(), -chunkPos.getY(), -chunkPos.getZ());
+                        if(!compiledChunk.isLayerStarted(layer)) {
+                            compiledChunk.setLayerStarted(layer);
+                            buffer.begin(7, DefaultVertexFormats.BLOCK);
+                            buffer.setTranslation(-chunkPos.getX(), -chunkPos.getY(), -chunkPos.getZ());
+                        }
+
+                        //render the fluid
+                        array[layer.ordinal()] |= Minecraft.getMinecraft().getBlockRendererDispatcher()
+                                .renderBlock(fluidState.getState(), pos, world, buffer);
                     }
 
-                    //render the fluid
-                    array[layer.ordinal()] |= Minecraft.getMinecraft().getBlockRendererDispatcher()
-                            .renderBlock(fluidState.getState(), pos, world, buffer);
+                    //reset current render layer
+                    ForgeHooksClient.setRenderLayer(null);
                 }
-
-                //reset current render layer
-                ForgeHooksClient.setRenderLayer(null);
             }
         }
     }

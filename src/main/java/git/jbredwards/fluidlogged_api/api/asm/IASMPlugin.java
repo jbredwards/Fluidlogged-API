@@ -1,6 +1,6 @@
 package git.jbredwards.fluidlogged_api.api.asm;
 
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -76,7 +76,7 @@ public interface IASMPlugin extends Opcodes
 
     //can be useful for easily troubleshooting plugins
     default void informConsole(@Nonnull String className, @Nullable MethodNode method) {
-        if(ConfigHandler.debugASMPlugins) {
+        if(FluidloggedAPIConfigHandler.debugASMPlugins) {
             if(method == null) System.out.printf("%s: transforming... %s%n", ACTIVE_PLUGIN.value, className);
             else System.out.printf("%s: transforming... %s.%s%s%n", ACTIVE_PLUGIN.value, className, method.name, method.desc);
         }

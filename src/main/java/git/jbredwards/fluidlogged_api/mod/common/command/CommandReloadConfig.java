@@ -1,7 +1,7 @@
 package git.jbredwards.fluidlogged_api.mod.common.command;
 
 import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageReloadConfig;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -36,8 +36,8 @@ public class CommandReloadConfig extends CommandBase
             if(server.getPlayerList().getCurrentPlayerCount() > 1)
                 throw new WrongUsageException("commands.reloadFluidloggedAPI.desyncWarning");
 
-            ConfigHandler.init();
-            ConfigHandler.complete();
+            FluidloggedAPIConfigHandler.init();
+            FluidloggedAPIConfigHandler.complete();
             FluidloggedAPINetworkHandler.INSTANCE.sendToAll(new MessageReloadConfig(true));
             notifyCommandListener(sender, this, "commands.reloadFluidloggedAPI.success");
         }

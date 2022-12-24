@@ -5,7 +5,7 @@ import git.jbredwards.fluidlogged_api.api.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.entity.player.EntityPlayer;
@@ -45,7 +45,7 @@ public final class EventHandler
 
     @SubscribeEvent(priority = EventPriority.HIGH)
     static void handleConfigOverrides(@Nonnull FluidloggableEvent event) {
-        final Event.Result result = ConfigHandler.isStateFluidloggable(event.state, event.fluid);
+        final Event.Result result = FluidloggedAPIConfigHandler.isStateFluidloggable(event.state, event.fluid);
         if(result != Event.Result.DEFAULT) {
             event.setCanceled(true);
             event.setResult(result);

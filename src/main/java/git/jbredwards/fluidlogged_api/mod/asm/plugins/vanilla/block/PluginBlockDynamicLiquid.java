@@ -4,7 +4,7 @@ import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidClassic;
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 import net.minecraft.block.BlockDynamicLiquid;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -136,7 +136,7 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
             }
 
             //fluidlog vertical if possible
-            if(ConfigHandler.verticalFluidloggedFluidSpread)
+            if(FluidloggedAPIConfigHandler.verticalFluidloggedFluidSpread)
                 PluginBlockFluidClassic.Hooks.tryFlowIntoFluidloggable((IFluidBlock)block, world, pos, EnumFacing.DOWN, state, here, 8, isWater, EnumFacing.DOWN);
 
             //flow down if possible

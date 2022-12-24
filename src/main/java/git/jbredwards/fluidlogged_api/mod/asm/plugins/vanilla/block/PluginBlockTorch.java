@@ -1,7 +1,7 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockRedstoneTorch;
 import net.minecraft.block.material.Material;
@@ -49,7 +49,7 @@ public final class PluginBlockTorch implements IASMPlugin
         //PluginBlockTorch
         @Nonnull
         public static Material getTorchMaterial(@Nonnull Material material, @Nonnull Block block) {
-            return !ConfigHandler.fluidsBreakTorches || block instanceof BlockRedstoneTorch ? material : TORCH;
+            return !FluidloggedAPIConfigHandler.fluidsBreakTorches || block instanceof BlockRedstoneTorch ? material : TORCH;
         }
     }
 }

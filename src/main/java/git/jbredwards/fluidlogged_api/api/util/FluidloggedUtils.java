@@ -8,12 +8,12 @@ import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
+import git.jbredwards.fluidlogged_api.api.network.MessageUtils;
 import git.jbredwards.fluidlogged_api.api.network.message.MessageFluidState;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.server.management.PlayerChunkMapEntry;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -119,11 +119,8 @@ public final class FluidloggedUtils
             cap.getContainer(pos).setFluidState(pos, fluidState);
 
             //send changes to client
-            if((blockFlags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) {
-                final PlayerChunkMapEntry entry = ((WorldServer)world).getPlayerChunkMap().getEntry(chunk.x, chunk.z);
-                if(entry != null) entry.getWatchingPlayers().forEach(player -> FluidloggedAPINetworkHandler.INSTANCE
-                        .sendTo(new MessageFluidState(pos, fluidState, doRenderUpdate), player));
-            }
+            if((blockFlags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) MessageUtils.sendToAllTracking(
+                    new MessageFluidState(pos, fluidState, doRenderUpdate), chunk, FluidloggedAPINetworkHandler.INSTANCE::sendTo);
 
             //update light levels
             relightFluidBlock(world, pos, fluidState);

@@ -9,7 +9,7 @@ import git.jbredwards.fluidlogged_api.mod.common.message.MessageSyncFluidStates;
 import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateStorage;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandReloadConfig;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandSetFluidState;
-import git.jbredwards.fluidlogged_api.mod.common.config.ConfigHandler;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.legacy.LegacyDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageReloadConfig;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageVaporizeEffects;
@@ -41,7 +41,7 @@ public final class FluidloggedAPI
 {
     //mod id constants
     @Nonnull
-    public static final String MODID = "fluidlogged_api", NAME  = "Fluidlogged API", VERSION = "1.9.0.4";
+    public static final String MODID = "fluidlogged_api", NAME  = "Fluidlogged API", VERSION = "1.9.0.5";
     public static final boolean //compat id constants
             isBetterFoliage = Loader.isModLoaded("betterfoliage"),
             isCubicChunks   = Loader.isModLoaded("cubicchunks"),
@@ -69,7 +69,7 @@ public final class FluidloggedAPI
     @Mod.EventHandler
     static void init(@Nonnull FMLInitializationEvent event) throws IOException {
         //finalize this mod's config
-        ConfigHandler.complete();
+        FluidloggedAPIConfigHandler.complete();
         //fixes cascading world gen
         ForgeModContainer.fixVanillaCascading = true;
         //fixes the vanilla bucket dispenser actions by replacing them with the forge one
