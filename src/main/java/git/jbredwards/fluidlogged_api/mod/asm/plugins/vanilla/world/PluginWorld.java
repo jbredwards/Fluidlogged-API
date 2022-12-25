@@ -36,8 +36,10 @@ public final class PluginWorld implements IASMPlugin
     @Override
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         //setBlockState
-        if(checkMethod(method, obfuscated ? "func_180501_a" : "setBlockState", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"))
+        if(checkMethod(method, obfuscated ? "func_180501_a" : "setBlockState", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z")) {
+            isGalaxySpace = method.localVariables.get(0).index == 5;
             return 1;
+        }
 
         //setBlockToAir
         else if(checkMethod(method, obfuscated ? "func_175698_g" : "setBlockToAir", null))
@@ -83,9 +85,6 @@ public final class PluginWorld implements IASMPlugin
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
         //setBlockState
         if(index == 1) {
-            //look for galaxy space code, if present the mod must be installed
-            if(!isGalaxySpace && insn.getOpcode() == INVOKESTATIC && ((MethodInsnNode)insn).owner.equals("galaxyspace/core/hooks/GSHooksManager"))
-                isGalaxySpace = true;
             /*
              * setBlockState: (changes are around line 409)
              * Old code:
