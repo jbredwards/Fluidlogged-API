@@ -37,7 +37,7 @@ public final class PluginWorld implements IASMPlugin
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         //setBlockState
         if(checkMethod(method, obfuscated ? "func_180501_a" : "setBlockState", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z")) {
-            isGalaxySpace = method.localVariables.get(0).index == 5;
+            isGalaxySpace = !method.localVariables.isEmpty() && method.localVariables.get(0).index == 5;
             return 1;
         }
 

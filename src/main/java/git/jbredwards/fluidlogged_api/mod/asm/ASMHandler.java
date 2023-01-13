@@ -19,9 +19,9 @@ import java.util.Map;
  * @author jbred
  *
  */
-@ASMHandler.SortingIndex(1401)
-@ASMHandler.Name("Fluidlogged API Plugin")
-@ASMHandler.MCVersion("1.12.2")
+@BasicLoadingPlugin.SortingIndex(1401)
+@BasicLoadingPlugin.Name("Fluidlogged API Plugin")
+@BasicLoadingPlugin.MCVersion("1.12.2")
 public final class ASMHandler implements BasicLoadingPlugin
 {
     //this class exists cause the vanilla launcher needs the transformer & plugin to be different classes for reasons?
@@ -75,6 +75,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.block.BlockDoor", new PluginBlockDoor()); //update upper FluidState & correct canFluidFlow
             plugins.put("net.minecraft.block.BlockDynamicLiquid", new PluginBlockDynamicLiquid()); //fixes a bunch of liquid interactions while fluidlogged
             plugins.put("net.minecraft.block.BlockFarmland", new PluginBlockFarmland()); //farmland blocks now recognise water FluidStates
+            plugins.put("net.minecraft.block.BlockFire", new PluginBlockFire()); //fire doesn't destroy fluidlogged fluids
             plugins.put("net.minecraft.block.BlockGrass", new PluginBlockGrass()); //use World#getBlockLightOpacity for FluidState sensitivity
             plugins.put("net.minecraft.block.BlockLeaves", new PluginFluidloggableBlocksFlowable()); //for this it makes sense to have the fluid flow from any side
             plugins.put("net.minecraft.block.BlockLilyPad", new PluginBlockLilyPad()); //lily pads can stay on certain water FluidStates

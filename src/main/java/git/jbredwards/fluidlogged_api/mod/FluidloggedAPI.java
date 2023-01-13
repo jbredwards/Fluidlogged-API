@@ -2,6 +2,8 @@ package git.jbredwards.fluidlogged_api.mod;
 
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.network.message.MessageFluidState;
+import git.jbredwards.fluidlogged_api.mod.client.exception.UnsupportedModException;
+import git.jbredwards.fluidlogged_api.mod.client.exception.UnsupportedOptifineException;
 import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityNormal;
 import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityIColumn;
 import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityICube;
@@ -20,12 +22,11 @@ import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fluids.DispenseFluidContainer;
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.common.event.*;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 
@@ -34,6 +35,8 @@ import java.io.IOException;
 import static git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler.INSTANCE;
 
 /**
+ *
+ * @author jbred
  *
  */
 @Mod(modid = FluidloggedAPI.MODID, name = FluidloggedAPI.NAME, version = FluidloggedAPI.VERSION)
@@ -64,6 +67,15 @@ public final class FluidloggedAPI
             MinecraftForge.EVENT_BUS.register(FluidStateCapabilityIColumn.class);
             MinecraftForge.EVENT_BUS.register(FluidStateCapabilityICube.class);
         }
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Mod.EventHandler
+    static void preInitClient(@Nonnull FMLPreInitializationEvent event) {
+        //these mod conflicts can't be resolved
+        UnsupportedModException.crashIfPresent("mage", "smoothwater");
+        //make sure a supported version of optifine is installed
+        UnsupportedOptifineException.checkOptifineVersion();
     }
 
     @Mod.EventHandler
