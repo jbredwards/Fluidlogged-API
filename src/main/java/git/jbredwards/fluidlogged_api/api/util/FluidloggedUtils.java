@@ -120,7 +120,7 @@ public final class FluidloggedUtils
 
             //send changes to client
             if((blockFlags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) MessageUtils.sendToAllTracking(
-                    new MessageFluidState(pos, fluidState, doRenderUpdate), chunk, FluidloggedAPINetworkHandler.INSTANCE::sendTo);
+                    new MessageFluidState(pos, fluidState, doRenderUpdate), chunk, FluidloggedAPINetworkHandler.INSTANCE);
 
             //update light levels
             relightFluidBlock(world, pos, fluidState);

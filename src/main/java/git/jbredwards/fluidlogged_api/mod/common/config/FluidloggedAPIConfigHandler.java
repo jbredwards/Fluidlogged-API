@@ -42,7 +42,7 @@ public final class FluidloggedAPIConfigHandler
     @Nonnull
     static final Logger LOGGER = LogManager.getFormatterLogger("Fluidlogged API Config");
 
-    @Nonnull static final Map<String, Set<Fluid>> FLUID_TAGS = new HashMap<>();
+    @Nonnull static final Map<String, Set<Fluid>> FLUID_TAGS_CACHE = new HashMap<>();
     @Nonnull public static final Map<Block, ConfigPredicate> WHITELIST = new HashMap<>();
     @Nonnull public static final Map<Block, ConfigPredicate> BLACKLIST = new HashMap<>();
 
@@ -51,7 +51,7 @@ public final class FluidloggedAPIConfigHandler
 
     public static boolean applyDefaults = true;
     public static boolean fluidsBreakTorches = true;
-    public static boolean debugASMPlugins = true;
+    public static boolean debugASMPlugins = false;
     public static int fluidloggedFluidSpread = 2;
     public static boolean verticalFluidloggedFluidSpread = true;
     public static boolean lavalogVaporizeFlammable = false;
@@ -106,7 +106,7 @@ public final class FluidloggedAPIConfigHandler
                         "blacklist:[],\n" +
                         "\n" +
                         "#otuput to the console for every ASM transformation, useful for debugging\n" +
-                        "debugASMPlugins:true,\n" +
+                        "debugASMPlugins:false,\n" +
                         "\n" +
                         "#remove the ability for \"infinite\" fluids to fluidlog blocks below\n" +
                         "removeVerticalFluidloggedFluidSpread:false";
@@ -164,7 +164,7 @@ public final class FluidloggedAPIConfigHandler
             final @Nullable InputStream blacklist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/blacklist.json", modId));
             if(blacklist != null) readPredicates(BLACKLIST, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
             //clear fluid tags before reading the next mod, as to prevent possible conflicts
-            FLUID_TAGS.clear();
+            FLUID_TAGS_CACHE.clear();
         }
         //gives the user final say regarding the whitelist & blacklist
         //config will be null if the file doesn't exist (first launch)
@@ -172,7 +172,7 @@ public final class FluidloggedAPIConfigHandler
             readFluidTags(config.fluidTags);
             readPredicates(WHITELIST, config.whitelist);
             readPredicates(BLACKLIST, config.blacklist);
-            FLUID_TAGS.clear();
+            FLUID_TAGS_CACHE.clear();
             config = null;
         }
     }
@@ -183,7 +183,7 @@ public final class FluidloggedAPIConfigHandler
 
         //build tags
         for(FluidTag tag : tags) {
-            if(FLUID_TAGS.containsKey(tag.id))
+            if(FLUID_TAGS_CACHE.containsKey(tag.id))
                 throw new JsonParseException("Fluidlogged API Config: two fluidTags found with the same id: " + tag.id + ", please either merge them or remove the duplicate");
 
             final Set<Fluid> fluids = new HashSet<>();
@@ -195,7 +195,7 @@ public final class FluidloggedAPIConfigHandler
                 else throw new JsonParseException("Fluidlogged API Config: Unable to parse fluid: " + fluidName + " from fluidTag: " + tag.id);
             }
 
-            FLUID_TAGS.put(tag.id, fluids);
+            FLUID_TAGS_CACHE.put(tag.id, fluids);
         }
     }
 
@@ -310,33 +310,7 @@ public final class FluidloggedAPIConfigHandler
             }
 
             //handle states
-            for(JsonObject stateJson : states) {
-                //sets up the properties that the state must have
-                final List<Map.Entry<IProperty<?>, String[]>> validProperties = new ArrayList<>();
-                for(Map.Entry<String, JsonElement> entry : stateJson.entrySet()) {
-                    final IProperty<?> property = block.getBlockState().getProperty(entry.getKey());
-                    if(property != null) {
-                        final JsonElement validValuesJson = entry.getValue();
-                        final Set<String> validValues = new HashSet<>();
-                        if(!validValuesJson.isJsonArray()) validValues.add(validValuesJson.getAsString());
-                        else validValuesJson.getAsJsonArray().forEach(element -> validValues.add(element.getAsString()));
-                        validProperties.add(Pair.of(property, validValues.toArray(new String[0])));
-                    }
-
-                    //unknown property property
-                    else LOGGER.warn(String.format(
-                            "Unable to parse block property for %s: \"%s\", skipping property...",
-                            blockName, entry.getKey()
-                    ));
-                }
-
-                //serialize all valid states
-                if(!validProperties.isEmpty()) {
-                    for(IBlockState state : block.getBlockState().getValidStates()) {
-                        gatherStatesMetadata(validProperties, 0, validProperties.get(0).getKey(), state, metadata);
-                    }
-                }
-            }
+            gatherStateMetadata(block, metadata, states);
 
             //handle fluids
             final Set<Fluid> validFluids = new HashSet<>();
@@ -351,7 +325,7 @@ public final class FluidloggedAPIConfigHandler
 
             //handle fluid tags
             for(String id : fluidTags) {
-                @Nullable Set<Fluid> tag = FLUID_TAGS.get(id);
+                @Nullable Set<Fluid> tag = FLUID_TAGS_CACHE.get(id);
 
                 if(tag != null) validFluids.addAll(tag);
                 else LOGGER.warn(String.format("Unable to parse tag from fluidTags: %s, skipping...", id));
@@ -360,12 +334,41 @@ public final class FluidloggedAPIConfigHandler
             return new ConfigPredicate(block, metadata.toIntArray(), validFluids);
         }
 
-        <T extends Comparable<T>> void gatherStatesMetadata(@Nonnull List<Map.Entry<IProperty<?>, String[]>> validProperties, int propertyIndex, @Nonnull IProperty<T> property, @Nonnull IBlockState stateIn, @Nonnull IntSet metadata) {
+        //appends the metadata values of the serializedStates args to the provided metadata list
+        public static void gatherStateMetadata(@Nonnull Block block, @Nonnull IntSet metadata, @Nonnull JsonObject... serializedStates) {
+            for(JsonObject stateJson : serializedStates) {
+                //sets up the properties that the state must have
+                final List<Map.Entry<IProperty<?>, String[]>> validProperties = new ArrayList<>();
+                for(Map.Entry<String, JsonElement> entry : stateJson.entrySet()) {
+                    final IProperty<?> property = block.getBlockState().getProperty(entry.getKey());
+                    if(property != null) {
+                        final JsonElement validValuesJson = entry.getValue();
+                        final Set<String> validValues = new HashSet<>();
+                        if(!validValuesJson.isJsonArray()) validValues.add(validValuesJson.getAsString());
+                        else validValuesJson.getAsJsonArray().forEach(element -> validValues.add(element.getAsString()));
+                        validProperties.add(Pair.of(property, validValues.toArray(new String[0])));
+                    }
+
+                    //unknown property property
+                    else System.out.printf("Unable to parse block property for %s: \"%s\", skipping property...", block.getRegistryName(), entry.getKey());
+                }
+
+                //serialize all valid states
+                if(!validProperties.isEmpty()) {
+                    for(IBlockState state : block.getBlockState().getValidStates()) {
+                        gatherStateMetadataRecursively(validProperties, 0, validProperties.get(0).getKey(), state, metadata);
+                    }
+                }
+            }
+        }
+
+        //internal, called by gatherStateMetadata
+        static <T extends Comparable<T>> void gatherStateMetadataRecursively(@Nonnull List<Map.Entry<IProperty<?>, String[]>> validProperties, int propertyIndex, @Nonnull IProperty<T> property, @Nonnull IBlockState stateIn, @Nonnull IntSet metadata) {
             for(String valueStr : validProperties.get(propertyIndex).getValue()) {
                 property.parseValue(valueStr).toJavaUtil().ifPresent(value -> {
                     final IBlockState state = stateIn.withProperty(property, value);
                     if(propertyIndex + 1 == validProperties.size()) metadata.add(state.getBlock().getMetaFromState(state));
-                    else gatherStatesMetadata(validProperties, propertyIndex + 1, validProperties.get(propertyIndex + 1).getKey(), state, metadata);
+                    else gatherStateMetadataRecursively(validProperties, propertyIndex + 1, validProperties.get(propertyIndex + 1).getKey(), state, metadata);
                 });
             }
         }

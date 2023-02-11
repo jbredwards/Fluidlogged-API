@@ -9,10 +9,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 
@@ -24,10 +21,12 @@ import javax.annotation.Nonnull;
 public final class PluginBlockDoor implements IASMPlugin
 {
     @Override
-    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
-        return method.name.equals(obfuscated ? "func_180639_a" : "onBlockActivated")
+    public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
+        if(method.name.equals(obfuscated ? "func_180639_a" : "onBlockActivated")
                 || method.name.equals(obfuscated ? "func_176512_a" : "toggleDoor")
-                || method.name.equals(obfuscated ? "func_189540_a" : "neighborChanged");
+                || method.name.equals(obfuscated ? "func_189540_a" : "neighborChanged")) return 1;
+
+        else return method.name.equals(obfuscated ? "func_176208_a" : "onBlockHarvested") ? 2 : 0;
     }
 
     @Override
@@ -41,10 +40,47 @@ public final class PluginBlockDoor implements IASMPlugin
          * //update upper FluidState when the door opens or closes
          * Hooks.notifyDoorFluids(worldIn, blockpos, pos);
          */
-        if(checkMethod(insn, obfuscated ? "func_175704_b" : "markBlockRangeForRenderUpdate", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V")) {
+        if(index == 1 && checkMethod(insn, obfuscated ? "func_175704_b" : "markBlockRangeForRenderUpdate", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V")) {
             instructions.insert(insn, genMethodNode("notifyDoorFluids", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V"));
             instructions.remove(insn);
             return true;
+        }
+
+        else if(index == 2) {
+            /*
+            * onBlockHarvested: (changes are around line 370)
+            * Old code:
+            * if (player.capabilities.isCreativeMode)
+            * {
+            *     ...
+            * }
+            *
+            * New code:
+            * //don't void fluids here if the player breaking this is in creative
+            * if (false)
+            * {
+            *     ...
+            * }
+            */
+            if(checkField(insn, obfuscated ? "field_75098_d" : "isCreativeMode") && getNext(insn, 3) instanceof LineNumberNode) {
+                instructions.insert(insn, new InsnNode(ICONST_0));
+                removeFrom(instructions, insn, -2);
+            }
+            /*
+             * onBlockHarvested: (changes are around lines 365 & 375)
+             * Old code:
+             * worldIn.setBlockToAir(blockpos1);
+             *
+             * New code:
+             * //don't notify neighboring blocks of an update
+             * Hooks.setBlockToAirNoUpdate(worldIn, blockpos1);
+             */
+            else if(checkMethod(insn, obfuscated ? "func_175698_g" : "setBlockToAir")) {
+                final boolean isLast = getNext(insn, 5).getOpcode() == RETURN;
+                instructions.insertBefore(insn, genMethodNode("setBlockToAirNoUpdate", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)V"));
+                removeFrom(instructions, insn, 1);
+                return isLast;
+            }
         }
 
         return false;
@@ -90,6 +126,10 @@ public final class PluginBlockDoor implements IASMPlugin
         public static void notifyDoorFluids(@Nonnull World world, @Nonnull BlockPos rangeMin, @Nonnull BlockPos rangeMax) {
             FluidloggedUtils.notifyFluids(world, rangeMin.up(), FluidState.get(world, rangeMin.up()), false, EnumFacing.DOWN);
             world.markBlockRangeForRenderUpdate(rangeMin, rangeMax);
+        }
+
+        public static void setBlockToAirNoUpdate(@Nonnull World world, @Nonnull BlockPos pos) {
+            world.setBlockState(pos, FluidState.get(world, pos).getState(), 2);
         }
     }
 }
