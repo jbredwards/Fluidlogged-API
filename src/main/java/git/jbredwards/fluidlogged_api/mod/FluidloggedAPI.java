@@ -2,7 +2,6 @@ package git.jbredwards.fluidlogged_api.mod;
 
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.network.message.MessageFluidState;
-import git.jbredwards.fluidlogged_api.mod.client.exception.UnsupportedModException;
 import git.jbredwards.fluidlogged_api.mod.client.exception.UnsupportedOptifineException;
 import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityNormal;
 import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityIColumn;
@@ -46,7 +45,6 @@ public final class FluidloggedAPI
     @Nonnull
     public static final String MODID = "fluidlogged_api", NAME  = "Fluidlogged API", VERSION = "1.9.0.6";
     public static final boolean //compat id constants
-            isBetterFoliage = Loader.isModLoaded("betterfoliage"),
             isCubicChunks   = Loader.isModLoaded("cubicchunks"),
             isDynamicLights = Loader.isModLoaded("dynamiclights");
 
@@ -72,8 +70,6 @@ public final class FluidloggedAPI
     @SideOnly(Side.CLIENT)
     @Mod.EventHandler
     static void preInitClient(@Nonnull FMLPreInitializationEvent event) {
-        //these mod conflicts can't be resolved
-        UnsupportedModException.crashIfPresent("mage", "smoothwater");
         //make sure a supported version of optifine is installed
         UnsupportedOptifineException.checkOptifineVersion();
     }
@@ -85,8 +81,8 @@ public final class FluidloggedAPI
         //fixes cascading world gen
         ForgeModContainer.fixVanillaCascading = true;
         //fixes the vanilla bucket dispenser actions by replacing them with the forge one
+        BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
-        BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET,  DispenseFluidContainer.getInstance());
         //fix legacy world data
         FMLCommonHandler.instance().getDataFixer()
                 .init(MODID, LegacyDataFixer.DATA_VERSION)

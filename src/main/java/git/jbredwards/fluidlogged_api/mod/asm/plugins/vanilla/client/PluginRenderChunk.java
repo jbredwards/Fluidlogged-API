@@ -119,9 +119,7 @@ public final class PluginRenderChunk implements IASMPlugin
                 if(!fluidState.isEmpty() && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
                     //renders the fluid in each layer
                     for(BlockRenderLayer layer : BlockRenderLayer.values()) {
-                        if(FluidloggedAPI.isBetterFoliage
-                                ? !BFHooks.canRenderBlockInLayer(fluidState.getState(), layer)
-                                : !fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer)) continue;
+                        if(!fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer)) continue;
 
                         ForgeHooksClient.setRenderLayer(layer);
                         BufferBuilder buffer = generator.getRegionRenderCacheBuilder().getWorldRendererByLayer(layer);
@@ -141,14 +139,6 @@ public final class PluginRenderChunk implements IASMPlugin
                     ForgeHooksClient.setRenderLayer(null);
                 }
             }
-        }
-    }
-
-    //hold Better Foliage methods in separate class to avoid crash
-    public static final class BFHooks
-    {
-        public static boolean canRenderBlockInLayer(@Nonnull IBlockState state, @Nonnull BlockRenderLayer layer) {
-            return mods.betterfoliage.client.Hooks.canRenderBlockInLayer(state.getBlock(), state, layer);
         }
     }
 }

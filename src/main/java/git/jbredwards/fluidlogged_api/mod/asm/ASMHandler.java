@@ -156,6 +156,12 @@ public final class ASMHandler implements BasicLoadingPlugin
         public String getPluginName() { return "Fluidlogged API Plugin"; }
     }
 
+    @Nonnull
+    @Override
+    public String[] getASMTransformerClass() {
+        return new String[] {"git.jbredwards.fluidlogged_api.mod.asm.transformers.TransformerSmoothWater", getPluginClass()};
+    }
+
     @Override
     public void injectData(@Nonnull Map<String, Object> data) { FluidloggedAPIConfigHandler.init(); }
 }
