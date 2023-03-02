@@ -56,7 +56,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()); //fix mixin annotation to target fluidlogged api transform
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingEngine", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingHooks", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
-            plugins.put("meldexun.nothirium.mc.renderer.chunk.RenderChunk$ChunkCache", new PluginNothirium()); //better nothirium compat
+            plugins.put("meldexun.nothirium.mc.renderer.chunk.SectionRenderCache", new PluginNothirium()); //better nothirium compat
             plugins.put("mods.railcraft.common.fluids.CustomContainerHandler", new PluginRailcraft()); //fix railcraft uncraftable potion bug when collecting water bottles (issue#148)
             plugins.put("mrtjp.projectred.core.TFaceConnectable$class", new PluginProjectRed()); //allow wires to connect through fluids
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); //better optifine compat
