@@ -5,6 +5,7 @@ import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateContainer;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
 import net.minecraft.block.state.IBlockState;
@@ -27,8 +28,9 @@ public final class PluginChunk implements IASMPlugin
         if(method.name.equals("<init>")) return 1;
         else if(checkMethod(method, obfuscated ? "func_150808_b" : "getBlockLightOpacity", "(III)I")) return 2;
         else if(method.name.equals(obfuscated ? "func_177436_a" : "setBlockState")) return 3;
-        else if(method.name.equals(obfuscated ? "func_76594_o" : "enqueueRelightChecks")) return 4;
-        else return checkMethod(method, obfuscated ? "func_150811_f" : "checkLight", "(II)Z") ? 5 : 0;
+        else if(method.name.equals(obfuscated ? "func_177440_h" : "getPrecipitationHeight")) return 4;
+        else if(method.name.equals(obfuscated ? "func_76594_o" : "enqueueRelightChecks")) return 5;
+        else return checkMethod(method, obfuscated ? "func_150811_f" : "checkLight", "(II)Z") ? 6 : 0;
     }
 
     @Override
@@ -52,7 +54,7 @@ public final class PluginChunk implements IASMPlugin
             return true;
         }
         /*
-         * getBlockLightOpacity (changes are around line 510):
+         * getBlockLightOpacity: (changes are around line 510)
          * Old code:
          * return !loaded ? state.getLightOpacity() : state.getLightOpacity(world, new BlockPos(this.x << 4 | x & 15, y, this.z << 4 | z & 15));
          *
@@ -77,7 +79,7 @@ public final class PluginChunk implements IASMPlugin
             }
         }
         /*
-         * setBlockState (changes are around lines 592 & 639):
+         * setBlockState: (changes are around lines 592 & 639)
          * Old code:
          * int k1 = iblockstate.getLightOpacity(this.world, pos);
          *
@@ -91,25 +93,73 @@ public final class PluginChunk implements IASMPlugin
             instructions.remove(insn);
         }
         /*
-         * enqueueRelightChecks: (changes are around lines 1384)
+         * setBlockState: (changes are around lines 1119)
          * Old code:
-         * if (this.world.getBlockState(blockpos2).getLightValue(this.world, blockpos2) > 0)
+         * if (!material.blocksMovement() && !material.isLiquid())
          * {
          *     ...
          * }
          *
          * New code:
-         * //account for FluidState light value
-         * if (Hooks.getFluidLightValue(this.world, blockpos2) > 0)
+         * //account for FluidStates and *any* fluid blocks
+         * if (!material.blocksMovement() && !Hooks.hasFluidAt(this, blockpos, iblockstate))
          * {
          *     ...
          * }
          */
-        else if(index == 4 && checkMethod(insn, "getLightValue")) {
-            removeFrom(instructions, getPrevious(insn, 3), -3);
-            instructions.insert(insn, genMethodNode("getFluidLightValue", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)I"));
-            instructions.remove(insn);
+        else if(index == 4 && checkMethod(insn, obfuscated ? "func_76224_d" : "isLiquid")) {
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new VarInsnNode(ALOAD, 5));
+            list.add(new VarInsnNode(ALOAD, 8));
+            list.add(genMethodNode("hasFluidAt", "(Lnet/minecraft/world/chunk/Chunk;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Z"));
+            instructions.insert(insn, list);
+            removeFrom(instructions, insn, -1);
             return true;
+        }
+        //enqueueRelightChecks
+        else if(index == 5) {
+            /*
+             * enqueueRelightChecks: (changes are around lines 1378)
+             * Old code:
+             * if (this.storageArrays[j] == NULL_BLOCK_STORAGE && flag || this.storageArrays[j] != NULL_BLOCK_STORAGE && this.storageArrays[j].get(k, i1, l).getBlock().isAir(this.storageArrays[j].get(k, i1, l), this.world, blockpos1))
+             * {
+             *     ...
+             * }
+             *
+             * New code:
+             * //allow fluid blocks to enqueue relight checks
+             * if (this.storageArrays[j] == NULL_BLOCK_STORAGE && flag || this.storageArrays[j] != NULL_BLOCK_STORAGE && Hooks.isFluidOrAir(this.storageArrays[j].get(k, i1, l), this.world, blockpos1)))
+             * {
+             *     ...
+             * }
+             */
+            if(checkMethod(insn, "isAir")) {
+                instructions.insert(insn, genMethodNode("isFluidOrAir", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z"));
+                removeFrom(instructions, getPrevious(insn, 4), -8);
+                instructions.remove(insn);
+            }
+            /*
+             * enqueueRelightChecks: (changes are around lines 1384)
+             * Old code:
+             * if (this.world.getBlockState(blockpos2).getLightValue(this.world, blockpos2) > 0)
+             * {
+             *     ...
+             * }
+             *
+             * New code:
+             * //account for FluidState light value
+             * if (Hooks.getFluidLightValue(this.world, blockpos2) > 0)
+             * {
+             *     ...
+             * }
+             */
+            else if(checkMethod(insn, "getLightValue")) {
+                removeFrom(instructions, getPrevious(insn, 3), -3);
+                instructions.insert(insn, genMethodNode("getFluidLightValue", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)I"));
+                instructions.remove(insn);
+                return true;
+            }
         }
         /*
          * checkLight: (changes are around line 1515)
@@ -126,7 +176,7 @@ public final class PluginChunk implements IASMPlugin
          *     ...
          * }
          */
-        else if(index == 5 && checkMethod(insn, "getLightValue")) {
+        else if(index == 6 && checkMethod(insn, "getLightValue")) {
             instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
             instructions.insert(insn, genMethodNode("getFluidLightValue", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/chunk/Chunk;)I"));
             instructions.remove(insn);
@@ -202,6 +252,14 @@ public final class PluginChunk implements IASMPlugin
 
         public static int getFluidLightValue(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Chunk chunk) {
             return Math.max(state.getLightValue(world, pos), FluidState.getFromProvider(chunk, pos).getState().getLightValue(world, pos));
+        }
+
+        public static boolean hasFluidAt(@Nonnull Chunk chunk, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
+            return FluidloggedUtils.isFluid(state) || !FluidState.getFromProvider(chunk, pos).isEmpty();
+        }
+
+        public static boolean isFluidOrAir(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos) {
+            return state.getBlock().isAir(state, world, pos) || FluidloggedUtils.isFluid(state);
         }
     }
 

@@ -41,6 +41,10 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("biomesoplenty.common.fluids.blocks.BlockHotSpringWaterFluid", new PluginBiomesOPlenty()); //fix BOP fluid block mixing
             plugins.put("biomesoplenty.common.fluids.blocks.BlockPoisonFluid", new PluginBiomesOPlenty()); //fix BOP fluid block mixing
             plugins.put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new PluginBiomesOPlenty()); //fix BOP fluid block mixing
+            plugins.put("biomesoplenty.common.item.ItemBOPLilypad", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
+            plugins.put("codechicken.multipart.BlockMultipart", new PluginFluidloggableBlocks()); //make multipart blocks fluidloggable by default
+            plugins.put("codechicken.multipart.ItemPlacementHelper$", new PluginCBMultipart()); //allow multipart blocks to be placed in fluids
+            plugins.put("codechicken.multipart.TileMultipart", new PluginCBMultipart()); //prevent desync when removing a fluidlogged multipart block
             plugins.put("cofh.thermaldynamics.block.BlockTDBase", new PluginThermalDynamics()); //fix fluidlogged duct explosion resistance
             plugins.put("cofh.thermaldynamics.duct.tiles.TileGrid", new PluginThermalDynamics()); //ray trace now skips fluids
             plugins.put("crafttweaker.mc1120.block.MCWorldBlock", new PluginCraftTweaker()); //MCWorldBlock.getFluid can read FluidStates
@@ -53,6 +57,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingEngine", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingHooks", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
             plugins.put("meldexun.nothirium.mc.renderer.chunk.RenderChunk$ChunkCache", new PluginNothirium()); //better nothirium compat
+            plugins.put("mods.railcraft.common.fluids.CustomContainerHandler", new PluginRailcraft()); //fix railcraft uncraftable potion bug when collecting water bottles (issue#148)
+            plugins.put("mrtjp.projectred.core.TFaceConnectable$class", new PluginProjectRed()); //allow wires to connect through fluids
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); //better optifine compat
             plugins.put("org.spongepowered.common.mixin.core.block.BlockDynamicLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.block.BlockLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
@@ -63,7 +69,11 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockFluidBase", new PluginPlusTweaks()); //fix crash with PlusTweaks mod fluid interactions
             plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockLiquid", new PluginPlusTweaks()); //fix crash with PlusTweaks mod fluid interactions
             plugins.put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()); //better builders wands compat
+            plugins.put("thebetweenlands.common.block.plant.BlockAlgae", new PluginBlockLilyPad()); //lily pads can stay on certain water FluidStates
             plugins.put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()); //betweenlands compat
+            plugins.put("thebetweenlands.common.item.ItemWaterPlaceable", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
+            plugins.put("twilightforest.item.ItemBlockTFHugeLilyPad", new PluginTwilightForest()); //2x2 lily pads can be placed on certain water FluidStates
+            plugins.put("twilightforest.item.ItemBlockTFHugeWaterLily", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
             plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); //wooden bowls account for FluidStates when filled
             //vanilla (blocks)
             plugins.put("net.minecraft.block.material.MaterialLogic", new PluginMaterialLogic()); //prevents fluids from destroying "circuit" blocks
@@ -140,7 +150,9 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.entity.Entity", new PluginEntity());
             //vanilla (item)
             plugins.put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()); //glass bottles account for FluidStates when filled
+            plugins.put("net.minecraft.item.ItemLilyPad", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
             //vanilla (world)
+            plugins.put("net.minecraft.world.chunk.storage.ExtendedBlockStorage", new PluginExtendedBlockStorage()); //fix MC-80966
             plugins.put("net.minecraft.world.chunk.Chunk", new PluginChunk()); //account for FluidState light opacity & light values
             plugins.put("net.minecraft.world.chunk.ChunkPrimer", new PluginChunkPrimer()); //allow mods to generate FluidStates more optimally during world gen
             plugins.put("net.minecraft.world.end.DragonSpawnManager$3", new PluginDragonSpawnManager()); //summoning the ender dragon will now void FluidStates at the pillar locations

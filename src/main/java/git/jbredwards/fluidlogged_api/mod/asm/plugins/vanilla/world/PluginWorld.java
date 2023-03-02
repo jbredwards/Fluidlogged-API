@@ -398,6 +398,21 @@ public final class PluginWorld implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 2);
             }
         );
+        /*
+         * isAirBlock:
+         * New code:
+         * //increase performance
+         * public boolean isAirBlock(BlockPos pos)
+         * {
+         *     return Hooks.isAirBlock(this, pos);
+         * }
+         */
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_175623_d" : "isAirBlock"),
+            "isAirBlock", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitVarInsn(ALOAD, 1);
+            }
+        );
 
         return true;
     }
@@ -512,6 +527,11 @@ public final class PluginWorld implements IASMPlugin
                 if(fluid != null && FluidloggedUtils.isFluidloggableFluid(oldState, world, pos) && FluidloggedUtils.isStateFluidloggable(newState, world, pos, fluid))
                     FluidloggedUtils.setFluidState(world, pos, newState, FluidState.of(fluid), false, false, blockFlags);
             }
+        }
+
+        public static boolean isAirBlock(@Nonnull World world, @Nonnull BlockPos pos) {
+            final IBlockState state = world.getBlockState(pos);
+            return state.getBlock().isAir(state, world, pos);
         }
 
         public static boolean isFlammableFluidWithin(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
