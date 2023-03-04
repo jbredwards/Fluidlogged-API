@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- * glass bottles account for FluidStates when filled
+ * glass bottles can now be filled by using water FluidStates
  * @author jbred
  *
  */
@@ -26,15 +26,22 @@ public final class PluginItemGlassBottle implements IASMPlugin
          * }
          *
          * New code:
-         * //account for FluidStates
-         * if (FluidloggedUtils.getFluidOrReal(worldIn, blockpos).getMaterial() == Material.WATER)
+         * //check for specifically water and account for FluidStates
+         * if (FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(worldIn, blockpos).getFluid(), FluidRegistry.WATER))
          * {
          *     ...
          * }
          */
         if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
-            instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
-            instructions.remove(insn);
+            ((JumpInsnNode)getNext(insn, 3)).setOpcode(IFEQ);
+            final InsnList list = new InsnList();
+            list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidState", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
+            list.add(new MethodInsnNode(INVOKEVIRTUAL, "git/jbredwards/fluidlogged_api/api/util/FluidState", "getFluid", "()Lnet/minecraftforge/fluids/Fluid;", false));
+            list.add(new FieldInsnNode(GETSTATIC, "net/minecraftforge/fluids/FluidRegistry", "WATER", "Lnet/minecraftforge/fluids/Fluid;"));
+            list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "isCompatibleFluid", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraftforge/fluids/Fluid;)Z"));
+
+            instructions.insertBefore(insn, list);
+            removeFrom(instructions, insn, 2);
             return true;
         }
 

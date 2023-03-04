@@ -74,7 +74,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("thebetweenlands.common.item.ItemWaterPlaceable", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
             plugins.put("twilightforest.item.ItemBlockTFHugeLilyPad", new PluginTwilightForest()); //2x2 lily pads can be placed on certain water FluidStates
             plugins.put("twilightforest.item.ItemBlockTFHugeWaterLily", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
-            plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); //wooden bowls account for FluidStates when filled
+            plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); //wooden bowls can now be filled by using water FluidStates
             //vanilla (blocks)
             plugins.put("net.minecraft.block.material.MaterialLogic", new PluginMaterialLogic()); //prevents fluids from destroying "circuit" blocks
             plugins.put("net.minecraft.block.Block", new PluginBlock()); //fixes some lighting, canSustainPlant, and explosion related issues
@@ -148,8 +148,9 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.entity.item.EntityXPOrb", new PluginEntityItem()); //handle lava collisions correctly
             plugins.put("net.minecraft.entity.projectile.EntityFishHook", new PluginEntityFishHook()); //fishhook entities generate the fishing particles at water FluidStates
             plugins.put("net.minecraft.entity.Entity", new PluginEntity());
+            plugins.put("net.minecraft.entity.EntityLivingBase", new PluginEntityLivingBase()); //fix issue#151
             //vanilla (item)
-            plugins.put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()); //glass bottles account for FluidStates when filled
+            plugins.put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()); //glass bottles can now be filled by using water FluidStates
             plugins.put("net.minecraft.item.ItemLilyPad", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
             //vanilla (world)
             plugins.put("net.minecraft.world.chunk.storage.ExtendedBlockStorage", new PluginExtendedBlockStorage()); //fix MC-80966

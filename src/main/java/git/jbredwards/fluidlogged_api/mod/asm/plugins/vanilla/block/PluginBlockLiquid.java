@@ -598,8 +598,12 @@ public final class PluginBlockLiquid implements IASMPlugin
 
         //helper
         public static int getEffectiveQuanta(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-            int quantaValue = getQuantaValue(block, world, pos);
-            return quantaValue > 0 && quantaValue < 8 && PluginBlockFluidBase.Hooks.hasVerticalFlow(world, pos, block.getFluid(), -1) ? 8 : quantaValue;
+            final IBlockState state = world.getBlockState(pos);
+            final int quantaValue = getQuantaValue(block, world, pos, state);
+            if(quantaValue <= 0 || quantaValue >= 8) return quantaValue;
+
+            final FluidState fluidState = getFluidState(world, pos, state);
+            return fluidState.getLevel() >= 8 ? 8 : quantaValue;
         }
 
         @Nonnull
@@ -623,8 +627,7 @@ public final class PluginBlockLiquid implements IASMPlugin
         }
 
         //helper
-        public static int getQuantaValue(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-            final IBlockState state = world.getBlockState(pos);
+        public static int getQuantaValue(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
             if(state.getBlock().isAir(state, world, pos)) return 0;
 
             final FluidState fluidState = getFluidState(world, pos, state);

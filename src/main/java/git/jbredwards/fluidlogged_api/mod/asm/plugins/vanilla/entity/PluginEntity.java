@@ -6,7 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.passive.EntityWaterMob;
+import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
@@ -140,7 +140,7 @@ public final class PluginEntity implements IASMPlugin
     public static final class Hooks
     {
         public static double fixSquidWaterCollision(double factor, @Nonnull Entity entity) {
-            return entity instanceof EntityWaterMob ? factor : 0;
+            return entity.isCreatureType(EnumCreatureType.WATER_CREATURE, false) ? factor : 0;
         }
 
         public static float fixWaterSplashEffect(@Nonnull Entity entity) {

@@ -75,9 +75,7 @@ public final class FluidloggedAPI
     }
 
     @Mod.EventHandler
-    static void init(@Nonnull FMLInitializationEvent event) throws IOException {
-        //finalize this mod's config
-        FluidloggedAPIConfigHandler.complete();
+    static void init(@Nonnull FMLInitializationEvent event) {
         //fixes cascading world gen
         ForgeModContainer.fixVanillaCascading = true;
         //fixes the vanilla bucket dispenser actions by replacing them with the forge one
@@ -87,6 +85,12 @@ public final class FluidloggedAPI
         FMLCommonHandler.instance().getDataFixer()
                 .init(MODID, LegacyDataFixer.DATA_VERSION)
                 .registerFix(FixTypes.CHUNK, new LegacyDataFixer());
+    }
+
+    @Mod.EventHandler
+    static void postInit(@Nonnull FMLPostInitializationEvent event) throws IOException {
+        //finalize this mod's config
+        FluidloggedAPIConfigHandler.complete();
     }
 
     @Mod.EventHandler

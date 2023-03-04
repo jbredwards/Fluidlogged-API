@@ -190,9 +190,11 @@ public final class FluidloggedAPIConfigHandler
             for(String fluidName : tag.fluids) {
                 @Nullable Block fluidBlock = Block.getBlockFromName(fluidName);
                 @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(fluidBlock);
+                if(fluid == null) fluid = FluidRegistry.getFluid(fluidName);
 
-                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(fluidBlock)) fluids.add(fluid);
-                else throw new JsonParseException("Fluidlogged API Config: Unable to parse fluid: " + fluidName + " from fluidTag: " + tag.id);
+                if(fluid == null) throw new JsonParseException("Fluidlogged API Config: Unable to parse fluid: " + fluidName + " from fluidTag: " + tag.id);
+                else if(!FluidloggedUtils.isFluidloggableFluid(fluidBlock)) throw new JsonParseException("Fluidlogged API Config: Specified fluid cannot be fluidlogged: " + fluidName + " in fluidTag: " + tag.id);
+                else fluids.add(fluid);
             }
 
             FLUID_TAGS_CACHE.put(tag.id, fluids);
@@ -319,8 +321,9 @@ public final class FluidloggedAPIConfigHandler
                 @Nullable Fluid fluid = FluidloggedUtils.getFluidFromBlock(fluidBlock);
                 if(fluid == null) fluid = FluidRegistry.getFluid(fluidName);
 
-                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(fluidBlock)) validFluids.add(fluid);
-                else LOGGER.warn(String.format("Unable to parse fluid from fluids: %s, skipping...", fluidName));
+                if(fluid == null) LOGGER.warn(String.format("Unable to parse fluid from fluids: %s, skipping...", fluidName));
+                else if(!FluidloggedUtils.isFluidloggableFluid(fluidBlock)) LOGGER.warn(String.format("Unable to non-fluidloggable fluid: %s, skipping...", fluidName));
+                else validFluids.add(fluid);
             }
 
             //handle fluid tags
