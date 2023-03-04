@@ -4,6 +4,7 @@ import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,9 +18,10 @@ public abstract class AbstractClassTransformer implements IClassTransformer
     @Nonnull
     protected final Map<String, IASMPlugin> plugins = new HashMap<>();
 
-    @Nonnull
+    @Nullable
     @Override
-    public byte[] transform(@Nonnull String name, @Nonnull String transformedName, @Nonnull byte[] basicClass) {
+    public byte[] transform(@Nonnull String name, @Nonnull String transformedName, @Nullable byte[] basicClass) {
+        if(basicClass == null) return null;
         final IASMPlugin plugin = plugins.get(transformedName);
         if(plugin == null) return basicClass;
 

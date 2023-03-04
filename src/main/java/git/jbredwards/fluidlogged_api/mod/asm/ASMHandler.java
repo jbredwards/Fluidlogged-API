@@ -150,6 +150,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.entity.Entity", new PluginEntity());
             plugins.put("net.minecraft.entity.EntityLivingBase", new PluginEntityLivingBase()); //fix issue#151
             //vanilla (item)
+            plugins.put("net.minecraft.item.ItemArmorStand", new PluginItemArmorStand()); //armor stands don't remove fluids at their position when placed
             plugins.put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()); //glass bottles can now be filled by using water FluidStates
             plugins.put("net.minecraft.item.ItemLilyPad", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
             //vanilla (world)

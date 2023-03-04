@@ -4,6 +4,7 @@ import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * revert super class changes made by SmoothWater
@@ -13,8 +14,10 @@ import javax.annotation.Nonnull;
 @SuppressWarnings("unused")
 public final class TransformerSmoothWater implements IClassTransformer
 {
+    @Nullable
     @Override
-    public byte[] transform(@Nonnull String name, @Nonnull String transformedName, byte[] basicClass) {
+    public byte[] transform(@Nonnull String name, @Nonnull String transformedName, @Nullable byte[] basicClass) {
+        if(basicClass == null) return null;
         final ClassReader reader = new ClassReader(basicClass);
         if(isSmoothWaterClass(reader.getSuperName())) {
             final ClassWriter writer = new ClassWriter(0);
