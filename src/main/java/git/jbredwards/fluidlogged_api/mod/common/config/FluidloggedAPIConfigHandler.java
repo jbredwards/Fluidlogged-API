@@ -22,8 +22,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.*;
 import java.lang.reflect.Type;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.function.BiPredicate;
 
@@ -105,8 +103,16 @@ public final class FluidloggedAPIConfigHandler
                         "#https://github.com/jbredwards/Fluidlogged-API/wiki/Config\n" +
                         "blacklist:[],\n" +
                         "\n" +
+                        "#used by the whitelist & blacklist to easily define fluid groups for fluidlogging\n" +
+                        "#info about the format for this can be found on this mod's wiki:\n" +
+                        "#https://github.com/jbredwards/Fluidlogged-API/wiki/Config\n" +
+                        "fluidTags:[],\n" +
+                        "\n" +
                         "#otuput to the console for every ASM transformation, useful for debugging\n" +
                         "debugASMPlugins:false,\n" +
+                        "\n" +
+                        "#when a flammable fluidloggable block is placed in a lava-like fluid, the block is vaporized\n" +
+                        "lavalogVaporizeFlammable:false,\n" +
                         "\n" +
                         "#remove the ability for \"infinite\" fluids to fluidlog blocks below\n" +
                         "removeVerticalFluidloggedFluidSpread:false";
@@ -127,7 +133,7 @@ public final class FluidloggedAPIConfigHandler
 
             //reads an already existing cfg file
             else {
-                config = GSON.fromJson('{' + IOUtils.toString(Files.newInputStream(cfg.toPath()), Charset.defaultCharset()) + '}', Config.class);
+                config = GSON.fromJson('{' + IOUtils.toString(new FileReader(cfg)) + '}', Config.class);
 
                 fluidloggedFluidSpread = config.fluidloggedFluidSpread;
                 fluidsBreakTorches = config.fluidsBreakTorches;
@@ -156,13 +162,13 @@ public final class FluidloggedAPIConfigHandler
         for(String modId : Loader.instance().getIndexedModList().keySet()) {
             //fluid tags
             final @Nullable InputStream fluidTags = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/fluidTags.json", modId));
-            if(fluidTags != null) readFluidTags(GSON.fromJson(IOUtils.toString(fluidTags, Charset.defaultCharset()), FluidTag[].class));
+            if(fluidTags != null) readFluidTags(GSON.fromJson(new InputStreamReader(fluidTags), FluidTag[].class));
             //whitelist
             final @Nullable InputStream whitelist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/whitelist.json", modId));
-            if(whitelist != null) readPredicates(WHITELIST, GSON.fromJson(IOUtils.toString(whitelist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
+            if(whitelist != null) readPredicates(WHITELIST, GSON.fromJson(new InputStreamReader(whitelist), ConfigPredicateBuilder[].class));
             //blacklist
             final @Nullable InputStream blacklist = Loader.class.getResourceAsStream(String.format("/assets/%s/fluidlogged_api/blacklist.json", modId));
-            if(blacklist != null) readPredicates(BLACKLIST, GSON.fromJson(IOUtils.toString(blacklist, Charset.defaultCharset()), ConfigPredicateBuilder[].class));
+            if(blacklist != null) readPredicates(BLACKLIST, GSON.fromJson(new InputStreamReader(blacklist), ConfigPredicateBuilder[].class));
             //clear fluid tags before reading the next mod, as to prevent possible conflicts
             FLUID_TAGS_CACHE.clear();
         }
@@ -264,8 +270,6 @@ public final class FluidloggedAPIConfigHandler
             this.block = block;
             this.validFluids = validFluids;
             this.metadata = new boolean[metadata.length == 0 ? 0 : (Ints.max(metadata) + 1)];
-            Arrays.fill(this.metadata, false);
-
             for(int meta : metadata) this.metadata[meta] = true;
         }
 

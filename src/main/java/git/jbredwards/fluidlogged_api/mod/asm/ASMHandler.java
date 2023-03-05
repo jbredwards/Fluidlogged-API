@@ -56,7 +56,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()); //fix mixin annotation to target fluidlogged api transform
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingEngine", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingHooks", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
-            plugins.put("meldexun.nothirium.mc.renderer.chunk.SectionRenderCache", new PluginNothirium()); //better nothirium compat
+            plugins.put("meldexun.nothirium.mc.renderer.chunk.RenderChunk$ChunkCache", new PluginNothirium()); //better nothirium compat (for old versions)
+            plugins.put("meldexun.nothirium.mc.renderer.chunk.SectionRenderCache", new PluginNothirium()); //better nothirium compat (for new versions)
             plugins.put("mods.railcraft.common.fluids.CustomContainerHandler", new PluginRailcraft()); //fix railcraft uncraftable potion bug when collecting water bottles (issue#148)
             plugins.put("mrtjp.projectred.core.TFaceConnectable$class", new PluginProjectRed()); //allow wires to connect through fluids
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); //better optifine compat
@@ -72,6 +73,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("thebetweenlands.common.block.plant.BlockAlgae", new PluginBlockLilyPad()); //lily pads can stay on certain water FluidStates
             plugins.put("thebetweenlands.common.block.terrain.BlockSwampWater", new PluginBetweenlands()); //betweenlands compat
             plugins.put("thebetweenlands.common.item.ItemWaterPlaceable", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
+            plugins.put("twilightforest.block.BlockTFHugeLilyPad", new PluginBlockLilyPad()); //lily pads can stay on certain water FluidStates
             plugins.put("twilightforest.item.ItemBlockTFHugeLilyPad", new PluginTwilightForest()); //2x2 lily pads can be placed on certain water FluidStates
             plugins.put("twilightforest.item.ItemBlockTFHugeWaterLily", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
             plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); //wooden bowls can now be filled by using water FluidStates

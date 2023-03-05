@@ -65,7 +65,7 @@ public final class PluginNothirium implements IASMPlugin
         addMethod(classNode, "getChunkFromBlockCoords", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;", null, null, generator -> {
             generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ALOAD, 1);
-            generator.visitMethodInsn(INVOKEVIRTUAL, "meldexun/nothirium/mc/renderer/chunk/SectionRenderCache", "getChunk", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;", false);
+            generator.visitMethodInsn(INVOKEVIRTUAL, classNode.name, "getChunk", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;", false);
         });
 
         return true;

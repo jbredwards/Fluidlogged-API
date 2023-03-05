@@ -21,7 +21,7 @@ public final class PluginItemArmorStand implements IASMPlugin
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
         /*
-         * onItemUse: (changes are around lines 71-71)
+         * onItemUse: (changes are around lines 71-72)
          * Old code:
          * worldIn.setBlockToAir(blockpos);
          * worldIn.setBlockToAir(blockpos1);

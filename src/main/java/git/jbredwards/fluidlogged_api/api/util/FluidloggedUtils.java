@@ -79,29 +79,31 @@ public final class FluidloggedUtils
         final Chunk chunk = world.getChunk(pos);
         if(here == null) here = chunk.getBlockState(pos);
 
+        //update the chunk's precipitationHeightMap
+        final int precipitationIndex = (pos.getZ() & 15) << 4 | (pos.getX() & 15);
+        if(pos.getY() >= chunk.precipitationHeightMap[precipitationIndex] - 1) chunk.precipitationHeightMap[precipitationIndex] = -999;
+
+        //handle event
         final FluidloggedEvent event = new FluidloggedEvent(world, chunk, pos, here, fluidState, checkVaporize, blockFlags);
-        //event did stuff
         if(MinecraftForge.EVENT_BUS.post(event) && event.getResult() != Event.Result.DEFAULT) return event.getResult() == Event.Result.ALLOW;
-        //default
-        else {
-            //if the world is to warm for the fluid, vaporize it
-            if(event.doesVaporize()) {
-                event.fluidState.getFluid().vaporize(null, world, pos, event.getFluidStack());
-                return true;
-            }
 
-            //check for IFluidloggable
-            if(here.getBlock() instanceof IFluidloggable) {
-                final EnumActionResult result = ((IFluidloggable)here.getBlock()).onFluidChange(world, pos, here, event.fluidState, event.blockFlags);
-                if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;
-            }
-
-            //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-            setFluidState_Internal(world, chunk, here, pos, event.fluidState, doRenderUpdate, event.blockFlags);
-
-            //default
+        //if the world is too warm for the fluid, vaporize it
+        if(event.doesVaporize()) {
+            event.fluidState.getFluid().vaporize(null, world, pos, event.getFluidStack());
             return true;
         }
+
+        //check for IFluidloggable
+        if(here.getBlock() instanceof IFluidloggable) {
+            final EnumActionResult result = ((IFluidloggable)here.getBlock()).onFluidChange(world, pos, here, event.fluidState, event.blockFlags);
+            if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;
+        }
+
+        //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
+        setFluidState_Internal(world, chunk, here, pos, event.fluidState, doRenderUpdate, event.blockFlags);
+
+        //default
+        return true;
     }
 
     //if you're not an event instance or an IFluidloggable instance, use setFluidState instead!
