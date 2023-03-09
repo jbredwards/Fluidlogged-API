@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
+package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import org.objectweb.asm.tree.*;
@@ -6,40 +6,27 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- * store one internal FluidState for each Fluid, as to decrease ram usage
+ * store one FluidState inside each BlockStateBase instance, this greatly increases the speed of fluid logic
  * @author jbred
  *
  */
-public final class PluginFluid implements IASMPlugin
+public final class PluginBlockStateBase implements IASMPlugin
 {
     @Override
-    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
-        return checkMethod(method, "<init>", "(Ljava/lang/String;Lnet/minecraft/util/ResourceLocation;Lnet/minecraft/util/ResourceLocation;Lnet/minecraft/util/ResourceLocation;)V");
-    }
+    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return method.name.equals("<init>"); }
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
         /*
-         * Constructor: (changes are around line 171)
-         * Old code:
-         * {
-         *     this.fluidName = fluidName.toLowerCase(Locale.ENGLISH);
-         *     ...
-         * }
-         *
+         * Constructor:
          * New code:
-         * //initializes new defaultFluidState field with an empty value
-         * //(it will be updated later, after the fluid is assigned a block)
-         * {
-         *     this.fluidName = fluidName.toLowerCase(Locale.ENGLISH);
-         *     this.defaultFluidState = FluidState.EMPTY;
-         *     ...
-         * }
+         * //initialize defaultFluidState
+         * public BlockStateBase() { defaultFluidState = FluidState.EMPTY; }
          */
-        if(insn.getOpcode() == PUTFIELD) {
-            instructions.insert(insn, new FieldInsnNode(PUTFIELD, "net/minecraftforge/fluids/Fluid", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
-            instructions.insert(insn, new FieldInsnNode(GETSTATIC, "git/jbredwards/fluidlogged_api/api/util/FluidState", "EMPTY", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
-            instructions.insert(insn, new VarInsnNode(ALOAD, 0));
+        if(insn.getOpcode() == RETURN) {
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
+            instructions.insertBefore(insn, new FieldInsnNode(GETSTATIC, "git/jbredwards/fluidlogged_api/api/util/FluidState", "EMPTY", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
+            instructions.insertBefore(insn, new FieldInsnNode(PUTFIELD, "net/minecraft/block/state/BlockStateBase", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
             return true;
         }
 
@@ -67,7 +54,7 @@ public final class PluginFluid implements IASMPlugin
          */
         addMethod(classNode, "getDefaultFluidState", "()Lgit/jbredwards/fluidlogged_api/api/util/FluidState;", null, null, generator -> {
             generator.visitVarInsn(ALOAD, 0);
-            generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/Fluid", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;");
+            generator.visitFieldInsn(GETFIELD, "net/minecraft/block/state/BlockStateBase", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;");
         });
         /*
          * Accessor:
@@ -82,7 +69,7 @@ public final class PluginFluid implements IASMPlugin
         addMethod(classNode, "setDefaultFluidState", "(Lgit/jbredwards/fluidlogged_api/api/util/FluidState;)V", null, null, generator -> {
             generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ALOAD, 1);
-            generator.visitFieldInsn(PUTFIELD, "net/minecraftforge/fluids/Fluid", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;");
+            generator.visitFieldInsn(PUTFIELD, "net/minecraft/block/state/BlockStateBase", "defaultFluidState", "Lgit/jbredwards/fluidlogged_api/api/util/FluidState;");
         });
 
         return true;

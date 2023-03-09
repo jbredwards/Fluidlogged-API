@@ -33,7 +33,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraftforge.common.ForgeHooks", new PluginForgeHooks()); //fix ForgeHooks#isInsideOfMaterial by allowing it to access stored fluid blocks
             plugins.put("net.minecraftforge.fluids.BlockFluidBase", new PluginBlockFluidBase()); //modded fluids work properly with the mod & prevent startup crash
             plugins.put("net.minecraftforge.fluids.BlockFluidClassic", new PluginBlockFluidClassic()); //modded fluids work properly with the mod
-            plugins.put("net.minecraftforge.fluids.Fluid", new PluginFluid()); //store one internal FluidState for each Fluid, as to decrease ram usage
             plugins.put("net.minecraftforge.fluids.FluidRegistry$1", new PluginFluidWater()); //add water's biome colors to its fluid class
             plugins.put("net.minecraftforge.fluids.FluidUtil", new PluginFluidUtil()); //changes some of this class's util functions to be FluidState sensitive
             //modded
@@ -79,6 +78,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); //wooden bowls can now be filled by using water FluidStates
             //vanilla (blocks)
             plugins.put("net.minecraft.block.material.MaterialLogic", new PluginMaterialLogic()); //prevents fluids from destroying "circuit" blocks
+            plugins.put("net.minecraft.block.state.BlockStateBase", new PluginBlockStateBase()); //store one FluidState inside each BlockStateBase instance, this greatly increases the speed of fluid logic
             plugins.put("net.minecraft.block.Block", new PluginBlock()); //fixes some lighting, canSustainPlant, and explosion related issues
             plugins.put("net.minecraft.block.BlockBarrier", new PluginBlockBarrier()); //move the hardcoded stuff from WorldClient to BlockBarrier
             plugins.put("net.minecraft.block.BlockBush", new PluginBlockBush()); //exists for fluidloggable plants that parent from this class
@@ -175,7 +175,10 @@ public final class ASMHandler implements BasicLoadingPlugin
     @Nonnull
     @Override
     public String[] getASMTransformerClass() {
-        return new String[] {"git.jbredwards.fluidlogged_api.mod.asm.transformers.TransformerSmoothWater", getPluginClass()};
+        return new String[] { getPluginClass(),
+            "git.jbredwards.fluidlogged_api.mod.asm.transformers.TransformerLevelProperty",
+            "git.jbredwards.fluidlogged_api.mod.asm.transformers.TransformerSmoothWater"
+        };
     }
 
     @Override

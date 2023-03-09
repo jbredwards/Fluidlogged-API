@@ -20,6 +20,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import java.util.function.Supplier;
 
 /**
  * holds a fluid & a block state
@@ -30,43 +31,48 @@ import javax.annotation.concurrent.Immutable;
 public class FluidState extends Pair<Fluid, IBlockState>
 {
     //always used instead of a null value
-    @Nonnull public static final FluidState EMPTY = new FluidState(null, Blocks.AIR.getDefaultState());
+    @Nonnull public static final FluidState EMPTY = new FluidState(null, () -> Blocks.AIR.getDefaultState());
 
     protected final Fluid fluid;
-    protected final IBlockState state;
+    protected final Supplier<IBlockState> state;
     protected int level = -1;
 
     //using FluidState#of rather than the constructor directly is advised
-    public FluidState(@Nullable Fluid fluidIn, @Nonnull IBlockState stateIn) {
+    protected FluidState(@Nullable Fluid fluidIn, @Nonnull Supplier<IBlockState> stateIn) {
         fluid = fluidIn;
         state = stateIn;
     }
 
-    //return a FluidState with the input Fluid, or return empty instance if the fluid isn't valid for fluidlogging
+    //return a FluidState with the input Fluid, or return empty instance if the fluid isn't valid
     @Nonnull
-    public static FluidState of(@Nullable Fluid fluidIn) {
-        if(fluidIn == null || !fluidIn.canBePlacedInWorld()) return EMPTY;
-        final FluidState defaultFluidState = IFluidStateProvider.getDefaultFluidState(fluidIn);
-        //use the fluid's default state if present
-        if(!defaultFluidState.isEmpty()) return defaultFluidState;
-        //generate new instance if default not present
-        final Block block = fluidIn.getBlock();
-        final FluidState fluidState = new FluidState(fluidIn, (block instanceof BlockLiquid)
-                //ensure flowing blocks are used for vanilla fluids
-                ? BlockLiquid.getStaticBlock(block.getDefaultState().getMaterial()).getDefaultState()
-                : block.getDefaultState());
-
-        IFluidStateProvider.setDefaultFluidState(fluidIn, fluidState);
-        return fluidState;
+    public static FluidState of(@Nullable Fluid fluid) {
+        if(fluid == null || !fluid.canBePlacedInWorld()) return EMPTY;
+        return of(!(fluid.getBlock() instanceof BlockLiquid) ? fluid.getBlock().getDefaultState()
+                : BlockLiquid.getStaticBlock(fluid.getBlock().getDefaultState().getMaterial()).getDefaultState());
     }
 
-    //convenience method that takes in a Block
+    //return a FluidState with the input Block, or return empty instance if the fluid isn't valid
     @Nonnull
-    public static FluidState of(@Nullable Block fluidIn) { return of(FluidloggedUtils.getFluidFromBlock(fluidIn)); }
+    public static FluidState of(@Nullable Block block) {
+        return block != null ? of(FluidloggedUtils.getFluidFromBlock(block)) : EMPTY;
+    }
 
-    //convenience method that takes in an IBlockState
+    //return a FluidState with the input IBlockState, or return empty instance if the fluid isn't valid
     @Nonnull
-    public static FluidState of(@Nullable IBlockState fluidIn) { return of(FluidloggedUtils.getFluidFromState(fluidIn)); }
+    public static FluidState of(@Nullable IBlockState state) {
+        //use the default state if present
+        final FluidState defaultFluidState = IFluidStateProvider.getDefaultFluidState(state);
+        if(!defaultFluidState.isEmpty()) return defaultFluidState;
+
+        //use none if the input state is not a fluid
+        final Fluid fluid = FluidloggedUtils.getFluidFromState(state);
+        if(fluid == null) return EMPTY;
+
+        //set the default FluidState for later use
+        final FluidState fluidState = new FluidState(fluid, () -> state);
+        IFluidStateProvider.setDefaultFluidState(state, fluidState);
+        return fluidState;
+    }
 
     //gets the stored state present in the world at the block pos
     @Nonnull
@@ -101,27 +107,27 @@ public class FluidState extends Pair<Fluid, IBlockState>
     public Fluid getFluid() { return fluid; }
 
     @Nonnull
-    public IBlockState getState() { return state; }
+    public IBlockState getState() { return state.get(); }
 
     //some FluidStates may contain badly coded fluid blocks if gotten from an IBlockState
     //it's advised to check for this before running IFluidBlock logic
-    public boolean isValid() { return state.getBlock() instanceof IFluidBlock; }
+    public boolean isValid() { return getState().getBlock() instanceof IFluidBlock; }
 
     @Nonnull
     public IFluidBlock getFluidBlock() {
-        if(isValid()) return (IFluidBlock)state.getBlock();
+        if(isValid()) return (IFluidBlock)getState().getBlock();
         else throw new IllegalStateException(
                 "Invalid FluidState, please report this to the Fluidlogged API bug tracker!"
         );
     }
 
     @Nonnull
-    public Block getBlock() { return state.getBlock(); }
+    public Block getBlock() { return getState().getBlock(); }
 
     @Nonnull
-    public Material getMaterial() { return state.getMaterial(); }
+    public Material getMaterial() { return getState().getMaterial(); }
 
-    public int getLevel() { return level >= 0 ? level : (level = state.getValue(BlockLiquid.LEVEL)); }
+    public int getLevel() { return level >= 0 ? level : (level = getState().getValue(BlockLiquid.LEVEL)); }
 
     @Override
     public final Fluid getLeft() { return getFluid(); }

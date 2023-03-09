@@ -1,9 +1,11 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
 
+import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.ActiveRenderInfo;
 import net.minecraft.entity.Entity;
@@ -15,6 +17,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.property.IExtendedBlockState;
+import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.common.property.PropertyFloat;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
@@ -22,8 +25,10 @@ import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
@@ -420,7 +425,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
             final EnumFacing densityFace = densityDir < 0 ? UP : DOWN;
 
             //covert to extended state
-            IExtendedBlockState state = (IExtendedBlockState)oldState;
+            IExtendedBlockState state = new FluidExtendedBlockState((IExtendedBlockState)oldState);
             state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, flowDirection);
 
             //corner height variables
@@ -769,5 +774,66 @@ public final class PluginBlockFluidBase implements IASMPlugin
     public interface Accessor
     {
         int getFlowDecay_Public(@Nonnull IBlockAccess world, @Nonnull BlockPos pos);
+    }
+
+    //faster version of the default IExtendedBlockState with hardcoded properties, used exclusively for rendering & collision logic
+    private static final class FluidExtendedBlockState extends BlockStateContainer.StateImplementation implements IExtendedBlockState
+    {
+        private Float flowDirection;
+        private final Float[] levelCorners = new Float[4];
+        private final Boolean[] sideOverlays = new Boolean[4];
+
+        @Nonnull
+        private final IExtendedBlockState parent;
+        private FluidExtendedBlockState(@Nonnull IExtendedBlockState parentIn) {
+            super(parentIn.getBlock(), parentIn.getProperties());
+            parent = parentIn;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Nonnull
+        @Override
+        public <V> V getValue(@Nonnull IUnlistedProperty<V> property) {
+            if(property == BlockFluidBase.FLOW_DIRECTION) return (V)flowDirection;
+            else if(property == BlockFluidBase.LEVEL_CORNERS[0]) return (V)levelCorners[0];
+            else if(property == BlockFluidBase.LEVEL_CORNERS[1]) return (V)levelCorners[1];
+            else if(property == BlockFluidBase.LEVEL_CORNERS[2]) return (V)levelCorners[2];
+            else if(property == BlockFluidBase.LEVEL_CORNERS[3]) return (V)levelCorners[3];
+            else if(property == BlockFluidBase.SIDE_OVERLAYS[0]) return (V)sideOverlays[0];
+            else if(property == BlockFluidBase.SIDE_OVERLAYS[1]) return (V)sideOverlays[1];
+            else if(property == BlockFluidBase.SIDE_OVERLAYS[2]) return (V)sideOverlays[2];
+            else if(property == BlockFluidBase.SIDE_OVERLAYS[3]) return (V)sideOverlays[3];
+
+            else return parent.getValue(property); //should never be called
+        }
+
+        @Nonnull
+        @Override
+        public <V> IExtendedBlockState withProperty(@Nonnull IUnlistedProperty<V> property, @Nonnull V value) {
+            if(property == BlockFluidBase.FLOW_DIRECTION) flowDirection = (Float)value;
+            else if(property == BlockFluidBase.LEVEL_CORNERS[0]) levelCorners[0] = (Float)value;
+            else if(property == BlockFluidBase.LEVEL_CORNERS[1]) levelCorners[1] = (Float)value;
+            else if(property == BlockFluidBase.LEVEL_CORNERS[2]) levelCorners[2] = (Float)value;
+            else if(property == BlockFluidBase.LEVEL_CORNERS[3]) levelCorners[3] = (Float)value;
+            else if(property == BlockFluidBase.SIDE_OVERLAYS[0]) sideOverlays[0] = (Boolean)value;
+            else if(property == BlockFluidBase.SIDE_OVERLAYS[1]) sideOverlays[1] = (Boolean)value;
+            else if(property == BlockFluidBase.SIDE_OVERLAYS[2]) sideOverlays[2] = (Boolean)value;
+            else if(property == BlockFluidBase.SIDE_OVERLAYS[3]) sideOverlays[3] = (Boolean)value;
+
+            else return parent.withProperty(property, value); //should never be called
+            return this;
+        }
+
+        @Nonnull
+        @Override
+        public ImmutableMap<IUnlistedProperty<?>, Optional<?>> getUnlistedProperties() { return parent.getUnlistedProperties(); }
+
+        @Nonnull
+        @Override
+        public Collection<IUnlistedProperty<?>> getUnlistedNames() { return parent.getUnlistedNames(); }
+
+        @Nonnull
+        @Override
+        public IBlockState getClean() { return parent.getClean(); }
     }
 }

@@ -49,8 +49,7 @@ public final class FluidloggedUtils
     //if not a fluid block, return FluidState stored via the capability
     @Nonnull
     public static FluidState getFluidState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
-        final @Nullable Fluid fluidHere = getFluidFromState(here);
-        return (fluidHere != null) ? new FluidState(fluidHere, here) : FluidState.get(world, pos);
+        return isFluid(here) ? FluidState.of(here) : FluidState.get(world, pos);
     }
 
     //convenience method

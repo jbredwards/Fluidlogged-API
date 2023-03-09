@@ -1,12 +1,13 @@
 package git.jbredwards.fluidlogged_api.api.asm.impl;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
-import net.minecraftforge.fluids.Fluid;
+import net.minecraft.block.state.IBlockState;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
- * Implemented by {@link Fluid} at runtime to store a default FluidState
+ * Implemented by {@link net.minecraft.block.state.BlockStateBase BlockStateBase} at runtime to store a default FluidState
  * @author jbred
  *
  */
@@ -17,11 +18,11 @@ public interface IFluidStateProvider
     void setDefaultFluidState(@Nonnull FluidState fluidState);
 
     @Nonnull
-    static FluidState getDefaultFluidState(@Nonnull Fluid fluid) {
-        return ((IFluidStateProvider)fluid).getDefaultFluidState();
+    static FluidState getDefaultFluidState(@Nullable IBlockState state) {
+        return state instanceof IFluidStateProvider ? ((IFluidStateProvider)state).getDefaultFluidState() : FluidState.EMPTY;
     }
 
-    static void setDefaultFluidState(@Nonnull Fluid fluid, @Nonnull FluidState fluidState) {
-        ((IFluidStateProvider)fluid).setDefaultFluidState(fluidState);
+    static void setDefaultFluidState(@Nullable IBlockState state, @Nonnull FluidState fluidState) {
+        if(state instanceof IFluidStateProvider) ((IFluidStateProvider)state).setDefaultFluidState(fluidState);
     }
 }
