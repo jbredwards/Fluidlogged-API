@@ -60,8 +60,8 @@ public final class EventHandler
                 final Block block = event.fluidState.getBlock();
                 event.world.scheduleUpdate(event.pos, block, block.tickRate(event.world));
             }
-            //update newly created fluid IBlockState
-            else if(FluidloggedUtils.isFluid(event.here)) {
+            //update newly created fluid IBlockState (vanilla only)
+            else if(event.here.getBlock() instanceof BlockLiquid) {
                 final BlockLiquid block = BlockLiquid.getFlowingBlock(event.here.getMaterial());
                 event.world.setBlockState(event.pos, block.getDefaultState().withProperty(BlockLiquid.LEVEL, event.here.getValue(BlockLiquid.LEVEL)), 2);
                 event.world.scheduleUpdate(event.pos, block, block.tickRate(event.world));
