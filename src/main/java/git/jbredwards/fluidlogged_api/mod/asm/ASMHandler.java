@@ -77,7 +77,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("twilightforest.item.ItemBlockTFHugeWaterLily", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
             plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); //wooden bowls can now be filled by using water FluidStates
             //vanilla (blocks)
-            plugins.put("net.minecraft.block.material.MaterialLogic", new PluginMaterialLogic()); //prevents fluids from destroying "circuit" blocks
             plugins.put("net.minecraft.block.state.BlockStateBase", new PluginBlockStateBase()); //store one FluidState inside each BlockStateBase instance, this greatly increases the speed of fluid logic
             plugins.put("net.minecraft.block.Block", new PluginBlock()); //fixes some lighting, canSustainPlant, and explosion related issues
             plugins.put("net.minecraft.block.BlockBarrier", new PluginBlockBarrier()); //move the hardcoded stuff from WorldClient to BlockBarrier

@@ -17,7 +17,7 @@ import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.IFluidBlock;
 import org.apache.commons.lang3.tuple.Pair;
-import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -31,6 +31,33 @@ import java.util.Random;
  */
 public final class PluginBlockDynamicLiquid implements IASMPlugin
 {
+    @Override
+    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return method.name.equals(obfuscated ? "field_96113_a" : "isBlocked"); }
+
+    @Override
+    public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * isBlocked: (changes are around line 267)
+         * Old code:
+         * return mat != Material.PORTAL && mat != Material.STRUCTURE_VOID ? mat.blocksMovement() : true;
+         *
+         * New code:
+         * //add exception for Material.CIRCUITS
+         * return mat != Material.PORTAL && mat != Material.CIRCUITS && mat != Material.STRUCTURE_VOID ? mat.blocksMovement() : true;
+         */
+        if(checkField(insn.getPrevious(), obfuscated ? "field_151567_E" : "PORTAL")) {
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 5));
+            list.add(new FieldInsnNode(GETSTATIC, "net/minecraft/block/material/Material", obfuscated ? "field_151594_q" : "CIRCUITS", "Lnet/minecraft/block/material/Material;"));
+            list.add(new JumpInsnNode(IF_ACMPEQ, ((JumpInsnNode)insn).label));
+
+            instructions.insert(insn, list);
+            return true;
+        }
+
+        return false;
+    }
+
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
         /*
@@ -53,7 +80,7 @@ public final class PluginBlockDynamicLiquid implements IASMPlugin
             }
         );
 
-        return false;
+        return true;
     }
 
     @SuppressWarnings("unused")

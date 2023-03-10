@@ -102,27 +102,21 @@ public final class PluginChunk implements IASMPlugin
          * }
          *
          * New code:
-         * //account for FluidStates and *any* fluid blocks & use vanilla `blocksMovement` behavior for Material.CIRCUITS
-         * if (!Hooks.blocksMovement(material) && !Hooks.hasFluidAt(this, blockpos, iblockstate))
+         * //account for FluidStates and *any* fluid blocks
+         * if (!material.blocksMovement() && !Hooks.hasFluidAt(this, blockpos, iblockstate))
          * {
          *     ...
          * }
          */
-        else if(index == 4) {
-            if(checkMethod(insn, obfuscated ? "func_76230_c" : "blocksMovement")) {
-                instructions.insert(insn, genMethodNode("blocksMovement", "(Lnet/minecraft/block/material/Material;)Z"));
-                instructions.remove(insn);
-            }
-            else if(checkMethod(insn, obfuscated ? "func_76224_d" : "isLiquid")) {
-                final InsnList list = new InsnList();
-                list.add(new VarInsnNode(ALOAD, 0));
-                list.add(new VarInsnNode(ALOAD, 5));
-                list.add(new VarInsnNode(ALOAD, 8));
-                list.add(genMethodNode("hasFluidAt", "(Lnet/minecraft/world/chunk/Chunk;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Z"));
-                instructions.insert(insn, list);
-                removeFrom(instructions, insn, -1);
-                return true;
-            }
+        else if(index == 4 && checkMethod(insn, obfuscated ? "func_76224_d" : "isLiquid")) {
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(new VarInsnNode(ALOAD, 5));
+            list.add(new VarInsnNode(ALOAD, 8));
+            list.add(genMethodNode("hasFluidAt", "(Lnet/minecraft/world/chunk/Chunk;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Z"));
+            instructions.insert(insn, list);
+            removeFrom(instructions, insn, -1);
+            return true;
         }
         //enqueueRelightChecks
         else if(index == 5) {
@@ -221,10 +215,6 @@ public final class PluginChunk implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static boolean blocksMovement(@Nonnull Material material) {
-            return material.blocksMovement() && material != Material.CIRCUITS;
-        }
-
         public static void generateFluidStates(@Nonnull Chunk chunk, @Nonnull IFluidStatePrimer primer) {
             //TODO add identical cubic chunks mod functionality
             if(FluidloggedAPI.isCubicChunks && CCHooks.isCubicWorld(chunk.getWorld())) return;

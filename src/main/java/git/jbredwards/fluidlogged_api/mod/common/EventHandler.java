@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
 @Mod.EventBusSubscriber(modid = FluidloggedAPI.MODID)
 public final class EventHandler
 {
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     static void forceForgeCascadingFix(@Nonnull ConfigChangedEvent.PostConfigChangedEvent event) {
         if(event.getModID().equals("forge")) ForgeModContainer.fixVanillaCascading = true;
     }
@@ -54,9 +54,18 @@ public final class EventHandler
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     static void updateStaticLiquids(@Nonnull FluidloggedEvent event) {
-        if(!event.doesVaporize() && !event.fluidState.isEmpty()) {
-            final Block block = event.fluidState.getBlock();
-            if(block instanceof BlockLiquid) event.world.scheduleUpdate(event.pos, block, block.tickRate(event.world));
+        if(!event.world.isRemote) {
+            //update newly created FluidState
+            if(!event.fluidState.isEmpty()) {
+                final Block block = event.fluidState.getBlock();
+                event.world.scheduleUpdate(event.pos, block, block.tickRate(event.world));
+            }
+            //update newly created fluid IBlockState
+            else if(FluidloggedUtils.isFluid(event.here)) {
+                final BlockLiquid block = BlockLiquid.getFlowingBlock(event.here.getMaterial());
+                event.world.setBlockState(event.pos, block.getDefaultState().withProperty(BlockLiquid.LEVEL, event.here.getValue(BlockLiquid.LEVEL)), 2);
+                event.world.scheduleUpdate(event.pos, block, block.tickRate(event.world));
+            }
         }
     }
 

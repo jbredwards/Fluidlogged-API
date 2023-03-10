@@ -6,7 +6,6 @@ import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLilyPad;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialLogic;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
@@ -152,16 +151,6 @@ public final class PluginBlock implements IASMPlugin
         //used for overriding canFluidFlow behavior via the config
         classNode.fields.add(new FieldNode(ACC_PUBLIC, "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;", null, null));
         /*
-         * New code:
-         * //fix suffocation bug with certain modded Material.CIRCUITS blocks
-         * public boolean causesSuffocation(IBlockState state)
-         * {
-         *     return Hooks.causesSuffocation(state);
-         * }
-         */
-        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_176214_u" : "causesSuffocation"),
-            "causesSuffocation", "(Lnet/minecraft/block/state/IBlockState;)Z", generator -> generator.visitVarInsn(ALOAD, 1));
-        /*
          * =========
          * Accessors
          * =========
@@ -208,12 +197,6 @@ public final class PluginBlock implements IASMPlugin
             else if(!(plantable instanceof BlockLilyPad)) return false;
             else return state.getBoundingBox(world, pos).maxY < 1
                         && FluidState.get(world, pos).getMaterial() == Material.WATER;
-        }
-
-        public static boolean causesSuffocation(@Nonnull IBlockState state) {
-            final Material material = state.getMaterial();
-            if(material.getClass() == MaterialLogic.class) return false;
-            else return material.blocksMovement() && state.isFullCube();
         }
 
         @SuppressWarnings("ConstantConditions")

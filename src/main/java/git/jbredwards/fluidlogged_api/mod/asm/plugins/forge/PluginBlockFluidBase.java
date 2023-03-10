@@ -74,35 +74,60 @@ public final class PluginBlockFluidBase implements IASMPlugin
             while(insn.getPrevious().getOpcode() != PUTSTATIC) instructions.remove(insn.getPrevious());
             return true;
         }
-        /*
-         * canDisplace: (changes are around line 284)
-         * Old code:
-         * if (block == this)
-         * {
-         *     return false;
-         * }
-         *
-         * New code:
-         * //checks if the FluidState is compatible with this fluid
-         * if (FluidloggedUtils.isCompatibleFluid(this.getFluid(), FluidloggedUtils.getFluidState(world, pos, state).getFluid()))
-         * {
-         *     return false;
-         * }
-         */
-        else if(index == 3 && insn.getOpcode() == IF_ACMPNE) {
-            final InsnList list = new InsnList();
-            list.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidBase", "getFluid", "()Lnet/minecraftforge/fluids/Fluid;", false));
-            list.add(new VarInsnNode(ALOAD, 1));
-            list.add(new VarInsnNode(ALOAD, 2));
-            list.add(new VarInsnNode(ALOAD, 3));
-            list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidState", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
-            list.add(new MethodInsnNode(INVOKEVIRTUAL, "git/jbredwards/fluidlogged_api/api/util/FluidState", "getFluid", "()Lnet/minecraftforge/fluids/Fluid;", false));
-            list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "isCompatibleFluid", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraftforge/fluids/Fluid;)Z"));
-            //remove old
-            instructions.remove(getPrevious(insn, 2));
-            instructions.insertBefore(insn, list);
-            ((JumpInsnNode)insn).setOpcode(IFEQ);
-            return true;
+        //canDisplace:
+        else if(index == 3) {
+            /*
+             * (changes are around line 284)
+             * Old code:
+             * if (block == this)
+             * {
+             *     ....
+             * }
+             *
+             * New code:
+             * //checks if the FluidState is compatible with this fluid
+             * if (FluidloggedUtils.isCompatibleFluid(this.getFluid(), FluidloggedUtils.getFluidState(world, pos, state).getFluid()))
+             * {
+             *     ....
+             * }
+             */
+            if(insn.getOpcode() == IF_ACMPNE) {
+                final InsnList list = new InsnList();
+                list.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraftforge/fluids/BlockFluidBase", "getFluid", "()Lnet/minecraftforge/fluids/Fluid;", false));
+                list.add(new VarInsnNode(ALOAD, 1));
+                list.add(new VarInsnNode(ALOAD, 2));
+                list.add(new VarInsnNode(ALOAD, 3));
+                list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidState", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
+                list.add(new MethodInsnNode(INVOKEVIRTUAL, "git/jbredwards/fluidlogged_api/api/util/FluidState", "getFluid", "()Lnet/minecraftforge/fluids/Fluid;", false));
+                list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "isCompatibleFluid", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraftforge/fluids/Fluid;)Z"));
+                //remove old
+                instructions.remove(getPrevious(insn, 2));
+                instructions.insertBefore(insn, list);
+                ((JumpInsnNode)insn).setOpcode(IFEQ);
+            }
+            /*
+             * (changes are around line 295)
+             * Old code:
+             * if (material.blocksMovement() || material == Material.PORTAL || material == Material.STRUCTURE_VOID)
+             * {
+             *     ....
+             * }
+             *
+             * New code:
+             * //ensure the block here does not use Material.CIRCUITS
+             * if (material.blocksMovement() || material == Material.PORTAL || material == Material.CIRCUITS || material == Material.STRUCTURE_VOID)
+             * {
+             *     ....
+             * }
+             */
+            else if(insn.getOpcode() == IF_ACMPEQ) {
+                final InsnList list = new InsnList();
+                list.add(new VarInsnNode(ALOAD, 5));
+                list.add(new FieldInsnNode(GETSTATIC, "net/minecraft/block/material/Material", obfuscated ? "field_151594_q" : "CIRCUITS", "Lnet/minecraft/block/material/Material;"));
+                list.add(new JumpInsnNode(IF_ACMPEQ, ((JumpInsnNode)insn).label));
+                instructions.insert(insn, list);
+                return true;
+            }
         }
         /*
          * getFlowDirection, getDensity, and getTemperature: (changes are around lines 653, 594, and 612)
