@@ -32,7 +32,7 @@ public final class PluginEntityLivingBase implements IASMPlugin
          *     this.motionY = 0.30000001192092896D;
          * }
          */
-        if(insn.getOpcode() == LDC && ((LdcInsnNode)insn).cst.equals(0.6000000238418579)) ((LdcInsnNode)insn).cst = 0.1;
+        if(insn.getOpcode() == LDC && ((LdcInsnNode)insn).cst.equals(0.6000000238418579)) ((LdcInsnNode)insn).cst = 0.100001;
         return false;
     }
 }

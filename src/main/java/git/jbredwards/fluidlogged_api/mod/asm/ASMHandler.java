@@ -47,8 +47,9 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("cofh.thermaldynamics.block.BlockTDBase", new PluginThermalDynamics()); //fix fluidlogged duct explosion resistance
             plugins.put("cofh.thermaldynamics.duct.tiles.TileGrid", new PluginThermalDynamics()); //ray trace now skips fluids
             plugins.put("crafttweaker.mc1120.block.MCWorldBlock", new PluginCraftTweaker()); //MCWorldBlock.getFluid can read FluidStates
-            plugins.put("dev.necauqua.mods.cm.mixin.entity.EntityMixin", new PluginChiseledMe()); //fix chiseled me conflict, fluidlogged api already implements these patches
-            plugins.put("dev.necauqua.mods.cm.mixin.WorldMixin", new PluginChiseledMe()); //fix chiseled me conflict, fluidlogged api already implements these patches
+            plugins.put("dev.necauqua.mods.cm.mixin.entity.EntityLivingBaseMixin", new PluginChiseledMe()); //fix chiseled me conflict
+            plugins.put("dev.necauqua.mods.cm.mixin.entity.EntityMixin", new PluginChiseledMe()); //fix chiseled me conflict
+            plugins.put("dev.necauqua.mods.cm.mixin.WorldMixin", new PluginChiseledMe()); //fix chiseled me conflict
             plugins.put("exnihilocreatio.barrel.modes.fluid.BarrelModeFluid", new PluginExNihiloCreatio()); //allow "fluid on top" barrel crafting to accept FluidStates
             plugins.put("hellfirepvp.astralsorcery.common.block.fluid.FluidBlockLiquidStarlight", new PluginAstralSorcery()); //fixes weird mixing interactions
             plugins.put("io.github.lxgaming.sledgehammer.mixin.core.block.BlockDynamicLiquidMixin", new PluginSledgehammer()); //remove redundant transformer
