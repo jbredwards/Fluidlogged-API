@@ -7,10 +7,10 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.tree.*;
-import org.omg.CORBA.StringHolder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.xml.ws.Holder;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 public interface IASMPlugin extends Opcodes
 {
     //set this to your mod's active transformer, this is to display the correct debug info in the console
-    @Nonnull StringHolder ACTIVE_PLUGIN = new StringHolder("Unknown Plugin");
+    @Nonnull Holder<String> ACTIVE_PLUGIN = new Holder<>("Unknown Plugin");
     static void resetActivePlugin() { ACTIVE_PLUGIN.value = "Unknown Plugin"; }
     static void setActivePlugin(@Nonnull String plugin) { ACTIVE_PLUGIN.value = plugin; }
 
@@ -74,9 +74,12 @@ public interface IASMPlugin extends Opcodes
         return writer.toByteArray();
     }
 
+    //whether the transformer should inform the console of changes, usually a config option
+    default boolean shouldInformConsole() { return FluidloggedAPIConfigHandler.debugASMPlugins; }
+
     //can be useful for easily troubleshooting plugins
     default void informConsole(@Nonnull String className, @Nullable MethodNode method) {
-        if(FluidloggedAPIConfigHandler.debugASMPlugins) {
+        if(shouldInformConsole()) {
             if(method == null) System.out.printf("%s: transforming... %s%n", ACTIVE_PLUGIN.value, className);
             else System.out.printf("%s: transforming... %s.%s%s%n", ACTIVE_PLUGIN.value, className, method.name, method.desc);
         }

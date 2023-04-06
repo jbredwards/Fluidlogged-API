@@ -41,6 +41,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("biomesoplenty.common.fluids.blocks.BlockPoisonFluid", new PluginBiomesOPlenty()); //fix BOP fluid block mixing
             plugins.put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new PluginBiomesOPlenty()); //fix BOP fluid block mixing
             plugins.put("biomesoplenty.common.item.ItemBOPLilypad", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
+            plugins.put("cassiokf.industrialrenewal.blocks.abstracts.BlockMultiBlockBase", new PluginIndustrialRenewal()); //Fix industrial renewal mod's multi-blocks
+            plugins.put("cassiokf.industrialrenewal.blocks.railroad.BlockCargoLoader", new PluginIndustrialRenewal()); //Fix industrial renewal mod's multi-blocks
             plugins.put("codechicken.multipart.BlockMultipart", new PluginFluidloggableBlocks()); //make multipart blocks fluidloggable by default
             plugins.put("codechicken.multipart.ItemPlacementHelper$", new PluginCBMultipart()); //allow multipart blocks to be placed in fluids
             plugins.put("codechicken.multipart.TileMultipart", new PluginCBMultipart()); //prevent desync when removing a fluidlogged multipart block
