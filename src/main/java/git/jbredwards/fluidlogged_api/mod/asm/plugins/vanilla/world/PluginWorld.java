@@ -577,7 +577,7 @@ public final class PluginWorld implements IASMPlugin
             int prevZ = MathHelper.floor(vec.z);
 
             BlockPos pos = new BlockPos(prevX, prevY, prevZ);
-            @Nullable RayTraceResult result;
+            RayTraceResult result;
 
             //check FluidState
             if(stopOnLiquid) {
@@ -594,7 +594,7 @@ public final class PluginWorld implements IASMPlugin
                 if(result != null) { return result; }
             }
 
-            @Nullable RayTraceResult lastResult = null;
+            RayTraceResult lastResult = FluidloggedAPI.isChiseledMe ? new RayTraceResult(RayTraceResult.Type.MISS, end, EnumFacing.DOWN, pos) : null;
             for(int i = 200; i-- >= 0;) {
                 if(Double.isNaN(vec.x) || Double.isNaN(vec.y) || Double.isNaN(vec.z))
                     return null;
