@@ -1,6 +1,7 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
 
 import com.google.common.collect.ImmutableMap;
+import git.jbredwards.fluidlogged_api.api.asm.impl.IChunkProvider;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import net.minecraft.block.Block;
@@ -16,6 +17,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.common.property.PropertyFloat;
@@ -29,6 +31,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
@@ -450,8 +453,8 @@ public final class PluginBlockFluidBase implements IASMPlugin
             final EnumFacing densityFace = densityDir < 0 ? UP : DOWN;
 
             //covert to extended state
-            IExtendedBlockState state = new FluidExtendedBlockState((IExtendedBlockState)oldState);
-            state = state.withProperty(BlockFluidBase.FLOW_DIRECTION, flowDirection);
+            final FluidExtendedBlockState state = new FluidExtendedBlockState((IExtendedBlockState)oldState);
+            state.withProperty(BlockFluidBase.FLOW_DIRECTION, flowDirection);
 
             //corner height variables
             final IBlockState[][][] states = new IBlockState[3][2][3];
@@ -459,29 +462,35 @@ public final class PluginBlockFluidBase implements IASMPlugin
             final float[][] height = new float[3][3];
             final float[][] corner = new float[2][2];
 
+            //save chunks for later use, for better performance
+            final Chunk[][] chunks = new Chunk[3][3];
+            final int originX = pos.getX() >> 4;
+            final int originZ = pos.getZ() >> 4;
+
             //initialize here states
-            states[1][0][1] = world.getBlockState(pos);
-            states[1][1][1] = world.getBlockState(pos.down(densityDir));
-            fluids[1][0][1] = getFluidState(world, pos, states[1][0][1]);
-            fluids[1][1][1] = getFluidState(world, pos.down(densityDir), states[1][1][1]);
-            height[1][1] = getFluidHeightForRender(world, pos, states, fluids, 1, 1, densityFace, quantaPerBlock, quantaPerBlockFloat, quantaFraction);
+            states[1][0][1] = getFromCache(chunks, world, pos, originX, originZ, Chunk::getBlockState);
+            states[1][1][1] = getFromCache(chunks, world, pos.down(densityDir), originX, originZ, Chunk::getBlockState);
+            fluids[1][0][1] = getFluidFromCache(chunks, world, pos, originX, originZ, states[1][0][1]);
+            fluids[1][1][1] = getFluidFromCache(chunks, world, pos.down(densityDir), originX, originZ, states[1][1][1]);
+            height[1][1] = getFluidHeightForRender(chunks, world, pos, states, fluids, 1, 1, densityFace, quantaPerBlock, quantaPerBlockFloat, quantaFraction, originX, originZ);
 
             //fluid block above this
             if(height[1][1] == 1)
                 for(int i = 0; i < 2; i++)
                     for(int j = 0; j < 2; j++)
                         corner[i][j] = 1;
+
             //no fluid block above this
             else {
                 //get corner heights from all 8 sides
                 for(int i = 0; i < 3; i++) {
                     for(int j = 0; j < 3; j++) {
                         if(i != 1 || j != 1) {
-                            if(states[i][0][j] == null) states[i][0][j] = world.getBlockState(pos.add(i - 1, 0, j - 1));
-                            if(states[i][1][j] == null) states[i][1][j] = world.getBlockState(pos.add(i - 1, -densityDir, j - 1));
-                            if(fluids[i][0][j] == null) fluids[i][0][j] = getFluidState(world, pos.add(i - 1, 0, j - 1), states[i][0][j]);
-                            if(fluids[i][1][j] == null) fluids[i][1][j] = getFluidState(world, pos.add(i - 1, -densityDir, j - 1), states[i][1][j]);
-                            height[i][j] = getFluidHeightForRender(world, pos, states, fluids, i, j, densityFace, quantaPerBlock, quantaPerBlockFloat, quantaFraction);
+                            if(states[i][0][j] == null) states[i][0][j] = getFromCache(chunks, world, pos.add(i - 1, 0, j - 1), originX, originZ, Chunk::getBlockState);
+                            if(states[i][1][j] == null) states[i][1][j] = getFromCache(chunks, world, pos.add(i - 1, -densityDir, j - 1), originX, originZ, Chunk::getBlockState);
+                            if(fluids[i][0][j] == null) fluids[i][0][j] = getFluidFromCache(chunks, world, pos.add(i - 1, 0, j - 1), originX, originZ, states[i][0][j]);
+                            if(fluids[i][1][j] == null) fluids[i][1][j] = getFluidFromCache(chunks, world, pos.add(i - 1, -densityDir, j - 1), originX, originZ, states[i][1][j]);
+                            height[i][j] = getFluidHeightForRender(chunks, world, pos, states, fluids, i, j, densityFace, quantaPerBlock, quantaPerBlockFloat, quantaFraction, originX, originZ);
                         }
                     }
                 }
@@ -497,8 +506,8 @@ public final class PluginBlockFluidBase implements IASMPlugin
                     EnumFacing side = byHorizontalIndex(i);
                     BlockPos offset = pos.offset(side);
                     //use cache if available
-                    state = state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], !canFluidFlow(world, offset,
-                            getOrSet(states, () -> world.getBlockState(offset), side.getXOffset() + 1, side.getZOffset() + 1),
+                    state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], !canFluidFlow(world, offset,
+                            getOrSet(states, () -> getFromCache(chunks, world, offset, originX, originZ, Chunk::getBlockState), side.getXOffset() + 1, side.getZOffset() + 1),
                             side.getOpposite()));
                 }
             }
@@ -512,10 +521,10 @@ public final class PluginBlockFluidBase implements IASMPlugin
             }
 
             //sets the corner props
-            state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[0], corner[0][0], quantaFraction);
-            state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[1], corner[0][1], quantaFraction);
-            state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[2], corner[1][1], quantaFraction);
-            state = withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[3], corner[1][0], quantaFraction);
+            withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[0], corner[0][0], quantaFraction);
+            withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[1], corner[0][1], quantaFraction);
+            withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[2], corner[1][1], quantaFraction);
+            withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[3], corner[1][0], quantaFraction);
             return state;
         }
 
@@ -528,15 +537,15 @@ public final class PluginBlockFluidBase implements IASMPlugin
         };
 
         //helper
-        public static float getFluidHeightForRender(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, int i, int j, EnumFacing densityFace, int quantaPerBlock, float quantaPerBlockFloat, float quantaFraction) {
+        public static float getFluidHeightForRender(@Nonnull Chunk[][] chunks, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, int i, int j, EnumFacing densityFace, int quantaPerBlock, float quantaPerBlockFloat, float quantaFraction, int originX, int originZ) {
             final EnumFacing[] faces = FACES[j * 3 + i];
 
             //check for vertical connections
-            if(connectToVertical(states, fluids, world, pos, densityFace, i, j, faces))
+            if(connectToVertical(chunks, states, fluids, world, pos, densityFace, i, j, faces, originX, originZ))
                 return 1;
 
             //check for horizontal connections
-            if(connectToHorizontal(states, fluids, world, pos, i, j, faces)) {
+            if(connectToHorizontal(chunks, states, fluids, world, pos, i, j, faces, originX, originZ)) {
                 //air block
                 if(states[i][0][j].getBlock().isAir(states[i][0][j], world, pos.add(i - 1, 0, j - 1)))
                     return 0;
@@ -548,22 +557,22 @@ public final class PluginBlockFluidBase implements IASMPlugin
 
                     //diagonals check if nearby have lower levels to connect
                     if(faces.length > 1) {
-                        for(EnumFacing facing : faces) {
-                            EnumFacing other = faces[facing.getXOffset() != 0 ? 0 : 1];
-                            BlockPos offset = pos.offset(facing);
-                            IBlockState neighbor = getOrSet(states, () -> world.getBlockState(offset), facing);
+                        for(final EnumFacing facing : faces) {
+                            final EnumFacing other = faces[facing.getXOffset() != 0 ? 0 : 1];
+                            final BlockPos offset = pos.offset(facing);
+                            final IBlockState neighbor = getOrSet(states, () -> getFromCache(chunks, world, offset, originX, originZ, Chunk::getBlockState), facing);
 
                             //check indirect adjacent
                             if((!canFluidFlow(world, pos, states[1][0][1], other)
-                            || !canFluidFlow(world, pos.offset(other), getOrSet(states, () -> world.getBlockState(pos.offset(other)), other), other.getOpposite()))
+                            || !canFluidFlow(world, pos.offset(other), getOrSet(states, () -> getFromCache(chunks, world, pos.offset(other), originX, originZ, Chunk::getBlockState), other), other.getOpposite()))
                             && canFluidFlow(world, pos, states[1][0][1], facing)
                             && canFluidFlow(world, offset, neighbor, facing.getOpposite())
                             && canFluidFlow(world, offset, neighbor, other)
                             && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], other.getOpposite())
-                            && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, offset, neighbor), facing).getFluid())
+                            && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidFromCache(chunks, world, offset, originX, originZ, neighbor), facing).getFluid())
                             && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], facing.getOpposite())
-                            && canFluidFlow(world, pos.offset(other), getOrSet(states, () -> world.getBlockState(pos.offset(other)), other), facing)
-                            && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, pos.offset(other), get(states, other)), other).getFluid())
+                            && canFluidFlow(world, pos.offset(other), getOrSet(states, () -> getFromCache(chunks, world, pos.offset(other), originX, originZ, Chunk::getBlockState), other), facing)
+                            && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidFromCache(chunks, world, pos.offset(other), originX, originZ, get(states, other)), other).getFluid())
                             && lowest > get(fluids, other).getLevel()) {
                                 lowest = capLowest(get(fluids, other).getLevel());
                                 if(lowest == 0) break;
@@ -588,7 +597,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
             float total = 0;
             int count = 0;
 
-            for(float height : heights) {
+            for(final float height : heights) {
                 if(height == 1) //vertical fluid
                     return 1;
 
@@ -607,29 +616,29 @@ public final class PluginBlockFluidBase implements IASMPlugin
         }
 
         //helper
-        public static boolean connectToVertical(@Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing densityFace, int i, int j, @Nonnull EnumFacing[] sides) {
+        public static boolean connectToVertical(@Nonnull Chunk[][] chunks, @Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing densityFace, int i, int j, @Nonnull EnumFacing[] sides, int originX, int originZ) {
             return isCompatibleFluid(fluids[1][0][1].getFluid(), fluids[i][1][j].getFluid())
                     && isCompatibleFluid(fluids[1][0][1].getFluid(), fluids[i][0][j].getFluid())
                     && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], densityFace)
                     && canFluidFlow(world, pos.add(i - 1, -densityFace.getYOffset(), j - 1), states[i][1][j], densityFace.getOpposite())
-                    && connectToHorizontal(states, fluids, world, pos, i, j, sides);
+                    && connectToHorizontal(chunks, states, fluids, world, pos, i, j, sides, originX, originZ);
         }
 
         //helper
-        public static boolean connectToHorizontal(@Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int i, int j, @Nonnull EnumFacing[] sides) {
+        public static boolean connectToHorizontal(@Nonnull Chunk[][] chunks, @Nonnull IBlockState[][][] states, @Nonnull FluidState[][][] fluids, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int i, int j, @Nonnull EnumFacing[] sides, int originX, int originZ) {
             final boolean diagonal = sides.length > 1;
-            for(EnumFacing facing : sides) {
+            for(final EnumFacing facing : sides) {
                 //check diagonal
                 if(diagonal) {
                     EnumFacing other = sides[facing.getXOffset() != 0 ? 0 : 1];
                     BlockPos offset = pos.offset(facing);
-                    IBlockState neighbor = getOrSet(states, () -> world.getBlockState(offset), facing);
+                    IBlockState neighbor = getOrSet(states, () -> getFromCache(chunks, world, offset, originX, originZ, Chunk::getBlockState), facing);
 
                     if(canFluidFlow(world, pos, states[1][0][1], facing)
                             && canFluidFlow(world, offset, neighbor, facing.getOpposite())
                             && canFluidFlow(world, offset, neighbor, other)
                             && canFluidFlow(world, pos.add(i - 1, 0, j - 1), states[i][0][j], other.getOpposite())
-                            && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidState(world, offset, neighbor), facing).getFluid()))
+                            && isCompatibleFluid(fluids[1][0][1].getFluid(), getOrSet(fluids, () -> getFluidFromCache(chunks, world, offset, originX, originZ, neighbor), facing).getFluid()))
 
                         return true;
                 }
@@ -660,8 +669,28 @@ public final class PluginBlockFluidBase implements IASMPlugin
 
         //helper
         @Nonnull
-        public static IExtendedBlockState withPropertyFallback(@Nonnull IExtendedBlockState state, @Nonnull PropertyFloat property, float value, float quantaFraction) {
-            return state.withProperty(property, property.isValid(value) ? value : quantaFraction);
+        public static <T> T getFromCache(@Nonnull Chunk[][] chunks, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int originX, int originZ, @Nonnull BiFunction<Chunk, BlockPos, T> func) {
+            final int x = (pos.getX() >> 4) - originX + 1;
+            final int z = (pos.getZ() >> 4) - originZ + 1;
+
+            Chunk chunk = chunks[x][z];
+            if(chunk == null) {
+                chunks[x][z] = IChunkProvider.getChunk(world, pos);
+                chunk = chunks[x][z];
+            }
+
+            return func.apply(chunk, pos);
+        }
+
+        //helper
+        @Nonnull
+        public static FluidState getFluidFromCache(@Nonnull Chunk[][] chunks, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int originX, int originZ, @Nonnull IBlockState state) {
+            return getFromCache(chunks, world, pos, originX, originZ, (chunk, posIn) -> isFluid(state) ? FluidState.of(state) : FluidState.getFromProvider(chunk, posIn));
+        }
+
+        //helper
+        public static void withPropertyFallback(@Nonnull IExtendedBlockState state, @Nonnull PropertyFloat property, float value, float quantaFraction) {
+            state.withProperty(property, property.isValid(value) ? value : quantaFraction);
         }
 
         @Nonnull
@@ -737,7 +766,9 @@ public final class PluginBlockFluidBase implements IASMPlugin
         public static Boolean isEntityInsideFluid(@Nonnull Block block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
             if(materialIn != state.getMaterial() || !(state instanceof IExtendedBlockState)) return null;
             else if(!testingHead) return isWithinFluid(block, world, pos, entity.getEntityBoundingBox());
-            return isWithinFluid(block, (IExtendedBlockState)block.getExtendedState(state, world, pos), world, pos, new Vec3d(entity.posX, yToTest, entity.posZ));
+
+            final IBlockState extendedState = block.getExtendedState(state, world, pos);
+            return !(extendedState instanceof IExtendedBlockState) || isWithinFluid(block, (IExtendedBlockState)extendedState, world, pos, new Vec3d(entity.posX, yToTest, entity.posZ));
         }
 
         public static boolean isWithinFluid(@Nonnull Block block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
@@ -788,11 +819,12 @@ public final class PluginBlockFluidBase implements IASMPlugin
         public static boolean shouldFluidSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, int densityDir) {
             if(!canFluidFlow(world, pos, world.getBlockState(pos), side)) return true;
             final IBlockState neighbor = world.getBlockState(pos.offset(side));
+            final Fluid fluid = getFluidFromState(state);
+
             //this check exists for mods like coral reef that don't have proper block sides
-            if(isCompatibleFluid(getFluidFromState(state), getFluidFromState(neighbor))) return false;
+            if(isCompatibleFluid(fluid, getFluidFromState(neighbor))) return false;
             else if(side != (densityDir > 0 ? DOWN : UP) && neighbor.doesSideBlockRendering(world, pos.offset(side), side.getOpposite())) return false;
-            return !isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), getFluidFromState(state))
-                    || !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite());
+            return !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite()) || !isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), fluid);
         }
     }
 
