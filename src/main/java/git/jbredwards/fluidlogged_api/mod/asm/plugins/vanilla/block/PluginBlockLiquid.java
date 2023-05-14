@@ -5,6 +5,7 @@ import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidBase;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidClassic;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -562,7 +563,7 @@ public final class PluginBlockLiquid implements IASMPlugin
                     && canFluidFlow(worldIn, pos.up(), up, DOWN)
                     && canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), UP);
 
-            return flag ? 1 : 1 - (BlockLiquid.getLiquidHeightPercent(state.getValue(BlockLiquid.LEVEL)) - 1f/9);
+            return flag ? 1 : 1 - BlockLiquid.getLiquidHeightPercent(state.getValue(BlockLiquid.LEVEL));
         }
 
         @Nonnull
@@ -623,7 +624,8 @@ public final class PluginBlockLiquid implements IASMPlugin
         }
 
         public static boolean getLiquidFogColor(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Vec3d viewport) {
-            return !PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), (IExtendedBlockState)state.getBlock().getExtendedState(state, world, pos), world, pos, viewport);
+            if(!FluidloggedAPIConfigHandler.fancyFluidEntityCollision) return !PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), world, pos, viewport.y, state);
+            return !PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), world, pos, viewport, (IExtendedBlockState)state.getBlock().getExtendedState(state, world, pos));
         }
 
         //helper
@@ -645,11 +647,11 @@ public final class PluginBlockLiquid implements IASMPlugin
 
         @Nonnull
         public static IBlockState getStateAtViewpoint(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Vec3d viewpoint) {
-            if(PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), (IExtendedBlockState)state.getBlock().getExtendedState(state, world, pos), world, pos, viewpoint)) return state;
+            if(!FluidloggedAPIConfigHandler.fancyFluidEntityCollision) { if(PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), world, pos, viewpoint.y, state)) return state; }
+            else if(PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), world, pos, viewpoint, (IExtendedBlockState)state.getBlock().getExtendedState(state, world, pos))) return state;
             //return the other block here if the player isn't within the fluid
             final IBlockState here = world.getBlockState(pos);
-            return here == state ? Blocks.AIR.getDefaultState()
-                    : here.getBlock().getStateAtViewpoint(here, world, pos, viewpoint);
+            return here == state ? Blocks.AIR.getDefaultState() : here.getBlock().getStateAtViewpoint(here, world, pos, viewpoint);
         }
 
         public static boolean isConnectedWater(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing, @Nonnull Supplier<IBlockState> hereIn) {

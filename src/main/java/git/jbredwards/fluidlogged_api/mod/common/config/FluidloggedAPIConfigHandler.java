@@ -53,6 +53,7 @@ public final class FluidloggedAPIConfigHandler
     public static int fluidloggedFluidSpread = 2;
     public static boolean verticalFluidloggedFluidSpread = true;
     public static boolean lavalogVaporizeFlammable = false;
+    public static boolean fancyFluidEntityCollision = false;
 
     //checks if the input state is fluidloggable, according to the config settings
     @Nonnull
@@ -115,7 +116,11 @@ public final class FluidloggedAPIConfigHandler
                         "lavalogVaporizeFlammable:false,\n" +
                         "\n" +
                         "#remove the ability for \"infinite\" fluids to fluidlog blocks below\n" +
-                        "removeVerticalFluidloggedFluidSpread:false";
+                        "removeVerticalFluidloggedFluidSpread:false,\n" +
+                        "\n" +
+                        "#fluid-entity collision is exact, taking corner heights into account\n" +
+                        "#WARNING: enabling this may result in worse performance\n" +
+                        "fancyFluidEntityCollision:false";
 
                 //writes the default entries to the new cfg file
                 final FileWriter writer = new FileWriter(cfg);
@@ -129,6 +134,7 @@ public final class FluidloggedAPIConfigHandler
                 debugASMPlugins = true;
                 verticalFluidloggedFluidSpread = true;
                 lavalogVaporizeFlammable = false;
+                fancyFluidEntityCollision = false;
             }
 
             //reads an already existing cfg file
@@ -141,6 +147,7 @@ public final class FluidloggedAPIConfigHandler
                 debugASMPlugins = config.debugASMPlugins;
                 verticalFluidloggedFluidSpread = !config.removeVerticalFluidloggedFluidSpread;
                 lavalogVaporizeFlammable = config.lavalogVaporizeFlammable;
+                fancyFluidEntityCollision = config.fancyFluidEntityCollision;
 
                 if(ConfigPredicateDeserializer.containsMissingEntries) {
                     ConfigPredicateDeserializer.containsMissingEntries = false;
@@ -232,9 +239,10 @@ public final class FluidloggedAPIConfigHandler
         public final ConfigPredicateBuilder[] whitelist;
         public final ConfigPredicateBuilder[] blacklist;
         public final boolean debugASMPlugins;
-        public boolean lavalogVaporizeFlammable;
+        public final boolean lavalogVaporizeFlammable;
+        public final boolean fancyFluidEntityCollision;
 
-        public Config(int fluidloggedFluidSpread, boolean removeVerticalFluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, @Nullable FluidTag[] fluidTags, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins, boolean lavalogVaporizeFlammable) {
+        public Config(int fluidloggedFluidSpread, boolean removeVerticalFluidloggedFluidSpread, boolean fluidsBreakTorches, boolean applyDefaults, @Nullable FluidTag[] fluidTags, ConfigPredicateBuilder[] whitelist, ConfigPredicateBuilder[] blacklist, boolean debugASMPlugins, boolean lavalogVaporizeFlammable, boolean fancyFluidEntityCollision) {
             this.fluidloggedFluidSpread = fluidloggedFluidSpread;
             this.removeVerticalFluidloggedFluidSpread = removeVerticalFluidloggedFluidSpread;
             this.fluidsBreakTorches = fluidsBreakTorches;
@@ -244,6 +252,7 @@ public final class FluidloggedAPIConfigHandler
             this.blacklist = blacklist;
             this.debugASMPlugins = debugASMPlugins;
             this.lavalogVaporizeFlammable = lavalogVaporizeFlammable;
+            this.fancyFluidEntityCollision = fancyFluidEntityCollision;
         }
     }
 

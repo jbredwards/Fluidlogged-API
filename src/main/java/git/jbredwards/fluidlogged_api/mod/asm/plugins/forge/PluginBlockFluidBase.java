@@ -4,7 +4,10 @@ import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.api.asm.impl.IChunkProvider;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.PluginBlockLiquid;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
@@ -23,6 +26,7 @@ import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.common.property.PropertyFloat;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.IFluidBlock;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -51,7 +55,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
         else if(method.name.equals("canDisplace")) return 3;
         else if(method.name.equals("getFlowDirection") || method.name.equals("getDensity") || method.name.equals("getTemperature")) return 4;
         else if(method.name.equals("getFluid")) return 5;
-        else if(checkMethod(method, "getFilledPercentage", "(Lnet/minecraft.world.IBlockAccess;Lnet/minecraft/util/math/BlockPos;)F")) return 6;
+        else if(checkMethod(method, "getFilledPercentage", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)F")) return 6;
         else return method.name.equals("getStateAtViewpoint") ? 7 : 0;
     }
 
@@ -168,12 +172,12 @@ public final class PluginBlockFluidBase implements IASMPlugin
          *
          * New code:
          * //fixes a general inaccuracy with modded fluids (this especially comes up in other mods like Biomes O'Plenty)
-         * return this.quantaFraction * remaining * (density > 0 ? 1 : -1);
+         * return applyQuantaFraction(remaining * (density > 0 ? 1 : -1), this.quantaFraction);
          */
-        else if(index == 6 && insn.getOpcode() == FMUL) {
-            instructions.insertBefore(insn, new InsnNode(FMUL));
+        else if(index == 6 && insn.getOpcode() == FRETURN) {
             instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
             instructions.insertBefore(insn, new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "quantaFraction", "F"));
+            instructions.insertBefore(insn, genMethodNode("applyQuantaFraction", "(FF)F"));
             return true;
         }
         /*
@@ -726,8 +730,12 @@ public final class PluginBlockFluidBase implements IASMPlugin
 
         @Nonnull
         public static Vec3d getFluidFogColor(@Nonnull BlockFluidBase block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, @Nonnull Vec3d originalColor, float partialTicks) {
+            final boolean isWithinFluid;
+            if(FluidloggedAPIConfigHandler.fancyFluidEntityCollision) isWithinFluid = isWithinFluid(block, world, pos, ActiveRenderInfo.projectViewFromEntity(entity, partialTicks).y, state);
+            else isWithinFluid = isWithinFluid(block, world, pos, ActiveRenderInfo.projectViewFromEntity(entity, partialTicks), (IExtendedBlockState)block.getExtendedState(state, world, pos));
+
             //remove built-in in place for better check
-            if(isWithinFluid(block, (IExtendedBlockState)block.getExtendedState(state, world, pos), world, pos, ActiveRenderInfo.projectViewFromEntity(entity, partialTicks))) {
+            if(isWithinFluid) {
                 int color = block.getFluid().getColor();
                 float red = (color >> 16 & 0xFF) / 255.0f;
                 float green = (color >> 8 & 0xFF) / 255.0f;
@@ -765,27 +773,31 @@ public final class PluginBlockFluidBase implements IASMPlugin
         @Nullable
         public static Boolean isEntityInsideFluid(@Nonnull Block block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, double yToTest, @Nonnull Material materialIn, boolean testingHead) {
             if(materialIn != state.getMaterial() || !(state instanceof IExtendedBlockState)) return null;
-            else if(!testingHead) return isWithinFluid(block, world, pos, entity.getEntityBoundingBox());
+            if(!testingHead) return isWithinFluid(block, world, pos, entity.getEntityBoundingBox());
+
+            final AxisAlignedBB bb = entity.getEntityBoundingBox().intersect(new AxisAlignedBB(pos));
+            if(!FluidloggedAPIConfigHandler.fancyFluidEntityCollision) return isWithinFluid(block, world, pos, bb.minY, state);
 
             final IBlockState extendedState = block.getExtendedState(state, world, pos);
-            return !(extendedState instanceof IExtendedBlockState) || isWithinFluid(block, (IExtendedBlockState)extendedState, world, pos, new Vec3d(entity.posX, yToTest, entity.posZ));
+            return !(extendedState instanceof IExtendedBlockState) || isWithinFluid(block, world, pos, new Vec3d(entity.posX, yToTest, entity.posZ), (IExtendedBlockState)extendedState);
         }
 
         public static boolean isWithinFluid(@Nonnull Block block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
-            bb = bb.intersect(new AxisAlignedBB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1));
+            bb = bb.intersect(new AxisAlignedBB(pos));
 
-            final IBlockState state = block.getExtendedState(getFluidOrReal(world, pos), world, pos);
+            final IBlockState state = getFluidOrReal(world, pos);
             if(!(state instanceof IExtendedBlockState)) return true;
 
-            final IExtendedBlockState extendedState = (IExtendedBlockState)state;
-            return isWithinFluid(block, extendedState, world, pos, new Vec3d(bb.minX, bb.minY, bb.minZ))
-                    || isWithinFluid(block, extendedState, world, pos, new Vec3d(bb.minX, bb.minY, bb.maxZ))
-                    || isWithinFluid(block, extendedState, world, pos, new Vec3d(bb.maxX, bb.minY, bb.minZ))
-                    || isWithinFluid(block, extendedState, world, pos, new Vec3d(bb.maxX, bb.minY, bb.maxZ));
+            if(!FluidloggedAPIConfigHandler.fancyFluidEntityCollision) return isWithinFluid(block, world, pos, bb.minY, state);
+            final IExtendedBlockState extendedState = (IExtendedBlockState)block.getExtendedState(state, world, pos);
+            return isWithinFluid(block, world, pos, new Vec3d(bb.minX, bb.minY, bb.minZ), extendedState)
+                    || isWithinFluid(block, world, pos, new Vec3d(bb.minX, bb.minY, bb.maxZ), extendedState)
+                    || isWithinFluid(block, world, pos, new Vec3d(bb.maxX, bb.minY, bb.minZ), extendedState)
+                    || isWithinFluid(block, world, pos, new Vec3d(bb.maxX, bb.minY, bb.maxZ), extendedState);
         }
 
         //helper
-        public static boolean isWithinFluid(@Nonnull Block block, @Nonnull IExtendedBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Vec3d entityVec) {
+        public static boolean isWithinFluid(@Nonnull Block block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Vec3d entityVec, @Nonnull IExtendedBlockState state) {
             final float[][] corners = new float[2][2];
             corners[0][0] = state.getValue(BlockFluidBase.LEVEL_CORNERS[0]);
             corners[0][1] = state.getValue(BlockFluidBase.LEVEL_CORNERS[1]);
@@ -801,12 +813,8 @@ public final class PluginBlockFluidBase implements IASMPlugin
             final double dif2 = Math.sqrt(2) - distance(0, x, 1, z);
             final double dif3 = Math.sqrt(2) - distance(1, x, 1, z);
             final double dif4 = Math.sqrt(2) - distance(1, x, 0, z);
-            final double fluidHeight = (corners[0][0] * dif1 + corners[0][1] * dif2 + corners[1][1] * dif3 + corners[1][0] * dif4)
-                    / (dif1 + dif2 + dif3 + dif4);
 
-            //if fluid is upside down, do upside down collision
-            return block instanceof BlockFluidBase && ((BlockFluidBase)block).getDensity() < 0
-                    ? entityVec.y > pos.getY() - fluidHeight + 1 : entityVec.y < pos.getY() + fluidHeight;
+            return isWithinFluid(block, pos, entityVec.y, (corners[0][0] * dif1 + corners[0][1] * dif2 + corners[1][1] * dif3 + corners[1][0] * dif4) / (dif1 + dif2 + dif3 + dif4));
         }
 
         //helper
@@ -814,6 +822,24 @@ public final class PluginBlockFluidBase implements IASMPlugin
             final double distX = Math.max(x1, x2) - Math.min(x1, x2);
             final double distZ = Math.max(z1, z2) - Math.min(z1, z2);
             return Math.sqrt(distX * distX + distZ * distZ);
+        }
+
+        //helper
+        public static boolean isWithinFluid(@Nonnull Block block, @Nonnull BlockPos pos, double yToCheck, double fluidHeight) {
+            //if fluid is upside down, do upside down collision
+            return block instanceof BlockFluidBase && ((BlockFluidBase)block).getDensity() < 0 ? yToCheck > pos.getY() - fluidHeight + 1 : yToCheck < pos.getY() + fluidHeight;
+        }
+
+        //helper
+        public static boolean isWithinFluid(@Nonnull Block block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, double yToCheck, @Nonnull IBlockState state) {
+            if(block instanceof BlockLiquid) return isWithinFluid(block, pos, yToCheck, applyQolOffset(PluginBlockLiquid.Hooks.getBlockLiquidHeight(state, world, pos)));
+            return world instanceof World && block instanceof IFluidBlock && isWithinFluid(block, pos, yToCheck, applyQolOffset(((IFluidBlock)block).getFilledPercentage((World)world, pos)));
+        }
+
+        //helper
+        public static double applyQolOffset(double fluidHeight) {
+            final double qolOffset = 0.015; //move the level to check down slightly, so things like lava next to soul sand don't light players on fire
+            return (int)fluidHeight == fluidHeight ? fluidHeight : fluidHeight - qolOffset;
         }
 
         public static boolean shouldFluidSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, int densityDir) {
@@ -825,6 +851,10 @@ public final class PluginBlockFluidBase implements IASMPlugin
             if(isCompatibleFluid(fluid, getFluidFromState(neighbor))) return false;
             else if(side != (densityDir > 0 ? DOWN : UP) && neighbor.doesSideBlockRendering(world, pos.offset(side), side.getOpposite())) return false;
             return !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite()) || !isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), fluid);
+        }
+
+        public static float applyQuantaFraction(float remaining, float quantaFraction) {
+            return (int)remaining == remaining ? remaining : remaining * quantaFraction;
         }
     }
 

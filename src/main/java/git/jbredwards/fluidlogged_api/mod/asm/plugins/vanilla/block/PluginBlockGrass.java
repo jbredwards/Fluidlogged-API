@@ -33,7 +33,7 @@ public final class PluginBlockGrass implements IASMPlugin
              *     ...
              * }
              */
-            if(getPrevious(insn, 4).getOpcode() == INVOKEVIRTUAL) {
+            if(getNext(insn, 2).getOpcode() == IF_ICMPLE) {
                 instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/world/World", "getBlockLightOpacity", "(Lnet/minecraft/util/math/BlockPos;)I", false));
                 removeFrom(instructions, insn, -4);
             }
@@ -68,7 +68,7 @@ public final class PluginBlockGrass implements IASMPlugin
          * //this variable is no longer used, change to null to improve performance
          * IBlockState iblockstate = null;
          */
-        else if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState") && insn.getPrevious().getOpcode() == INVOKEVIRTUAL && insn.getNext().getOpcode() != INVOKEINTERFACE) {
+        else if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState") && insn.getPrevious().getOpcode() == INVOKEVIRTUAL && insn.getNext().getOpcode() == ASTORE) {
             instructions.insert(insn, new InsnNode(ACONST_NULL));
             removeFrom(instructions, insn, -3);
         }

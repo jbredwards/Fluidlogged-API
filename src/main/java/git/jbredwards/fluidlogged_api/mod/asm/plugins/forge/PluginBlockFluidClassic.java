@@ -388,8 +388,6 @@ public final class PluginBlockFluidClassic implements IASMPlugin
         }
 
         public static void fluidUpdateTick(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, int quantaPerBlock, int densityDir, boolean canCreateSources) {
-            if(world.isRemote || !world.isAreaLoaded(pos, quantaPerBlock / 2)) return; // Forge: avoid loading unloaded chunks
-
             IBlockState here = world.getBlockState(pos); //fluidlogged fluids will have a different state here than the state input
             if(tryVaporizeHere(block.getFluid(), state, here, world, pos)) here = state; //try vaporize block here
 

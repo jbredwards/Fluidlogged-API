@@ -36,10 +36,10 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraftforge.fluids.FluidRegistry$1", new PluginFluidWater()); //add water's biome colors to its fluid class
             plugins.put("net.minecraftforge.fluids.FluidUtil", new PluginFluidUtil()); //changes some of this class's util functions to be FluidState sensitive
             //modded
-            plugins.put("biomesoplenty.common.fluids.blocks.BlockBloodFluid", new PluginBiomesOPlenty()); //fix BOP fluid block mixing
-            plugins.put("biomesoplenty.common.fluids.blocks.BlockHotSpringWaterFluid", new PluginBiomesOPlenty()); //fix BOP fluid block mixing
-            plugins.put("biomesoplenty.common.fluids.blocks.BlockPoisonFluid", new PluginBiomesOPlenty()); //fix BOP fluid block mixing
-            plugins.put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new PluginBiomesOPlenty()); //fix BOP fluid block mixing
+            plugins.put("biomesoplenty.common.fluids.blocks.BlockBloodFluid", new PluginBiomesOPlenty(false)); //fix BOP fluid block mixing
+            plugins.put("biomesoplenty.common.fluids.blocks.BlockHotSpringWaterFluid", new PluginBiomesOPlenty(false)); //fix BOP fluid block mixing
+            plugins.put("biomesoplenty.common.fluids.blocks.BlockPoisonFluid", new PluginBiomesOPlenty(true)); //fix BOP fluid block mixing
+            plugins.put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new PluginBiomesOPlenty(true)); //fix BOP fluid block mixing
             plugins.put("biomesoplenty.common.item.ItemBOPLilypad", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
             plugins.put("cassiokf.industrialrenewal.blocks.abstracts.BlockMultiBlockBase", new PluginIndustrialRenewal()); //Fix industrial renewal mod's multi-blocks
             plugins.put("cassiokf.industrialrenewal.blocks.railroad.BlockCargoLoader", new PluginIndustrialRenewal()); //Fix industrial renewal mod's multi-blocks
