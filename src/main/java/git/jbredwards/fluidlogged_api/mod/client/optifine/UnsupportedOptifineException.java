@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.mod.client.exception;
+package git.jbredwards.fluidlogged_api.mod.client.optifine;
 
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import net.minecraft.client.gui.FontRenderer;

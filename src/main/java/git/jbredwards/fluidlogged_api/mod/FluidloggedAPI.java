@@ -2,17 +2,18 @@ package git.jbredwards.fluidlogged_api.mod;
 
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.network.message.MessageFluidState;
-import git.jbredwards.fluidlogged_api.mod.client.exception.UnsupportedOptifineException;
+import git.jbredwards.fluidlogged_api.mod.client.optifine.OptifineCustomWaterColors;
+import git.jbredwards.fluidlogged_api.mod.client.optifine.UnsupportedOptifineException;
 import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityNormal;
 import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityIColumn;
 import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityICube;
-import git.jbredwards.fluidlogged_api.mod.common.message.MessageSyncFluidStates;
 import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateStorage;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandReloadConfig;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandSetFluidState;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.legacy.LegacyDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageReloadConfig;
+import git.jbredwards.fluidlogged_api.mod.common.message.MessageSyncFluidStates;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageVaporizeEffects;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.init.Items;
@@ -21,6 +22,7 @@ import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fluids.DispenseFluidContainer;
+import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.common.event.*;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
@@ -71,8 +73,8 @@ public final class FluidloggedAPI
     @SideOnly(Side.CLIENT)
     @Mod.EventHandler
     static void preInitClient(@Nonnull FMLPreInitializationEvent event) {
-        //make sure a supported version of optifine is installed
-        UnsupportedOptifineException.checkOptifineVersion();
+        UnsupportedOptifineException.checkOptifineVersion(); //make sure a supported version of optifine is installed
+        if(FMLClientHandler.instance().hasOptifine()) OptifineCustomWaterColors.setWaterColorHelper(); //optifine custom water colors
     }
 
     @Mod.EventHandler
