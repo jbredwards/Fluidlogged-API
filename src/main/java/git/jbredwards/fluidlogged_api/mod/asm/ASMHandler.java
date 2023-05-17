@@ -56,6 +56,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("hellfirepvp.astralsorcery.common.block.fluid.FluidBlockLiquidStarlight", new PluginAstralSorcery()); //fixes weird mixing interactions
             plugins.put("io.github.lxgaming.sledgehammer.mixin.core.block.BlockDynamicLiquidMixin", new PluginSledgehammer()); //remove redundant transformer
             plugins.put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()); //fix mixin annotation to target fluidlogged api transform
+            plugins.put("mcp.mobius.waila.addons.core.PluginCore", new PluginWaila()); //remove duplicate handlers for BlockLiquid
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingEngine", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingHooks", new PluginHesperus()); //phosphor takes FluidStates into account when computing light
             plugins.put("meldexun.nothirium.mc.renderer.chunk.RenderChunk$ChunkCache", new PluginNothirium()); //better nothirium compat (for old versions)
@@ -158,7 +159,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()); //glass bottles can now be filled by using water FluidStates
             plugins.put("net.minecraft.item.ItemLilyPad", new PluginItemLilyPad()); //lily pads can be placed on certain water FluidStates
             //vanilla (world)
-            plugins.put("net.minecraft.world.chunk.storage.ExtendedBlockStorage", new PluginExtendedBlockStorage()); //fix MC-80966
             plugins.put("net.minecraft.world.chunk.Chunk", new PluginChunk()); //account for FluidState light opacity & light values
             plugins.put("net.minecraft.world.chunk.ChunkPrimer", new PluginChunkPrimer()); //allow mods to generate FluidStates more optimally during world gen
             plugins.put("net.minecraft.world.end.DragonSpawnManager$3", new PluginDragonSpawnManager()); //summoning the ender dragon will now void FluidStates at the pillar locations

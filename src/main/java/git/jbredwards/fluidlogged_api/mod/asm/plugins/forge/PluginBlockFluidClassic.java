@@ -388,6 +388,8 @@ public final class PluginBlockFluidClassic implements IASMPlugin
         }
 
         public static void fluidUpdateTick(@Nonnull BlockFluidClassic block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, int quantaPerBlock, int densityDir, boolean canCreateSources) {
+            if(!world.isAreaLoaded(pos.add(-quantaPerBlock, -quantaPerBlock, -quantaPerBlock), pos.add(quantaPerBlock, quantaPerBlock, quantaPerBlock))) return;
+
             IBlockState here = world.getBlockState(pos); //fluidlogged fluids will have a different state here than the state input
             if(tryVaporizeHere(block.getFluid(), state, here, world, pos)) here = state; //try vaporize block here
 
@@ -513,22 +515,20 @@ public final class PluginBlockFluidClassic implements IASMPlugin
         //helper
         public static void tryFlowIntoFluidloggable(@Nonnull IFluidBlock block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing facingDir, @Nonnull IBlockState state, @Nonnull IBlockState here, int quantaPerBlock, boolean canCreateSources, @Nonnull EnumFacing... flowInto) {
             if(quantaPerBlock > 0 && FluidloggedAPIConfigHandler.fluidloggedFluidSpread > 0 && (FluidloggedAPIConfigHandler.fluidloggedFluidSpread == 2 || state != here) && (state != here || isFluidloggableFluid(state, world, pos)) && ForgeEventFactory.canCreateFluidSource(world, pos, state, canCreateSources)) {
-                for(EnumFacing facing : flowInto) {
+                for(final EnumFacing facing : flowInto) {
                     if(canFluidFlow(world, pos, here, facing)) {
-                        BlockPos offset = pos.offset(facing);
-                        IBlockState neighbor = world.getBlockState(offset);
-
+                        final BlockPos offset = pos.offset(facing);
+                        final IBlockState neighbor = world.getBlockState(offset);
                         //check if the fluid could occupy the space
                         if(canFluidFlow(world, offset, neighbor, facing.getOpposite()) && isStateFluidloggable(neighbor, world, offset, block.getFluid()) && FluidState.get(world, offset).isEmpty()) {
                             //check for another source block that can flow into this
-                            for(EnumFacing adjacentFacing : values()) {
+                            for(final EnumFacing adjacentFacing : VALUES) {
                                 if(adjacentFacing != facingDir && adjacentFacing != facing.getOpposite() && (adjacentFacing.getYOffset() == 0 || FluidloggedAPIConfigHandler.verticalFluidloggedFluidSpread) && canFluidFlow(world, offset, neighbor, adjacentFacing)) {
-                                    BlockPos adjacentOffset = offset.offset(adjacentFacing);
-                                    IBlockState adjacent = world.getBlockState(adjacentOffset);
-
+                                    final BlockPos adjacentOffset = offset.offset(adjacentFacing);
+                                    final IBlockState adjacent = world.getBlockState(adjacentOffset);
                                     if(canFluidFlow(world, adjacentOffset, adjacent, adjacentFacing.getOpposite())) {
                                         //only allow certain FluidStates to count
-                                        FluidState adjacentFluid = FluidloggedAPIConfigHandler.fluidloggedFluidSpread == 1
+                                        final FluidState adjacentFluid = FluidloggedAPIConfigHandler.fluidloggedFluidSpread == 1
                                                 ? FluidState.get(world, adjacentOffset)
                                                 : getFluidState(world, adjacentOffset, adjacent);
 
