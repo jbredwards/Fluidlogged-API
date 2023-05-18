@@ -199,7 +199,7 @@ public final class FluidloggedUtils
 
     //checks if two fluids are compatible
     public static boolean isCompatibleFluid(@Nullable Fluid fluid1, @Nullable Fluid fluid2) {
-        if(fluid1 == null || fluid2 == null) return fluid1 == fluid2;
+        if(fluid1 == null || fluid2 == null) return false;
         else return fluid1.equals(fluid2)
                 || fluid1 instanceof ICompatibleFluid && ((ICompatibleFluid)fluid1).isCompatibleFluid(fluid2)
                 || fluid2 instanceof ICompatibleFluid && ((ICompatibleFluid)fluid2).isCompatibleFluid(fluid1);
