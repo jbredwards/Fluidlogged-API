@@ -167,10 +167,18 @@ public class FluidStateCapabilityVanilla implements IFluidStateCapability, IFlui
             if (indexedPositions.rem(serializedPos)) {
                 if (--tracker[y] == 0) {
                     data[y] = null;
+                    for (byte b : tracker) {
+                        if (b > 0) {
+                            return;
+                        }
+                    }
+                    data = new FluidState[0][];
+                    tracker = new byte[0];
                 } else {
                     states[((serializedPos & 15) << 4) | ((serializedPos >> 4) & 15)] = null;
                 }
             }
+            return;
         }
         if (indexedPositions.add(serializedPos)) {
             tracker[y]++;
