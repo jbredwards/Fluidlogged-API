@@ -1,4 +1,4 @@
-package git.jbredwards.fluidlogged_api.mod.common.capability;
+package git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks;
 
 import com.google.common.collect.Lists;
 import git.jbredwards.fluidlogged_api.api.capability.CapabilityProvider;
@@ -31,14 +31,14 @@ import java.util.function.BiConsumer;
  * @author jbred
  *
  */
-public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluidStateContainer
+public class FluidStateCapabilityCC implements IFluidStateCapability, IFluidStateContainer
 {
     @Nonnull protected final List<FluidState> keys = Lists.newArrayList(FluidState.EMPTY);
     @Nonnull protected final CharList indexedPositions = new CharArrayList();
     protected char[] data = new char[65536];
 
     protected final int chunkX, chunkZ;
-    public FluidStateCapabilityNormal(int chunkXIn, int chunkZIn) {
+    public FluidStateCapabilityCC(int chunkXIn, int chunkZIn) {
         chunkX = chunkXIn;
         chunkZ = chunkZIn;
     }
@@ -47,7 +47,7 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
     static void attach(@Nonnull AttachCapabilitiesEvent<Chunk> event) {
         final Chunk chunk = event.getObject();
         event.addCapability(IFluidStateCapability.CAPABILITY_ID, new CapabilityProvider<>(
-            IFluidStateCapability.CAPABILITY, new FluidStateCapabilityNormal(chunk.x, chunk.z)
+            IFluidStateCapability.CAPABILITY, new FluidStateCapabilityCC(chunk.x, chunk.z)
         ));
     }
 
