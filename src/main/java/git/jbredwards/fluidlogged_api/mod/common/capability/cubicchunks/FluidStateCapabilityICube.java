@@ -3,7 +3,6 @@ package git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks;
 import git.jbredwards.fluidlogged_api.api.capability.CapabilityProvider;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
-import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityNormal;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageSyncFluidStates;
 import io.github.opencubicchunks.cubicchunks.api.world.CubeWatchEvent;
 import io.github.opencubicchunks.cubicchunks.api.world.ICube;
@@ -20,7 +19,7 @@ import javax.annotation.Nullable;
  * @author jbred
  *
  */
-public class FluidStateCapabilityICube extends FluidStateCapabilityNormal
+public class FluidStateCapabilityICube extends FluidStateCapabilityCC
 {
     protected final int chunkY;
     public FluidStateCapabilityICube(int chunkXIn, int chunkYIn, int chunkZIn) {
@@ -30,7 +29,7 @@ public class FluidStateCapabilityICube extends FluidStateCapabilityNormal
     }
 
     @SubscribeEvent
-    static void attach(@Nonnull AttachCapabilitiesEvent<ICube> event) {
+    static void attachToCube(@Nonnull AttachCapabilitiesEvent<ICube> event) {
         final ICube cube = event.getObject();
         event.addCapability(IFluidStateCapability.CAPABILITY_ID, new CapabilityProvider<>(
             IFluidStateCapability.CAPABILITY, new FluidStateCapabilityICube(cube.getX(), cube.getY(), cube.getZ())

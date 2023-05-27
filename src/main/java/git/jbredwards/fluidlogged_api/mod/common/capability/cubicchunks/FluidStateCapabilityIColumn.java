@@ -4,7 +4,6 @@ import git.jbredwards.fluidlogged_api.api.capability.CapabilityProvider;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateContainer;
 import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
-import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityNormal;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageSyncFluidStates;
 import io.github.opencubicchunks.cubicchunks.api.world.IColumn;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
@@ -44,7 +43,7 @@ public class FluidStateCapabilityIColumn implements IFluidStateCapability
         else {
             final Chunk chunk = event.getObject();
             event.addCapability(IFluidStateCapability.CAPABILITY_ID, new CapabilityProvider<>(
-                IFluidStateCapability.CAPABILITY, new FluidStateCapabilityNormal(chunk.x, chunk.z)
+                IFluidStateCapability.CAPABILITY, new FluidStateCapabilityCC(chunk.x, chunk.z)
             ));
         }
     }

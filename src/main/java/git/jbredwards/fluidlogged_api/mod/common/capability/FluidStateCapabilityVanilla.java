@@ -1,14 +1,12 @@
 package git.jbredwards.fluidlogged_api.mod.common.capability;
 
-import com.google.common.collect.Lists;
 import git.jbredwards.fluidlogged_api.api.capability.CapabilityProvider;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateContainer;
 import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageSyncFluidStates;
-import it.unimi.dsi.fastutil.chars.CharArrayList;
-import it.unimi.dsi.fastutil.chars.CharList;
+import it.unimi.dsi.fastutil.chars.CharOpenHashSet;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
@@ -23,7 +21,6 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.function.BiConsumer;
 
 /**
@@ -31,14 +28,16 @@ import java.util.function.BiConsumer;
  * @author jbred
  *
  */
-public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluidStateContainer
+public class FluidStateCapabilityVanilla implements IFluidStateCapability, IFluidStateContainer
 {
-    @Nonnull protected final List<FluidState> keys = Lists.newArrayList(FluidState.EMPTY);
-    @Nonnull protected final CharList indexedPositions = new CharArrayList();
-    protected char[] data = new char[65536];
-
+    // @Nonnull protected final CharArrayList indexedPositions = new CharArrayList();
+    protected final CharOpenHashSet indexedPositions = new CharOpenHashSet();
     protected final int chunkX, chunkZ;
-    public FluidStateCapabilityNormal(int chunkXIn, int chunkZIn) {
+
+    @Nonnull protected byte[] tracker = new byte[0];
+    @Nonnull protected FluidState[][] data = new FluidState[0][];
+
+    public FluidStateCapabilityVanilla(int chunkXIn, int chunkZIn) {
         chunkX = chunkXIn;
         chunkZ = chunkZIn;
     }
@@ -47,7 +46,7 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
     static void attach(@Nonnull AttachCapabilitiesEvent<Chunk> event) {
         final Chunk chunk = event.getObject();
         event.addCapability(IFluidStateCapability.CAPABILITY_ID, new CapabilityProvider<>(
-            IFluidStateCapability.CAPABILITY, new FluidStateCapabilityNormal(chunk.x, chunk.z)
+            IFluidStateCapability.CAPABILITY, new FluidStateCapabilityVanilla(chunk.x, chunk.z)
         ));
     }
 
@@ -62,12 +61,22 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
 
     @Override
     public void forEach(@Nonnull BiConsumer<Character, FluidState> action) {
-        indexedPositions.forEach(indexedPos -> action.accept(indexedPos, keys.get(data[indexedPos])));
+        for (char indexedPosition : indexedPositions) {
+            action.accept(indexedPosition, data[(indexedPosition >> 8)][((indexedPosition & 15) << 4) | ((indexedPosition >> 4) & 15)]);
+        }
     }
 
     @Override
     public boolean hasFluidState(char serializedPos) {
-        return data.length > serializedPos && data[serializedPos] != 0;
+        int y = serializedPos >> 8;
+        if (data.length <= y) {
+            return false;
+        }
+        FluidState[] states = data[y];
+        if (states == null) {
+            return false;
+        }
+        return states[((serializedPos & 15) << 4) | ((serializedPos >> 4) & 15)] != null;
     }
 
     @Override
@@ -86,36 +95,87 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
 
     @Override
     public void clearFluidStates() {
-        data = new char[data.length];
-        indexedPositions.clear();
-        keys.clear();
-        keys.add(FluidState.EMPTY);
+        for (int i = 0; i < data.length; i++) {
+            data[i] = null;
+            tracker[i] = 0;
+        }
+        indexedPositions.trim();
     }
 
     @Override
     public void setFluidState(@Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
-        setFluidState(serializePos(pos), fluidState);
+        int y = pos.getY();
+        if (data.length <= y) {
+            FluidState[][] newData = new FluidState[y + 1][];
+            System.arraycopy(data, 0, newData, 0, data.length);
+            data = newData;
+            byte[] newTracker = new byte[y + 1];
+            System.arraycopy(tracker, 0, newTracker, 0, tracker.length);
+            tracker = newTracker;
+        }
+        FluidState[] states = data[y];
+        if (states == null) {
+            if (fluidState.isEmpty()) {
+                return;
+            }
+            data[y] = states = new FluidState[256];
+            tracker[y] = 0;
+        } else if (fluidState.isEmpty()) {
+            char serializedPos = serializePos(pos);
+            if (indexedPositions.rem(serializedPos)) {
+                if (--tracker[y] == 0) {
+                    data[y] = null;
+                    for (byte b : tracker) {
+                        if (b > 0) {
+                            return;
+                        }
+                    }
+                    data = new FluidState[0][];
+                    tracker = new byte[0];
+                } else {
+                    states[((serializedPos & 15) << 4) | ((serializedPos >> 4) & 15)] = null;
+                }
+            }
+            return;
+        }
+        char serializedPos = serializePos(pos);
+        if (indexedPositions.add(serializedPos)) {
+            tracker[y]++;
+        }
+        states[((serializedPos & 15) << 4) | ((serializedPos >> 4) & 15)] = fluidState;
     }
 
     @Override
     public void setFluidState(char serializedPos, @Nonnull FluidState fluidState) {
-        if(fluidState.isEmpty()) {
-            indexedPositions.rem(serializedPos);
-            data[serializedPos] = 0;
+        int y = serializedPos >> 8;
+        if (data.length <= y) {
+            FluidState[][] newData = new FluidState[y + 1][];
+            System.arraycopy(data, 0, newData, 0, data.length);
+            data = newData;
+            byte[] newTracker = new byte[y + 1];
+            System.arraycopy(tracker, 0, newTracker, 0, tracker.length);
+            tracker = newTracker;
         }
-
-        else {
-            int indexedState = keys.indexOf(fluidState);
-            if(indexedState == -1) {
-                indexedState = keys.size();
-                keys.add(fluidState);
+        FluidState[] states = data[y];
+        if (states == null) {
+            if (fluidState.isEmpty()) {
+                return;
             }
-
-            if(!indexedPositions.contains(serializedPos))
-                indexedPositions.add(serializedPos);
-
-            data[serializedPos] = (char)indexedState;
+            data[y] = states = new FluidState[256];
+            tracker[y] = 0;
+        } else if (fluidState.isEmpty()) {
+            if (indexedPositions.rem(serializedPos)) {
+                if (--tracker[y] == 0) {
+                    data[y] = null;
+                } else {
+                    states[((serializedPos & 15) << 4) | ((serializedPos >> 4) & 15)] = null;
+                }
+            }
         }
+        if (indexedPositions.add(serializedPos)) {
+            tracker[y]++;
+        }
+        states[((serializedPos & 15) << 4) | ((serializedPos >> 4) & 15)] = fluidState;
     }
 
     @Nonnull
@@ -127,7 +187,16 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
     @Nonnull
     @Override
     public FluidState getFluidState(char serializedPos, @Nonnull FluidState fallback) {
-        return hasFluidState(serializedPos) ? keys.get(data[serializedPos]) : fallback;
+        int y = serializedPos >> 8;
+        if (data.length <= y) {
+            return FluidState.EMPTY;
+        }
+        FluidState[] states = data[y];
+        if (states == null) {
+            return FluidState.EMPTY;
+        }
+        FluidState fluidState = states[((serializedPos & 15) << 4) | ((serializedPos >> 4) & 15)];
+        return fluidState == null ? FluidState.EMPTY : fluidState;
     }
 
     @Nonnull
@@ -187,4 +256,5 @@ public class FluidStateCapabilityNormal implements IFluidStateCapability, IFluid
             }
         }
     }
+
 }

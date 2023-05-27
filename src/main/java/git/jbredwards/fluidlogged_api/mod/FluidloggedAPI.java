@@ -4,7 +4,8 @@ import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.network.message.MessageFluidState;
 import git.jbredwards.fluidlogged_api.mod.client.optifine.OptifineCustomWaterColors;
 import git.jbredwards.fluidlogged_api.mod.client.optifine.UnsupportedOptifineException;
-import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityNormal;
+import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityVanilla;
+import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityCC;
 import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityIColumn;
 import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityICube;
 import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateStorage;
@@ -62,7 +63,7 @@ public final class FluidloggedAPI
         INSTANCE.registerMessage(MessageReloadConfig.Handler.INSTANCE, MessageReloadConfig.class, 3, Side.CLIENT);
         INSTANCE.registerMessage(MessageVaporizeEffects.Handler.INSTANCE, MessageVaporizeEffects.class, 4, Side.CLIENT);
         //no cubic chunks
-        if(!isCubicChunks) MinecraftForge.EVENT_BUS.register(FluidStateCapabilityNormal.class);
+        if(!isCubicChunks) MinecraftForge.EVENT_BUS.register(FluidStateCapabilityVanilla.class);
         //cubic chunks
         else {
             MinecraftForge.EVENT_BUS.register(FluidStateCapabilityIColumn.class);
