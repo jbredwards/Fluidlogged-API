@@ -17,6 +17,7 @@ repositories {
     maven { url 'https://jitpack.io' }
 }
 ```
+##### Make sure your project isn't using ForgeGradle 3+, it doesn't apply access transformers from dependencies, so your mod must use either ForgeGradle 2.3 or [FancyGradle](https://gitlab.com/gofancy/fancygradle/-/wikis/home).
 
 ##### Any mods using versions 1.8.0+ as a dependancy must make sure they're using stable_39 mappings for this mod to work properly in a deobfuscated enviornment!
 
