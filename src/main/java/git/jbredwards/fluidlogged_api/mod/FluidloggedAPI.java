@@ -5,10 +5,9 @@ import git.jbredwards.fluidlogged_api.api.network.message.MessageFluidState;
 import git.jbredwards.fluidlogged_api.mod.client.optifine.OptifineCustomWaterColors;
 import git.jbredwards.fluidlogged_api.mod.client.optifine.UnsupportedOptifineException;
 import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityVanilla;
-import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityCC;
 import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityIColumn;
 import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityICube;
-import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateStorage;
+import git.jbredwards.fluidlogged_api.mod.common.capability.util.FluidStateStorage;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandReloadConfig;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandSetFluidState;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
@@ -46,7 +45,7 @@ public final class FluidloggedAPI
 {
     //mod id constants
     @Nonnull
-    public static final String MODID = "fluidlogged_api", NAME  = "Fluidlogged API", VERSION = "2.2.2";
+    public static final String MODID = "fluidlogged_api", NAME  = "Fluidlogged API", VERSION = "2.2.3";
     public static final boolean //compat id constants
             isChiseledMe    = Loader.isModLoaded("chiseled_me"),
             isCubicChunks   = Loader.isModLoaded("cubicchunks"),

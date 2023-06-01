@@ -7,7 +7,7 @@ import javax.annotation.Nonnull;
 import java.util.function.BiConsumer;
 
 /**
- * Hold FluidStates
+ * Holds FluidStates
  * @author jbred
  *
  */

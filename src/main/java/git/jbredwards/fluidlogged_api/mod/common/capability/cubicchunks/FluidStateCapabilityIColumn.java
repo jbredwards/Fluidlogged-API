@@ -4,6 +4,7 @@ import git.jbredwards.fluidlogged_api.api.capability.CapabilityProvider;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateContainer;
 import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
+import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityVanilla;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageSyncFluidStates;
 import io.github.opencubicchunks.cubicchunks.api.world.IColumn;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
@@ -15,7 +16,6 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.world.ChunkWatchEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -35,16 +35,12 @@ public class FluidStateCapabilityIColumn implements IFluidStateCapability
     @SubscribeEvent
     static void attach(@Nonnull AttachCapabilitiesEvent<Chunk> event) {
         if(event.getObject() instanceof IColumn && isCubicWorld(event.getObject().getWorld())) {
-            event.addCapability(IFluidStateCapability.CAPABILITY_ID, new CapabilityProvider<>(
-                IFluidStateCapability.CAPABILITY, new FluidStateCapabilityIColumn((IColumn)event.getObject())
-            ));
+            event.addCapability(CAPABILITY_ID, new CapabilityProvider<>(CAPABILITY, new FluidStateCapabilityIColumn((IColumn)event.getObject())));
         }
 
         else {
             final Chunk chunk = event.getObject();
-            event.addCapability(IFluidStateCapability.CAPABILITY_ID, new CapabilityProvider<>(
-                IFluidStateCapability.CAPABILITY, new FluidStateCapabilityCC(chunk.x, chunk.z)
-            ));
+            event.addCapability(CAPABILITY_ID, new CapabilityProvider<>(CAPABILITY, new FluidStateCapabilityVanilla(chunk.x, chunk.z)));
         }
     }
 
@@ -53,10 +49,7 @@ public class FluidStateCapabilityIColumn implements IFluidStateCapability
         final @Nullable Chunk chunk = event.getChunkInstance();
         if(chunk != null && !isCubicWorld(chunk.getWorld())) {
             final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
-            if(cap != null) {
-                final IMessage message = new MessageSyncFluidStates(chunk, cap);
-                FluidloggedAPINetworkHandler.INSTANCE.sendTo(message, event.getPlayer());
-            }
+            if(cap != null) FluidloggedAPINetworkHandler.INSTANCE.sendTo(new MessageSyncFluidStates(chunk, cap), event.getPlayer());
         }
     }
 

@@ -3,47 +3,41 @@ package git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks;
 import git.jbredwards.fluidlogged_api.api.capability.CapabilityProvider;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
+import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityVanilla;
 import git.jbredwards.fluidlogged_api.mod.common.message.MessageSyncFluidStates;
 import io.github.opencubicchunks.cubicchunks.api.world.CubeWatchEvent;
 import io.github.opencubicchunks.cubicchunks.api.world.ICube;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Cubic Chunks mod compat
+ * Cubic Chunks mod compat, holds FluidStates within a 16x16x16 area
  * @author jbred
  *
  */
-public class FluidStateCapabilityICube extends FluidStateCapabilityCC
+public class FluidStateCapabilityICube extends FluidStateCapabilityVanilla
 {
     protected final int chunkY;
     public FluidStateCapabilityICube(int chunkXIn, int chunkYIn, int chunkZIn) {
         super(chunkXIn, chunkZIn);
         chunkY = chunkYIn;
-        data = new char[4096];
     }
 
     @SubscribeEvent
     static void attachToCube(@Nonnull AttachCapabilitiesEvent<ICube> event) {
         final ICube cube = event.getObject();
-        event.addCapability(IFluidStateCapability.CAPABILITY_ID, new CapabilityProvider<>(
-            IFluidStateCapability.CAPABILITY, new FluidStateCapabilityICube(cube.getX(), cube.getY(), cube.getZ())
-        ));
+        event.addCapability(CAPABILITY_ID, new CapabilityProvider<>(CAPABILITY, new FluidStateCapabilityICube(cube.getX(), cube.getY(), cube.getZ())));
     }
 
     @SubscribeEvent
     static void sync(@Nonnull CubeWatchEvent event) {
         final ICube cube = event.getCube();
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(cube);
-        if(cap != null) {
-            final IMessage message = new MessageSyncFluidStates(cube.getX(), cube.getY(), cube.getZ(), cap);
-            FluidloggedAPINetworkHandler.INSTANCE.sendTo(message, event.getPlayer());
-        }
+        if(cap != null) FluidloggedAPINetworkHandler.INSTANCE.sendTo(new MessageSyncFluidStates(cube.getX(), cube.getY(), cube.getZ(), cap), event.getPlayer());
     }
 
     @Override

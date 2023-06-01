@@ -30,6 +30,7 @@ public final class ASMHandler implements BasicLoadingPlugin
         public Transformer() {
             //forge
             plugins.put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new PluginModelFluid()); //fixes all issues with fluidlogged z-fighting
+            plugins.put("net.minecraftforge.client.model.ModelFluid$CachingBakedFluid", new PluginCachingBakedFluid()); //remove max cache size, fixes issues with fluid sides sometimes randomly not rendering
             plugins.put("net.minecraftforge.common.ForgeHooks", new PluginForgeHooks()); //fix ForgeHooks#isInsideOfMaterial by allowing it to access stored fluid blocks
             plugins.put("net.minecraftforge.fluids.BlockFluidBase", new PluginBlockFluidBase()); //modded fluids work properly with the mod & prevent startup crash
             plugins.put("net.minecraftforge.fluids.BlockFluidClassic", new PluginBlockFluidClassic()); //modded fluids work properly with the mod
@@ -63,6 +64,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("meldexun.nothirium.mc.renderer.chunk.SectionRenderCache", new PluginNothirium()); //better nothirium compat (for new versions)
             plugins.put("mods.railcraft.common.fluids.CustomContainerHandler", new PluginRailcraft()); //fix railcraft uncraftable potion bug when collecting water bottles (issue#148)
             plugins.put("mrtjp.projectred.core.TFaceConnectable$class", new PluginProjectRed()); //allow wires to connect through fluids
+            plugins.put("net.dries007.tfc.objects.blocks.BlockFluidTFC", new PluginTFCBlockFluid()); //duplicate fluid logic isn't needed, and causes conflicts with this mod
+            plugins.put("net.dries007.tfc.objects.fluids.FluidsTFC", new PluginTFCFluids()); //use ICompatibleFluid for water-like fluids
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); //better optifine compat
             plugins.put("org.spongepowered.common.mixin.core.block.BlockDynamicLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.block.BlockLiquidMixin", new PluginSpongeForge()); //spongeforge no longer mixins into conflicting methods

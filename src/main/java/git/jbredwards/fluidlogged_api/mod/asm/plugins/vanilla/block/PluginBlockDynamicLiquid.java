@@ -32,7 +32,7 @@ import java.util.Random;
 public final class PluginBlockDynamicLiquid implements IASMPlugin
 {
     @Override
-    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return method.name.equals(obfuscated ? "field_96113_a" : "isBlocked"); }
+    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return method.name.equals(obfuscated ? "func_176372_g" : "isBlocked"); }
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {

@@ -6,8 +6,8 @@ import git.jbredwards.fluidlogged_api.api.network.IClientMessageHandler;
 import git.jbredwards.fluidlogged_api.api.network.message.AbstractMessage;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import it.unimi.dsi.fastutil.chars.CharOpenHashSet;
-import it.unimi.dsi.fastutil.chars.CharSet;
+import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityVanilla;
+import git.jbredwards.fluidlogged_api.mod.common.capability.util.FluidStateLayer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
@@ -19,7 +19,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -30,7 +30,7 @@ import java.util.List;
 public final class MessageSyncFluidStates extends AbstractMessage
 {
     @Nonnull
-    public List<Pair<Character, Integer>> data = new ArrayList<>();
+    public List<Pair<Character, Integer>> data = new LinkedList<>();
     public int x, y, z;
 
     public MessageSyncFluidStates() {}
@@ -85,10 +85,23 @@ public final class MessageSyncFluidStates extends AbstractMessage
 
             if(cap != null) {
                 final IFluidStateContainer container = cap.getContainer(message.x, message.y, message.z);
+
                 //clear any old fluid states
-                final CharSet removed = new CharOpenHashSet();
+                final List<Character> removed = new LinkedList<>();
                 container.forEach((pos, fluidState) -> removed.add(pos));
                 container.clearFluidStates();
+
+                //increase array size only once if possible
+                if(container instanceof FluidStateCapabilityVanilla) {
+                    final int[] size = {0}; //use array here so the size int can be changed in the loop
+                    message.data.forEach(entry -> {
+                        final int y = entry.getLeft() >> 8;
+                        if(y > size[0]) size[0] = y;
+                    });
+
+                    ((FluidStateCapabilityVanilla)container).layers = new FluidStateLayer[size[0] + 1];
+                }
+
                 //add any new fluid states
                 message.data.forEach(entry -> {
                     final BlockPos pos = container.deserializePos(entry.getKey());
@@ -99,6 +112,7 @@ public final class MessageSyncFluidStates extends AbstractMessage
                     world.markBlockRangeForRenderUpdate(pos, pos);
                     FluidloggedUtils.relightFluidBlock(world, pos, fluidState);
                 });
+
                 //update removed light levels & renders
                 removed.forEach(serializedPos -> {
                     //make sure the cleared pos wasn't replaced prior to re-render
