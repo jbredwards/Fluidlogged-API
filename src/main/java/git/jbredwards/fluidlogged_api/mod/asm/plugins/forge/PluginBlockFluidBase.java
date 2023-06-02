@@ -9,6 +9,7 @@ import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHand
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.ActiveRenderInfo;
@@ -507,12 +508,11 @@ public final class PluginBlockFluidBase implements IASMPlugin
             //side overlays, skipped if there's no overlay texture
             if(fluid.getOverlay() != null) {
                 for(int i = 0; i < 4; i++) {
-                    EnumFacing side = byHorizontalIndex(i);
-                    BlockPos offset = pos.offset(side);
+                    final EnumFacing side = byHorizontalIndex(i);
+                    final BlockPos offset = pos.offset(side);
                     //use cache if available
-                    state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], !canFluidFlow(world, offset,
-                            getOrSet(states, () -> getFromCache(chunks, world, offset, originX, originZ, Chunk::getBlockState), side.getXOffset() + 1, side.getZOffset() + 1),
-                            side.getOpposite()));
+                    final IBlockState neighbor = getOrSet(states, () -> getFromCache(chunks, world, offset, originX, originZ, Chunk::getBlockState), side.getXOffset() + 1, side.getZOffset() + 1);
+                    state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], neighbor.getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID);
                 }
             }
 
