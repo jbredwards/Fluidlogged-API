@@ -9,7 +9,6 @@ import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHand
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.ActiveRenderInfo;
@@ -456,6 +455,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
         public static IBlockState getFluidExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, int densityDir, int quantaPerBlock, float quantaPerBlockFloat, float quantaFraction, float flowDirection) {
             if(!(oldState instanceof IExtendedBlockState)) return oldState;
             final EnumFacing densityFace = densityDir < 0 ? UP : DOWN;
+            pos = pos.toImmutable();
 
             //covert to extended state
             final FluidExtendedBlockState state = new FluidExtendedBlockState((IExtendedBlockState)oldState);
@@ -512,7 +512,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
                     final BlockPos offset = pos.offset(side);
                     //use cache if available
                     final IBlockState neighbor = getOrSet(states, () -> getFromCache(chunks, world, offset, originX, originZ, Chunk::getBlockState), side.getXOffset() + 1, side.getZOffset() + 1);
-                    state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], neighbor.getBlockFaceShape(world, offset, side.getOpposite()) == BlockFaceShape.SOLID);
+                    state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], !canFluidFlow(world, offset, neighbor, side.getOpposite()));
                 }
             }
 
@@ -843,6 +843,8 @@ public final class PluginBlockFluidBase implements IASMPlugin
         }
 
         public static boolean shouldFluidSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, int densityDir) {
+            pos = pos.toImmutable(); //fixes fluid sides rarely randomly rendering very wrongly (issue#176)
+
             if(!canFluidFlow(world, pos, world.getBlockState(pos), side)) return true;
             final IBlockState neighbor = world.getBlockState(pos.offset(side));
             final Fluid fluid = getFluidFromState(state);

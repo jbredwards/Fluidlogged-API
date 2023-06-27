@@ -8,7 +8,6 @@ import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
-import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -150,14 +149,15 @@ public final class PluginChunk implements IASMPlugin
              *
              * New code:
              * //account for FluidState light value
-             * if (Hooks.getFluidLightValue(this.world, blockpos2) > 0)
+             * if (Hooks.getFluidLightValue(this.world, blockpos2, this) > 0)
              * {
              *     ...
              * }
              */
             else if(checkMethod(insn, "getLightValue")) {
                 removeFrom(instructions, getPrevious(insn, 3), -3);
-                instructions.insert(insn, genMethodNode("getFluidLightValue", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)I"));
+                instructions.insert(insn, genMethodNode("getFluidLightValue", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/chunk/Chunk;)I"));
+                instructions.insert(insn, new VarInsnNode(ALOAD, 0));
                 instructions.remove(insn);
                 return true;
             }
@@ -246,8 +246,8 @@ public final class PluginChunk implements IASMPlugin
             return Math.max(state.getLightOpacity(world, pos), FluidState.getFromProvider(chunk, pos).getState().getLightOpacity(world, pos));
         }
 
-        public static int getFluidLightValue(@Nonnull World world, @Nonnull BlockPos pos) {
-            final Chunk chunk = world.getChunk(pos);
+        public static int getFluidLightValue(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Chunk chunkIn) {
+            final Chunk chunk = chunkIn.isAtLocation(pos.getX() >> 4, pos.getZ() >> 4) ? chunkIn : world.getChunk(pos);
             return getFluidLightValue(chunk.getBlockState(pos), world, pos, chunk);
         }
 

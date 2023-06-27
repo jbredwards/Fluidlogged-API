@@ -15,7 +15,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  *
@@ -26,10 +26,11 @@ public class CommandSetFluidState extends CommandBase
 {
     @Nonnull
     protected static final List<ResourceLocation> TAB_COMPLETIONS = ImmutableList.<ResourceLocation>builder()
-            .addAll(FluidRegistry.getRegisteredFluids().values().stream()
+            .add(FluidRegistry.getRegisteredFluids().values().stream()
                     .filter(fluid -> FluidloggedUtils.isFluidloggableFluid(fluid.getBlock()))
                     .map(fluid -> fluid.getBlock().getRegistryName())
-                    .collect(Collectors.toList()))
+                    .filter(Objects::nonNull)
+                    .toArray(ResourceLocation[]::new))
             .add(new ResourceLocation("air"))
             .build();
 

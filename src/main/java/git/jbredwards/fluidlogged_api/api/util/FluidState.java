@@ -35,7 +35,9 @@ public class FluidState extends Pair<Fluid, IBlockState>
 
     protected final Fluid fluid;
     protected final Supplier<IBlockState> state;
-    protected int level = -1;
+
+    //cached for better performance
+    protected byte level = -1;
 
     //using FluidState#of rather than the constructor directly is advised
     protected FluidState(@Nullable Fluid fluidIn, @Nonnull Supplier<IBlockState> stateIn) {
@@ -127,7 +129,7 @@ public class FluidState extends Pair<Fluid, IBlockState>
     @Nonnull
     public Material getMaterial() { return getState().getMaterial(); }
 
-    public int getLevel() { return level >= 0 ? level : (level = getState().getValue(BlockLiquid.LEVEL)); }
+    public int getLevel() { return level > -1 ? level : (level = getState().getValue(BlockLiquid.LEVEL).byteValue()); }
 
     @Override
     public final Fluid getLeft() { return getFluid(); }

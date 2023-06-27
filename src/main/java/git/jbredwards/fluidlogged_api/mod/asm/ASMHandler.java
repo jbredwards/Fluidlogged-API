@@ -30,7 +30,6 @@ public final class ASMHandler implements BasicLoadingPlugin
         public Transformer() {
             //forge
             plugins.put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new PluginModelFluid()); //fixes all issues with fluidlogged z-fighting
-            plugins.put("net.minecraftforge.client.model.ModelFluid$CachingBakedFluid", new PluginCachingBakedFluid()); //remove max cache size, fixes issues with fluid sides sometimes randomly not rendering
             plugins.put("net.minecraftforge.common.ForgeHooks", new PluginForgeHooks()); //fix ForgeHooks#isInsideOfMaterial by allowing it to access stored fluid blocks
             plugins.put("net.minecraftforge.fluids.BlockFluidBase", new PluginBlockFluidBase()); //modded fluids work properly with the mod & prevent startup crash
             plugins.put("net.minecraftforge.fluids.BlockFluidClassic", new PluginBlockFluidClassic()); //modded fluids work properly with the mod
