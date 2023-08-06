@@ -1,10 +1,20 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.mod.client.model.BakedModelFluid;
+import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.model.IModelState;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+import java.util.function.Function;
 
 /**
  * fixes all issues with fluidlogged z-fighting
@@ -86,19 +96,51 @@ public final class PluginModelFluid implements IASMPlugin
         return false;
     }
 
+    @Override
+    public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
+        if("net/minecraftforge/client/model/ModelFluid".equals(classNode.name)) {
+            /*
+             * bake:
+             * //direct to new baked fluid model instance that doesn't use a cache (fixes issue#176)
+             * @Override
+             * public IBakedModel bake(IModelState state, VertexFormat format, Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter)
+             * {
+             *     return Hooks.bake(this.fluid, state, format, bakedTextureGetter);
+             * }
+             */
+            overrideMethod(classNode, method -> method.name.equals("bake"), "bake", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraftforge/common/model/IModelState;Lnet/minecraft/client/renderer/vertex/VertexFormat;Ljava/util/function/Function;)Lnet/minecraft/client/renderer/block/model/IBakedModel;", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/client/model/ModelFluid", "fluid", "Lnet/minecraftforge/fluids/Fluid;");
+                generator.visitVarInsn(ALOAD, 1);
+                generator.visitVarInsn(ALOAD, 2);
+                generator.visitVarInsn(ALOAD, 3);
+            });
+
+            return false;
+        }
+
+        return true;
+    }
+
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static float fixTextureFightingX(float old, int index) {
-            //[W, S, E, N]
-            if(EnumFacing.byHorizontalIndex(5 - index).getDirectionVec().getX() == 0) return old;
-            else return old == 1 ? 0.998f : 0.002f;
+        @Nonnull
+        @SideOnly(Side.CLIENT)
+        public static IBakedModel bake(@Nonnull Fluid fluid, @Nonnull IModelState state, @Nonnull VertexFormat format, @Nonnull Function<ResourceLocation, TextureAtlasSprite> textureGetter) {
+            return new BakedModelFluid(fluid, state, format, textureGetter);
         }
 
+        //[W, S, E, N]
+        @SideOnly(Side.CLIENT)
+        public static float fixTextureFightingX(float old, int index) {
+            return BakedModelFluid.fixTextureFightingX(old, EnumFacing.byHorizontalIndex(5 - index));
+        }
+
+        //[W, S, E, N]
+        @SideOnly(Side.CLIENT)
         public static float fixTextureFightingZ(float old, int index) {
-            //[W, S, E, N]
-            if(EnumFacing.byHorizontalIndex(5 - index).getDirectionVec().getZ() == 0) return old;
-            else return old == 1 ? 0.998f : 0.002f;
+            return BakedModelFluid.fixTextureFightingZ(old, EnumFacing.byHorizontalIndex(5 - index));
         }
     }
 }

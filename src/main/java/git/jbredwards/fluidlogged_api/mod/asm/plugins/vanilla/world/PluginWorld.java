@@ -177,8 +177,8 @@ public final class PluginWorld implements IASMPlugin
                 list.add(new VarInsnNode(ALOAD, 0));
                 list.add(new VarInsnNode(ALOAD, 1));
                 list.add(new MethodInsnNode(INVOKEVIRTUAL, "net/minecraft/world/World", obfuscated ? "func_175726_f" : "getChunk", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;", false));
-                list.add(new VarInsnNode(ASTORE, 8));
-                list.add(new VarInsnNode(ALOAD, 8));
+                list.add(new VarInsnNode(ASTORE, 15));
+                list.add(new VarInsnNode(ALOAD, 15));
                 instructions.insertBefore(getPrevious(insn, 2), list);
                 //change getBlockState method
                 instructions.remove(getPrevious(insn, 2));
@@ -201,7 +201,7 @@ public final class PluginWorld implements IASMPlugin
                 list.add(new VarInsnNode(ALOAD, 1));
                 list.add(new VarInsnNode(ALOAD, 2));
                 list.add(new VarInsnNode(ALOAD, 3));
-                list.add(new VarInsnNode(ALOAD, 8));
+                list.add(new VarInsnNode(ALOAD, 15));
                 list.add(genMethodNode("fluidNeighborChanged", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/chunk/Chunk;)V"));
 
                 instructions.insert(insn, list);
@@ -420,7 +420,7 @@ public final class PluginWorld implements IASMPlugin
     @Override
     public boolean addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) {
         if(index == 3) {
-            method.localVariables.add(new LocalVariableNode("chunk", "Lnet/minecraft/world/chunk/Chunk;", null, start, end, 8));
+            method.localVariables.add(new LocalVariableNode("chunk", "Lnet/minecraft/world/chunk/Chunk;", null, start, end, 15));
             return true;
         }
 

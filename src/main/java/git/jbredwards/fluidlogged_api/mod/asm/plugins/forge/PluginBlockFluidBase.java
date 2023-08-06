@@ -23,7 +23,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
-import net.minecraftforge.common.property.PropertyFloat;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.IFluidBlock;
@@ -36,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
@@ -459,7 +459,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
 
             //covert to extended state
             final FluidExtendedBlockState state = new FluidExtendedBlockState((IExtendedBlockState)oldState);
-            state.withProperty(BlockFluidBase.FLOW_DIRECTION, flowDirection);
+            state.flowDirection = flowDirection;
 
             //corner height variables
             final IBlockState[][][] states = new IBlockState[3][2][3];
@@ -505,19 +505,29 @@ public final class PluginBlockFluidBase implements IASMPlugin
                         corner[i][j] = getFluidHeightAverage(quantaFraction, height[i][j], height[i][j + 1], height[i + 1][j], height[i + 1][j + 1]);
             }
 
+            //don't calculate quads for sides that won't end up rendering anyway, this results in much better performance during rendering
+            state.shouldSideBeRenderedCache[densityFace.getOpposite().ordinal()] = shouldFluidSideBeRendered(fluid, states[1][0][1], world, pos, densityFace.getOpposite(), densityDir, world::getBlockState, (offset, neighbor) -> getFluidState(world, offset, neighbor).getFluid());
+            state.shouldSideBeRenderedCache[densityFace.ordinal()] = shouldFluidSideBeRendered(fluid, states[1][0][1], world, pos, densityFace, densityDir, offset -> states[1][1][1], (offset, neighbor) -> fluids[1][1][1].getFluid());
+            for(final EnumFacing side : HORIZONTALS) state.shouldSideBeRenderedCache[side.ordinal()] = shouldFluidSideBeRendered(fluid, states[1][0][1], world, pos, side, densityDir,
+                    offset -> getOrSet(states, () -> getFromCache(chunks, world, offset, originX, originZ, Chunk::getBlockState), side),
+                    (offset, neighbor) -> getOrSet(fluids, () -> getFluidFromCache(chunks, world, offset, originX, originZ, neighbor), side).getFluid());
+
             //side overlays, skipped if there's no overlay texture
             if(fluid.getOverlay() != null) {
+                final EnumFacing[] indexes = new EnumFacing[] { SOUTH, WEST, NORTH, EAST };
                 for(int i = 0; i < 4; i++) {
-                    final EnumFacing side = byHorizontalIndex(i);
-                    final BlockPos offset = pos.offset(side);
-                    //use cache if available
-                    final IBlockState neighbor = getOrSet(states, () -> getFromCache(chunks, world, offset, originX, originZ, Chunk::getBlockState), side.getXOffset() + 1, side.getZOffset() + 1);
-                    state.withProperty(BlockFluidBase.SIDE_OVERLAYS[i], !canFluidFlow(world, offset, neighbor, side.getOpposite()));
+                    final EnumFacing side = indexes[i];
+                    if(state.shouldSideBeRenderedCache[side.ordinal()]) {
+                        final BlockPos offset = pos.offset(side);
+                        //use cache if available
+                        final IBlockState neighbor = getOrSet(states, () -> getFromCache(chunks, world, offset, originX, originZ, Chunk::getBlockState), side);
+                        state.sideOverlays[i] = !canFluidFlow(world, offset, neighbor, side.getOpposite());
+                    }
                 }
             }
 
             //fix possible top z fighting
-            if(!canFluidFlow(world, pos, states[1][0][1], densityFace)) {
+            if(state.shouldSideBeRenderedCache[densityFace.ordinal()]) {
                 if(corner[0][0] == 1) corner[0][0] = 0.998f;
                 if(corner[0][1] == 1) corner[0][1] = 0.998f;
                 if(corner[1][0] == 1) corner[1][0] = 0.998f;
@@ -525,10 +535,10 @@ public final class PluginBlockFluidBase implements IASMPlugin
             }
 
             //sets the corner props
-            withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[0], corner[0][0], quantaFraction);
-            withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[1], corner[0][1], quantaFraction);
-            withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[2], corner[1][1], quantaFraction);
-            withPropertyFallback(state, BlockFluidBase.LEVEL_CORNERS[3], corner[1][0], quantaFraction);
+            state.levelCorners[0] = corner[0][0];
+            state.levelCorners[1] = corner[0][1];
+            state.levelCorners[2] = corner[1][1];
+            state.levelCorners[3] = corner[1][0];
             return state;
         }
 
@@ -692,11 +702,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
             return getFromCache(chunks, world, pos, originX, originZ, (chunk, posIn) -> isFluid(state) ? FluidState.of(state) : FluidState.getFromProvider(chunk, posIn));
         }
 
-        //helper
-        public static void withPropertyFallback(@Nonnull IExtendedBlockState state, @Nonnull PropertyFloat property, float value, float quantaFraction) {
-            state.withProperty(property, property.isValid(value) ? value : quantaFraction);
-        }
-
         @Nonnull
         public static Vec3d getFluidFlowVector(@Nonnull BlockFluidBase block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int densityDir, int quantaPerBlock) {
             final IBlockState here = world.getBlockState(pos);
@@ -731,7 +736,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
         @Nonnull
         public static Vec3d getFluidFogColor(@Nonnull BlockFluidBase block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Entity entity, @Nonnull Vec3d originalColor, float partialTicks) {
             final boolean isWithinFluid;
-            if(FluidloggedAPIConfigHandler.fancyFluidEntityCollision) isWithinFluid = isWithinFluid(block, world, pos, ActiveRenderInfo.projectViewFromEntity(entity, partialTicks).y, state);
+            if(!FluidloggedAPIConfigHandler.fancyFluidEntityCollision) isWithinFluid = isWithinFluid(block, world, pos, ActiveRenderInfo.projectViewFromEntity(entity, partialTicks).y, state);
             else isWithinFluid = isWithinFluid(block, world, pos, ActiveRenderInfo.projectViewFromEntity(entity, partialTicks), (IExtendedBlockState)block.getExtendedState(state, world, pos));
 
             //remove built-in in place for better check
@@ -844,15 +849,20 @@ public final class PluginBlockFluidBase implements IASMPlugin
 
         public static boolean shouldFluidSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, int densityDir) {
             pos = pos.toImmutable(); //fixes fluid sides rarely randomly rendering very wrongly (issue#176)
+            return shouldFluidSideBeRendered(getFluidFromState(state), world.getBlockState(pos), world, pos, side, densityDir,
+                    world::getBlockState, (offset, neighbor) -> getFluidState(world, offset, neighbor).getFluid());
+        }
 
-            if(!canFluidFlow(world, pos, world.getBlockState(pos), side)) return true;
-            final IBlockState neighbor = world.getBlockState(pos.offset(side));
-            final Fluid fluid = getFluidFromState(state);
+        //helper
+        public static boolean shouldFluidSideBeRendered(@Nullable Fluid fluid, @Nonnull IBlockState here, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, int densityDir, @Nonnull Function<BlockPos, IBlockState> neighborSupplier, @Nonnull BiFunction<BlockPos, IBlockState, Fluid> neighborFluid) {
+            if(!canFluidFlow(world, pos, here, side)) return true;
+            final BlockPos offset = pos.offset(side);
+            final IBlockState neighbor = neighborSupplier.apply(offset);
 
             //this check exists for mods like coral reef that don't have proper block sides
             if(isCompatibleFluid(fluid, getFluidFromState(neighbor))) return false;
-            else if(side != (densityDir > 0 ? DOWN : UP) && neighbor.doesSideBlockRendering(world, pos.offset(side), side.getOpposite())) return false;
-            return !canFluidFlow(world, pos.offset(side), neighbor, side.getOpposite()) || !isCompatibleFluid(getFluidState(world, pos.offset(side), neighbor).getFluid(), fluid);
+            else if(side != (densityDir > 0 ? DOWN : UP) && neighbor.doesSideBlockRendering(world, offset, side.getOpposite())) return false;
+            return !canFluidFlow(world, offset, neighbor, side.getOpposite()) || !isCompatibleFluid(neighborFluid.apply(offset, neighbor), fluid);
         }
 
         public static float applyQuantaFraction(float remaining, float quantaFraction) {
@@ -866,11 +876,12 @@ public final class PluginBlockFluidBase implements IASMPlugin
     }
 
     //faster version of the default IExtendedBlockState with hardcoded properties, used exclusively for rendering & collision logic
-    private static final class FluidExtendedBlockState extends BlockStateContainer.StateImplementation implements IExtendedBlockState
+    public static final class FluidExtendedBlockState extends BlockStateContainer.StateImplementation implements IExtendedBlockState
     {
-        private Float flowDirection;
-        private final Float[] levelCorners = new Float[4];
-        private final Boolean[] sideOverlays = new Boolean[4];
+        public Float flowDirection;
+        public final Float[] levelCorners = new Float[4];
+        public final Boolean[] sideOverlays = new Boolean[4];
+        public final boolean[] shouldSideBeRenderedCache = new boolean[6];
 
         @Nonnull
         private final IExtendedBlockState parent;
