@@ -105,12 +105,18 @@ public final class PluginModelFluid implements IASMPlugin
              * @Override
              * public IBakedModel bake(IModelState state, VertexFormat format, Function<ResourceLocation, TextureAtlasSprite> bakedTextureGetter)
              * {
-             *     return Hooks.bake(this.fluid, state, format, bakedTextureGetter);
+             *     return Hooks.bake(this.fluid, this.fluid.getStill(), this.fluid.getFlowing(), state, format, bakedTextureGetter);
              * }
              */
-            overrideMethod(classNode, method -> method.name.equals("bake"), "bake", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraftforge/common/model/IModelState;Lnet/minecraft/client/renderer/vertex/VertexFormat;Ljava/util/function/Function;)Lnet/minecraft/client/renderer/block/model/IBakedModel;", generator -> {
+            overrideMethod(classNode, method -> method.name.equals("bake"), "bake", "(Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/util/ResourceLocation;Lnet/minecraft/util/ResourceLocation;Lnet/minecraftforge/common/model/IModelState;Lnet/minecraft/client/renderer/vertex/VertexFormat;Ljava/util/function/Function;)Lnet/minecraft/client/renderer/block/model/IBakedModel;", generator -> {
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraftforge/client/model/ModelFluid", "fluid", "Lnet/minecraftforge/fluids/Fluid;");
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/client/model/ModelFluid", "fluid", "Lnet/minecraftforge/fluids/Fluid;");
+                generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraftforge/fluids/Fluid", "getStill", "()Lnet/minecraft/util/ResourceLocation;", false);
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/client/model/ModelFluid", "fluid", "Lnet/minecraftforge/fluids/Fluid;");
+                generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraftforge/fluids/Fluid", "getFlowing", "()Lnet/minecraft/util/ResourceLocation;", false);
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
@@ -127,8 +133,8 @@ public final class PluginModelFluid implements IASMPlugin
     {
         @Nonnull
         @SideOnly(Side.CLIENT)
-        public static IBakedModel bake(@Nonnull Fluid fluid, @Nonnull IModelState state, @Nonnull VertexFormat format, @Nonnull Function<ResourceLocation, TextureAtlasSprite> textureGetter) {
-            return new BakedModelFluid(fluid, state, format, textureGetter);
+        public static IBakedModel bake(@Nonnull Fluid fluid, @Nonnull ResourceLocation still, @Nonnull ResourceLocation flowing, @Nonnull IModelState state, @Nonnull VertexFormat format, @Nonnull Function<ResourceLocation, TextureAtlasSprite> textureGetter) {
+            return new BakedModelFluid(fluid, still, flowing, state, format, textureGetter);
         }
 
         //[W, S, E, N]

@@ -57,14 +57,15 @@ public class BakedModelFluid implements IBakedModel
     protected final float[] argb = new float[4];
     protected final boolean gas;
 
-    public BakedModelFluid(@Nonnull Fluid fluidIn, @Nonnull IModelState stateIn, @Nonnull VertexFormat formatIn, @Nonnull Function<ResourceLocation, TextureAtlasSprite> textureGetterIn) {
+    public BakedModelFluid(@Nonnull Fluid fluidIn, @Nonnull IModelState stateIn, @Nonnull VertexFormat formatIn, @Nonnull Function<ResourceLocation, TextureAtlasSprite> textureGetterIn) { this(fluidIn, fluidIn.getStill(), fluidIn.getFlowing(), stateIn, formatIn, textureGetterIn); }
+    public BakedModelFluid(@Nonnull Fluid fluidIn, @Nonnull ResourceLocation stillIn, @Nonnull ResourceLocation flowingIn, @Nonnull IModelState stateIn, @Nonnull VertexFormat formatIn, @Nonnull Function<ResourceLocation, TextureAtlasSprite> textureGetterIn) {
         transformation = stateIn.apply(Optional.empty());
         transforms = PerspectiveMapWrapper.getTransforms(stateIn);
         hasTransform = transformation.isPresent() && !transformation.get().isIdentity();
 
         format = formatIn;
-        still = textureGetterIn.apply(fluidIn.getStill());
-        flowing = textureGetterIn.apply(fluidIn.getFlowing());
+        still = textureGetterIn.apply(stillIn);
+        flowing = textureGetterIn.apply(flowingIn);
         overlay = Optional.ofNullable(fluidIn.getOverlay()).map(textureGetterIn);
 
         final int color = fluidIn.getColor();
@@ -124,7 +125,7 @@ public class BakedModelFluid implements IBakedModel
                     }
 
                     // bottom
-                    else return Collections.singletonList(buildQuad(top.getOpposite(), still, gas, false, i -> z[i], i -> gas ? 1 : 0, i -> x[i], i -> z[i] << 4, i -> x[i] << 4));
+                    else return Collections.singletonList(buildQuad(top.getOpposite(), still, gas, false, i -> z[i], i -> gas ? 0.998f : 0.002f, i -> x[i], i -> z[i] << 4, i -> x[i] << 4));
                 }
 
                 // sides
