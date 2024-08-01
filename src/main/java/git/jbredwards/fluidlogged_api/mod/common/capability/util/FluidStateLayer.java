@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2024. jbredwards
+ * All rights reserved.
+ */
+
 package git.jbredwards.fluidlogged_api.mod.common.capability.util;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;

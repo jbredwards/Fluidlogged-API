@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2024. jbredwards
+ * All rights reserved.
+ */
+
 package git.jbredwards.fluidlogged_api.api.capability;
 
 import net.minecraft.nbt.NBTBase;

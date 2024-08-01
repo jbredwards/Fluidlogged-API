@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2024. jbredwards
+ * All rights reserved.
+ */
+
 package git.jbredwards.fluidlogged_api.api.network.message;
 
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;

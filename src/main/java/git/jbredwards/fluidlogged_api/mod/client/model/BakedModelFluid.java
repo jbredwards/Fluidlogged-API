@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2024. jbredwards
+ * All rights reserved.
+ */
+
 package git.jbredwards.fluidlogged_api.mod.client.model;
 
 import com.google.common.collect.ImmutableMap;

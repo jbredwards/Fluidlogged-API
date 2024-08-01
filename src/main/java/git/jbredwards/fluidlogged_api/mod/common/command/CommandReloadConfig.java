@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2024. jbredwards
+ * All rights reserved.
+ */
+
 package git.jbredwards.fluidlogged_api.mod.common.command;
 
 import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
