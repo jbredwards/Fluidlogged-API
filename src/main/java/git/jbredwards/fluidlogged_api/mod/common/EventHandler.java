@@ -5,32 +5,39 @@
 
 package git.jbredwards.fluidlogged_api.mod.common;
 
+import git.jbredwards.fluidlogged_api.api.capability.CapabilityProvider;
+import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.event.FluidloggableEvent;
-import git.jbredwards.fluidlogged_api.api.event.FluidloggedEvent;
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
-import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
-import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockLiquid;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigAccessor;
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IHardcodedCapability;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.PluginChunk;
+import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityWrapped;
+import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityICube;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
+import git.jbredwards.fluidlogged_api.mod.common.config.util.ConfigPredicate;
+import git.jbredwards.fluidlogged_api.mod.common.message.CMessageSyncGameRule;
+import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncFluidStates;
+import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncGameRule;
+import io.github.opencubicchunks.cubicchunks.api.world.CubeWatchEvent;
+import io.github.opencubicchunks.cubicchunks.api.world.ICube;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.ForgeModContainer;
-import net.minecraftforge.event.entity.player.FillBucketEvent;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidUtil;
-import net.minecraftforge.fluids.capability.IFluidHandlerItem;
+import net.minecraftforge.common.config.Config;
+import net.minecraftforge.common.config.ConfigManager;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraftforge.event.GameRuleChangeEvent;
+import net.minecraftforge.event.world.ChunkWatchEvent;
+import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.items.ItemHandlerHelper;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,104 +50,89 @@ import javax.annotation.Nullable;
 @Mod.EventBusSubscriber(modid = FluidloggedAPI.MODID)
 public final class EventHandler
 {
-    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
-    static void forceForgeCascadingFix(@Nonnull ConfigChangedEvent.PostConfigChangedEvent event) {
-        if(event.getModID().equals("forge")) ForgeModContainer.fixVanillaCascading = true;
+    @SubscribeEvent
+    static void configFileSync(@Nonnull final ConfigChangedEvent.OnConfigChangedEvent event) {
+        if(FluidloggedAPI.MODID.equals(event.getModID())) ConfigManager.sync(FluidloggedAPI.MODID, Config.Type.INSTANCE);
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    static void forceForgeCascadingFix(@Nonnull final ConfigChangedEvent.PostConfigChangedEvent event) {
+        ForgeModContainer.fixVanillaCascading = true;
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)
-    static void handleConfigOverrides(@Nonnull FluidloggableEvent event) {
-        final Event.Result result = FluidloggedAPIConfigHandler.isStateFluidloggable(event.state, event.fluid);
-        if(result != Event.Result.DEFAULT) {
+    static void handleConfigOverrides(@Nonnull final FluidloggableEvent event) {
+        // config settings for non-source fluidlogging if applicable
+        if(!FluidloggedAPIConfig.nonSourceFluidlogging && event.fluid != null && !event.fluidState.isSource()) {
             event.setCanceled(true);
-            event.setResult(result);
+            event.setResult(Event.Result.DENY);
+        }
+        else {
+            // config settings from actual state
+            @Nonnull final IBlockState actualState = event.state.getActualState(event.world, event.pos);
+            @Nullable final ConfigPredicate
+                    blacklist = ((IConfigAccessor)actualState).getBlacklistPredicate(),
+                    whitelist = ((IConfigAccessor)actualState).getWhitelistPredicate();
+
+            // blacklist
+            if(blacklist != null && blacklist.test(event.world, event.pos, actualState, event.fluidState)) {
+                event.setCanceled(true);
+                event.setResult(Event.Result.DENY);
+            }
+
+            // whitelist
+            else if(whitelist != null && whitelist.test(event.world, event.pos, actualState, event.fluidState)) {
+                event.setCanceled(true);
+                event.setResult(Event.Result.ALLOW);
+            }
         }
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    static void updateStaticLiquids(@Nonnull FluidloggedEvent event) {
-        if(!event.world.isRemote) {
-            //update newly created FluidState
-            if(!event.fluidState.isEmpty()) {
-                final Block block = event.fluidState.getBlock();
-                event.world.scheduleUpdate(event.pos, block, block.tickRate(event.world));
-            }
-            //update newly created fluid IBlockState (vanilla only)
-            else if(event.here.getBlock() instanceof BlockLiquid) {
-                final BlockLiquid block = BlockLiquid.getFlowingBlock(event.here.getMaterial());
-                event.world.setBlockState(event.pos, block.getDefaultState().withProperty(BlockLiquid.LEVEL, event.here.getValue(BlockLiquid.LEVEL)), 2);
-                event.world.scheduleUpdate(event.pos, block, block.tickRate(event.world));
-            }
+    static void handleSyncDoFireTick(@Nonnull final GameRuleChangeEvent event) {
+        if("doFireTick".equals(event.getRuleName())) FluidloggedAPI.WRAPPER.sendToAll(
+            new SMessageSyncGameRule("doFireTick", event.getRules().getString("doFireTick"), true)
+        );
+    }
+
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    static void handleSyncDoFireTick(@Nonnull final WorldEvent.Load event) {
+        FluidloggedAPI.WRAPPER.sendToServer(new CMessageSyncGameRule("doFireTick", false));
+    }
+
+    // ============
+    // DATA HANDLER
+    // ============
+
+    @SubscribeEvent(priority = EventPriority.LOW)
+    static void attachToChunk(@Nonnull final AttachCapabilitiesEvent<Chunk> event) {
+        if(!event.getCapabilities().containsKey(IFluidStateCapability.CAPABILITY_ID)) event.addCapability(IFluidStateCapability.CAPABILITY_ID,
+            new CapabilityProvider<>(IFluidStateCapability.CAPABILITY, new FluidStateCapabilityWrapped((IHardcodedCapability)event.getObject()))
+        );
+    }
+
+    @Optional.Method(modid = "cubicchunks")
+    @SubscribeEvent(priority = EventPriority.LOW)
+    static void attachToCube(@Nonnull final AttachCapabilitiesEvent<ICube> event) {
+        if(!event.getCapabilities().containsKey(IFluidStateCapability.CAPABILITY_ID)) event.addCapability(IFluidStateCapability.CAPABILITY_ID,
+            new CapabilityProvider<>(IFluidStateCapability.CAPABILITY, new FluidStateCapabilityICube(event.getObject()))
+        );
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    static void syncChunk(@Nonnull final ChunkWatchEvent.Watch event) {
+        @Nullable final Chunk chunk = event.getChunkInstance();
+        if(chunk != null && !(FluidloggedAPI.isCubicChunks && PluginChunk.CCHooks.isCubicWorld(chunk.getWorld()))) {
+            FluidloggedAPI.WRAPPER.sendTo(new SMessageSyncFluidStates(chunk, ((IHardcodedCapability)chunk).getFluidStateCapability()), event.getPlayer());
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.NORMAL)
-    static void bucketFluidlogging(@Nonnull FillBucketEvent event) {
-        if(event.getResult() != Event.Result.DEFAULT) return;
-        final EntityPlayer player = event.getEntityPlayer();
-
-        //this does its own raytrace, because the one that comes with the event doesn't do what's need here
-        final Vec3d playerVec = new Vec3d(player.posX, player.posY + player.getEyeHeight(), player.posZ);
-        final @Nullable RayTraceResult trace = event.getWorld().rayTraceBlocks(playerVec, playerVec.add(
-                player.getLookVec().scale(player.getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue())));
-        if(trace == null) return;
-
-        //don't try fluidlogging without a bucket
-        final @Nullable IFluidHandlerItem handler = FluidUtil.getFluidHandler(
-                ItemHandlerHelper.copyStackWithSize(event.getEmptyBucket(), 1));
-        if(handler == null) return;
-
-        final @Nullable FluidStack contained = handler.drain(Fluid.BUCKET_VOLUME, false);
-        if(contained != null && !contained.getFluid().canBePlacedInWorld()) return;
-
-        final BlockPos pos = trace.getBlockPos();
-        final World world = event.getWorld();
-
-        //if bucket is empty, try taking from the fluidlogged block
-        if(contained == null) {
-            if(tryBucketFill(world, pos, player, handler) || tryBucketFill(world, pos.offset(trace.sideHit), player, handler)) {
-                event.setFilledBucket(handler.getContainer());
-                event.setResult(Event.Result.ALLOW);
-            }
-        }
-
-        //if bucket has a fluid, try fluidlogging it
-        else if(!player.isSneaking() && FluidloggedUtils.isFluidloggableFluid(contained.getFluid().getBlock())) {
-            if(tryBucketDrain(world, pos, player, handler, contained) || tryBucketDrain(world, pos.offset(trace.sideHit), player, handler, contained)) {
-                event.setFilledBucket(handler.getContainer());
-                event.setResult(Event.Result.ALLOW);
-            }
-        }
-    }
-
-    static boolean tryBucketFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer player, @Nonnull IFluidHandlerItem handler) {
-        final FluidState fluidState = FluidState.get(world, pos);
-        if(fluidState.isValid()) {
-            if(world.isRemote) return true; //prevent desync
-            else if(handler.fill(fluidState.getFluidBlock().drain(world, pos, true), true) == Fluid.BUCKET_VOLUME) {
-                world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluidState.getFluid().getFillSound(world, pos), SoundCategory.BLOCKS, 1, 1);
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    static boolean tryBucketDrain(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer player, @Nonnull IFluidHandlerItem handler, @Nonnull FluidStack stack) {
-        final Fluid fluid = stack.getFluid();
-        if(FluidloggedUtils.isStateFluidloggable(world.getBlockState(pos), world, pos, fluid)) {
-            final FluidState fluidState = FluidState.of(fluid);
-            if(fluidState.isValid()) {
-                if(world.isRemote) return true; //prevent desync
-                else if(handler.drain(new FluidStack(stack, fluidState.getFluidBlock().place(world, pos, stack.copy(), true)), true) != null) {
-                    if(!world.provider.doesWaterVaporize() || !fluid.doesVaporize(stack))
-                        world.playSound(null, player.posX, player.posY + 0.5, player.posZ, fluid.getEmptySound(stack), SoundCategory.BLOCKS, 1, 1);
-
-                    return true;
-                }
-            }
-        }
-
-        return false;
+    @Optional.Method(modid = "cubicchunks")
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    static void syncCube(@Nonnull final CubeWatchEvent event) {
+        @Nullable final ICube cube = event.getCube();
+        @Nullable final IFluidStateCapability cap = IFluidStateCapability.get(cube);
+        if(cap != null) FluidloggedAPI.WRAPPER.sendTo(new SMessageSyncFluidStates(cube.getX(), cube.getY() << 4, cube.getZ(), cap), event.getPlayer());
     }
 }

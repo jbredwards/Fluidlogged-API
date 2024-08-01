@@ -7,23 +7,24 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.crash.CrashReport;
+import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EnumCreatureType;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.ReportedException;
+import net.minecraft.util.math.*;
+import net.minecraft.world.ChunkCache;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.getFluidFromBlock;
-import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.getFluidState;
 
 /**
  *
@@ -38,7 +39,7 @@ public final class PluginEntity implements IASMPlugin
         else if(method.name.equals(obfuscated ? "func_70072_I" : "handleWaterMovement")) return 2;
         else if(method.name.equals(obfuscated ? "func_71061_d_" : "doWaterSplashEffect")) return 3;
         else if(method.name.equals(obfuscated ? "func_70055_a" : "isInsideOfMaterial")) return 4;
-        else if(method.name.equals(obfuscated ? "func_145775_I" : "doBlockCollisions")) return 5;
+        // else if(method.name.equals(obfuscated ? "func_174809_b" : "isLiquidPresentInAABB")) return 5;
         return 0;
     }
 
@@ -124,16 +125,16 @@ public final class PluginEntity implements IASMPlugin
             return true;
         }
         /*
-         * doBlockCollisions: (changes are around line 1158)
+         * isLiquidPresentInAABB: (changes are around line 678)
          * Old code:
-         * iblockstate.getBlock().onEntityCollision(this.world, blockpos$pooledmutableblockpos2, iblockstate, this);
+         * return this.world.getCollisionBoxes(this, bb).isEmpty() && !this.world.containsAnyLiquid(bb);
          *
-         * New code:
-         * //fix fluid collisions & add FluidState functionality
-         * Hooks.onEntityCollidedWithFluidState(iblockstate.getBlock(), this.world, blockpos$pooledmutableblockpos2, iblockstate, this);
+         * New code
+         * //fix issue#151
+         * return this.world.getCollisionBoxes(this, bb).isEmpty() && !Hooks.blocksContainAnyLiquid(this.world, bb);
          */
-        else if(index == 5 && checkMethod(insn, obfuscated ? "func_180634_a" : "onEntityCollision")) {
-            instructions.insert(insn, genMethodNode("onEntityCollidedWithFluidState", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;)V"));
+        else if(index == 5 && checkMethod(insn, obfuscated ? "func_72953_d" : "containsAnyLiquid")) {
+            instructions.insert(insn, genMethodNode("blocksContainAnyLiquid", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/AxisAlignedBB;)Z"));
             instructions.remove(insn);
             return true;
         }
@@ -141,9 +142,102 @@ public final class PluginEntity implements IASMPlugin
         return false;
     }
 
+    @Override
+    public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/plugins/vanilla/entity/PluginEntity$Accessor");
+        addMethod(classNode, "onInsideBlock_Public", "(Lnet/minecraft/block/state/IBlockState;)V", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/entity/Entity", obfuscated ? "func_191955_a" : "onInsideBlock", "(Lnet/minecraft/block/state/IBlockState;)V", false);
+        });
+
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/iface/IWaterHeight");
+        classNode.fields.add(new FieldNode(ACC_PUBLIC, "waterHeight", "Lgit/jbredwards/fluidlogged_api/mod/asm/iface/IConfigFluidBox$HeightBox;", null, null));
+        addMethod(classNode, "getBox", "()Lgit/jbredwards/fluidlogged_api/mod/asm/iface/IConfigFluidBox$HeightBox;", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitFieldInsn(GETFIELD, "net/minecraft/entity/Entity", "waterHeight", "Lgit/jbredwards/fluidlogged_api/mod/asm/iface/IConfigFluidBox$HeightBox;");
+        });
+        addMethod(classNode, "setBox", "(Lgit/jbredwards/fluidlogged_api/mod/asm/iface/IConfigFluidBox$HeightBox;)V", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitFieldInsn(PUTFIELD, "net/minecraft/entity/Entity", "waterHeight", "Lgit/jbredwards/fluidlogged_api/mod/asm/iface/IConfigFluidBox$HeightBox;");
+        });
+
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_145775_I" : "doBlockCollisions"), "doBlockCollisions", "(Lnet/minecraft/entity/Entity;)V", generator -> generator.visitVarInsn(ALOAD, 0));
+        return true;
+    }
+
     @SuppressWarnings("unused")
     public static final class Hooks
     {
+        public static boolean blocksContainAnyLiquid(@Nonnull final World world, @Nonnull final AxisAlignedBB bb) {
+            @Nonnull final FluidCache cache = new FluidCache(world, bb);
+
+            for(int x = cache.minX; x < cache.maxX; x++) {
+                for(int y = cache.minY; y < cache.maxY; y++) {
+                    for(int z = cache.minZ; z < cache.maxZ; z++) {
+                        // block
+                        {
+                            @Nonnull final IBlockState here = cache.getBlockState(cache.mutablePos.setPos(x, y, z));
+                            if(FluidloggedUtils.isFluid(here)) return true;
+                            @Nullable final Boolean result = here.getBlock().isAABBInsideLiquid(world, cache.mutablePos.setPos(x, y, z), bb);
+                            if(Boolean.TRUE.equals(result)) return true;
+                        }
+                        // fluid
+                        {
+                            @Nonnull final FluidState here = cache.getFluidState(cache.mutablePos.setPos(x, y, z));
+                            if(!here.isEmpty()) return true;
+                            @Nullable final Boolean result = here.getBlock().isAABBInsideLiquid(world, cache.mutablePos.setPos(x, y, z), bb);
+                            if(Boolean.TRUE.equals(result)) return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        public static void doBlockCollisions(@Nonnull final Entity entity) {
+            @Nonnull final BlockPos.PooledMutableBlockPos start = BlockPos.PooledMutableBlockPos.retain(entity.getEntityBoundingBox().minX + 0.001, entity.getEntityBoundingBox().minY + 0.001, entity.getEntityBoundingBox().minZ + 0.001);
+            @Nonnull final BlockPos.PooledMutableBlockPos end = BlockPos.PooledMutableBlockPos.retain(entity.getEntityBoundingBox().maxX - 0.001, entity.getEntityBoundingBox().maxY - 0.001, entity.getEntityBoundingBox().maxZ - 0.001);
+
+            if(entity.world.isAreaLoaded(start, end)) {
+                @Nonnull final ChunkCache access = new ChunkCache(entity.world, start, end, 0);
+                BlockPos.getAllInBoxMutable(start, end).forEach(pos -> {
+                    // for IBlockState
+                    @Nonnull final IBlockState state = access.getBlockState(pos);
+                    if(!Boolean.FALSE.equals(state.getBlock().isAABBInsideLiquid(entity.world, pos, entity.getEntityBoundingBox()))) {
+                        try {
+                            state.getBlock().onEntityCollision(entity.world, pos, state, entity);
+                            ((PluginEntity.Accessor)entity).onInsideBlock_Public(state);
+                        }
+                        catch(@Nonnull final Throwable t) {
+                            @Nonnull final CrashReport report = CrashReport.makeCrashReport(t, "Colliding entity with block");
+                            CrashReportCategory.addBlockInfo(report.makeCategory("Block being collided with"), pos, state);
+                            throw new ReportedException(report);
+                        }
+                    }
+
+                    // for FluidState
+                    @Nonnull final IBlockState fluidState = FluidState.get(access, pos).getState();
+                    if(!Boolean.FALSE.equals(fluidState.getBlock().isAABBInsideLiquid(entity.world, pos, entity.getEntityBoundingBox()))) {
+                        try {
+                            fluidState.getBlock().onEntityCollision(entity.world, pos, fluidState, entity);
+                            ((PluginEntity.Accessor)entity).onInsideBlock_Public(fluidState);
+                        }
+                        catch(@Nonnull final Throwable t) {
+                            @Nonnull final CrashReport report = CrashReport.makeCrashReport(t, "Colliding entity with fluid");
+                            CrashReportCategory.addBlockInfo(report.makeCategory("Fluid being collided with"), pos, fluidState);
+                            throw new ReportedException(report);
+                        }
+                    }
+                });
+            }
+
+            start.release();
+            end.release();
+        }
+
         public static double fixSquidWaterCollision(double factor, @Nonnull Entity entity) {
             return entity.isCreatureType(EnumCreatureType.WATER_CREATURE, false) ? factor : 0;
         }
@@ -157,7 +251,7 @@ public final class PluginEntity implements IASMPlugin
             //use the exact point where the entity collided with water
             if(result != null) {
                 final BlockPos pos = result.getBlockPos();
-                final FluidState fluidState = getFluidState(entity.world, pos);
+                final FluidState fluidState = FluidloggedUtils.getFluidState(entity.world, pos);
                 if(!fluidState.isEmpty() && fluidState.isValid()) {
                     final float filled = fluidState.getFluidBlock().getFilledPercentage(entity.world, pos);
                     return pos.getY() + (filled < 0 ? filled + 1.1f : filled - 0.1f);
@@ -173,7 +267,7 @@ public final class PluginEntity implements IASMPlugin
             @Nullable Boolean result = block.isEntityInsideMaterial(world, pos, here, entity, yToTest, materialIn, testingHead);
             if(result != null) return result;
             //check for FluidState if block here is not a fluid
-            else if(getFluidFromBlock(block) == null) {
+            else if(FluidloggedUtils.getFluidFromBlock(block) == null) {
                 final FluidState fluidState = FluidState.get(world, pos);
                 if(!fluidState.isEmpty()) {
                     result = fluidState.getBlock().isEntityInsideMaterial(world, pos, fluidState.getState(), entity, yToTest, materialIn, testingHead);
@@ -185,17 +279,10 @@ public final class PluginEntity implements IASMPlugin
 
             return null;
         }
+    }
 
-        public static void onEntityCollidedWithFluidState(@Nonnull Block block, @Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull Entity entityIn) {
-            //check if the entity is inside the block before doing collisions
-            if(!Boolean.FALSE.equals(block.isAABBInsideLiquid(worldIn, pos, entityIn.getEntityBoundingBox())))
-                block.onEntityCollision(worldIn, pos, here, entityIn);
-
-            //don't check for FluidState if block here is a fluid
-            if(getFluidFromBlock(block) != null) return;
-            final FluidState fluidState = FluidState.get(worldIn, pos);
-            if(!fluidState.isEmpty() && !Boolean.FALSE.equals(fluidState.getBlock().isAABBInsideLiquid(worldIn, pos, entityIn.getEntityBoundingBox())))
-                fluidState.getBlock().onEntityCollision(worldIn, pos, fluidState.getState(), entityIn);
-        }
+    public interface Accessor
+    {
+        void onInsideBlock_Public(@Nonnull final IBlockState state);
     }
 }

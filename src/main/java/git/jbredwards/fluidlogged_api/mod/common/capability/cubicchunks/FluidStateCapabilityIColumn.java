@@ -5,22 +5,15 @@
 
 package git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks;
 
-import git.jbredwards.fluidlogged_api.api.capability.CapabilityProvider;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateContainer;
-import git.jbredwards.fluidlogged_api.api.network.FluidloggedAPINetworkHandler;
-import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityVanilla;
-import git.jbredwards.fluidlogged_api.mod.common.message.MessageSyncFluidStates;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import io.github.opencubicchunks.cubicchunks.api.world.IColumn;
-import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.block.Block;
+import net.minecraft.nbt.*;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.world.ChunkWatchEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -35,54 +28,63 @@ public class FluidStateCapabilityIColumn implements IFluidStateCapability
 {
     @Nonnull
     protected final IColumn column;
-    public FluidStateCapabilityIColumn(@Nonnull IColumn column) { this.column = column; }
+    public FluidStateCapabilityIColumn(@Nonnull final Chunk columnIn) { column = (IColumn)columnIn; }
 
-    @SubscribeEvent
-    static void attach(@Nonnull AttachCapabilitiesEvent<Chunk> event) {
-        if(event.getObject() instanceof IColumn && isCubicWorld(event.getObject().getWorld())) {
-            event.addCapability(CAPABILITY_ID, new CapabilityProvider<>(CAPABILITY, new FluidStateCapabilityIColumn((IColumn)event.getObject())));
-        }
-
-        else {
-            final Chunk chunk = event.getObject();
-            event.addCapability(CAPABILITY_ID, new CapabilityProvider<>(CAPABILITY, new FluidStateCapabilityVanilla(chunk.x, chunk.z)));
-        }
-    }
-
-    @SubscribeEvent
-    static void sync(@Nonnull ChunkWatchEvent.Watch event) {
-        final @Nullable Chunk chunk = event.getChunkInstance();
-        if(chunk != null && !isCubicWorld(chunk.getWorld())) {
-            final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
-            if(cap != null) FluidloggedAPINetworkHandler.INSTANCE.sendTo(new MessageSyncFluidStates(chunk, cap), event.getPlayer());
-        }
-    }
-
-    static boolean isCubicWorld(@Nonnull World world) {
-        return world instanceof ICubicWorld && ((ICubicWorld)world).isCubicWorld();
+    @Nonnull
+    @Override
+    public IFluidStateContainer getContainer(final int y) {
+        return Objects.requireNonNull(IFluidStateCapability.get(column.getCube(y >> 4))).getContainer(y);
     }
 
     @Nonnull
     @Override
-    public IFluidStateContainer getContainer(@Nonnull BlockPos pos) {
-        return getContainer(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4);
+    public NBTBase serializeNBT() { return new NBTTagByte((byte)0); } // data is stored in ICube capability
+
+    @Override
+    public void deserializeNBT(@Nonnull final NBTBase nbtIn) {
+        // ==========================
+        // convert any old chunk data
+        // ==========================
+
+        // chunks saved after v1.8.x
+        if(nbtIn instanceof NBTTagCompound) {
+            @Nonnull final NBTTagCompound nbt = (NBTTagCompound)nbtIn;
+            switch(nbt.getInteger("version")) {
+                case 1: // compatibility with v2.x.x chunks
+                case 2: { // most recent save format
+                    nbt.getTagList("data", Constants.NBT.TAG_COMPOUND).forEach(tagIn -> {
+                        @Nonnull final NBTTagCompound tag = (NBTTagCompound)tagIn;
+                        if(tag.hasKey("id", Constants.NBT.TAG_STRING) && tag.hasKey("pos", Constants.NBT.TAG_ANY_NUMERIC)) {
+                            @Nullable final Block block = Block.getBlockFromName(tag.getString("id"));
+                            if(block == null) return;
+
+                            @Nonnull final NBTPrimitive posNbt = (NBTPrimitive)tag.getTag("pos");
+                            if(posNbt instanceof NBTTagLong) {
+                                @Nonnull final BlockPos pos = BlockPos.fromLong(posNbt.getLong());
+                                getContainer(pos.getY()).setFluidState(pos, FluidState.of(block.getStateFromMeta(tag.getInteger("meta"))));
+                            }
+
+                            else getContainer((char)posNbt.getInt() >> 8).setFluidState((char)posNbt.getInt(), FluidState.of(block.getStateFromMeta(tag.getInteger("meta"))));
+                        }
+                    });
+
+                    return;
+                }
+
+                // only thrown if the user downgrades fluidlogged api to a version unable to read possible new data
+                default: throw new IllegalArgumentException("Could not read chunk data, please update Fluidlogged API to the latest version!");
+            }
+        }
+
+        // compatibility with v1.8.x chunks
+        else if(nbtIn instanceof NBTTagList) ((NBTTagList)nbtIn).forEach(tagIn -> {
+            if(tagIn instanceof NBTTagCompound) {
+                @Nonnull final NBTTagCompound nbt = (NBTTagCompound)tagIn;
+                if(nbt.hasKey("id", Constants.NBT.TAG_STRING) && nbt.hasKey("pos", Constants.NBT.TAG_LONG)) {
+                    @Nonnull final BlockPos pos = BlockPos.fromLong(nbt.getLong("pos"));
+                    getContainer(pos.getY()).setFluidState(pos, FluidState.of(Block.getBlockFromName(nbt.getString("id"))));
+                }
+            }
+        });
     }
-
-    @Nonnull
-    @Override
-    public IFluidStateContainer getContainer(int chunkX, int chunkY, int chunkZ) {
-        return Objects.requireNonNull(IFluidStateCapability.get(column.getCube(chunkY)))
-                .getContainer(chunkX, chunkY, chunkZ);
-    }
-
-    //==================================
-    //DATA IS STORED IN ICUBE CAPABILITY
-    //==================================
-
-    @Nonnull
-    @Override
-    public NBTBase serializeNBT() { return new NBTTagCompound(); }
-
-    @Override
-    public void deserializeNBT(@Nonnull NBTBase nbt) { }
 }

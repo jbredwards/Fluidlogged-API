@@ -6,6 +6,7 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -13,10 +14,8 @@ import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 
-import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.getFluidFromState;
-
 /**
- * makes walls fluidloggable by default
+ * Fix wall fluid interaction
  * @author jbred
  *
  */
@@ -45,18 +44,12 @@ public final class PluginBlockWall implements IASMPlugin
         return false;
     }
 
-    @Override
-    public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggable");
-        return true;
-    }
-
     @SuppressWarnings("unused")
     public static final class Hooks
     {
         public static boolean isAirOrFluid(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
             final IBlockState here = world.getBlockState(pos);
-            return here.getBlock().isAir(here, world, pos) || getFluidFromState(here) != null;
+            return here.getBlock().isAir(here, world, pos) || FluidloggedUtils.isFluid(here);
         }
     }
 }

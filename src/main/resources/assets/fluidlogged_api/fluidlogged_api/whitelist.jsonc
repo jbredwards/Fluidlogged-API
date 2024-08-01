@@ -1,0 +1,128 @@
+// default fluidloggable blocks
+[
+    {
+        "replace": "never", "allowMissing": true,
+        "classId": [
+            "net.minecraft.block.BlockAnvil", // properly coded anvil blocks
+            "net.minecraft.block.BlockBanner", // properly coded banner blocks
+            "net.minecraft.block.BlockBasePressurePlate", // properly coded pressure plate blocks
+            "net.minecraft.block.BlockBeacon", // properly coded beacon blocks
+            "net.minecraft.block.BlockBrewingStand", // properly coded brewing stand blocks
+            "net.minecraft.block.BlockButton", // properly coded button blocks
+            "net.minecraft.block.BlockChest", // properly coded chest blocks
+            "net.minecraft.block.BlockDaylightDetector", // properly coded daylight detector blocks
+            "net.minecraft.block.BlockDoor", // properly coded door blocks
+            "net.minecraft.block.BlockDragonEgg", // properly coded dragon egg blocks
+            "net.minecraft.block.BlockEnderChest", // properly coded ender chest blocks
+            "net.minecraft.block.BlockEndPortalFrame", // properly coded end portal frame blocks
+            "net.minecraft.block.BlockEnchantmentTable", // properly coded enchantment table blocks
+            "net.minecraft.block.BlockEndRod", // properly coded end rod blocks
+            "net.minecraft.block.BlockFence", // properly coded fence blocks
+            "net.minecraft.block.BlockFenceGate", // properly coded fence gate blocks
+            "net.minecraft.block.BlockFlowerPot", // properly coded flower pot blocks
+            "net.minecraft.block.BlockHopper", // properly coded hopper blocks
+            "net.minecraft.block.BlockLadder", // properly coded ladder blocks
+            "net.minecraft.block.BlockLever", // properly coded lever blocks
+            "net.minecraft.block.BlockPane", // properly coded glass pane blocks (this includes iron bars)
+            "net.minecraft.block.BlockPistonExtension", // properly coded piston extensions
+            "net.minecraft.block.BlockRailBase", // properly coded rail blocks
+            "net.minecraft.block.BlockRedstoneDiode", // properly coded redstone diode blocks (repeaters, comparators, etc.)
+            "net.minecraft.block.BlockRedstoneTorch", // properly coded redstone torch blocks
+            "net.minecraft.block.BlockRedstoneWire", // properly coded redstone wire blocks
+            "net.minecraft.block.BlockSign", // properly coded sign blocks
+            "net.minecraft.block.BlockSkull", // properly coded skull blocks
+            "net.minecraft.block.BlockStairs", // properly coded stair blocks
+            "net.minecraft.block.BlockTrapDoor", // properly coded trap door blocks
+            "net.minecraft.block.BlockTripWireHook", // properly coded tripwire hook blocks
+            "net.minecraft.block.BlockTripWire", // properly coded tripwire string blocks
+            "net.minecraft.block.BlockWall" // properly coded wall blocks
+        ]
+    },
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": true, // for these blocks, this flag allows fluids to flow out from any side
+        "classId": [
+            "net.minecraft.block.BlockLeaves", // properly coded leaf blocks
+            "net.minecraft.block.BlockMobSpawner" // properly coded mob spawner blocks
+        ]
+    },
+    // properly coded piston base blocks
+    {
+        "replace": "never", "allowMissing": true,
+        "classId": "net.minecraft.block.BlockPistonBase",
+        "states": {"extended": true} // only allow piston bases to be fluidlogged if they're extended
+    },
+    // properly coded slab blocks
+    {
+        "replace": "never", "allowMissing": true,
+        "classId": "net.minecraft.block.BlockSlab",
+        "states": {"half": ["bottom", "top"]} // only allow slabs to be fluidlogged if they're a half slab
+    },
+
+    // ======================================
+    // STATE-BASED CAN_FLUID_FLOW LOGIC BELOW
+    // ======================================
+
+    // properly coded door blocks
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": ["up", "down", "south", "east", "west"],
+        "classId": "net.minecraft.block.BlockDoor",
+        "states": [{"facing": "south", "open": false}, {"facing": "east", "hinge": "left", "open": true}, {"facing": "west", "hinge": "right", "open": true}]
+    },
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": ["up", "down", "north", "east", "west"],
+        "classId": "net.minecraft.block.BlockDoor",
+        "states": [{"facing": "north", "open": false}, {"facing": "east", "hinge": "right", "open": true}, {"facing": "west", "hinge": "left", "open": true}]
+    },
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": ["up", "down", "north", "south", "west"],
+        "classId": "net.minecraft.block.BlockDoor",
+        "states": [{"facing": "west", "open": false}, {"facing": "north", "hinge": "right", "open": true}, {"facing": "south", "hinge": "left", "open": true}]
+    },
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": ["up", "down", "north", "south", "east"],
+        "classId": "net.minecraft.block.BlockDoor",
+        "states": [{"facing": "east", "open": false}, {"facing": "north", "hinge": "left", "open": true}, {"facing": "south", "hinge": "right", "open": true}]
+    },
+    // properly coded trapdoor blocks
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": ["up", "down", "north", "east", "west"],
+        "classId": "net.minecraft.block.BlockTrapDoor",
+        "states": {"facing": "north", "open": true}
+    },
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": ["up", "down", "south", "east", "west"],
+        "classId": "net.minecraft.block.BlockTrapDoor",
+        "states": {"facing": "south", "open": true}
+    },
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": ["up", "down", "north", "south", "east"],
+        "classId": "net.minecraft.block.BlockTrapDoor",
+        "states": {"facing": "east", "open": true}
+    },
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": ["up", "down", "north", "south", "west"],
+        "classId": "net.minecraft.block.BlockTrapDoor",
+        "states": {"facing": "west", "open": true}
+    },
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": ["up", "north", "south", "east", "west"],
+        "classId": "net.minecraft.block.BlockTrapDoor",
+        "states": {"half": "bottom", "open": false}
+    },
+    {
+        "replace": "never", "allowMissing": true,
+        "canFluidFlow": ["down", "north", "south", "east", "west"],
+        "classId": "net.minecraft.block.BlockTrapDoor",
+        "states": {"half": "top", "open": false}
+    }
+]

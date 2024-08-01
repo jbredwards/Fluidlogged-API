@@ -6,22 +6,16 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
-import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockLilyPad;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
 import net.minecraftforge.common.IPlantable;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * fixes some lighting, canSustainPlant, and explosion related issues
@@ -36,8 +30,6 @@ public final class PluginBlock implements IASMPlugin
             return 1;
         else if(checkMethod(method, "removedByPlayer", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/player/EntityPlayer;Z)Z"))
             return 2;
-        else if(checkMethod(method, "getExplosionResistance", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;Lnet/minecraft/world/Explosion;)F"))
-            return 3;
         else if(checkMethod(method, "canSustainPlant", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;Lnet/minecraftforge/common/IPlantable;)Z"))
             return 4;
 
@@ -68,37 +60,11 @@ public final class PluginBlock implements IASMPlugin
          * return world.setBlockState(pos, net.minecraft.init.Blocks.AIR.getDefaultState(), world.isRemote ? 11 : 3);
          *
          * New code:
-         * //when a block is removed by a player, set the FluidState here (if it's empty air is set)
-         * return world.setBlockState(pos, FluidState.get(world, pos).getState(), world.isRemote ? 11 : 3);
+         * //when a block is removed by a player, set the FluidState here and notify (if it's empty, air is set instead)
+         * return PluginWorld.Hooks.setBlockToAir(world, pos, net.minecraft.init.Blocks.AIR.getDefaultState(), world.isRemote ? 11 : 3);
          */
-        else if(index == 2 && checkField(insn, obfuscated ? "field_150350_a" : "AIR", "Lnet/minecraft/block/Block;")) {
-            //parameters
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 2));
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 3));
-            //adds new code
-            instructions.insertBefore(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidState", "get", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
-            instructions.insertBefore(insn, new MethodInsnNode(INVOKEVIRTUAL, "git/jbredwards/fluidlogged_api/api/util/FluidState", "getState", "()Lnet/minecraft/block/state/IBlockState;", false));
-            removeFrom(instructions, insn, 1);
-            return true;
-        }
-        /*
-         * getExplosionResistance: (changes are around line 1877)
-         * Old code:
-         * return getExplosionResistance(exploder);
-         *
-         * New code:
-         * //use the FluidState explosion resistance value here if it's higher than this block's
-         * return Hooks.getExplosionResistance(this, exploder, world, pos, explosion);
-         */
-        else if(index == 3 && checkMethod(insn, obfuscated ? "func_149638_a" : "getExplosionResistance", "(Lnet/minecraft/entity/Entity;)F")) {
-            final InsnList list = new InsnList();
-            //parameters
-            list.add(new VarInsnNode(ALOAD, 1));
-            list.add(new VarInsnNode(ALOAD, 2));
-            list.add(new VarInsnNode(ALOAD, 4));
-            //adds the new code
-            list.add(genMethodNode("getExplosionResistance", "(Lnet/minecraft/block/Block;Lnet/minecraft/entity/Entity;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/Explosion;)F"));
-            instructions.insert(insn, list);
+        else if(index == 2 && checkMethod(insn, obfuscated ? "func_180501_a" : "setBlockState")) {
+            instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/mod/asm/plugins/vanilla/world/PluginWorld$Hooks", "setBlockToAir", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"));
             instructions.remove(insn);
             return true;
         }
@@ -151,49 +117,6 @@ public final class PluginBlock implements IASMPlugin
         return false;
     }
 
-    @Override
-    public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        //used for overriding canFluidFlow behavior via the config
-        classNode.fields.add(new FieldNode(ACC_PUBLIC, "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;", null, null));
-        /*
-         * =========
-         * Accessors
-         * =========
-         */
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler$Accessor");
-        /*
-         * Accessor:
-         * New code:
-         * //getter for canFluidFlow
-         * @ASMGenerated
-         * public ConfigHandler.ICanFluidFlowHandler getCanFluidFlow()
-         * {
-         *     return this.canFluidFlow;
-         * }
-         */
-        addMethod(classNode, "getCanFluidFlowOverride", "()Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;", null, null, generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;");
-        });
-        /*
-         * Accessor:
-         * New code:
-         * //setter for canFluidFlow
-         * @ASMGenerated
-         * public void setCanFluidFlow(ConfigHandler.ICanFluidFlowHandler canFluidFlow)
-         * {
-         *     this.canFluidFlow = canFluidFlow;
-         * }
-         */
-        addMethod(classNode, "setCanFluidFlowOverride", "(Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;)V", null, null, generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitFieldInsn(PUTFIELD, "net/minecraft/block/Block", "canFluidFlow", "Lgit/jbredwards/fluidlogged_api/api/asm/impl/ICanFluidFlowHandler;");
-        });
-
-        return true;
-    }
-
     @SuppressWarnings("unused")
     public static final class Hooks
     {
@@ -202,17 +125,6 @@ public final class PluginBlock implements IASMPlugin
             else if(!(plantable instanceof BlockLilyPad)) return false;
             else return state.getBoundingBox(world, pos).maxY < 1
                         && FluidState.get(world, pos).getMaterial() == Material.WATER;
-        }
-
-        @SuppressWarnings("ConstantConditions")
-        public static float getExplosionResistance(@Nonnull Block block, @Nullable Entity exploder, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Explosion explosion) {
-            if(FluidloggedUtils.isFluid(block)) return block.getExplosionResistance(exploder);
-            //return the greater of the two possible resistance values here
-            final FluidState fluidState = FluidState.get(world, pos);
-            if(fluidState.isEmpty()) return block.getExplosionResistance(exploder);
-
-            return Math.max(fluidState.getBlock().getExplosionResistance(world, pos, exploder, explosion),
-                    block.getExplosionResistance(exploder));
         }
     }
 }

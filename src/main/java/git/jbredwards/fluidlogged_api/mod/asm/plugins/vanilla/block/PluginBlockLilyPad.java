@@ -22,7 +22,14 @@ import javax.annotation.Nonnull;
 public final class PluginBlockLilyPad implements IASMPlugin
 {
     @Override
-    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return method.name.equals(obfuscated ? "func_180671_f" : "canBlockStay"); }
+    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) {
+        switch(method.name) {
+            case "func_180671_f": case "canBlockStay":
+            case "func_176196_c": case "canPlaceBlockAt": // More Planets compat
+                return true;
+            default: return false;
+        }
+    }
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {

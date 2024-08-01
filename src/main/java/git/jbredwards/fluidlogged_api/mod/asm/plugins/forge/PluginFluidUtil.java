@@ -5,13 +5,18 @@
 
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
 
+import git.jbredwards.fluidlogged_api.api.fluid.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
-import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
+import net.minecraftforge.fluids.BlockFluidFinite;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.wrappers.FluidBlockWrapper;
 import org.objectweb.asm.tree.*;
@@ -77,19 +82,19 @@ public final class PluginFluidUtil implements IASMPlugin
          *
          * New code:
          * //if the position can't be fluidlogged and isn't replaceable, return false
-         * if (!Hooks.isFluidloggable(world, pos, fluid, destBlockState) && !isDestNonSolid && !isDestReplaceable)
+         * if (!Hooks.isFluidloggable(world, pos, resource, destBlockState) && !isDestNonSolid && !isDestReplaceable)
          * {
          *     return false;
          * }
          */
         else if(index == 3 && checkMethod(insn, obfuscated ? "func_175623_d" : "isAirBlock", null)) {
             final InsnList list = new InsnList();
-            //Fluid local var
-            list.add(new VarInsnNode(ALOAD, 5));
+            //FluidStack local var
+            list.add(new VarInsnNode(ALOAD, 4));
             //IBlockState local var
             list.add(new VarInsnNode(ALOAD, 6));
             //add new code
-            list.add(genMethodNode("isFluidloggable", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/Fluid;Lnet/minecraft/block/state/IBlockState;)Z"));
+            list.add(genMethodNode("isFluidloggable", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/FluidStack;Lnet/minecraft/block/state/IBlockState;)Z"));
             instructions.insertBefore(insn, list);
             instructions.remove(insn);
             return true;
@@ -107,8 +112,45 @@ public final class PluginFluidUtil implements IASMPlugin
             return fluidState.isValid() ? new FluidBlockWrapper(fluidState.getFluidBlock(), world, pos) : null;
         }
 
-        public static boolean isFluidloggable(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Fluid fluid, @Nonnull IBlockState destBlockState) {
-            return FluidloggedUtils.isStateFluidloggable(destBlockState, world, pos, fluid);
+        public static boolean isFluidloggable(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidStack resource, @Nonnull IBlockState destBlockState) {
+            @Nonnull final Block block = resource.getFluid().getBlock();
+            if(block instanceof IFluidloggableFluid) {
+                // for non-finite fluid blocks, assume default state
+                if(!(block instanceof BlockFluidFinite)) return ((IFluidloggableFluid)block).isFluidloggableFluid(FluidState.of(block))
+                        && ((IFluidloggableFluid)block).isStateFluidloggable(destBlockState, world, pos, FluidState.of(block));
+
+                // ========================================================================================================
+                // for finite fluid blocks, calculate the new quantity based on the resource amount and the existing amount
+                // ========================================================================================================
+
+                if(resource.amount == 0) return false;
+                final float quantaAmount = Fluid.BUCKET_VOLUME / ((PluginBlockFluidBase.Accessor)block).getQuantaPerBlockFloat_Public();
+                final int quantaPerBlock = ((PluginBlockFluidBase.Accessor)block).getQuantaPerBlock_Public();
+                // If the stack contains more available fluid than the full source block,
+                // set a source block
+                int closest = Fluid.BUCKET_VOLUME;
+                int quanta = quantaPerBlock;
+                if(resource.amount < closest) {
+                    // Figure out maximum level to match stack amount
+                    closest = MathHelper.floor(quantaAmount * MathHelper.floor(resource.amount / quantaAmount));
+                    quanta = MathHelper.floor(closest / quantaAmount);
+                }
+
+                @Nonnull final FluidState existing = FluidloggedUtils.getFluidState(world, pos, destBlockState);
+                if(existing.getFluid() == resource.getFluid()) {
+                    final int existingQuanta = existing.getLevel() + 1;
+                    final int missingQuanta = quantaPerBlock - existingQuanta;
+                    closest = Math.min(closest, MathHelper.floor(missingQuanta * quantaAmount));
+                    quanta = Math.min(quanta + existingQuanta, quantaPerBlock);
+                }
+
+                // If too little (or too much, technically impossible) fluid is to be placed, abort
+                if(quanta < 1 || quanta > 16) return false;
+                @Nonnull final FluidState newState = FluidState.of(block.getDefaultState()).withLevel(closest);
+                return ((IFluidloggableFluid)block).isFluidloggableFluid(newState) && ((IFluidloggableFluid)block).isStateFluidloggable(destBlockState, world, pos, newState);
+            }
+
+            return false;
         }
     }
 }

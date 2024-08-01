@@ -12,6 +12,7 @@ import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTUtil;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.template.PlacementSettings;
@@ -233,36 +234,36 @@ public final class PluginTemplate implements IASMPlugin
     {
         public static void addFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull BlockPos transformedPos, @Nullable Block toIgnore, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
             final FluidState fluidState = FluidState.get(world, pos);
-            if(!fluidState.isEmpty() && fluidState.getBlock() != toIgnore)
-                fluidStates.add(Pair.of(transformedPos, fluidState));
+            if(fluidState != FluidState.EMPTY && fluidState.getBlock() != toIgnore) fluidStates.add(Pair.of(transformedPos, fluidState));
         }
 
         public static void addFluidsToWorld(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull BlockPos size, @Nonnull PlacementSettings settings, int flags, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
             if(!fluidStates.isEmpty() && size.getX() > 0 && size.getZ() > 0) {
                 for(Pair<BlockPos, FluidState> entry : fluidStates) {
                     BlockPos transformedPos = Template.transformedBlockPos(settings, entry.getKey()).add(pos);
-                    FluidloggedUtils.setFluidState(world, transformedPos, null, entry.getValue(), false, true, flags);
+                    FluidloggedUtils.setFluidState(world, transformedPos, null, entry.getValue(), false, flags);
                 }
             }
         }
 
-        public static int keepOldFlag(int blockFlags, boolean keepOldFluidStates) { return keepOldFluidStates ? blockFlags : (blockFlags | 32); }
+        public static int keepOldFlag(int blockFlags, boolean keepOldFluidStates) {
+            return blockFlags | (keepOldFluidStates ? 64 : 32);
+        }
 
         public static void readTemplate(@Nonnull Template template, @Nonnull NBTTagCompound compound, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
-            fluidStates.clear();
-
             if(compound.hasKey("fluidStates", Constants.NBT.TAG_LIST)) {
+                fluidStates.clear();
                 for(NBTBase nbtBase : compound.getTagList("fluidStates", Constants.NBT.TAG_COMPOUND)) {
                     NBTTagCompound nbt = (NBTTagCompound)nbtBase;
-                    FluidState fluidState = FluidState.of(Block.getBlockFromName(nbt.getString("state")));
+                    FluidState fluidState = nbt.hasKey("state", Constants.NBT.TAG_STRING)
+                            ? FluidState.of(Block.getBlockFromName(nbt.getString("state"))) // for legacy structures
+                            : FluidState.of(NBTUtil.readBlockState(nbt));
 
-                    if(!fluidState.isEmpty())
-                        fluidStates.add(Pair.of(BlockPos.fromLong(nbt.getLong("pos")), fluidState));
+                    if(fluidState != FluidState.EMPTY) fluidStates.add(Pair.of(BlockPos.fromLong(nbt.getLong("pos")), fluidState));
                 }
             }
 
-            if(compound.hasKey("keepOldFluidStates", Constants.NBT.TAG_BYTE))
-                ((Accessor)template).setKeepOldFluidStates(compound.getBoolean("keepOldFluidStates"));
+            if(compound.hasKey("keepOldFluidStates", Constants.NBT.TAG_BYTE)) ((Accessor)template).setKeepOldFluidStates(compound.getBoolean("keepOldFluidStates"));
         }
 
         public static void writeTemplate(@Nonnull NBTTagCompound compound, boolean keepOldFluidStates, @Nonnull List<Pair<BlockPos, FluidState>> fluidStates) {
@@ -270,8 +271,7 @@ public final class PluginTemplate implements IASMPlugin
                 final NBTTagList list = new NBTTagList();
                 for(Pair<BlockPos, FluidState> entry : fluidStates) {
                     NBTTagCompound nbt = new NBTTagCompound();
-                    nbt.setString("state", String.valueOf(entry.getValue().getBlock().getRegistryName()));
-                    nbt.setLong("pos", entry.getKey().toLong());
+                    NBTUtil.writeBlockState(nbt, entry.getValue().getState()).setLong("pos", entry.getKey().toLong());
                     list.appendTag(nbt);
                 }
 

@@ -7,14 +7,16 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.common.util.Constants;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
-import java.util.Random;
 
 /**
  * update FluidStates
@@ -41,31 +43,19 @@ public final class PluginBlockStaticLiquid implements IASMPlugin
                 generator.visitVarInsn(ALOAD, 3);
             }
         );
-
-        //change existing updateTick method to randomTick
-        for(MethodNode method : classNode.methods) {
-            if(method.name.equals(obfuscated ? "func_180650_b" : "updateTick")) {
-                method.name = obfuscated ? "func_180645_a" : "randomTick";
-                break;
-            }
-        }
-
         /*
-         * updateTick:
+         * getCanBlockBurn:
          * New code:
-         * //use BlockDynamicLiquid behavior if fluidlogged
-         * @ASMGenerated
-         * public void updateTick(World worldIn, BlockPos pos, IBlockState state, Random rand)
+         * //check if the FluidState here is air or flammable
+         * private boolean getCanBlockBurn(World worldIn, BlockPos pos)
          * {
-         *     Hooks.updateTick(worldIn, pos, state, rand);
+         *     return Hooks.getCanBlockBurn(worldIn, pos);
          * }
          */
-        addMethod(classNode, obfuscated ? "func_180650_b" : "updateTick", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Ljava/util/Random;)V",
-            "updateTick", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Ljava/util/Random;)V", generator -> {
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_176368_m" : "getCanBlockBurn"),
+            "getCanBlockBurn", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
-                generator.visitVarInsn(ALOAD, 3);
-                generator.visitVarInsn(ALOAD, 4);
             }
         );
 
@@ -75,20 +65,23 @@ public final class PluginBlockStaticLiquid implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static void updateLiquid(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
-            if(!FluidState.get(worldIn, pos).isEmpty()) worldIn.scheduleUpdate(pos, state.getBlock(), state.getBlock().tickRate(worldIn));
-            else {
-                final BlockLiquid block = BlockLiquid.getFlowingBlock(state.getMaterial());
-                worldIn.setBlockState(pos, block.getDefaultState().withProperty(BlockLiquid.LEVEL, state.getValue(BlockLiquid.LEVEL)), 2);
-                worldIn.scheduleUpdate(pos, block, block.tickRate(worldIn));
-            }
+        public static boolean getCanBlockBurn(@Nonnull final World world, @Nonnull final BlockPos pos) {
+            if(world.isOutsideBuildHeight(pos) || !world.isBlockLoaded(pos)) return false;
+
+            @Nonnull final Chunk chunk = world.getChunk(pos);
+            if(!chunk.getBlockState(pos).getMaterial().getCanBurn()) return false;
+
+            @Nonnull final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
+            return fluidState == FluidState.EMPTY || fluidState.getMaterial().getCanBurn();
         }
 
-        public static void updateTick(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
-            if(!FluidState.get(worldIn, pos).isEmpty()) {
-                final BlockLiquid block = BlockLiquid.getFlowingBlock(state.getMaterial());
-                block.updateTick(worldIn, pos, block.getDefaultState(), rand);
-            }
+        public static void updateLiquid(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
+            @Nonnull final FluidState dynState = FluidState.of(BlockLiquid.getFlowingBlock(state.getMaterial())).withLevel(state.getValue(BlockLiquid.LEVEL));
+
+            if(FluidState.get(worldIn, pos).isEmpty()) worldIn.setBlockState(pos, dynState.getState(), Constants.BlockFlags.SEND_TO_CLIENTS);
+            else FluidloggedUtils.setFluidState(worldIn, pos, null, dynState, false, Constants.BlockFlags.SEND_TO_CLIENTS);
+
+            worldIn.scheduleUpdate(pos, dynState.getBlock(), dynState.getBlock().tickRate(worldIn));
         }
     }
 }

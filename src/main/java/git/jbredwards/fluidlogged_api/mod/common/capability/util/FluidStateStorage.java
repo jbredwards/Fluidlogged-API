@@ -7,7 +7,6 @@ package git.jbredwards.fluidlogged_api.mod.common.capability.util;
 
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 
@@ -25,16 +24,12 @@ public enum FluidStateStorage implements Capability.IStorage<IFluidStateCapabili
 
     @Nonnull
     @Override
-    public NBTBase writeNBT(@Nullable Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side) {
-        final NBTTagCompound nbt = new NBTTagCompound();
-        nbt.setTag("data", instance.serializeNBT());
-        //version int will be changed if the data format changes (it probably won't but let's be safe)
-        nbt.setInteger("version", 1);
-        return nbt;
+    public NBTBase writeNBT(@Nullable final Capability<IFluidStateCapability> capability, @Nonnull final IFluidStateCapability instance, @Nullable final EnumFacing side) {
+        return instance.serializeNBT();
     }
 
     @Override
-    public void readNBT(@Nullable Capability<IFluidStateCapability> capability, @Nonnull IFluidStateCapability instance, @Nullable EnumFacing side, @Nonnull NBTBase nbtIn) {
+    public void readNBT(@Nullable final Capability<IFluidStateCapability> capability, @Nonnull final IFluidStateCapability instance, @Nullable final EnumFacing side, @Nonnull final NBTBase nbtIn) {
         instance.deserializeNBT(nbtIn);
     }
 }

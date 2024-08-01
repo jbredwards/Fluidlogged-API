@@ -1,0 +1,350 @@
+/*
+ * Copyright (c) 2024. jbredwards
+ * All rights reserved.
+ */
+
+package git.jbredwards.fluidlogged_api.mod.common.fluid.handler;
+
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IConditionalFluid;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.util.IFluidUpdateHelper;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.util.ISpecializedFluidNeighborInfo;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.BlockStateContainer;
+import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.event.ForgeEventFactory;
+
+import javax.annotation.Nonnull;
+import java.util.Map;
+import java.util.Random;
+
+/**
+ * Implemented by
+ * {@link net.minecraft.block.BlockDynamicLiquid BlockDynamicLiquid}, {@link BlockLiquid},
+ * {@link net.minecraftforge.fluids.BlockFluidBase BlockFluidBase},
+ * {@link net.minecraftforge.fluids.BlockFluidClassic BlockFluidClassic}, and
+ * {@link net.minecraftforge.fluids.BlockFluidFinite BlockFluidFinite} at runtime.
+ * @author jbred
+ *
+ */
+public final class FluidFlowHandler
+{
+    // ===========
+    // FLOW VECTOR
+    // ===========
+
+    public static double getFlowAngle(@Nonnull final ISpecializedFluidNeighborInfo info) {
+        @Nonnull final Vec3d vec = getFlowVec(info);
+        return vec.x == 0.0D && vec.z == 0.0D ? -1000 : MathHelper.atan2(vec.z, vec.x) - Math.PI / 2;
+    }
+
+    @Nonnull
+    public static Vec3d getFlowVec(@Nonnull final ISpecializedFluidNeighborInfo info) {
+        // info.getCache().getWorld().profiler.startSection("fluidFlowVec");
+
+        final int max = info.getOrigin().getQuantaPerBlock();
+        final int decay = max - info.getEffectiveQuanta(0, 0, 0);
+
+        @Nonnull final EnumFacing down = info.getOrigin().getDownDensityFace();
+        @Nonnull final EnumFacing up = info.getOrigin().getUpDensityFace();
+
+        @Nonnull Vec3d vec = Vec3d.ZERO;
+        for(@Nonnull final EnumFacing side : EnumFacing.HORIZONTALS) {
+            if(info.canFluidFlow(0, 0, 0, side)) {
+                final int xo = side.getXOffset(), zo = side.getZOffset();
+                if(!info.isCompatibleFluid(xo, 0, zo) || info.canFluidFlow(xo, 0, zo, side.getOpposite())) {
+                    int otherDecay = max - info.getEffectiveQuanta(xo, 0, zo);
+                    if(otherDecay >= max) {
+                        if(info.canFluidFlow(xo, 0, zo, down) && (!info.isCompatibleFluid(xo, -1, zo) || info.canFluidFlow(xo, -1, zo, up))) {
+                            otherDecay = max - info.getEffectiveQuanta(xo, -1, zo);
+                            if(otherDecay < max) {
+                                final int power = otherDecay - (decay - max);
+                                vec = vec.add(xo * power, 0, zo * power);
+                            }
+                        }
+                    }
+
+                    else {
+                        final int power = otherDecay - decay;
+                        vec = vec.add(xo * power, 0, zo * power);
+                    }
+                }
+            }
+        }
+
+        // info.getCache().getWorld().profiler.endSection();
+        return vec.normalize();
+    }
+
+    // =================
+    // BlockFluidClassic
+    // =================
+
+    public static void updateClassic(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull final FluidState originState, @Nonnull final Map<Block, Boolean> displacements) {
+        final int flowCost = originState.getFlowCost(world);
+        final int slopeDist = originState.getQuantaPerBlock() >> (flowCost - 1);
+        if(world.isRemote || !world.isAreaLoaded(origin, slopeDist - 1)) return;
+
+        // world.profiler.startSection("fluidUpdateClassic");
+        @Nonnull final IFluidUpdateHelper helper = new IFluidUpdateHelper.Forge(world, origin, originState, slopeDist, displacements);
+
+        // check if the fluid can exist here before proceeding (compatibility with Thermal Foundation)
+        /*if(originState.getBlock() instanceof IConditionalFluid && ((IConditionalFluid)originState.getBlock()).canCondenseAt(helper.getCache(), origin, originState)) {
+            @Nonnull final IBlockState condenseState = ((IConditionalFluid)originState.getBlock()).getCondenseState(helper.getCache(), origin, originState);
+            if(condenseState != BlockStateContainer.AIR_BLOCK_STATE && helper.getBlockState(0, 0, 0).getBlock().isReplaceable(helper.getCache(), origin)) world.setBlockState(origin, condenseState);
+            else FluidloggedUtils.setFluidToAir(world, origin, helper.getCache().getBlockState(origin), Constants.BlockFlags.DEFAULT);
+            // world.profiler.endSection();
+            return;
+        }*/
+
+        // check adjacent block levels if non-source
+        int quantaRemaining = originState.getQuantaPerBlock() - originState.getLevel();
+        if(quantaRemaining < originState.getQuantaPerBlock()) {
+            final int expQuanta;
+
+            int adjacentSourceBlocks = 0;
+            if(originState.getQuantaPerBlock() > 0 && FluidloggedUtils.canCreateSource(originState.getState(), world, origin) && (helper.getBlockState(0, -1, 0).getMaterial().isSolid()
+            || !helper.canFluidFlow(0, 0, 0, originState.getDownDensityFace()) || helper.isSource(0, -1, 0, originState.getUpDensityFace()))) {
+                for(@Nonnull final EnumFacing side : EnumFacing.HORIZONTALS) {
+                    if(helper.canFluidFlow(0, 0, 0, side) && helper.isSource(side.getXOffset(), 0, side.getZOffset(), side.getOpposite()))
+                        adjacentSourceBlocks++;
+                }
+            }
+
+            // new source block
+            if(adjacentSourceBlocks >= 2
+            && (helper.getBlockState(0, -1, 0).getMaterial().isSolid()
+            || !helper.canFluidFlow(0, 0, 0, originState.getDownDensityFace())
+            || helper.isSource(0, -1, 0, originState.getUpDensityFace())))
+                expQuanta = originState.getQuantaPerBlock();
+
+            // vertical flow into block
+            else if(helper.hasVerticalFlow(0, 0, 0))
+                expQuanta = originState.getQuantaPerBlock() - flowCost;
+
+            // use the largest neighbor level
+            else {
+                int maxQuanta = -100;
+                if(originState.getQuantaPerBlock() > 0) for(@Nonnull final EnumFacing side : EnumFacing.HORIZONTALS) {
+                    if(helper.canFluidFlow(0, 0, 0, side) && helper.canFluidFlow(side.getXOffset(), 0, side.getZOffset(), side.getOpposite()))
+                        maxQuanta = Math.max(helper.getEffectiveQuanta(side.getXOffset(), 0, side.getZOffset()), maxQuanta);
+                }
+
+                expQuanta = maxQuanta - flowCost;
+            }
+
+            // decay calculation
+            if(expQuanta != quantaRemaining) {
+                quantaRemaining = expQuanta;
+                @Nonnull final FluidState fluidState = expQuanta <= 0 ? FluidState.EMPTY : originState.withLevel(originState.getQuantaPerBlock() - expQuanta);
+
+                // set IBlockState
+                if(helper.getBlockState(0, 0, 0) == originState.getState() || expQuanta > 0 && helper.vaporize(0, 0, 0, fluidState, null)) {
+                    if(expQuanta <= 0) world.setBlockState(origin, BlockStateContainer.AIR_BLOCK_STATE);
+                    else {
+                        world.setBlockState(origin, fluidState.getState(), Constants.BlockFlags.SEND_TO_CLIENTS);
+                        world.scheduleUpdate(origin, originState.getBlock(), originState.getBlock().tickRate(world));
+                        world.notifyNeighborsOfStateChange(origin, originState.getBlock(), false);
+                    }
+                }
+
+                // set FluidState
+                else {
+                    if(expQuanta <= 0) FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), FluidState.EMPTY, false);
+                    else {
+                        if(!helper.isFluidloggable(0, 0, 0, fluidState, null, false, false))
+                            FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), FluidState.EMPTY, false);
+                        else {
+                            FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), fluidState, false, Constants.BlockFlags.SEND_TO_CLIENTS);
+                            world.scheduleUpdate(origin, originState.getBlock(), originState.getBlock().tickRate(world));
+                            world.notifyNeighborsOfStateChange(origin, originState.getBlock(), false);
+                        }
+                    }
+                }
+
+                // changed data in world, reset non-chunk data in helper
+                helper.resetDataAt(0, 0, 0);
+            }
+        }
+
+        if(helper.getFluidState(0, 0, 0).isEmpty()) {
+            // world.profiler.endSection();
+            return;
+        }
+
+        // flow vertically if possible
+        if(helper.canFlowInto(0, 0, 0, flowCost, originState.getDownDensityFace(), false) && (!helper.getFluidState(0, 0, 0).isSource() || !helper.isCompatibleFluid(0, -1, 0))) {
+            helper.flowInto(0, 0, 0, flowCost, originState.getDownDensityFace(), Constants.BlockFlags.DEFAULT);
+            // world.profiler.endSection();
+            return;
+        }
+
+        // flow outward if possible
+        int flowMeta = originState.getQuantaPerBlock() - quantaRemaining + flowCost;
+        if(flowMeta >= originState.getQuantaPerBlock()) {
+            // world.profiler.endSection();
+            return;
+        }
+
+        if(flowMeta >= 0 && (helper.getFluidState(0, 0, 0).isSource() || !helper.canFluidFlow(0, 0, 0, originState.getDownDensityFace()) || !helper.canFluidFlow(0, -1, 0, originState.getUpDensityFace()))) {
+            if(helper.hasVerticalFlow(0, 0, 0)) flowMeta = flowCost;
+
+            @Nonnull final boolean[] flowTo = helper.getOptimalFlowDirections(0, 0, 0, originState.getQuantaPerBlock(), flowMeta, flowCost, levelIn -> flowCost);
+            for(int i = 0; i < 4; i++) if(flowTo[i]) {
+                @Nonnull final EnumFacing side = EnumFacing.HORIZONTALS[i];
+                helper.flowInto(0, 0, 0, flowMeta, side, Constants.BlockFlags.DEFAULT);
+            }
+        }
+
+        // world.profiler.endSection();
+    }
+
+    // ==================
+    // BlockDynamicLiquid
+    // ==================
+
+    public static void updateDynamic(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull final FluidState originState, @Nonnull final Random rand) {
+        final int flowCost = originState.getFlowCost(world);
+        final int slopeDist = originState.getQuantaPerBlock() >> (flowCost - 1);
+        if(world.isRemote || !world.isAreaLoaded(origin, slopeDist)) return;
+        // world.profiler.startSection("fluidUpdateVanilla");
+
+        @Nonnull final IFluidUpdateHelper helper = new IFluidUpdateHelper.Vanilla(world, origin, originState, slopeDist);
+        int tickRate = originState.getBlock().tickRate(world);
+        int level = originState.getLevel();
+
+        boolean placeStatic = true;
+
+        // check adjacent block levels if non-source
+        if(level > 0) {
+            int currentMinLevel = -100;
+            int adjacentSourceBlocks = 0;
+            for(@Nonnull final EnumFacing side : EnumFacing.HORIZONTALS) {
+                if(!helper.canFluidFlow(0, 0, 0, side)) continue;
+                final int xo = side.getXOffset(), zo = side.getZOffset();
+                if(helper.isCompatibleFluid(xo, 0, zo) && helper.canFluidFlow(xo, 0, zo, side.getOpposite())) {
+                    int neighborLevel = helper.getFluidState(xo, 0, zo).getLevel();
+
+                    if(neighborLevel == 0) adjacentSourceBlocks++;
+                    else if(neighborLevel >= 8) neighborLevel = 0;
+
+                    currentMinLevel = currentMinLevel >= 0 && neighborLevel > currentMinLevel ? currentMinLevel : neighborLevel;
+                }
+            }
+
+            int newLevel = currentMinLevel + flowCost;
+            if(newLevel >= 8 || currentMinLevel < 0) newLevel = -1;
+
+            // check for fluid above this
+            if(helper.hasVerticalFlow(0, 0, 0)) {
+                final int upLevel = helper.getFluidState(0, 1, 0).getLevel();
+                if(upLevel >= 8) newLevel = upLevel;
+                else newLevel = upLevel + 8;
+            }
+
+            // new source block
+            if(adjacentSourceBlocks >= 2 && FluidloggedUtils.canCreateSource(originState.getState(), world, origin) && (helper.getBlockState(0, -1, 0).getMaterial().isSolid()
+            || !helper.canFluidFlow(0, 0, 0, originState.getDownDensityFace()) || helper.isSource(0, -1, 0, originState.getUpDensityFace()))) {
+                newLevel = 0;
+            }
+
+            // randomize lava update ticks (vanilla feature)
+            if(originState.getMaterial() == Material.LAVA && newLevel < 8 && newLevel > level && rand.nextInt(4) != 0) tickRate <<= 2;
+
+            // decay calculation
+            if(level != newLevel) {
+                level = newLevel;
+                placeStatic = false;
+                @Nonnull final FluidState fluidState = level < 0 ? FluidState.EMPTY : originState.withLevel(level);
+
+                // set IBlockState
+                if(helper.getBlockState(0, 0, 0) == originState.getState() || level >= 0 && helper.vaporize(0, 0, 0, fluidState, null)) {
+                    if(level < 0) world.setBlockState(origin, BlockStateContainer.AIR_BLOCK_STATE);
+                    else {
+                        world.setBlockState(origin, fluidState.getState(), Constants.BlockFlags.SEND_TO_CLIENTS);
+                        world.scheduleUpdate(origin, originState.getBlock(), tickRate);
+                        world.notifyNeighborsOfStateChange(origin, originState.getBlock(), false);
+                    }
+                }
+
+                // set FluidState
+                else {
+                    if(level < 0) FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), FluidState.EMPTY, false);
+                    else {
+                        if(!helper.isFluidloggable(0, 0, 0, fluidState, null, false, false))
+                            FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), FluidState.EMPTY, false);
+                        else {
+                            FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), fluidState, false, Constants.BlockFlags.SEND_TO_CLIENTS);
+                            world.scheduleUpdate(origin, originState.getBlock(), tickRate);
+                            world.notifyNeighborsOfStateChange(origin, originState.getBlock(), false);
+                        }
+                    }
+                }
+            }
+        }
+
+        // place static block
+        if(placeStatic) {
+            @Nonnull final FluidState fluidState = FluidState.of(BlockLiquid.getStaticBlock(originState.getMaterial())).withLevel(level);
+            if(helper.getBlockState(0, 0, 0) == originState.getState() || helper.vaporize(0, 0, 0, fluidState, null)) world.setBlockState(origin, fluidState.getState(), Constants.BlockFlags.SEND_TO_CLIENTS);
+            else FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), fluidState, false, Constants.BlockFlags.SEND_TO_CLIENTS);
+        }
+
+        // changed data in world, reset non-chunk data in helper
+        helper.resetDataAt(0, 0, 0);
+        if(helper.getFluidState(0, 0, 0).isEmpty()) {
+            // world.profiler.endSection();
+            return;
+        }
+
+        // mix with below if possible
+        if(!FluidloggedAPIConfig.fixBadFluidMixing || helper.canFluidFlow(0, 0, 0, originState.getDownDensityFace())) {
+            if(originState.getMaterial() == Material.LAVA && helper.getBlockState(0, -1, 0).getMaterial() == Material.WATER) {
+                world.setBlockState(helper.getCache().offset(origin, originState.getDownDensityFace().getDirectionVec()), ForgeEventFactory.fireFluidPlaceBlockEvent(world, helper.getCache().mutablePos, origin, Blocks.STONE.getDefaultState()));
+                ((BlockLiquid)originState.getBlock()).triggerMixEffects(world, helper.getCache().mutablePos);
+                // world.profiler.endSection();
+                return;
+            }
+        }
+
+        // flow vertically if possible
+        if(helper.canFlowInto(0, 0, 0, level >= 8 ? level : level + 8, originState.getDownDensityFace(), false) && (!helper.getFluidState(0, 0, 0).isSource() || !helper.isCompatibleFluid(0, -1, 0))) {
+            helper.flowInto(0, 0, 0, level >= 8 ? level : level + 8, originState.getDownDensityFace(), Constants.BlockFlags.DEFAULT);
+            // world.profiler.endSection();
+            return;
+        }
+
+        // flow outward if possible
+        if(level >= 0 && (helper.getFluidState(0, 0, 0).isSource() || !helper.canFluidFlow(0, 0, 0, originState.getDownDensityFace()) || !helper.canFluidFlow(0, -1, 0, originState.getUpDensityFace()))) {
+            final int newLevel = level >= 8 ? flowCost : level + flowCost;
+            if(newLevel < 8) {
+                @Nonnull final boolean[] flowTo = helper.getOptimalFlowDirections(0, 0, 0, 8, newLevel, flowCost, levelIn -> levelIn >= 8 ? levelIn : levelIn + 8);
+                for(int i = 0; i < 4; i++) if(flowTo[i]) {
+                    @Nonnull final EnumFacing side = EnumFacing.HORIZONTALS[i];
+                    helper.flowInto(0, 0, 0, newLevel, side, Constants.BlockFlags.DEFAULT);
+                }
+            }
+        }
+
+        // world.profiler.endSection();
+    }
+
+    // ================
+    // BlockFluidFinite
+    // ================
+
+    public static void updateFinite(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull final FluidState originState, @Nonnull final Map<Block, Boolean> displacements) {
+
+    }
+}

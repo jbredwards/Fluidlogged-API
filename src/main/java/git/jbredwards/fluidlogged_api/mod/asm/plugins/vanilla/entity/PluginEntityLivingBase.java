@@ -6,9 +6,14 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IWaterHeight;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
+import net.minecraft.entity.Entity;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * fix issue#151
@@ -18,10 +23,52 @@ import javax.annotation.Nonnull;
 public final class PluginEntityLivingBase implements IASMPlugin
 {
     @Override
-    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return method.name.equals(obfuscated ? "func_191986_a" : "travel"); }
+    public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
+        if(method.name.equals(obfuscated ? "func_70636_d" : "onLivingUpdate")) return 1;
+        else return method.name.equals(obfuscated ? "func_191986_a" : "travel") ? 2 : 0;
+    }
 
     @Override
-    public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+    public boolean transform(@Nonnull final InsnList instructions, @Nonnull final MethodNode method, @Nonnull final AbstractInsnNode insn, final boolean obfuscated, final int index) {
+        if(index == 1) {
+            /*
+             * onLivingUpdate: (changes are around line 2598)
+             * Old code:
+             * if (this.isInWater())
+             * {
+             *     ...
+             * }
+             *
+             * New code:
+             * // don't swim in fluids that have a height of 0.4 blocks or less (vanilla behavior, and fixes issue#151)
+             * if (Hooks.isInDeepWater(this))
+             * {
+             *     ...
+             * }
+             */
+            if(checkMethod(insn, obfuscated ? "func_70090_H" : "isInWater")) {
+                instructions.insert(insn, genMethodNode("isInDeepWater", "(Lnet/minecraft/entity/Entity;)Z"));
+                instructions.remove(insn);
+            }
+            /*
+             * onLivingUpdate: (changes are around line 2606)
+             * Old code:
+             * else if (this.onGround && this.jumpTicks == 0)
+             *
+             * New code:
+             * // allow jumping in fluids that have a height of 0.4 blocks or less (vanilla behavior, and fixes issue#151)
+             * else if (Hooks.isInShallowWater(this) && this.jumpTicks == 0)
+             * {
+             *     ...
+             * }
+             */
+            else if(checkField(insn, obfuscated ? "field_70122_E" : "onGround")) {
+                instructions.insert(insn, genMethodNode("isInShallowWater", "(Lnet/minecraft/entity/Entity;)Z"));
+                instructions.remove(insn);
+                return true;
+            }
+        }
+
         /*
          * travel: (changes are around lines 2224 & 2264)
          * Old code:
@@ -32,12 +79,42 @@ public final class PluginEntityLivingBase implements IASMPlugin
          *
          * New code:
          * //fix issue#151
-         * if (this.collidedHorizontally && this.isOffsetPositionInLiquid(this.motionX, this.motionY + 0.1 - this.posY + d4, this.motionZ))
+         * if (this.collidedHorizontally && this.isOffsetPositionInLiquid(this.motionX, this.motionY + Hooks.getCheckOffset() - this.posY + d4, this.motionZ))
          * {
          *     this.motionY = 0.30000001192092896D;
          * }
          */
-        if(insn.getOpcode() == LDC && ((LdcInsnNode)insn).cst.equals(0.6000000238418579)) ((LdcInsnNode)insn).cst = 0.100001;
+        else if(insn.getOpcode() == LDC && ((LdcInsnNode)insn).cst.equals(0.6000000238418579)) {
+            instructions.insertBefore(insn, genMethodNode("getCheckOffset", "()D"));
+            instructions.remove(insn);
+        }
+
         return false;
+    }
+
+    @SuppressWarnings("unused")
+    public static final class Hooks
+    {
+        public static double getCheckOffset() {
+            return FluidloggedAPIConfig.ignoreLowFluidCollision ? 0.6 : 0.2;
+        }
+
+        public static boolean isInDeepWater(@Nonnull final Entity entity) {
+            if(!FluidloggedAPIConfig.ignoreLowFluidCollision || !entity.isPushedByWater()) return entity.isInWater();
+            else if(!entity.isInWater()) return false;
+            else if(!entity.onGround) return true;
+
+            @Nullable final IConfigFluidBox.HeightBox box = ((IWaterHeight)entity).getBox();
+            return box != null && box.max - box.min > 0.4;
+        }
+
+        public static boolean isInShallowWater(@Nonnull final Entity entity) {
+            if(!FluidloggedAPIConfig.ignoreLowFluidCollision || !entity.isPushedByWater()) return entity.onGround;
+            else if(entity.onGround) return true;
+            else if(!entity.isInWater()) return false;
+
+            @Nullable final IConfigFluidBox.HeightBox box = ((IWaterHeight)entity).getBox();
+            return box != null && box.max - box.min <= 0.4;
+        }
     }
 }

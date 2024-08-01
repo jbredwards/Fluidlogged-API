@@ -14,7 +14,7 @@ apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'com.matthewprenger.cursegradle'
 apply plugin: 'maven-publish'
 
-version = 'v2.2.7-mc1.12.2'
+version = "v${mod_version}-mc1.12.2"
 group = 'git.jbredwards.fluidlogged_api'
 archivesBaseName = 'Fluidlogged-API'
 sourceCompatibility = targetCompatibility = '1.8'
@@ -27,20 +27,26 @@ minecraft {
 }
 
 repositories {
-    maven { url 'https://oss.sonatype.org/content/repositories/public/' }
     maven { url 'https://cursemaven.com' }
+    maven { url 'https://maven.covers1624.net' }
+    maven { url 'https://oss.sonatype.org/content/repositories/public/' }
+    // cb multipart
+    maven { url 'https://chickenbones.net/maven' }
+    maven { url 'https://modmaven.dev' }
 }
 
 dependencies {
-    //optional mod compat
+    // optional mod compat
     deobfProvided 'io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0-SNAPSHOT'
     deobfProvided 'curse.maven:better-foliage-228529:3393955'
     deobfProvided 'curse.maven:dynamic-lights-227874:2563244'
+    deobfProvided 'codechicken:ForgeMultipart:1.12.2-2.6.2.+:universal'
+    deobfProvided 'cofh:CoFHCore:1.12.2-4.6.0.+:universal'
 }
 
 processResources {
     // this will ensure that this task is redone when the versions change.
-    inputs.property 'version', project.version
+    inputs.property 'mod_version', mod_version
     inputs.property 'mcversion', project.minecraft.version
 
     // replace stuff in mcmod.info, nothing else
@@ -48,7 +54,7 @@ processResources {
         include 'mcmod.info'
 
         // replace version and mcversion
-        expand 'version':project.version, 'mcversion':project.minecraft.version
+        expand 'mod_version':mod_version, 'mcversion':project.minecraft.version
     }
 
     // copy everything else except the mcmod.info

@@ -6,52 +6,44 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import net.minecraft.block.BlockTrapDoor;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.EnumFacing;
-import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import javax.annotation.Nonnull;
 
 /**
- * makes trap doors fluidloggable by default
+ * trapdoors now notify neighbors when opening/closing
  * @author jbred
  *
  */
 public final class PluginBlockTrapDoor implements IASMPlugin
 {
     @Override
-    public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggable");
+    public boolean isMethodValid(@Nonnull final MethodNode method, final boolean obfuscated) { return method.name.equals(obfuscated ? "func_180639_a" : "onBlockActivated") || method.name.equals(obfuscated ? "func_189540_a" : "neighborChanged"); }
+
+    @Override
+    public boolean transform(@Nonnull final InsnList instructions, @Nonnull final MethodNode method, @Nonnull final AbstractInsnNode insn, final boolean obfuscated, final int index) {
         /*
-         * canFluidFlow:
+         * onBlockActivated & neighborChanged: (changes are around lines 122 & 159)
+         * Old code:
+         * worldIn.setBlockState(pos, state, 2);
+         * ...
+         * worldIn.setBlockState(pos, state.withProperty(OPEN, Boolean.valueOf(flag)), 2);
+         *
          * New code:
-         * //prevent fluids from flowing through closed trapdoor sides
-         * @ASMGenerated
-         * public boolean canFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull EnumFacing side)
-         * {
-         *     return Hooks.canTrapDoorFluidFlow(here, facing);
-         * }
+         * // notify neighbors of state change
+         * worldIn.setBlockState(pos, state, 3);
+         * ...
+         * worldIn.setBlockState(pos, state.withProperty(OPEN, Boolean.valueOf(flag)), 3);
          */
-        addMethod(classNode, "canFluidFlow", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/EnumFacing;)Z",
-            "canTrapDoorFluidFlow", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/EnumFacing;)Z", generator -> {
-                generator.visitVarInsn(ALOAD, 3);
-                generator.visitVarInsn(ALOAD, 4);
-            }
-        );
+        if(insn.getOpcode() == ICONST_2 && checkMethod(insn.getNext(), obfuscated ? "func_180501_a" : "setBlockState")) {
+            instructions.insertBefore(insn, new InsnNode(ICONST_3));
+            instructions.remove(insn);
+            return true;
+        }
 
         return false;
-    }
-
-    @SuppressWarnings("unused")
-    public static final class Hooks
-    {
-        public static boolean canTrapDoorFluidFlow(@Nonnull IBlockState here, @Nonnull EnumFacing side) {
-            final boolean isOpen = here.getValue(BlockTrapDoor.OPEN);
-
-            if(side.getAxis().isHorizontal()) return !isOpen || here.getValue(BlockTrapDoor.FACING).getOpposite() != side;
-            else if(side == EnumFacing.UP) return isOpen || here.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.BOTTOM;
-            else return isOpen || here.getValue(BlockTrapDoor.HALF) == BlockTrapDoor.DoorHalf.TOP;
-        }
     }
 }

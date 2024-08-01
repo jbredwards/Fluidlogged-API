@@ -7,7 +7,6 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
-import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -28,15 +27,11 @@ public final class PluginWorldServer implements IASMPlugin
     @Override
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         //updateBlocks
-        if(checkMethod(method, obfuscated ? "func_147456_g" : "updateBlocks", null))
-            return 1;
+        if(checkMethod(method, obfuscated ? "func_147456_g" : "updateBlocks", null)) return 1;
         //updateBlockTick
-        else if(checkMethod(method, obfuscated ? "func_175654_a" : "updateBlockTick", null))
-            return 2;
+        else if(checkMethod(method, obfuscated ? "func_175654_a" : "updateBlockTick", null)) return 2;
         //tickUpdates
-        else if(checkMethod(method, obfuscated ? "func_72955_a" : "tickUpdates", null))
-            return 3;
-
+        else if(checkMethod(method, obfuscated ? "func_72955_a" : "tickUpdates", null)) return 3;
         else return 0;
     }
 
@@ -121,26 +116,17 @@ public final class PluginWorldServer implements IASMPlugin
     {
         public static void tickRandomFluid(@Nonnull WorldServer world, @Nonnull BlockPos pos, @Nonnull Chunk chunk) {
             final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
-            if(fluidState.getBlock().getTickRandomly())
-                fluidState.getBlock().randomTick(world, pos, fluidState.getState(), world.rand);
+            if(fluidState.getBlock().getTickRandomly()) fluidState.getBlock().randomTick(world, pos, fluidState.getState(), world.rand);
         }
 
         @Nonnull
         public static IBlockState getHereOrFluidIfMatch(@Nonnull WorldServer world, @Nonnull BlockPos pos, @Nonnull Block compare) {
             if(world.isOutsideBuildHeight(pos)) return Blocks.AIR.getDefaultState();
+
             final Chunk chunk = world.getChunk(pos);
             final IBlockState here = chunk.getBlockState(pos);
-            //actual block
-            if(Block.isEqualTo(compare, here.getBlock())) return here;
-            //fluid block
-            else if(FluidloggedUtils.isFluid(compare)) {
-                final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
-                if(!fluidState.isEmpty() && Block.isEqualTo(compare, fluidState.getBlock()))
-                    return fluidState.getState();
-            }
 
-            //default
-            return here;
+            return Block.isEqualTo(compare, here.getBlock()) ? here : FluidState.getFromProvider(chunk, pos).getState();
         }
     }
 }

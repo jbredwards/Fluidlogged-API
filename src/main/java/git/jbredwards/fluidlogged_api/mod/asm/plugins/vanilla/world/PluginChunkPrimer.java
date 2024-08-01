@@ -24,7 +24,7 @@ public final class PluginChunkPrimer implements IASMPlugin
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
         //call super on correct class
         if(checkMethod(insn, "<init>")) {
-            ((MethodInsnNode)insn).owner = "git/jbredwards/fluidlogged_api/api/asm/impl/IFluidStatePrimer";
+            ((MethodInsnNode)insn).owner = "git/jbredwards/fluidlogged_api/api/world/IFluidStatePrimer";
             return true;
         }
 
@@ -33,7 +33,7 @@ public final class PluginChunkPrimer implements IASMPlugin
 
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.superName = "git/jbredwards/fluidlogged_api/api/asm/impl/IFluidStatePrimer";
+        classNode.superName = "git/jbredwards/fluidlogged_api/api/world/IFluidStatePrimer";
         return true;
     }
 }

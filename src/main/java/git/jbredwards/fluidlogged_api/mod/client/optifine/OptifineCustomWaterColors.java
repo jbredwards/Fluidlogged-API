@@ -9,7 +9,7 @@ import net.minecraft.init.Biomes;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.BiomeColorHelper;
-import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -27,9 +27,12 @@ public final class OptifineCustomWaterColors
     static final Method isSwampColors_Method;
     static {
         try {
-            waterColors_Field = ObfuscationReflectionHelper.findField(Class.forName("net.optifine.CustomColors"), "waterColors");
-            getColor_Method = ObfuscationReflectionHelper.findMethod(Class.forName("net.optifine.CustomColormap"), "getColor", int.class, Biome.class, BlockPos.class);
-            isSwampColors_Method = ObfuscationReflectionHelper.findMethod(Class.forName("Config"), "isSwampColors", boolean.class);
+            //noinspection deprecation
+            waterColors_Field = ReflectionHelper.findField(Class.forName("net.optifine.CustomColors"), "waterColors");
+            //noinspection deprecation
+            getColor_Method = ReflectionHelper.findMethod(Class.forName("net.optifine.CustomColormap"), "getColor", null, Biome.class, BlockPos.class);
+            //noinspection deprecation
+            isSwampColors_Method = ReflectionHelper.findMethod(Class.forName("Config"), "isSwampColors", null);
         }
 
         //should never be thrown
@@ -39,7 +42,7 @@ public final class OptifineCustomWaterColors
     public static void setWaterColorHelper() {
         BiomeColorHelper.WATER_COLOR = (biome, blockPos) -> {
             try {
-                //OF has a setting to toggle swampland colors, if it's set to not support swamp colors, set to plains (this is what OF does)
+                //OF has a setting to toggle swampland colors. If it's set to not support swamp colors, set to plains (this is what OF does)
                 if(biome == Biomes.SWAMPLAND && !(boolean)isSwampColors_Method.invoke(null)) biome = Biomes.PLAINS;
 
                 final Object waterColors = waterColors_Field.get(null);
@@ -50,7 +53,7 @@ public final class OptifineCustomWaterColors
             }
 
             //should never be thrown
-            catch(IllegalAccessException | InvocationTargetException e) { throw new RuntimeException(e); }
+            catch(final IllegalAccessException | InvocationTargetException e) { throw new RuntimeException(e); }
         };
     }
 }

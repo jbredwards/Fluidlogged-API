@@ -28,20 +28,6 @@ public final class PluginBlockBarrier implements IASMPlugin
 {
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggable");
-        /*
-         * IFluidloggable:
-         * New code:
-         * //allow fluids to flow from any side
-         * @ASMGenerated
-         * public boolean canFluidFlow(IBlockAccess world, BlockPos pos, IBlockState here, EnumFacing side)
-         * {
-         *     return true;
-         * }
-         */
-        addMethod(classNode, "canFluidFlow", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/EnumFacing;)Z",
-            null, null, generator -> generator.visitInsn(ICONST_1)
-        );
         /*
          * randomDisplayTick:
          * New code:

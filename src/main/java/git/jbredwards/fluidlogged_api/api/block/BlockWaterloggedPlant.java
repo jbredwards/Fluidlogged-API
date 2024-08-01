@@ -7,6 +7,7 @@ package git.jbredwards.fluidlogged_api.api.block;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.IWorldProvider;
 import net.minecraft.block.BlockBush;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
@@ -14,6 +15,8 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.ChunkCache;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
@@ -45,9 +48,9 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
     @Override
     public boolean canPlaceBlockAt(@Nonnull World worldIn, @Nonnull BlockPos pos) {
         final FluidState fluidState = FluidloggedUtils.getFluidState(worldIn, pos);
-        return !fluidState.isEmpty()
-                && isFluidValid(getDefaultState(), worldIn, pos, fluidState.getFluid())
-                && FluidloggedUtils.isFluidloggableFluid(fluidState.getState(), worldIn, pos)
+        return !fluidState.isEmpty() && fluidState.isFluidloggable()
+                && fluidState.getFluidBlockHandler().isFluidloggableFluid(fluidState)
+                && isFluidloggable(getDefaultState(), worldIn, pos, fluidState)
                 && super.canPlaceBlockAt(worldIn, pos);
     }
 
@@ -60,7 +63,36 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
     }
 
     /**
-     * Breaks the plant here if the fluid is drained
+     *
+     * @param state
+     * @param world
+     * @param pos
+     * @param fluidState
+     * @return
+     *
+     * @throws NullPointerException If any of the parameters are null.
+     * @since 3.0.0
+     */
+    @Override
+    public boolean isFluidloggable(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
+        return fluidState.isEmpty() ? isFluidloggable(state, IWorldProvider.getWorld(world), pos) : isFluidValid(state, IWorldProvider.getWorld(world), pos, fluidState.getFluid())
+           && (fluidState.isSource() || fluidState.getActualHeight(world, pos) == 1 && FluidloggedUtils.canCreateSource(fluidState.getState(), IWorldProvider.getWorld(world), pos));
+    }
+
+    /**
+     * Creates a new source block at this position, if the new fluid isn't one, and if the new fluid can be turned into one.
+     */
+    @Nonnull
+    @Override
+    public EnumActionResult onFluidFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState newFluid, int blockFlags) {
+        return !newFluid.isSource() && newFluid.getActualHeight(new ChunkCache(world, pos, pos, 0), pos) == 1
+                && FluidloggedUtils.canCreateSource(newFluid.getState(), world, pos)
+                && FluidloggedUtils.setFluidState(world, pos, here, newFluid.asSource(), false)
+                ? EnumActionResult.SUCCESS : EnumActionResult.PASS;
+    }
+
+    /**
+     * Breaks the plant here if the fluid is drained.
      */
     @Nonnull
     @Override
@@ -71,4 +103,7 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
         //skip updating the capability, as that was just handled through world#setBlockState
         return EnumActionResult.SUCCESS;
     }
+
+    @Override
+    public boolean overrideApplyDefaultsSetting(@Nonnull IBlockState state) { return true; }
 }

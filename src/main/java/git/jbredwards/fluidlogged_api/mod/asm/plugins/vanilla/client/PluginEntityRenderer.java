@@ -143,12 +143,12 @@ public final class PluginEntityRenderer implements IASMPlugin
          * IBlockState viewportState = this.mc.world.getBlockState(viewportPos);
          *
          * New code:
-         * fog color accounts for FluidState
-         * IBlockState viewportState = FluidloggedUtils.getFluidOrReal(this.mc.world, viewportPos);
+         * // this mod changes how the view state works, so there's no need to define a different one here
+         * IBlockState viewportState = iblockstate;
          */
         else if(index == 3 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", null)) {
-            instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
-            instructions.remove(insn);
+            instructions.insert(insn, new VarInsnNode(ALOAD, 12));
+            removeFrom(instructions, insn, -4);
             return true;
         }
 

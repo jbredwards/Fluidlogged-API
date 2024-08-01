@@ -5,12 +5,14 @@
 
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
-import git.jbredwards.fluidlogged_api.api.block.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidBase;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidClassic;
-import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigHandler;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidExtendedStateHandler;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidFlowHandler;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.util.impl.SpecializedFluidNeighborInfo;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -18,23 +20,22 @@ import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraftforge.common.property.IExtendedBlockState;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.property.IUnlistedProperty;
-import net.minecraftforge.fluids.*;
+import net.minecraftforge.event.ForgeEventFactory;
+import net.minecraftforge.fluids.BlockFluidBase;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import java.util.function.Supplier;
-
-import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.*;
-import static net.minecraft.util.EnumFacing.*;
+import java.util.Random;
 
 /**
  * makes liquids fluidloggable
@@ -46,8 +47,7 @@ public final class PluginBlockLiquid implements IASMPlugin
     @Override
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         if(method.name.equals(obfuscated ? "func_149645_b" : "getRenderType")) return 1;
-        else if(method.name.equals(obfuscated ? "func_176365_e" : "checkForMixing")) return 2;
-        return method.name.equals("getFogColor") ? 3 : 0;
+        else return method.name.equals(obfuscated ? "func_180655_c" : "randomDisplayTick") ? 2 : 0;
     }
 
     @Override
@@ -61,157 +61,33 @@ public final class PluginBlockLiquid implements IASMPlugin
          * //change render type, so it can be handled by forge's fluid rendering system
          * return EnumBlockRenderType.MODEL;
          */
-        if(index == 1 && checkField(insn, "LIQUID")) ((FieldInsnNode)insn).name = "MODEL";
-        //stone & obsidian only form while directly connected to lava/water
-        else if(index == 2) {
-            /*
-             * checkForMixing: (changes are around line 322)
-             * Old code:
-             * {
-             *     ...
-             * }
-             *
-             * New code:
-             * //initialize here
-             * {
-             *     Supplier<IBlockState> here = Hooks.getHereSupplier(worldIn, pos);
-             *     ...
-             * }
-             */
-            if(insn.getPrevious() == instructions.getFirst()) {
-                instructions.insertBefore(insn, new VarInsnNode(ALOAD, 1));
-                instructions.insertBefore(insn, new VarInsnNode(ALOAD, 2));
-                instructions.insertBefore(insn, genMethodNode("getHereSupplier", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Ljava/util/function/Supplier;"));
-                instructions.insertBefore(insn, new VarInsnNode(ASTORE, 9));
-            }
-            /*
-             * checkForMixing: (changes are around line 323)
-             * Old code:
-             * if (this.material == Material.LAVA)
-             * {
-             *     ...
-             * }
-             *
-             * New code:
-             * //check if the state here is replaceable
-             * if (Hooks.isReplaceableLava(this.material, worldIn, pos, here))
-             * {
-             *     ...
-             * }
-             */
-            else if(checkField(insn, obfuscated ? "field_151587_i" : "LAVA")) {
-                final InsnList list = new InsnList();
-                list.add(new VarInsnNode(ALOAD, 1));
-                list.add(new VarInsnNode(ALOAD, 2));
-                list.add(new VarInsnNode(ALOAD, 9));
-                list.add(genMethodNode("isReplaceableLava", "(Lnet/minecraft/block/material/Material;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Ljava/util/function/Supplier;)Z"));
-
-                ((JumpInsnNode)insn.getNext()).setOpcode(IFEQ);
-                instructions.insert(insn, list);
-                instructions.remove(insn);
-            }
-            /*
-             * checkForMixing: (changes are around line 329)
-             * Old code:
-             * if (enumfacing != EnumFacing.DOWN && worldIn.getBlockState(pos.offset(enumfacing)).getMaterial() == Material.WATER)
-             * {
-             *     ...
-             * }
-             *
-             * New code:
-             * if (enumfacing != EnumFacing.DOWN && Hooks.isConnectedWater(worldIn, pos, enumfacing, here))
-             * {
-             *     ...
-             * }
-             */
-            else if(checkField(insn, obfuscated ? "field_151586_h" : "WATER")) {
-                ((JumpInsnNode)insn.getNext()).setOpcode(IFEQ);
-                instructions.insert(insn, genMethodNode("isConnectedWater", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;Ljava/util/function/Supplier;)Z"));
-                instructions.insert(insn, new VarInsnNode(ALOAD, 9));
-                removeFrom(instructions, insn, -3);
-                return true;
-            }
+        if(index == 1 && checkField(insn, "LIQUID")) {
+            ((FieldInsnNode)insn).name = "MODEL";
+            return true;
         }
-        //fix fog color to work with new fluid collision
-        else if(index == 3) {
-            /*
-             * getFogColor: (changes are around line 549)
-             * Old code:
-             * if (state.getMaterial().isLiquid())
-             * {
-             *     ....
-             * }
-             *
-             * New code:
-             * //move all fluid checks to this method.
-             * //if this returns true, return oldColor, else return super.getFogColor(...)
-             * if (Hooks.getLiquidFogColor(state, world, pos, viewport))
-             * {
-             *     ...
-             * }
-             */
-            if(checkMethod(insn, obfuscated ? "func_76224_d" : "isLiquid")) {
-                instructions.insert(insn, genMethodNode("getLiquidFogColor", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Vec3d;)Z"));
-                instructions.insert(insn, new VarInsnNode(ALOAD, 7));
-                instructions.insert(insn, new VarInsnNode(ALOAD, 2));
-                instructions.insert(insn, new VarInsnNode(ALOAD, 1));
-                removeFrom(instructions, insn, -1);
-            }
-            /*
-             * getFogColor: (changes are around line 552)
-             * Old code:
-             * if (state.getBlock() instanceof BlockLiquid)
-             * {
-             *     ...
-             * }
-             *
-             * New code:
-             * //remove unused if statement
-             * if (false)
-             * {
-             *     ...
-             * }
-             */
-            else if(insn.getOpcode() == INSTANCEOF) {
-                instructions.insert(insn, new InsnNode(ICONST_0));
-                removeFrom(instructions, insn, -2);
-            }
-            /*
-             * getFogColor: (changes are around line 557)
-             * Old code:
-             * if (viewport.y > (double)f1)
-             * {
-             *     ...
-             * }
-             *
-             * New code:
-             * //remove other unused if statement
-             * if (true)
-             * {
-             *     ...
-             * }
-             */
-            else if(insn.getOpcode() == IFLE) {
-                removeFrom(instructions, insn.getPrevious(), -4);
-                instructions.insertBefore(insn, new InsnNode(ICONST_1));
-                ((JumpInsnNode)insn).setOpcode(IFEQ);
-            }
-            /*
-             * getFogColor: (changes are from lines 559 to 561)
-             * Old code:
-             * BlockPos upPos = pos.up();
-             * IBlockState upState = world.getBlockState(upPos);
-             * return upState.getBlock().getFogColor(world, upPos, upState, entity, originalColor, partialTicks);
-             *
-             * New code:
-             * //do nothing if the entity isn't within the fluid
-             * return originalColor;
-             */
-            else if(checkMethod(insn, "getFogColor")) {
-                instructions.insert(insn, new VarInsnNode(ALOAD, 5));
-                removeFrom(instructions, insn, -20);
-                return true;
-            }
+        /*
+         * randomDisplayTick: (changes are around line 415)
+         * Old code:
+         * if (rand.nextInt(10) == 0 && worldIn.getBlockState(pos.down()).isTopSolid())
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //fix bugs with drip particles
+         * if (rand.nextInt(10) == 0 && Hooks.spawnDripParticles(stateIn, worldIn, pos, rand))
+         * {
+         *     ...
+         * }
+         */
+        else if(index == 2 && checkMethod(insn, obfuscated ? "func_185896_q" : "isTopSolid")) {
+            instructions.insert(insn, genMethodNode("spawnDripParticles", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Ljava/util/Random;)Z"));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 4));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 3));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 2));
+            instructions.insert(insn, new VarInsnNode(ALOAD, 1));
+            removeFrom(instructions, insn, -4);
+            return true;
         }
 
         return false;
@@ -219,7 +95,11 @@ public final class PluginBlockLiquid implements IASMPlugin
 
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggableFluid");
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/fluid/IFlowCostFluid");
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/fluid/IFluidloggableFluid");
+        classNode.interfaces.add("net/minecraftforge/fluids/IFluidBlock");
+        // bounds check is handled via getStateAtViewpoint, so BlockLiquid::getFogColor can be removed
+        classNode.methods.removeIf(method -> method.name.equals("getFogColor"));
         /*
          * createBlockState:
          * New code:
@@ -240,29 +120,28 @@ public final class PluginBlockLiquid implements IASMPlugin
          * @SideOnly(Side.CLIENT)
          * public boolean shouldSideBeRendered(IBlockState blockState, IBlockAccess blockAccess, BlockPos pos, EnumFacing side)
          * {
-         *     return Hooks.shouldLiquidSideBeRendered(blockState, blockAccess, pos, side);
+         *     return PluginBlockFluidBase.Hooks.shouldFluidSideBeRendered(blockState, blockAccess, pos, side, -1);
          * }
          */
-        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_176225_a" : "shouldSideBeRendered"),
-            "shouldLiquidSideBeRendered", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z", generator -> {
-                generator.visitVarInsn(ALOAD, 1);
-                generator.visitVarInsn(ALOAD, 2);
-                generator.visitVarInsn(ALOAD, 3);
-                generator.visitVarInsn(ALOAD, 4);
-            }
-        );
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_176225_a" : "shouldSideBeRendered"), null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitVarInsn(ALOAD, 2);
+            generator.visitVarInsn(ALOAD, 3);
+            generator.visitVarInsn(ALOAD, 4);
+            generator.visitInsn(ICONST_M1);
+            generator.visitMethodInsn(INVOKESTATIC, getFluidHookClass(), "shouldFluidSideBeRendered", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;I)Z", false);
+        });
         /*
          * getFlow:
          * New code:
          * //fix canFluidFlow-related vector bugs
          * public Vec3d getFlow(IBlockAccess worldIn, BlockPos pos, IBlockState state)
          * {
-         *     return Hooks.getFlow(this, worldIn, pos, state);
+         *     return Hooks.getFlow(worldIn, pos, state);
          * }
          */
         overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_189543_a" : "getFlow"),
-            "getFlow", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Lnet/minecraft/util/math/Vec3d;", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
+            "getFlow", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Lnet/minecraft/util/math/Vec3d;", generator -> {
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
@@ -285,17 +164,17 @@ public final class PluginBlockLiquid implements IASMPlugin
             }
         );
         /*
-         * requiresUpdates:
+         * checkForMixing:
          * New code:
-         * //prevents a possible stack overflow bug
-         * @ASMGenerated
-         * public boolean requiresUpdates()
-         * {
-         *     return false;
-         * }
+         * //
          */
-        addMethod(classNode, obfuscated ? "func_149698_L" : "requiresUpdates", "()Z", null, null,
-                generator -> generator.visitInsn(ICONST_0));
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_176365_e" : "checkForMixing"),
+            "checkForMixing", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Z", generator -> {
+                generator.visitVarInsn(ALOAD, 1);
+                generator.visitVarInsn(ALOAD, 2);
+                generator.visitVarInsn(ALOAD, 3);
+            }
+        );
         /*
          * getExtendedState:
          * New code:
@@ -303,26 +182,16 @@ public final class PluginBlockLiquid implements IASMPlugin
          * @ASMGenerated
          * public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos)
          * {
-         *     return PluginBlockFluidBase.Hooks.gteFluidExtendedState(oldState, world, pos, this.getFluid(), -1, 8, 8f, 8f/9, (float)Hooks.getSlopeAngle(this, world, pos));
+         *     return Hooks.getLiquidExtendedState(world, pos, oldState);
          * }
          */
-        addMethod(classNode, "getExtendedState", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;", null, null, generator -> {
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitVarInsn(ALOAD, 2);
-            generator.visitVarInsn(ALOAD, 3);
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitMethodInsn(INVOKEINTERFACE, "net/minecraftforge/fluids/IFluidBlock", "getFluid", "()Lnet/minecraftforge/fluids/Fluid;", true);
-            generator.visitInsn(ICONST_M1);
-            generator.visitLdcInsn(8);
-            generator.visitLdcInsn(8f);
-            generator.visitLdcInsn(8f/9);
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitVarInsn(ALOAD, 2);
-            generator.visitVarInsn(ALOAD, 3);
-            generator.visitMethodInsn(INVOKESTATIC, getHookClass(), "getSlopeAngle", "(Lnet/minecraft/block/BlockLiquid;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)D", false);
-            generator.visitInsn(D2F);
-            generator.visitMethodInsn(INVOKESTATIC, getFluidHookClass(), "getFluidExtendedState", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/Fluid;IIFFF)Lnet/minecraft/block/state/IBlockState;", false);
-        });
+        addMethod(classNode, "getExtendedState", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;",
+            "getLiquidExtendedState", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Lnet/minecraft/block/state/IBlockState;", generator -> {
+                generator.visitVarInsn(ALOAD, 2);
+                generator.visitVarInsn(ALOAD, 3);
+                generator.visitVarInsn(ALOAD, 1);
+            }
+        );
         /*
          * getStateAtViewpoint:
          * New code:
@@ -330,17 +199,16 @@ public final class PluginBlockLiquid implements IASMPlugin
          * @ASMGenerated
          * public IBlockState getStateAtViewpoint(IBlockState state, IBlockAccess world, BlockPos pos, Vec3d viewpoint)
          * {
-         *     return Hooks.getStateAtViewpoint(state, world, pos, viewpoint);
+         *     return FluidCollisionHandler.getStateAtViewpoint(state, world, pos, viewpoint);
          * }
          */
-        addMethod(classNode, "getStateAtViewpoint", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/block/state/IBlockState;",
-            "getStateAtViewpoint", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/block/state/IBlockState;", generator -> {
-                generator.visitVarInsn(ALOAD, 1);
-                generator.visitVarInsn(ALOAD, 2);
-                generator.visitVarInsn(ALOAD, 3);
-                generator.visitVarInsn(ALOAD, 4);
-            }
-        );
+        addMethod(classNode, "getStateAtViewpoint", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/block/state/IBlockState;", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitVarInsn(ALOAD, 2);
+            generator.visitVarInsn(ALOAD, 3);
+            generator.visitVarInsn(ALOAD, 4);
+            generator.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/common/fluid/handler/FluidCollisionHandler", "getStateAtViewpoint", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/block/state/IBlockState;", false);
+        });
         /*
          * isEntityInsideMaterial:
          * New code:
@@ -348,11 +216,10 @@ public final class PluginBlockLiquid implements IASMPlugin
          * @ASMGenerated
          * public Boolean isEntityInsideMaterial(IBlockAccess world, BlockPos blockpos, IBlockState iblockstate, Entity entity, double yToTest, Material materialIn, boolean testingHead)
          * {
-         *     return PluginBlockFluidBase.Hooks.isEntityInsideFluid(this, world, blockpos, iblockstate, entity, yToTest, materialIn, testingHead);
+         *     return FluidCollisionHandler.isEntityInsideFluid(world, blockpos, iblockstate, entity, yToTest, materialIn, testingHead);
          * }
          */
         addMethod(classNode, "isEntityInsideMaterial", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;DLnet/minecraft/block/material/Material;Z)Ljava/lang/Boolean;", null, null, generator -> {
-            generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ALOAD, 1);
             generator.visitVarInsn(ALOAD, 2);
             generator.visitVarInsn(ALOAD, 3);
@@ -360,7 +227,7 @@ public final class PluginBlockLiquid implements IASMPlugin
             generator.visitVarInsn(DLOAD, 5);
             generator.visitVarInsn(ALOAD, 7);
             generator.visitVarInsn(ILOAD, 8);
-            generator.visitMethodInsn(INVOKESTATIC, getFluidHookClass(), "isEntityInsideFluid", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;DLnet/minecraft/block/material/Material;Z)Ljava/lang/Boolean;", false);
+            generator.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/common/fluid/handler/FluidCollisionHandler", "isEntityInsideMaterial", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;DLnet/minecraft/block/material/Material;Z)Ljava/lang/Boolean;", false);
         });
         /*
          * isAABBInsideMaterial:
@@ -369,16 +236,17 @@ public final class PluginBlockLiquid implements IASMPlugin
          * @ASMGenerated
          * public Boolean isAABBInsideMaterial(World world, BlockPos pos, AxisAlignedBB boundingBox, Material materialIn)
          * {
-         *     return PluginBlockFluidBase.Hooks.isAABBInsideMaterial(this, world, pos, boundingBox, materialIn);
+         *     return FluidCollisionHandler.isAABBInsideMaterial(this.material, world, pos, boundingBox, materialIn);
          * }
          */
         addMethod(classNode, "isAABBInsideMaterial", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;Lnet/minecraft/block/material/Material;)Ljava/lang/Boolean;", null, null, generator -> {
             generator.visitVarInsn(ALOAD, 0);
+            generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", obfuscated ? "field_149764_J" : "material", "Lnet/minecraft/block/material/Material;");
             generator.visitVarInsn(ALOAD, 1);
             generator.visitVarInsn(ALOAD, 2);
             generator.visitVarInsn(ALOAD, 3);
             generator.visitVarInsn(ALOAD, 4);
-            generator.visitMethodInsn(INVOKESTATIC, getFluidHookClass(), "isAABBInsideMaterial", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;Lnet/minecraft/block/material/Material;)Ljava/lang/Boolean;", false);
+            generator.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/common/fluid/handler/FluidCollisionHandler", "isAABBInsideMaterial", "(Lnet/minecraft/block/material/Material;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;Lnet/minecraft/block/material/Material;)Ljava/lang/Boolean;", false);
         });
         /*
          * isAABBInsideLiquid:
@@ -387,16 +255,14 @@ public final class PluginBlockLiquid implements IASMPlugin
          * @ASMGenerated
          * public Boolean isAABBInsideLiquid(World world, BlockPos pos, AxisAlignedBB boundingBox)
          * {
-         *     return Boolean.valueOf(PluginBlockFluidBase.Hooks.isWithinFluid(this, world, pos, boundingBox));
+         *     return FluidCollisionHandler.isAABBInsideLiquid(world, pos, boundingBox);
          * }
          */
         addMethod(classNode, "isAABBInsideLiquid", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Ljava/lang/Boolean;", null, null, generator -> {
-            generator.visitVarInsn(ALOAD, 0);
             generator.visitVarInsn(ALOAD, 1);
             generator.visitVarInsn(ALOAD, 2);
             generator.visitVarInsn(ALOAD, 3);
-            generator.visitMethodInsn(INVOKESTATIC, getFluidHookClass(), "isWithinFluid", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Z", false);
-            generator.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+            generator.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/common/fluid/handler/FluidCollisionHandler", "isAABBInsideLiquid", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Ljava/lang/Boolean;", false);
         });
         /*
          * getFluid:
@@ -421,22 +287,21 @@ public final class PluginBlockLiquid implements IASMPlugin
          * @ASMGenerated
          * public int place(World world, BlockPos pos, @Nonnull FluidStack fluidStack, boolean doPlace)
          * {
-         *     return Hooks.place(this, world, pos, fluidStack, doPlace, this.getDefaultState());
+         *     return PluginBlockFluidClassic.Hooks.place(this, world, pos, fluidStack, doPlace, this.getDefaultState());
          * }
          */
-        addMethod(classNode, "place", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/FluidStack;Z)I",
-            "place", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/FluidStack;ZLnet/minecraft/block/state/IBlockState;)I", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitVarInsn(ALOAD, 1);
-                generator.visitVarInsn(ALOAD, 2);
-                generator.visitVarInsn(ALOAD, 3);
-                generator.visitVarInsn(ILOAD, 4);
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", obfuscated ? "field_149764_J" : "material", "Lnet/minecraft/block/material/Material;");
-                generator.visitMethodInsn(INVOKESTATIC, "net/minecraft/block/BlockLiquid", obfuscated ? "func_176361_a" : "getFlowingBlock", "(Lnet/minecraft/block/material/Material;)Lnet/minecraft/block/BlockDynamicLiquid;", false);
-                generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/block/Block", obfuscated ? "func_176223_P" : "getDefaultState", "()Lnet/minecraft/block/state/IBlockState;", false);
-            }
-        );
+        addMethod(classNode, "place", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/FluidStack;Z)I", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitVarInsn(ALOAD, 2);
+            generator.visitVarInsn(ALOAD, 3);
+            generator.visitVarInsn(ILOAD, 4);
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", obfuscated ? "field_149764_J" : "material", "Lnet/minecraft/block/material/Material;");
+            generator.visitMethodInsn(INVOKESTATIC, "net/minecraft/block/BlockLiquid", obfuscated ? "func_176361_a" : "getFlowingBlock", "(Lnet/minecraft/block/material/Material;)Lnet/minecraft/block/BlockDynamicLiquid;", false);
+            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/block/Block", obfuscated ? "func_176223_P" : "getDefaultState", "()Lnet/minecraft/block/state/IBlockState;", false);
+            generator.visitMethodInsn(INVOKESTATIC, getFluidClassicClass(), "place", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraftforge/fluids/FluidStack;ZLnet/minecraft/block/state/IBlockState;)I", false);
+        });
         /*
          * drain:
          * New code:
@@ -444,17 +309,17 @@ public final class PluginBlockLiquid implements IASMPlugin
          * @ASMGenerated
          * public FluidStack drain(World world, BlockPos pos, boolean doDrain)
          * {
-         *     return Hooks.drain(this, world, pos, doDrain);
+         *     return PluginBlockFluidClassic.Hooks.drain(this, world, pos, doDrain, null);
          * }
          */
-        addMethod(classNode, "drain", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Z)Lnet/minecraftforge/fluids/FluidStack;",
-            "drain", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Z)Lnet/minecraftforge/fluids/FluidStack;", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitVarInsn(ALOAD, 1);
-                generator.visitVarInsn(ALOAD, 2);
-                generator.visitVarInsn(ILOAD, 3);
-            }
-        );
+        addMethod(classNode, "drain", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Z)Lnet/minecraftforge/fluids/FluidStack;", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitVarInsn(ALOAD, 2);
+            generator.visitVarInsn(ILOAD, 3);
+            generator.visitInsn(ACONST_NULL);
+            generator.visitMethodInsn(INVOKESTATIC, getFluidClassicClass(), "drain", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;ZLnet/minecraftforge/fluids/FluidStack;)Lnet/minecraftforge/fluids/FluidStack;", false);
+        });
         /*
          * canDrain:
          * New code:
@@ -462,15 +327,15 @@ public final class PluginBlockLiquid implements IASMPlugin
          * @ASMGenerated
          * public boolean canDrain(World world, BlockPos pos)
          * {
-         *     return Hooks.canDrain(world, pos);
+         *     return PluginBlockFluidClassic.Hooks.canDrain(this, world, pos);
          * }
          */
-        addMethod(classNode, "canDrain", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z",
-            "canDrain", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
-                generator.visitVarInsn(ALOAD, 1);
-                generator.visitVarInsn(ALOAD, 2);
-            }
-        );
+        addMethod(classNode, "canDrain", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitVarInsn(ALOAD, 2);
+            generator.visitMethodInsn(INVOKESTATIC, getFluidClassicClass(), "canDrain", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", false);
+        });
         /*
          * getFilledPercentage:
          * New code:
@@ -490,64 +355,65 @@ public final class PluginBlockLiquid implements IASMPlugin
             generator.visitMethodInsn(INVOKESTATIC, getHookClass(), "getBlockLiquidHeight", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)F", false);
         });
         /*
-         * isFluidloggableFluid:
+         * getFlowCost:
          * New code:
-         * //IFluidloggableFluid implementation
+         * // When lava flows in the overworld, its fluid level increases by 2 instead of 1
          * @ASMGenerated
-         * public boolean boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull World world, @Nonnull BlockPos pos)
+         * public int getFlowCost(World world)
          * {
-         *     return Hooks.isLiquidFluidloggable(this, fluid, world, pos);
+         *     return Hooks.getFlowCost(world, this.material);
          * }
          */
-        addMethod(classNode, "isFluidloggableFluid", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z",
-            "isLiquidFluidloggable", "(Lgit/jbredwards/fluidlogged_api/api/block/IFluidloggableFluid;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitVarInsn(ALOAD, 1);
-                generator.visitVarInsn(ALOAD, 2);
-                generator.visitVarInsn(ALOAD, 3);
-            }
-        );
+        addMethod(classNode, "getFlowCost", "(Lnet/minecraft/world/World;)I", "getFlowCost", "(Lnet/minecraft/world/World;Lnet/minecraft/block/material/Material;)I", generator -> {
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", obfuscated ? "field_149764_J" : "material", "Lnet/minecraft/block/material/Material;");
+        });
         /*
-         * isFluidloggableFluid:
+         * requiresUpdates:
          * New code:
-         * //IFluidloggableFluid implementation
+         * // Improve performance when loading chunks
          * @ASMGenerated
-         * public boolean boolean isFluidloggableFluid()
+         * public boolean requiresUpdates()
          * {
-         *     return Hooks.isLiquidFluidloggable(this);
+         *     return false;
          * }
          */
-        addMethod(classNode, "isFluidloggableFluid", "()Z",
-            "isLiquidFluidloggable", "(Lnet/minecraft/block/Block;)Z",
-                generator -> generator.visitVarInsn(ALOAD, 0)
-        );
-
+        // addMethod(classNode, obfuscated ? "func_149698_L" : "requiresUpdates", "()Z", null, null, generator -> generator.visitInsn(ICONST_0));
         return true;
     }
 
     @Nonnull
-    static String getFluidHookClass() {
-        return "git/jbredwards/fluidlogged_api/mod/asm/plugins/forge/PluginBlockFluidBase$Hooks";
-    }
+    static String getFluidHookClass() { return "git/jbredwards/fluidlogged_api/mod/asm/plugins/forge/PluginBlockFluidBase$Hooks"; }
 
-    @Override
-    public boolean addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) {
-        if(index == 2) {
-            method.localVariables.add(new LocalVariableNode("here", "Ljava/util/function/Supplier;", null, start, end, 9));
-            return true;
-        }
-
-        return false;
-    }
-
-    @Override
-    public boolean recalcFrames(boolean obfuscated) { return true; }
+    @Nonnull
+    static String getFluidClassicClass() { return "git/jbredwards/fluidlogged_api/mod/asm/plugins/forge/PluginBlockFluidClassic$Hooks"; }
 
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static boolean canDrain(@Nonnull World world, @Nonnull BlockPos pos) {
-            return getFluidState(world, pos).getLevel() == 0;
+        public static boolean checkForMixing(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState state) {
+            if(state.getMaterial() == Material.LAVA) {
+                final int level = FluidState.of(state).getLevel();
+                if(level > 4) return false;
+
+                @Nonnull final FluidCache cache = new FluidCache(world, pos, 2, 2);
+                if(!cache.getBlockState(pos).getBlock().isReplaceable(cache, pos)) return false;
+
+                for(@Nonnull final EnumFacing side : EnumFacing.VALUES) {
+                    if(!FluidloggedAPIConfig.fixBadFluidMixing || FluidloggedUtils.canFluidFlow(cache, pos, cache.getBlockState(pos), side)) {
+                        @Nonnull final BlockPos offset = pos.offset(side);
+                        if(side != EnumFacing.DOWN && cache.getFluidOrReal(offset).getMaterial() == Material.WATER
+                        && (!FluidloggedAPIConfig.fixBadFluidMixing || FluidloggedUtils.canFluidFlow(cache, offset, cache.getBlockState(offset), side.getOpposite()))) {
+                            world.setBlockState(pos, ForgeEventFactory.fireFluidPlaceBlockEvent(world, pos, pos, (level == 0 ? Blocks.OBSIDIAN : Blocks.COBBLESTONE).getDefaultState()));
+                            ((BlockLiquid)state.getBlock()).triggerMixEffects(world, pos);
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
 
         @Nonnull
@@ -557,91 +423,32 @@ public final class PluginBlockLiquid implements IASMPlugin
                     .add(BlockLiquid.LEVEL).build();
         }
 
-        @Nullable
-        public static FluidStack drain(@Nonnull IFluidBlock block, @Nonnull World world, @Nonnull BlockPos pos, boolean doDrain) {
-            return PluginBlockFluidClassic.Hooks.drain(block, world, pos, doDrain, null);
+        @Nonnull
+        public static IBlockState getLiquidExtendedState(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final IBlockState oldState) {
+            return FluidExtendedStateHandler.getExtendedState(oldState, new SpecializedFluidNeighborInfo.Vanilla(world, pos, FluidState.of(oldState), 1), FluidFlowHandler::getFlowAngle);
         }
 
         public static float getBlockLiquidHeight(@Nonnull IBlockState state, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
             final IBlockState up = worldIn.getBlockState(pos.up());
-            final boolean flag = isCompatibleFluid(getFluidState(worldIn, pos.up(), up).getFluid(), getFluidFromState(state))
-                    && canFluidFlow(worldIn, pos.up(), up, DOWN)
-                    && canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), UP);
+            final boolean flag = FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(worldIn, pos.up(), up).getFluid(), FluidloggedUtils.getFluidFromState(state))
+                    && FluidloggedUtils.canFluidFlow(worldIn, pos.up(), up, EnumFacing.DOWN)
+                    && FluidloggedUtils.canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), EnumFacing.UP);
 
             return flag ? 1 : 1 - BlockLiquid.getLiquidHeightPercent(state.getValue(BlockLiquid.LEVEL));
         }
 
         @Nonnull
-        public static Vec3d getFlow(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
-            final int decay = 8 - getEffectiveQuanta(block, world, pos);
-            Vec3d vec = Vec3d.ZERO;
-
-            for(EnumFacing facing : HORIZONTALS) {
-                if(canFluidFlow(world, pos, here, facing)) {
-                    BlockPos offset = pos.offset(facing);
-
-                    if(canFluidFlow(world, offset, world.getBlockState(offset), facing.getOpposite())) {
-                        int otherDecay = 8 - getEffectiveQuanta(block, world, offset);
-
-                        if(otherDecay >= 8) {
-                            otherDecay = 8 - getEffectiveQuanta(block, world, offset.down());
-
-                            if(otherDecay < 8) {
-                                int power = otherDecay - (decay - 8);
-                                vec = vec.add(facing.getXOffset() * power, 0, facing.getZOffset() * power);
-                            }
-                        }
-                        else {
-                            int power = otherDecay - decay;
-                            vec = vec.add(facing.getXOffset() * power, 0, facing.getZOffset() * power);
-                        }
-                    }
-                }
-            }
-
-            return vec.normalize();
+        public static Vec3d getFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
+            return FluidFlowHandler.getFlowVec(new SpecializedFluidNeighborInfo.Vanilla(world, pos, FluidloggedUtils.getFluidState(world, pos, here), 1));
         }
 
-        //helper
-        public static int getEffectiveQuanta(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-            final IBlockState state = world.getBlockState(pos);
-            final int quantaValue = getQuantaValue(block, world, pos, state);
-            if(quantaValue <= 0 || quantaValue >= 8) return quantaValue;
-
-            final FluidState fluidState = getFluidState(world, pos, state);
-            return fluidState.getLevel() >= 8 ? 8 : quantaValue;
-        }
-
-        @Nonnull
-        public static Supplier<IBlockState> getHereSupplier(@Nonnull World world, @Nonnull BlockPos pos) {
-            return new Supplier<IBlockState>() {
-                IBlockState here;
-
-                @Nonnull
-                @Override
-                public IBlockState get() { return here == null ? here = world.getBlockState(pos) : here; }
-            };
+        public static int getFlowCost(@Nonnull final World world, @Nonnull final Material material) {
+            return material == Material.LAVA && !world.provider.doesWaterVaporize() ? 2 : 1;
         }
 
         @Nonnull
         public static Fluid getLiquid(@Nonnull Material material) {
             return material == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA;
-        }
-
-        public static boolean getLiquidFogColor(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Vec3d viewport) {
-            if(!FluidloggedAPIConfigHandler.fancyFluidEntityCollision) return !PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), world, pos, viewport.y, state);
-            return !PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), world, pos, viewport, (IExtendedBlockState)state.getBlock().getExtendedState(state, world, pos));
-        }
-
-        //helper
-        public static int getQuantaValue(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
-            if(state.getBlock().isAir(state, world, pos)) return 0;
-
-            final FluidState fluidState = getFluidState(world, pos, state);
-            if(!isCompatibleFluid(fluidState.getFluid(), block.getFluid())) return -1;
-
-            final int level = fluidState.getLevel();
-            return level >= 8 ? 8 : 8 - level;
         }
 
         //helper, exists to fix issue#59
@@ -650,56 +457,23 @@ public final class PluginBlockLiquid implements IASMPlugin
             return vec.x == 0 && vec.z == 0 ? -1000 : MathHelper.atan2(vec.z, vec.x) - Math.PI / 2;
         }
 
-        @Nonnull
-        public static IBlockState getStateAtViewpoint(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Vec3d viewpoint) {
-            if(!FluidloggedAPIConfigHandler.fancyFluidEntityCollision) { if(PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), world, pos, viewpoint.y, state)) return state; }
-            else if(PluginBlockFluidBase.Hooks.isWithinFluid(state.getBlock(), world, pos, viewpoint, (IExtendedBlockState)state.getBlock().getExtendedState(state, world, pos))) return state;
-            //return the other block here if the player isn't within the fluid
-            final IBlockState here = world.getBlockState(pos);
-            return here == state ? Blocks.AIR.getDefaultState() : here.getBlock().getStateAtViewpoint(here, world, pos, viewpoint);
-        }
+        public static boolean spawnDripParticles(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final Random rand) {
+            @Nonnull final Chunk chunk = world.getChunk(pos);
+            @Nonnull final IBlockState here = chunk.getBlockState(pos);
+            @Nonnull final IBlockState below = chunk.getBlockState(pos.down());
 
-        public static boolean isConnectedWater(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing, @Nonnull Supplier<IBlockState> hereIn) {
-            final IBlockState here = hereIn.get();
-            if(canFluidFlow(world, pos, here, facing)) {
-                final BlockPos offset = pos.offset(facing);
-                final IBlockState neighbor = world.getBlockState(offset);
-                if(canFluidFlow(world, offset, neighbor, facing.getOpposite())) {
-                    final FluidState neighborFluid = getFluidState(world, offset, neighbor);
-                    return !neighborFluid.isEmpty() && neighborFluid.getMaterial() == Material.WATER
-                            //check that the fluid is vertically connected for up face
-                            && (facing != EnumFacing.UP || !neighborFluid.getFluid().isLighterThanAir());
-                }
+            double spawnY = 0;
+            if(here != state && !FluidloggedUtils.canFluidFlow(world, pos, here, EnumFacing.DOWN)) {
+                if(!below.getMaterial().blocksMovement() && FluidloggedUtils.getFluidState(chunk, pos.down(), below).isEmpty()) spawnY = 0.05;
             }
 
+            if(!FluidloggedUtils.canFluidFlow(world, pos.down(), below, EnumFacing.UP) && FluidloggedUtils.getFluidState(chunk, pos.down(), below).isEmpty()) {
+                @Nonnull final IBlockState under = chunk.getBlockState(pos.down(2));
+                if(!under.getMaterial().blocksMovement() && FluidloggedUtils.getFluidState(chunk, pos.down(2), under).isEmpty()) spawnY = 1.05;
+            }
+
+            if(spawnY != 0) world.spawnParticle(state.getMaterial() == Material.WATER ? EnumParticleTypes.DRIP_WATER : EnumParticleTypes.DRIP_LAVA, pos.getX() + rand.nextDouble(), pos.getY() - spawnY, pos.getZ() + rand.nextDouble(), 0, 0, 0);
             return false;
-        }
-
-        public static boolean isLiquidFluidloggable(@Nonnull IFluidloggableFluid block, @Nonnull IBlockState fluid, @Nonnull World world, @Nonnull BlockPos pos) {
-            if(!block.isFluidloggableFluid()) return false;
-            else if(fluid.getValue(BlockLiquid.LEVEL) == 0) return true;
-            else if(fluid.getMaterial() != Material.WATER) return false;
-
-            final IBlockState vertical = world.getBlockState(pos.up());
-            return isCompatibleFluid(block.getFluid(), getFluidState(world, pos.up(), vertical).getFluid())
-                    && canFluidFlow(world, pos.up(), vertical, DOWN);
-        }
-
-        public static boolean isLiquidFluidloggable(@Nonnull Block block) {
-            //most modded BlockLiquid instances involve blocks that shouldn't be fluidloggable fluids (like coral)
-            return block == Blocks.WATER || block == Blocks.LAVA || block == Blocks.FLOWING_WATER || block == Blocks.FLOWING_LAVA;
-        }
-
-        public static boolean isReplaceableLava(@Nonnull Material material, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Supplier<IBlockState> here) {
-            return material == Material.LAVA && here.get().getBlock().isReplaceable(world, pos);
-        }
-
-        public static int place(@Nonnull IFluidBlock block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidStack fluidStack, boolean doPlace, @Nonnull IBlockState defaultState) {
-            return PluginBlockFluidClassic.Hooks.place(block, world, pos, fluidStack, doPlace, defaultState);
-        }
-
-        public static boolean shouldLiquidSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side) {
-            return PluginBlockFluidBase.Hooks.shouldFluidSideBeRendered(state, world, pos, side, -1);
         }
     }
 }

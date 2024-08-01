@@ -9,7 +9,6 @@ import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeColorHelper;
-import net.minecraftforge.fml.common.FMLCommonHandler;
 import org.objectweb.asm.tree.ClassNode;
 
 import javax.annotation.Nonnull;
@@ -46,9 +45,7 @@ public final class PluginFluidWater implements IASMPlugin
     public static final class Hooks
     {
         public static int getWaterColorAt(@Nonnull World world, @Nonnull BlockPos pos) {
-            return FMLCommonHandler.instance().getSide().isClient()
-                    ? BiomeColorHelper.getWaterColorAtPos(world, pos)
-                    : world.getBiome(pos).getWaterColorMultiplier();
+            return world.isRemote ? BiomeColorHelper.getWaterColorAtPos(world, pos) : world.getBiome(pos).getWaterColorMultiplier();
         }
     }
 }

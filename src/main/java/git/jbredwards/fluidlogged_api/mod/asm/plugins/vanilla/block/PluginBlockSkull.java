@@ -46,10 +46,4 @@ public final class PluginBlockSkull implements IASMPlugin
 
         return false;
     }
-
-    @Override
-    public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggable");
-        return true;
-    }
 }

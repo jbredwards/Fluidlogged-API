@@ -1,8 +1,66 @@
-commands.setfluid.usage=/setfluid <x> <y> <z> <fluid block>
-commands.setfluid.success=Fluid block placed
-commands.setfluid.outOfWorld=Cannot place fluid block outside world
-commands.setfluid.noChange=The fluid block couldn't be placed
+commands.setfluid.usage=/setfluid <x> <y> <z> <fluid block> [dataValue|state]
+commands.setfluid.success=Fluid placed
+commands.setfluid.outOfWorld=Cannot place fluid outside world
+commands.setfluid.noChange=The fluid couldn't be placed
+
+commands.fluidlogged.usage=/fluidlogged reload
+commands.fluidloggedAPI.usage=/fluidloggedAPI reload
+
 commands.reloadFluidloggedAPI.usage=/reloadFluidloggedAPI
-commands.reloadFluidloggedAPI.success=Successfully reloaded the Fluidlogged API server config
-commands.reloadFluidloggedAPI.desyncWarning=Unable to reload server config with multiple players online, doing so would result in a desync, please have each player update their configs manually
-debugOverlay.fluidloggedAPI=fluid: %s
+commands.reloadFluidloggedAPI.success=Successfully reloaded Fluidlogged API configs
+commands.reloadFluidloggedAPI.desyncWarning=Unable to reload configs with multiple players online, doing so would result in a desync. Please have each player update their configs manually
+
+configgui.fluidloggedAPI.blacklist=Blacklist
+configgui.fluidloggedAPI.blacklist.tooltip=Must be edited externally.
+configgui.fluidloggedAPI.fluidTags=Fluid Tags
+configgui.fluidloggedAPI.fluidTags.tooltip=Must be edited externally.
+configgui.fluidloggedAPI.general=General
+configgui.fluidloggedAPI.general.tooltip=General config settings.
+configgui.fluidloggedAPI.whitelist=Whitelist
+configgui.fluidloggedAPI.whitelist.tooltip=Must be edited externally.
+
+configgui.fluidloggedAPI.configTitle=Fluidlogged API Configuration
+configgui.fluidloggedAPI.default.ALWAYS=Always
+configgui.fluidloggedAPI.default.false=False
+configgui.fluidloggedAPI.default.KEEP_UPDATED=Keep Updated
+configgui.fluidloggedAPI.default.NEVER=Never
+configgui.fluidloggedAPI.default.PLAYERS=Player Entities
+configgui.fluidloggedAPI.default.true=True
+
+configgui.fluidloggedAPI.general.allowDefaults=Allow Defaults
+configgui.fluidloggedAPI.general.allowDefaults.tooltip=If this setting is changed, you must run the "/fluidlogged reload" command.\nWhile enabled, this setting allows a default set of blocks to be fluidloggable. Other mods can also have internal fluidlogging blacklist/fluidTag/whitelist configs while this setting is enabled. The full set of default fluidloggable blocks added by Fluidlogged API can be viewed on its source page, linked below (click anywhere)\nhttps://github.com/jbredwards/Fluidlogged-API
+configgui.fluidloggedAPI.general.bucketFluidlogging=Bucket Fluidlogging
+configgui.fluidloggedAPI.general.bucketFluidlogging.always=Always
+configgui.fluidloggedAPI.general.bucketFluidlogging.noSneak=No Sneak
+configgui.fluidloggedAPI.general.bucketFluidlogging.onSneak=On Sneak
+configgui.fluidloggedAPI.general.bucketFluidlogging.tooltip=This setting controls how sneaking affects the player's ability to fluidlog blocks with a bucket.\n- Always: Players are always able to fluidlog blocks, regardless of whether they're sneaking. This is the Vanilla 1.13+ behavior.\n- No Sneak: Players cannot fluidlog blocks while sneaking. This is the legacy Fluidlogged API (pre-v3.0.0) behavior.\n- On Sneak: Players can only fluidlog blocks while sneaking.
+configgui.fluidloggedAPI.general.downloadModConfigs=Online Config Mode
+configgui.fluidloggedAPI.general.downloadModConfigs.disabled=Disabled
+configgui.fluidloggedAPI.general.downloadModConfigs.ignoreUpdates=Ignore Updates
+configgui.fluidloggedAPI.general.downloadModConfigs.keepUpdated=Keep Updated
+configgui.fluidloggedAPI.general.downloadModConfigs.tooltip=If this setting is changed, you must run the "/fluidlogged reload" command.\nThis setting controls how the online configs are handled.\n- Disabled: Prevents Fluidlogged API from updating its internal online config cache, and prevents it from being used in-game.\n- Ignore Updates: Prevents Fluidlogged API from updating its internal online config cache, but still allows the existing cache to be applied in-game.\n- Keep Updated: Allows Fluidlogged API to keep its internal online config cache up-to-date, and allows it to be applied in-game.\n§eSee the following link for more info (click anywhere)\nhttps://github.com/jbredwards/Fluidlogged-API-Configs
+configgui.fluidloggedAPI.general.fancyFluidEntityCollision=Fancy Fluid Collision Mode
+configgui.fluidloggedAPI.general.fancyFluidEntityCollision.always=Always
+configgui.fluidloggedAPI.general.fancyFluidEntityCollision.medium=Medium Entities
+configgui.fluidloggedAPI.general.fancyFluidEntityCollision.never=Never
+configgui.fluidloggedAPI.general.fancyFluidEntityCollision.players=Player Entities
+configgui.fluidloggedAPI.general.fancyFluidEntityCollision.tooltip=While enabled, fluid blocks have significantly more accurate collision with entities.\n- Never: Fancy fluid collision is never applied.\n§2  - Performance impact: None\n- Player Entities: Only apply fancy fluid collision to player entities.\n§2  - Performance impact: Little to None\n- Medium Entities: Only apply fancy fluid collision to medium-sized entities (whose bounding box has no side greater than 3 blocks).\n§2  - Performance impact: Small to Medium\n- Always: Universally apply fancy fluid collision to all entities (this should never be used).\n§2  - Performance impact: Small to Very Large.
+configgui.fluidloggedAPI.general.fixBadFluidMixing=Fix https://bugs.mojang.com/browse/MC-127108
+configgui.fluidloggedAPI.general.fixBadFluidMixing.tooltip=While enabled, waterlogged blocks cannot turn lava into obsidian or cobblestone on physically unconnected sides. This fix is also applied to many modded fluid interactions. Please submit a bug report to Fluidlogged API's issue tracker if you find any incompatible mods!
+configgui.fluidloggedAPI.general.fluidStateIsFireInsulator=Fluids Protect Against Fire
+configgui.fluidloggedAPI.general.fluidStateIsFireInsulator.tooltip=While enabled, flammable blocks cannot ignite while fluidlogged with fireproof fluids.
+configgui.fluidloggedAPI.general.ignoreLowFluidCollision=Prevent Shallow Fluid Swimming
+configgui.fluidloggedAPI.general.ignoreLowFluidCollision.tooltip=While enabled, non-aquatic entities cannot swim in shallow fluids (like in Vanilla 1.13+). This setting stacks with "Fancy Fluid Collision", and has no performance impact while enabled.
+configgui.fluidloggedAPI.general.lavalogVaporizeFlammable=Lava Vaporizing Mode
+configgui.fluidloggedAPI.general.lavalogVaporizeFlammable.always=Always
+configgui.fluidloggedAPI.general.lavalogVaporizeFlammable.flammable=Any Flammable
+configgui.fluidloggedAPI.general.lavalogVaporizeFlammable.fluidloggable=Flammable and Lavaloggable
+configgui.fluidloggedAPI.general.lavalogVaporizeFlammable.never=Never
+configgui.fluidloggedAPI.general.lavalogVaporizeFlammable.tooltip=While enabled, any lava-like fluid (has the lava material) flowing into a flammable block will cause the block to be vaporized.\n- Never: This setting is disabled.\n- Flammable and Lavaloggable: Only vaporize blocks that can be fluidlogged with lava, and that are flammable.\n- Flammable: Only vaporize blocks that are flammable. Note that these blocks don't have to be fluidloggable.
+configgui.fluidloggedAPI.general.nonSourceFluidlogging=Non-Source Fluidlogging
+configgui.fluidloggedAPI.general.nonSourceFluidlogging.tooltip=While enabled, allow fluids that are not source blocks to be fluidloggable.
+
+debugOverlay.fluidloggedAPI.fluid=fluid: %s
+debugOverlay.fluidloggedAPI.level=level: %d
+false=False
+true=True

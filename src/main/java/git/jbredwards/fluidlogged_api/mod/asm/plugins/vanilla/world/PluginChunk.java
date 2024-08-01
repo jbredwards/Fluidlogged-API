@@ -5,13 +5,17 @@
 
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
-import git.jbredwards.fluidlogged_api.api.asm.impl.IFluidStatePrimer;
-import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateContainer;
+import git.jbredwards.fluidlogged_api.api.world.IFluidStatePrimer;
+import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IHardcodedCapability;
+import git.jbredwards.fluidlogged_api.mod.common.capability.FluidStateCapabilityVanilla;
+import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidStateCapabilityIColumn;
+import io.github.opencubicchunks.cubicchunks.api.world.IColumn;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -30,16 +34,39 @@ public final class PluginChunk implements IASMPlugin
 {
     @Override
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
-        if(method.name.equals("<init>")) return 1;
+        if(method.name.equals("<init>") && method.desc.equals("(Lnet/minecraft/world/World;II)V")) return 7;
+        else if(method.name.equals("<init>") && method.desc.equals("(Lnet/minecraft/world/World;Lnet/minecraft/world/chunk/ChunkPrimer;II)V")) return 1;
         else if(checkMethod(method, obfuscated ? "func_150808_b" : "getBlockLightOpacity", "(III)I")) return 2;
         else if(method.name.equals(obfuscated ? "func_177436_a" : "setBlockState")) return 3;
         else if(method.name.equals(obfuscated ? "func_177440_h" : "getPrecipitationHeight")) return 4;
         else if(method.name.equals(obfuscated ? "func_76594_o" : "enqueueRelightChecks")) return 5;
+        else if(checkMethod(method, obfuscated ? "func_186030_a" : "populate", "(Lnet/minecraft/world/chunk/IChunkProvider;Lnet/minecraft/world/gen/IChunkGenerator;)V")) return 8;
         else return checkMethod(method, obfuscated ? "func_150811_f" : "checkLight", "(II)Z") ? 6 : 0;
     }
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
+        /*
+         * Constructor: (changes are around line 95)
+         * Old code:
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * // create hardcoded capability instance
+         * {
+         *     Hooks.createCapabilityInstance(this);
+         *     ...
+         * }
+         */
+        if(index == 7 && insn.getOpcode() == INVOKESPECIAL) {
+            final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
+            list.add(genMethodNode("createCapabilityInstance", "(Lnet/minecraft/world/chunk/Chunk;)V"));
+            instructions.insert(insn.getNext(), list);
+            return true;
+        }
         /*
          * Constructor: (changes are around line 122)
          * Old code:
@@ -50,11 +77,11 @@ public final class PluginChunk implements IASMPlugin
          * boolean flag = worldIn.provider.hasSkyLight();
          * Hooks.generateFluidStates(this, primer);
          */
-        if(index == 1 && insn.getOpcode() == INVOKEVIRTUAL) {
+        else if(index == 1 && insn.getOpcode() == INVOKEVIRTUAL) {
             final InsnList list = new InsnList();
             list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ALOAD, 2));
-            list.add(genMethodNode("generateFluidStates", "(Lnet/minecraft/world/chunk/Chunk;Lgit/jbredwards/fluidlogged_api/api/asm/impl/IFluidStatePrimer;)V"));
+            list.add(genMethodNode("generateFluidStates", "(Lnet/minecraft/world/chunk/Chunk;Lgit/jbredwards/fluidlogged_api/api/world/IFluidStatePrimer;)V"));
             instructions.insert(insn.getNext(), list);
             return true;
         }
@@ -188,6 +215,35 @@ public final class PluginChunk implements IASMPlugin
             instructions.remove(insn);
             return true;
         }
+        /*
+         * populate (changes are around lines 1047 and 1076):
+         * Old code:
+         * {
+         *     ...
+         * }
+         *
+         * New code:
+         * //
+         * {
+         *     FluidState.removeOnBlockChange.set(Boolean.TRUE);
+         *     ...
+         *     FluidState.removeOnBlockChange.set(Boolean.FALSE);
+         * }
+         */
+        else if(index == 8) {
+            @Nonnull final InsnList before = new InsnList();
+            before.add(new FieldInsnNode(GETSTATIC, "git/jbredwards/fluidlogged_api/api/util/FluidState", "removeOnBlockChange", "Ljava/lang/ThreadLocal;"));
+            before.add(new FieldInsnNode(GETSTATIC, "java/lang/Boolean", "TRUE", "Ljava/lang/Boolean;"));
+            before.add(new MethodInsnNode(INVOKEVIRTUAL, "java/lang/ThreadLocal", "set", "(Ljava/lang/Object;)V", false));
+            instructions.insert(instructions.getFirst().getNext(), before);
+
+            @Nonnull final InsnList after = new InsnList();
+            after.add(new FieldInsnNode(GETSTATIC, "git/jbredwards/fluidlogged_api/api/util/FluidState", "removeOnBlockChange", "Ljava/lang/ThreadLocal;"));
+            after.add(new FieldInsnNode(GETSTATIC, "java/lang/Boolean", "FALSE", "Ljava/lang/Boolean;"));
+            after.add(new MethodInsnNode(INVOKEVIRTUAL, "java/lang/ThreadLocal", "set", "(Ljava/lang/Object;)V", false));
+            instructions.insertBefore(instructions.getLast().getPrevious(), after);
+            return true;
+        }
 
         return false;
     }
@@ -213,6 +269,42 @@ public final class PluginChunk implements IASMPlugin
             generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/util/math/BlockPos", obfuscated ? "func_177952_p" : "getZ", "()I", false);
             generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/world/chunk/Chunk", obfuscated ? "func_150808_b" : "getBlockLightOpacity", "(III)I", false);
         });
+        /*
+         * =========
+         * Accessors
+         * =========
+         */
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/iface/IHardcodedCapability");
+        classNode.fields.add(new FieldNode(ACC_PUBLIC, "fluidStateCapability", "Lgit/jbredwards/fluidlogged_api/api/capability/IFluidStateCapability;", null, null));
+        /*
+         * Accessor:
+         * New code:
+         * // getter for canFluidFlow
+         * @ASMGenerated
+         * public IFluidStateCapability getFluidStateCapability()
+         * {
+         *     return this.fluidStateCapability;
+         * }
+         */
+        addMethod(classNode, "getFluidStateCapability", "()Lgit/jbredwards/fluidlogged_api/api/capability/IFluidStateCapability;", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitFieldInsn(GETFIELD, "net/minecraft/world/chunk/Chunk", "fluidStateCapability", "Lgit/jbredwards/fluidlogged_api/api/capability/IFluidStateCapability;");
+        });
+        /*
+         * Accessor:
+         * New code:
+         * // setter for canFluidFlow
+         * @ASMGenerated
+         * public void setFluidStateCapability(IFluidStateCapability fluidStateCapability)
+         * {
+         *     this.fluidStateCapability = fluidStateCapability;
+         * }
+         */
+        addMethod(classNode, "setFluidStateCapability", "(Lgit/jbredwards/fluidlogged_api/api/capability/IFluidStateCapability;)V", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitFieldInsn(PUTFIELD, "net/minecraft/world/chunk/Chunk", "fluidStateCapability", "Lgit/jbredwards/fluidlogged_api/api/capability/IFluidStateCapability;");
+        });
 
         return true;
     }
@@ -220,23 +312,22 @@ public final class PluginChunk implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
+        public static void createCapabilityInstance(@Nonnull final Chunk chunk) {
+            // create hardcoded capability instance
+            final boolean cubic = FluidloggedAPI.isCubicChunks && CCHooks.isColumn(chunk) && CCHooks.isCubicWorld(chunk.getWorld());
+            ((IHardcodedCapability)chunk).setFluidStateCapability(cubic ? new FluidStateCapabilityIColumn(chunk) : new FluidStateCapabilityVanilla(chunk.x, chunk.z));
+        }
+
         public static void generateFluidStates(@Nonnull Chunk chunk, @Nonnull IFluidStatePrimer primer) {
-            //TODO add identical cubic chunks mod functionality
-            if(FluidloggedAPI.isCubicChunks && CCHooks.isCubicWorld(chunk.getWorld())) return;
-            final IFluidStateCapability cap = IFluidStateCapability.get(chunk);
-            if(cap != null) {
-                IFluidStateContainer container = cap.getContainer(chunk.x, 0, chunk.z);
-                for(int y = 0; y < 256; y++) {
-                    //initialize container for new chunkY
-                    if(y != 0 && (y & 15) == 0) container = cap.getContainer(chunk.x, y >> 4, chunk.z);
-                    for(int x = 0; x < 16; x++) {
-                        for(int z = 0; z < 16; z++) {
-                            final FluidState fluidState = primer.getFluidState(x, y, z);
-                            if(!fluidState.isEmpty()) {
-                                final BlockPos pos = new BlockPos(chunk.x << 4 | x, y, chunk.z << 4 | z);
-                                container.setFluidState(pos, fluidState);
-                            }
-                        }
+            final IFluidStateCapability cap = ((IHardcodedCapability)chunk).getFluidStateCapability();
+            // generate fluidStates from primer
+            IFluidStateContainer container = null;
+            for(int y = 0; y < 256; y++) {
+                if((y & 15) == 0) container = cap.getContainer(y);
+                for(int x = 0; x < 16; x++) {
+                    for(int z = 0; z < 16; z++) {
+                        final FluidState fluidState = primer.getFluidState(x, y, z);
+                        if(fluidState != FluidState.EMPTY) container.setFluidState(chunk.x << 4 | x, y, chunk.z << 4 | z, fluidState);
                     }
                 }
             }
@@ -272,7 +363,11 @@ public final class PluginChunk implements IASMPlugin
     //hold Cubic Chunks methods in separate class to avoid crash
     public static final class CCHooks
     {
-        public static boolean isCubicWorld(@Nonnull World world) {
+        public static boolean isColumn(@Nonnull final Chunk chunk) {
+            return chunk instanceof IColumn && isCubicWorld(chunk.getWorld());
+        }
+
+        public static boolean isCubicWorld(@Nonnull final World world) {
             return world instanceof ICubicWorld && ((ICubicWorld)world).isCubicWorld();
         }
     }

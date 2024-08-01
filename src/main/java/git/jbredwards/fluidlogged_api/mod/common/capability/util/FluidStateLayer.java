@@ -17,6 +17,6 @@ import javax.annotation.Nonnull;
 public class FluidStateLayer
 {
     @Nonnull
-    public FluidState[] data = new FluidState[0];
+    public FluidState[] data = new FluidState[256];
     public byte tracker = Byte.MIN_VALUE; //start with min byte value, to prevent possible overflow problems
 }

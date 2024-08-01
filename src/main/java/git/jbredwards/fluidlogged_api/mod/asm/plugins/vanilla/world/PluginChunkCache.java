@@ -6,8 +6,8 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import git.jbredwards.fluidlogged_api.api.asm.impl.IChunkProvider;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.world.IChunkProvider;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -55,19 +55,34 @@ public final class PluginChunkCache implements IASMPlugin
 
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/asm/impl/IChunkProvider");
         /*
          * New code:
-         * //allows this to provide its chunks, which allows this mod to access its FluidStates
+         * // allows this to provide its world instance
          * @ASMGenerated
-         * public Chunk getChunkFromBlockCoords(BlockPos pos)
+         * public World getWorld()
          * {
-         *     return Hooks.getChunkFromChunkCache(pos, this.chunkArray, this.chunkX, this.chunkZ);
+         *     return this.world;
          * }
          */
-        addMethod(classNode, "getChunkFromBlockCoords", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;",
-            "getChunkFromChunkCache", "(Lnet/minecraft/util/math/BlockPos;[[Lnet/minecraft/world/chunk/Chunk;II)Lnet/minecraft/world/chunk/Chunk;", generator -> {
-                generator.visitVarInsn(ALOAD, 1);
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/world/IWorldProvider");
+        addMethod(classNode, "getWorld", "()Lnet/minecraft/world/World;", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitFieldInsn(GETFIELD, "net/minecraft/world/ChunkCache", obfuscated ? "field_72815_e" : "world", "Lnet/minecraft/world/World;");
+        });
+        /*
+         * New code:
+         * // allows this to provide its chunks, which allows this mod to access its FluidStates
+         * @ASMGenerated
+         * public Chunk getChunk(int chunkX, int chunkZ)
+         * {
+         *     return Hooks.getChunkFromChunkCache(chunkX, chunkZ, this.chunkArray, this.chunkX, this.chunkZ);
+         * }
+         */
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/world/IChunkProvider");
+        addMethod(classNode, "getChunk", "(II)Lnet/minecraft/world/chunk/Chunk;",
+            "getChunkFromChunkCache", "(II[[Lnet/minecraft/world/chunk/Chunk;II)Lnet/minecraft/world/chunk/Chunk;", generator -> {
+                generator.visitVarInsn(ILOAD, 1);
+                generator.visitVarInsn(ILOAD, 2);
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, "net/minecraft/world/ChunkCache", obfuscated ? "field_72817_c" : "chunkArray", "[[Lnet/minecraft/world/chunk/Chunk;");
                 generator.visitVarInsn(ALOAD, 0);
@@ -84,26 +99,20 @@ public final class PluginChunkCache implements IASMPlugin
     public static final class Hooks
     {
         @Nullable
-        public static Chunk getChunkFromChunkCache(@Nonnull BlockPos pos, @Nonnull Chunk[][] chunkArray, int chunkX, int chunkZ) {
-            final int x = (pos.getX() >> 4) - chunkX;
-            final int z = (pos.getZ() >> 4) - chunkZ;
+        public static Chunk getChunkFromChunkCache(int chunkXIn, int chunkZIn, @Nonnull Chunk[][] chunkArray, int chunkX, int chunkZ) {
+            final int x = chunkXIn - chunkX;
+            final int z = chunkZIn - chunkZ;
             return x >= 0 && x < chunkArray.length && z >= 0 && z < chunkArray[x].length ? chunkArray[x][z] : null;
         }
 
         public static boolean useNeighborBrightness(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-            final @Nullable Chunk chunk = IChunkProvider.getChunk(world, pos);
+            @Nullable final Chunk chunk = ((IChunkProvider)world).getChunk(pos);
             return chunk != null && useNeighborBrightness(chunk.getBlockState(pos), world, pos, chunk);
         }
 
         //helper
         public static boolean useNeighborBrightness(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Chunk chunk) {
-            if(state.useNeighborBrightness()) {
-                final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
-                if(fluidState.isEmpty() || fluidState.getState().useNeighborBrightness()) return true;
-                return state.getLightOpacity(world, pos) > fluidState.getState().getLightOpacity(world, pos);
-            }
-
-            return false;
+            return state.useNeighborBrightness() || FluidState.getFromProvider(chunk, pos).getState().useNeighborBrightness();
         }
     }
 }

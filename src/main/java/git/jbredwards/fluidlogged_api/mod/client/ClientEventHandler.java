@@ -85,12 +85,14 @@ public final class ClientEventHandler
         final @Nullable RayTraceResult trace = Minecraft.getMinecraft().objectMouseOver;
         if(trace != null && trace.typeOfHit == RayTraceResult.Type.BLOCK && !event.getRight().isEmpty()) {
             final FluidState fluidState = FluidState.get(trace.getBlockPos());
-            if(!fluidState.isEmpty()) {
-                //separate the fluid info from the block info
+            if(fluidState != FluidState.EMPTY) {
+                // separate the fluid info from the block info
                 event.getRight().add("");
-                //display FluidState block & fluid
+                // display FluidState block & fluid
                 event.getRight().add(String.valueOf(fluidState.getBlock().getRegistryName()));
-                event.getRight().add(I18n.format("debugOverlay.fluidloggedAPI", fluidState.getFluid().getName()));
+                event.getRight().add(I18n.format("debugOverlay.fluidloggedAPI.fluid", fluidState.getFluid().getName()));
+                // display FluidState level
+                if(!fluidState.isEmpty()) event.getRight().add(I18n.format("debugOverlay.fluidloggedAPI.level", fluidState.getLevel()));
             }
         }
     }

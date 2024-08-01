@@ -6,20 +6,20 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import net.minecraft.block.BlockDoor;
-import net.minecraft.block.state.IBlockState;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.PluginWorld;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.BlockStateContainer;
+import net.minecraftforge.common.util.Constants;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 
 /**
- * update upper FluidState & correct canFluidFlow
+ * update upper FluidState
  * @author jbred
  *
  */
@@ -91,50 +91,18 @@ public final class PluginBlockDoor implements IASMPlugin
         return false;
     }
 
-    @Override
-    public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggable");
-        /*
-         * IFluidloggable:
-         * New code:
-         * //ensure FluidStates only flow from certain sides
-         * @ASMGenerated
-         * public boolean canFluidFlow(IBlockAccess world, BlockPos pos, IBlockState here, EnumFacing side)
-         * {
-         *     return Hooks.canDoorFluidFlow(world, pos, here, side);
-         * }
-         */
-        addMethod(classNode, "canFluidFlow", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/EnumFacing;)Z",
-            "canDoorFluidFlow", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/EnumFacing;)Z", generator -> {
-                generator.visitVarInsn(ALOAD, 1);
-                generator.visitVarInsn(ALOAD, 2);
-                generator.visitVarInsn(ALOAD, 3);
-                generator.visitVarInsn(ALOAD, 4);
-            }
-        );
-
-        return true;
-    }
-
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static boolean canDoorFluidFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull EnumFacing side) {
-            if(side.getAxis().isVertical()) return true;
-            here = here.getActualState(world, pos);
-            final EnumFacing facing = here.getValue(BlockDoor.FACING);
-
-            return (here.getValue(BlockDoor.OPEN) ? (here.getValue(BlockDoor.HINGE) == BlockDoor.EnumHingePosition.RIGHT
-                    ? facing.rotateY() : facing.rotateYCCW()) : facing.getOpposite()) != side;
-        }
-
         public static void notifyDoorFluids(@Nonnull World world, @Nonnull BlockPos rangeMin, @Nonnull BlockPos rangeMax) {
-            FluidloggedUtils.notifyFluids(world, rangeMin.up(), FluidState.get(world, rangeMin.up()), false, EnumFacing.DOWN);
+            FluidloggedUtils.notifyFluids(world, rangeMin.up(), null, true, EnumFacing.DOWN);
             world.markBlockRangeForRenderUpdate(rangeMin, rangeMax);
         }
 
         public static void setBlockToAirNoUpdate(@Nonnull World world, @Nonnull BlockPos pos) {
-            world.setBlockState(pos, FluidState.get(world, pos).getState(), 2);
+            PluginWorld.Hooks.setBlockToAir(world, pos, BlockStateContainer.AIR_BLOCK_STATE, Constants.BlockFlags.SEND_TO_CLIENTS);
+            world.notifyNeighborsOfStateExcept(pos, Blocks.AIR, EnumFacing.DOWN);
+            world.updateObservingBlocksAt(pos, Blocks.AIR);
         }
     }
 }

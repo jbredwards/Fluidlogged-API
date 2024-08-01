@@ -6,17 +6,17 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
-
-import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.canFluidFlow;
-import static git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils.getFluidOrReal;
 
 /**
  * concrete forms from concrete powder while its next to flowing water FluidStates
@@ -84,9 +84,10 @@ public final class PluginBlockConcretePowder implements IASMPlugin
     public static final class Hooks
     {
         public static boolean tryTouchWater(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumFacing facing) {
-            final IBlockState state = world.getBlockState(pos);
-            return getFluidOrReal(world, pos, state).getMaterial() == Material.WATER
-                    && canFluidFlow(world, pos, state, facing.getOpposite());
+            @Nonnull final Chunk chunk = world.getChunk(pos);
+            @Nonnull final IBlockState state = chunk.getBlockState(pos);
+
+            return FluidloggedUtils.getFluidState(chunk, pos, state).getMaterial() == Material.WATER && (!FluidloggedAPIConfig.fixBadFluidMixing || FluidloggedUtils.canFluidFlow(world, pos, state, facing.getOpposite()));
         }
     }
 }

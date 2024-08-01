@@ -7,26 +7,37 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
 import atomicstryker.dynamiclights.client.DynamicLights;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
+import git.jbredwards.fluidlogged_api.api.fluid.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IWaterHeight;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.BlockStaticLiquid;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.*;
+import net.minecraft.world.ChunkCache;
 import net.minecraft.world.EnumSkyBlock;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.fluids.Fluid;
-import org.apache.commons.lang3.tuple.Pair;
+import net.minecraftforge.common.util.Constants;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import static net.minecraft.util.EnumFacing.*;
 
 /**
  * corrects a lot of FluidState related interactions
@@ -35,16 +46,11 @@ import static net.minecraft.util.EnumFacing.*;
  */
 public final class PluginWorld implements IASMPlugin
 {
-    //special case local var shift for galaxy space
-    boolean isGalaxySpace = false;
-
     @Override
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         //setBlockState
-        if(checkMethod(method, obfuscated ? "func_180501_a" : "setBlockState", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z")) {
-            isGalaxySpace = !method.localVariables.isEmpty() && method.localVariables.get(0).index == 5;
+        if(checkMethod(method, obfuscated ? "func_180501_a" : "setBlockState", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"))
             return 1;
-        }
 
         //setBlockToAir
         else if(checkMethod(method, obfuscated ? "func_175698_g" : "setBlockToAir", null))
@@ -57,11 +63,6 @@ public final class PluginWorld implements IASMPlugin
         //neighborChanged
         else if(checkMethod(method, obfuscated ? "func_190524_a" : "neighborChanged", null))
             return 3;
-
-        //handleMaterialAcceleration
-        else if(checkMethod(method, obfuscated ? "func_72918_a" : "handleMaterialAcceleration", null)) {
-            return 4;
-        }
 
         //isMaterialInBB
         else if(checkMethod(method, obfuscated ? "func_72875_a" : "isMaterialInBB", null)) {
@@ -102,7 +103,7 @@ public final class PluginWorld implements IASMPlugin
             if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
                 if(obfuscated) ((MethodInsnNode)insn).name = "func_177435_g";
                 ((MethodInsnNode)insn).owner = "net/minecraft/world/chunk/Chunk";
-                ((VarInsnNode)getPrevious(insn, 2)).var = isGalaxySpace ? 5 : 4;
+                ((VarInsnNode)getPrevious(insn, 2)).var = findLocal(method, "chunk", "Lnet/minecraft/world/chunk/Chunk;").index;
             }
             /*
              * setBlockState: (changes are around lines 410 & 411)
@@ -116,7 +117,7 @@ public final class PluginWorld implements IASMPlugin
              * int oldOpacity = Hooks.getLightOpacity(oldState, this, pos, chunk);
              */
             else if(checkMethod(insn, "getLightValue") || checkMethod(insn, "getLightOpacity")) {
-                instructions.insertBefore(insn, new VarInsnNode(ALOAD, isGalaxySpace ? 5 : 4));
+                instructions.insertBefore(insn, new VarInsnNode(ALOAD, findLocal(method, "chunk", "Lnet/minecraft/world/chunk/Chunk;").index));
                 instructions.insertBefore(insn, genMethodNode(((MethodInsnNode)insn).name, "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/chunk/Chunk;)I"));
                 instructions.remove(insn);
             }
@@ -134,10 +135,10 @@ public final class PluginWorld implements IASMPlugin
                 final InsnList list = new InsnList();
                 list.add(new VarInsnNode(ALOAD, 0));
                 list.add(new VarInsnNode(ALOAD, 1));
-                list.add(new VarInsnNode(ALOAD, isGalaxySpace ? 5 : 4));
-                list.add(new VarInsnNode(ALOAD, isGalaxySpace ? 7 : 6));
+                list.add(new VarInsnNode(ALOAD, findLocal(method, "chunk", "Lnet/minecraft/world/chunk/Chunk;").index));
+                list.add(new VarInsnNode(ALOAD, findLocal(method, "oldState", "Lnet/minecraft/block/state/IBlockState;").index));
                 list.add(new VarInsnNode(ALOAD, 2));
-                list.add(new VarInsnNode(ALOAD, isGalaxySpace ? 10 : 9));
+                list.add(new VarInsnNode(ALOAD, findLocal(method, "iblockstate", "Lnet/minecraft/block/state/IBlockState;").index));
                 list.add(new VarInsnNode(ILOAD, 3));
                 list.add(genMethodNode("handleOldFluidState", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/chunk/Chunk;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/block/state/IBlockState;I)V"));
                 instructions.insert(insn.getNext(), list);
@@ -153,16 +154,11 @@ public final class PluginWorld implements IASMPlugin
          *
          * New code:
          * //replace block here with FluidState here instead of air
-         * return this.setBlockState(pos, FluidState.get(this, pos).getState(), 3);
+         * return Hooks.setBlockToAir(this, pos, Blocks.AIR.getDefaultState(), 3);
          */
-        else if(index == 2 && checkMethod(insn, obfuscated ? "func_176223_P" : "getDefaultState", "()Lnet/minecraft/block/state/IBlockState;")) {
-            final InsnList list = new InsnList();
-            list.add(new VarInsnNode(ALOAD, 0));
-            list.add(new VarInsnNode(ALOAD, 1));
-            list.add(genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidState", "get", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
-            list.add(new MethodInsnNode(INVOKEVIRTUAL, "git/jbredwards/fluidlogged_api/api/util/FluidState", "getState", "()Lnet/minecraft/block/state/IBlockState;", false));
-            instructions.insert(insn, list);
-            removeFrom(instructions, insn, -1);
+        else if(index == 2 && checkMethod(insn, obfuscated ? "func_180501_a" : "setBlockState")) {
+            instructions.insert(insn, genMethodNode("setBlockToAir", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;I)Z"));
+            instructions.remove(insn);
             return true;
         }
         //neighborChanged
@@ -212,53 +208,6 @@ public final class PluginWorld implements IASMPlugin
                 instructions.insert(insn, list);
                 return true;
             }
-        }
-        /*
-         * handleMaterialAcceleration: (changes are around line 2455):
-         * Old code:
-         * blockpos$pooledmutableblockpos.release();
-         *
-         * New code:
-         * //account for FluidStates
-         * blockpos$pooledmutableblockpos.release();
-         * Pair flags = Hooks.handleFluidAcceleration(world, materialIn, entityIn, vec3d, flag, j2, k2, l2, i3, j3, k3);
-         * flag = ((Boolean)flags.getKey()).booleanValue();
-         * vec3d = (Vec3d)flags.getValue();
-         */
-        else if(index == 4 && checkMethod(insn, obfuscated ? "func_185344_t" : "release", "()V")) {
-            final InsnList list = new InsnList();
-            //handleFluidAcceleration
-            list.add(new VarInsnNode(ALOAD, 0));
-            list.add(new VarInsnNode(ALOAD, 2));
-            list.add(new VarInsnNode(ALOAD, 3));
-            //vec3d
-            list.add(new VarInsnNode(ALOAD, 11));
-            //flag
-            list.add(new VarInsnNode(ILOAD, 10));
-            //aabb positions
-            list.add(new VarInsnNode(ILOAD, 4));
-            list.add(new VarInsnNode(ILOAD, 5));
-            list.add(new VarInsnNode(ILOAD, 6));
-            list.add(new VarInsnNode(ILOAD, 7));
-            list.add(new VarInsnNode(ILOAD, 8));
-            list.add(new VarInsnNode(ILOAD, 9));
-            //adds new code
-            list.add(genMethodNode("handleFluidAcceleration", "(Lnet/minecraft/world/World;Lnet/minecraft/block/material/Material;Lnet/minecraft/entity/Entity;Lnet/minecraft/util/math/Vec3d;ZIIIIII)Lorg/apache/commons/lang3/tuple/Pair;"));
-            list.add(new VarInsnNode(ASTORE, 22));
-            //flags.getKey()
-            list.add(new VarInsnNode(ALOAD, 22));
-            list.add(new MethodInsnNode(INVOKEVIRTUAL, "org/apache/commons/lang3/tuple/Pair", "getKey", "()Ljava/lang/Object;", false));
-            list.add(new TypeInsnNode(CHECKCAST, "java/lang/Boolean"));
-            list.add(new MethodInsnNode(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false));
-            list.add(new VarInsnNode(ISTORE, 10));
-            //flags.getValue()
-            list.add(new VarInsnNode(ALOAD, 22));
-            list.add(new MethodInsnNode(INVOKEVIRTUAL, "org/apache/commons/lang3/tuple/Pair", "getValue", "()Ljava/lang/Object;", false));
-            list.add(new TypeInsnNode(CHECKCAST, "net/minecraft/util/math/Vec3d"));
-            list.add(new VarInsnNode(ASTORE, 11));
-
-            instructions.insert(insn, list);
-            return true;
         }
         /*
          * isMaterialInBB: (changes are around line 2506)
@@ -313,7 +262,7 @@ public final class PluginWorld implements IASMPlugin
         else if(index == 7 && checkField(insn, obfuscated ? "field_150353_l" : "LAVA")) {
             final InsnList list = new InsnList();
             list.add(new VarInsnNode(ALOAD, 0));
-            list.add(new VarInsnNode(ALOAD, 8));
+            list.add(new VarInsnNode(ALOAD, findLocal(method, "blockpos$pooledmutableblockpos", "Lnet/minecraft/util/math/BlockPos$PooledMutableBlockPos;").index));
             list.add(new VarInsnNode(ALOAD, 1));
             list.add(genMethodNode("isFlammableFluidWithin", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Z"));
             instructions.insert(insn, list);
@@ -370,13 +319,35 @@ public final class PluginWorld implements IASMPlugin
 
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/asm/impl/IChunkProvider");
-        addMethod(classNode, "getChunkFromBlockCoords", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;", null, null, generator -> {
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/world/World", obfuscated ? "func_175726_f" : "getChunk", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;", false);
-        });
-        //rayTraceBlocks, ray traces now include fluidlogged fluid blocks
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/world/IWorldChunkProvider");
+        addMethod(classNode, "getWorld", "()Lnet/minecraft/world/World;", null, null, generator -> generator.visitVarInsn(ALOAD, 0));
+        /*
+         * handleMaterialAcceleration:
+         * New code:
+         * // Account for FluidStates when calculating material acceleration
+         * public boolean handleMaterialAcceleration(AxisAlignedBB bb, Material materialIn, Entity entityIn)
+         * {
+         *     return Hooks.handleMaterialAcceleration(this, bb, materialIn, entityIn);
+         * }
+         */
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_72918_a" : "handleMaterialAcceleration"),
+            "handleMaterialAcceleration", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/AxisAlignedBB;Lnet/minecraft/block/material/Material;Lnet/minecraft/entity/Entity;)Z", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitVarInsn(ALOAD, 1);
+                generator.visitVarInsn(ALOAD, 2);
+                generator.visitVarInsn(ALOAD, 3);
+            }
+        );
+        /*
+         * rayTraceBlocks:
+         * New code:
+         * //ray traces now include fluidlogged fluid blocks
+         * @Nullable
+         * public RayTraceResult rayTraceBlocks(Vec3d vec31, Vec3d vec32, boolean stopOnLiquid, boolean ignoreBlockWithoutBoundingBox, boolean returnLastUncollidableBlock)
+         * {
+         *     return Hooks.rayTraceBlocks(this, vec31, vec32, stopOnLiquid, ignoreBlockWithoutBoundingBox, returnLastUncollidableBlock);
+         * }
+         */
         overrideMethod(classNode, method -> checkMethod(method, obfuscated ? "func_147447_a" : "rayTraceBlocks", "(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;ZZZ)Lnet/minecraft/util/math/RayTraceResult;"),
             "rayTraceBlocks", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;ZZZ)Lnet/minecraft/util/math/RayTraceResult;", generator -> {
                 generator.visitVarInsn(ALOAD, 0);
@@ -409,11 +380,97 @@ public final class PluginWorld implements IASMPlugin
          * //increase performance
          * public boolean isAirBlock(BlockPos pos)
          * {
-         *     return Hooks.isAirBlock(this, pos);
+         *     IBlockState state = this.getBlockState(pos);
+         *     return state.getBlock().isAir(state, this, pos);
          * }
          */
-        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_175623_d" : "isAirBlock"),
-            "isAirBlock", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_175623_d" : "isAirBlock"), null, null, generator -> {
+            final int stateVar = generator.newLocal(Type.getType("Lnet/minecraft/block/state/IBlockState;"));
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/world/World", obfuscated ? "func_180495_p" : "getBlockState", "(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;", false);
+            generator.visitVarInsn(ASTORE, stateVar);
+
+            generator.visitVarInsn(ALOAD, stateVar);
+            generator.visitMethodInsn(INVOKEINTERFACE, "net/minecraft/block/state/IBlockState", obfuscated ? "func_177230_c" : "getBlock", "()Lnet/minecraft/block/Block;", true);
+            generator.visitVarInsn(ALOAD, stateVar);
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitVarInsn(ALOAD, 1);
+            generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/block/Block", "isAir", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", false);
+        });
+        /*
+         * getStrongPower:
+         * New code:
+         * // Allow FluidStates to output a redstone signal
+         * public int getStrongPower(BlockPos pos, EnumFacing direction)
+         * {
+         *     return Hooks.getStrongPower(this, pos, direction);
+         * }
+         */
+        overrideMethod(classNode, method -> checkMethod(method, obfuscated ? "func_175627_a" : "getStrongPower", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I"),
+            "getStrongPower", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitVarInsn(ALOAD, 1);
+                generator.visitVarInsn(ALOAD, 2);
+            }
+        );
+        /*
+         * getStrongPower:
+         * New code:
+         * // Allow FluidStates to output a redstone signal
+         * public int getStrongPower(BlockPos pos)
+         * {
+         *     return Hooks.getStrongPower(this, pos);
+         * }
+         */
+        overrideMethod(classNode, method -> checkMethod(method, obfuscated ? "func_175676_y" : "getStrongPower", "(Lnet/minecraft/util/math/BlockPos;)I"),
+            "getStrongPower", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitVarInsn(ALOAD, 1);
+            }
+        );
+        /*
+         * getRedstonePower:
+         * New code:
+         * // Allow FluidStates to output a redstone signal
+         * public int getRedstonePower(BlockPos pos, EnumFacing facing)
+         * {
+         *     return Hooks.getRedstonePower(this, pos, facing);
+         * }
+         */
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_175651_c" : "getRedstonePower"),
+            "getRedstonePower", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitVarInsn(ALOAD, 1);
+                generator.visitVarInsn(ALOAD, 2);
+            }
+        );
+        /*
+         * getRedstonePowerFromNeighbors:
+         * New code:
+         * // Allow FluidStates to output a redstone signal
+         * public int getRedstonePowerFromNeighbors(BlockPos pos)
+         * {
+         *     return Hooks.getRedstonePowerFromNeighbors(this, pos);
+         * }
+         */
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_175687_A" : "getRedstonePowerFromNeighbors"),
+            "getRedstonePowerFromNeighbors", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitVarInsn(ALOAD, 1);
+            }
+        );
+        /*
+         * isBlockPowered:
+         * New code:
+         * // Allow FluidStates to output a redstone signal
+         * public boolean isBlockPowered(BlockPos pos)
+         * {
+         *     return Hooks.isBlockPowered(this, pos);
+         * }
+         */
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_175640_z" : "isBlockPowered"),
+            "isBlockPowered", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitVarInsn(ALOAD, 1);
             }
@@ -429,11 +486,6 @@ public final class PluginWorld implements IASMPlugin
             return true;
         }
 
-        else if(index == 4) {
-            method.localVariables.add(new LocalVariableNode("flags", "Lorg/apache/commons/lang3/tuple/Pair;", null, start, end, 22));
-            return true;
-        }
-
         return false;
     }
 
@@ -441,8 +493,7 @@ public final class PluginWorld implements IASMPlugin
     public static final class Hooks
     {
         public static void fluidNeighborChanged(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos, @Nonnull Chunk chunk) {
-            final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
-            if(!fluidState.isEmpty()) fluidState.getState().neighborChanged(world, pos, blockIn, fromPos);
+            FluidState.getFromProvider(chunk, pos).getState().neighborChanged(world, pos, blockIn, fromPos);
         }
 
         public static int getLightOpacity(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Chunk chunk) {
@@ -465,7 +516,7 @@ public final class PluginWorld implements IASMPlugin
             if(opacity >= 15) return light; // Forge: fix MC-119932
             else if(light >= 14) return light;
 
-            for(EnumFacing facing : values()) {
+            for(EnumFacing facing : EnumFacing.VALUES) {
                 final BlockPos offset = pos.offset(facing);
                 final int neighborLight = world.getLightFor(lightType, offset) - opacity;
 
@@ -476,67 +527,205 @@ public final class PluginWorld implements IASMPlugin
             return light;
         }
 
-        @Nonnull
-        public static Pair<Boolean, Vec3d> handleFluidAcceleration(@Nonnull World world, @Nonnull Material material, @Nonnull Entity entity, @Nonnull Vec3d vec3dIn, boolean flagIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+        public static int getRedstonePower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
+            @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 3, 3) : world;
+            @Nonnull final IBlockState state = access.getBlockState(pos);
+
+            if(state.getBlock().shouldCheckWeakPower(state, access, pos, direction)) return getStrongPower(access, pos);
+            else if(FluidloggedAPIConfig.fixBadFluidMixing && !FluidloggedUtils.canFluidFlow(access, pos, state, direction.getOpposite())) return state.getWeakPower(access, pos, direction);
+
+            @Nonnull final IBlockState fluidState = FluidState.get(access, pos).getState();
+            if(fluidState.getBlock().shouldCheckWeakPower(fluidState, access, pos, direction)) return getStrongPower(access, pos);
+            else return Math.max(state.getWeakPower(access, pos, direction), fluidState.getWeakPower(access, pos, direction));
+        }
+
+        public static int getRedstonePowerFromNeighbors(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
+            @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 4, 4) : world;
+            @Nonnull final FluidState fluidState = FluidState.get(access, pos);
+
+            int currMax = fluidState.isEmpty() ? 0 : fluidState.getState().getWeakPower(access, pos, fluidState.getDownDensityFace());
+            if(currMax >= 15) return currMax;
+
+            else if((currMax = Math.max(currMax, getRedstonePower(access, pos.down(), EnumFacing.DOWN))) >= 15) return currMax;
+            else if((currMax = Math.max(currMax, getRedstonePower(access, pos.up(), EnumFacing.UP))) >= 15) return currMax;
+            else if((currMax = Math.max(currMax, getRedstonePower(access, pos.north(), EnumFacing.NORTH))) >= 15) return currMax;
+            else if((currMax = Math.max(currMax, getRedstonePower(access, pos.south(), EnumFacing.SOUTH))) >= 15) return currMax;
+            else if((currMax = Math.max(currMax, getRedstonePower(access, pos.west(), EnumFacing.WEST))) >= 15) return currMax;
+            else return Math.max(currMax, getRedstonePower(access, pos.east(), EnumFacing.EAST));
+        }
+
+        public static int getStrongPower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
+            @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 2, 2) : world;
+            @Nonnull final FluidState fluidState = FluidState.get(access, pos);
+
+            int currMax = fluidState.isEmpty() ? 0 : fluidState.getState().getStrongPower(access, pos, fluidState.getDownDensityFace());
+            if(currMax >= 15) return currMax;
+
+            else if((currMax = Math.max(currMax, getStrongPower(access, pos.down(), EnumFacing.DOWN))) >= 15) return currMax;
+            else if((currMax = Math.max(currMax, getStrongPower(access, pos.up(), EnumFacing.UP))) >= 15) return currMax;
+            else if((currMax = Math.max(currMax, getStrongPower(access, pos.north(), EnumFacing.NORTH))) >= 15) return currMax;
+            else if((currMax = Math.max(currMax, getStrongPower(access, pos.south(), EnumFacing.SOUTH))) >= 15) return currMax;
+            else if((currMax = Math.max(currMax, getStrongPower(access, pos.west(), EnumFacing.WEST))) >= 15) return currMax;
+            else return Math.max(currMax, getStrongPower(access, pos.east(), EnumFacing.EAST));
+        }
+
+        public static int getStrongPower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
+            @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 1, 1) : world;
+            @Nonnull final IBlockState state = access.getBlockState(pos);
+
+            if(FluidloggedAPIConfig.fixBadFluidMixing && !FluidloggedUtils.canFluidFlow(access, pos, state, direction.getOpposite())) return state.getStrongPower(access, pos, direction);
+            else return Math.max(state.getStrongPower(access, pos, direction), FluidState.get(access, pos).getState().getStrongPower(access, pos, direction));
+        }
+
+        public static boolean handleMaterialAcceleration(@Nonnull final World world, @Nonnull final AxisAlignedBB bb, @Nonnull final Material material, @Nonnull final Entity entity) {
+            final int minX = MathHelper.floor(bb.minX), minY = MathHelper.floor(bb.minY), minZ = MathHelper.floor(bb.minZ), maxX = MathHelper.ceil(bb.maxX), maxY = MathHelper.ceil(bb.maxY), maxZ = MathHelper.ceil(bb.maxZ);
+            if(!world.isAreaLoaded(minX, minY, minZ, maxX, maxY, maxZ, true)) return false;
+
+            @Nonnull final IWaterHeight waterHeight = (IWaterHeight)entity;
+            @Nonnull final BlockPos.PooledMutableBlockPos pos = BlockPos.PooledMutableBlockPos.retain();
+            if(material == Material.WATER) FluidCollisionHandler.cacheHeight.set(waterHeight);
+
+            @Nonnull final ChunkCache cache = new ChunkCache(world, new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ), 0);
+            @Nonnull Vec3d vec = Vec3d.ZERO;
+
+            waterHeight.setBox(null);
+            final boolean pushEntity = entity.isPushedByWater();
+
+            boolean anyFound = false;
+            int total = 0;
+
             for(int x = minX; x < maxX; x++) {
-                for(int y = minY; y < maxY; y++) {
-                    for(int z = minZ; z < maxZ; z++) {
-                        final BlockPos pos = new BlockPos(x, y, z);
-                        final FluidState fluidState = FluidState.get(world, pos);
-                        if(!fluidState.isEmpty()) {
-                            final Block block = fluidState.getBlock();
-                            final @Nullable Boolean result = block.isEntityInsideMaterial(world, pos, fluidState.getState(), entity, maxY, material, false);
-                            if(Boolean.TRUE.equals(result)) {
-                                vec3dIn = block.modifyAcceleration(world, pos, entity, vec3dIn);
-                                flagIn = true;
+                for(int z = minZ; z < maxZ; z++) {
+                    for(int y = minY; y < maxY; y++) {
+                        @Nonnull final IBlockState state = cache.getBlockState(pos.setPos(x, y, z));
+                        @Nullable Boolean result = state.getBlock().isEntityInsideMaterial(cache, pos, state, entity, maxY, material, false);
+                        if(result != null) {
+                            if(result) {
+                                anyFound = true;
+                                final boolean isFluid = FluidloggedUtils.isFluid(state);
+                                if(!isFluid) waterHeight.setBox(new IConfigFluidBox.HeightBox(0, 1));
+                                if(pushEntity) {
+                                    // vec = state.getBlock().modifyAcceleration(world, pos, entity, vec);
+                                    @Nonnull Vec3d fluidVec = state.getBlock().modifyAcceleration(world, pos, entity, Vec3d.ZERO);
+                                    if(isFluid) {
+                                        final double height = FluidState.of(state).getActualHeight(cache, pos);
+                                        if(height < 0.4) fluidVec = fluidVec.scale(height);
+                                    }
+
+                                    total++;
+                                    vec = vec.add(fluidVec);
+                                }
                             }
 
-                            else if(!Boolean.FALSE.equals(result) && fluidState.getMaterial() == material) {
-                                //check for fluid height
-                                if(maxY >= y + 1 - (1 / 9.0f)) {
-                                    vec3dIn = block.modifyAcceleration(world, pos, entity, vec3dIn);
-                                    flagIn = true;
+                            continue;
+                        }
+
+                        @Nonnull final FluidState fluidState = FluidState.get(cache, pos);
+                        result = fluidState.getBlock().isEntityInsideMaterial(cache, pos, fluidState.getState(), entity, maxY, material, false);
+                        if(result != null) {
+                            if(result) {
+                                anyFound = true;
+                                if(pushEntity) {
+                                    // vec = fluidState.getBlock().modifyAcceleration(world, pos, entity, vec);
+                                    @Nonnull Vec3d fluidVec = fluidState.getBlock().modifyAcceleration(world, pos, entity, Vec3d.ZERO);
+                                    final double height = fluidState.getActualHeight(cache, pos);
+                                    if(height < 0.4) fluidVec = fluidVec.scale(height);
+
+                                    total++;
+                                    vec = vec.add(fluidVec);
                                 }
+                            }
+
+                            continue;
+                        }
+
+                        // Fluidlogged API makes fluid blocks use Block::isEntityInsideMaterial, the code below exists only for "fake fluid blocks" (like BOP coral)
+                        @Nonnull final IBlockState here = fluidState == FluidState.EMPTY ? state : fluidState.getState();
+                        if(here.getMaterial() == material) {
+                            waterHeight.setBox(new IConfigFluidBox.HeightBox(0, 1));
+                            anyFound = true;
+                            if(pushEntity) {
+                                // vec = here.getBlock().modifyAcceleration(world, pos, entity, vec);
+                                total++;
+                                vec = vec.add(here.getBlock().modifyAcceleration(world, pos, entity, Vec3d.ZERO));
                             }
                         }
                     }
                 }
             }
 
-            return Pair.of(flagIn, vec3dIn);
+            pos.release();
+            if(vec.length() > 0) {
+                if(total > 0) vec = vec.scale(1d / total);
+                if(!(entity instanceof EntityPlayer)) vec = vec.normalize();
+
+                entity.motionX += vec.x * 0.014;
+                entity.motionY += vec.y * 0.014;
+                entity.motionZ += vec.z * 0.014;
+            }
+
+            if(material == Material.WATER) FluidCollisionHandler.cacheHeight.set(null);
+            return anyFound;
         }
 
         public static void handleOldFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Chunk chunk, @Nonnull IBlockState oldState, @Nonnull IBlockState newState, @Nullable IBlockState iblockstate, int blockFlags) {
             if(iblockstate != null) {
                 final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
-                //this mod adds a special flag (x | 32, example: Constants.BlockFlags.DEFAULT | 32) that removes any FluidState here
-                if((blockFlags & 32) != 0) {
-                    if(!fluidState.isEmpty()) FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, false, blockFlags);
-                    return;
-                }
+                final boolean notifyFluid = (blockFlags & Constants.BlockFlags.NOTIFY_NEIGHBORS) != 0;
+                blockFlags &=~ Constants.BlockFlags.NOTIFY_NEIGHBORS; // don't notify neighbors twice
 
-                //if the new state isn't fluidloggable, remove the FluidState here
-                if(!fluidState.isEmpty()) {
-                    if(!FluidloggedUtils.isStateFluidloggable(newState, world, pos, fluidState.getFluid())) {
-                        FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, false, blockFlags);
-                        if(world.isAreaLoaded(pos, 1)) FluidloggedUtils.notifyFluids(world, pos, fluidState, false);
+                // notify neighboring FluidStates of any non-fluid state changes, if the block itself won't already
+                if(!world.isRemote && !notifyFluid && chunk.isPopulated() && !FluidloggedUtils.isFluid(newState)) {
+                    @Nonnull final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
+                    @Nonnull final Chunk[][] chunks = new Chunk[2][2];
+
+                    fluidState.getState().neighborChanged(world, pos, newState.getBlock(), pos);
+                    for(@Nonnull final EnumFacing side : EnumFacing.HORIZONTALS) {
+                        mutablePos.setPos(pos.getX() + side.getXOffset(), pos.getY(), pos.getZ() + side.getZOffset());
+                        final int x = mutablePos.getX() >> 4, z = mutablePos.getZ() >> 4;
+
+                        @Nonnull final Chunk neighborChunk = chunks[x & 1][z & 1] == null ? chunks[x & 1][z & 1] = world.getChunk(x, z) : chunks[x & 1][z & 1];
+                        if(neighborChunk.isPopulated()) FluidloggedUtils.getFluidState(neighborChunk, mutablePos).getState().neighborChanged(world, mutablePos, newState.getBlock(), pos);
                     }
-
-                    //ensure fluids are updated when the block here changes
-                    else if(world.isAreaLoaded(pos, 1)) FluidloggedUtils.notifyFluids(world, pos, fluidState, true);
-                    return;
                 }
 
-                //save oldState as FluidState if possible
-                final @Nullable Fluid fluid = FluidloggedUtils.getFluidFromState(oldState);
-                if(fluid != null && FluidloggedUtils.isFluidloggableFluid(oldState, world, pos) && FluidloggedUtils.isStateFluidloggable(newState, world, pos, fluid))
-                    FluidloggedUtils.setFluidState(world, pos, newState, FluidState.of(fluid), false, false, blockFlags);
+                // this mod adds two special flags:
+                // 32: (x | 32, example: Constants.BlockFlags.DEFAULT | 32) that removes any FluidState here
+                // 64: (x | 64, example: Constants.BlockFlags.DEFAULT | 64) that ignores FluidState.removeOnBlockChange
+                if((blockFlags & 64) == 0 && ((blockFlags & 32) != 0 || !(newState.getBlock() instanceof IFluidloggable) && FluidState.removeOnBlockChange.get())) {
+                    if(fluidState != FluidState.EMPTY) FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, blockFlags);
+                }
+
+                // if the new state isn't fluidloggable, remove the FluidState here
+                else if(fluidState.getBlock() instanceof IFluidloggableFluid) {
+                    if(!((IFluidloggableFluid)fluidState.getBlock()).isStateFluidloggable(newState, world, pos, fluidState)) FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, blockFlags);
+                    else if(!world.isRemote && (notifyFluid || chunk.isPopulated())) fluidState.getState().neighborChanged(world, pos, newState.getBlock(), pos);
+                }
+
+                // save oldState as FluidState if possible
+                else if(oldState.getBlock() instanceof IFluidloggableFluid) {
+                    final IFluidloggableFluid handler = (IFluidloggableFluid)oldState.getBlock();
+                    final FluidState oldFluidState = FluidState.of(oldState);
+
+                    if(handler.isFluidloggableFluid(oldFluidState) && handler.isStateFluidloggable(newState, world, pos, oldFluidState)) {
+                        FluidloggedUtils.setFluidState(world, pos, newState, oldFluidState, false, blockFlags);
+                        oldFluidState.getState().neighborChanged(world, pos, newState.getBlock(), pos);
+                    }
+                }
             }
         }
 
-        public static boolean isAirBlock(@Nonnull World world, @Nonnull BlockPos pos) {
-            final IBlockState state = world.getBlockState(pos);
-            return state.getBlock().isAir(state, world, pos);
+        public static boolean isBlockPowered(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
+            @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 4, 4) : world;
+            @Nonnull final FluidState fluidState = FluidState.get(access, pos);
+
+            return !fluidState.isEmpty() && fluidState.getState().getWeakPower(access, pos, fluidState.getDownDensityFace()) > 0 ||
+                    0 < getRedstonePower(access, pos.down(), EnumFacing.DOWN) ||
+                    0 < getRedstonePower(access, pos.up(), EnumFacing.UP) ||
+                    0 < getRedstonePower(access, pos.north(), EnumFacing.NORTH) ||
+                    0 < getRedstonePower(access, pos.south(), EnumFacing.SOUTH) ||
+                    0 < getRedstonePower(access, pos.west(), EnumFacing.WEST) ||
+                    0 < getRedstonePower(access, pos.east(), EnumFacing.EAST);
         }
 
         public static boolean isFlammableFluidWithin(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
@@ -583,17 +772,17 @@ public final class PluginWorld implements IASMPlugin
 
             BlockPos pos = new BlockPos(prevX, prevY, prevZ);
             RayTraceResult result;
+            Chunk lastChunk = world.getChunk(pos); // cache the last accessed chunk to boost performance
+            boolean isOutOfWorld = world.isOutsideBuildHeight(pos);
 
             //check FluidState
-            if(stopOnLiquid) {
-                final FluidState fluidState = FluidState.get(world, pos);
-                if(!fluidState.isEmpty() && fluidState.getBlock().canCollideCheck(fluidState.getState(), true)) {
-                    result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
-                    if(result != null) { return result; }
-                }
+            FluidState fluidState = isOutOfWorld ? FluidState.EMPTY : FluidState.getFromProvider(lastChunk, pos);
+            if(fluidState.getBlock().canCollideCheck(fluidState.getState(), stopOnLiquid) && (stopOnLiquid && !fluidState.isEmpty() || !ignoreBlockWithoutBoundingBox || fluidState.getState().getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
+                result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
+                if(result != null) { return result; }
             }
 
-            IBlockState state = world.getBlockState(pos);
+            IBlockState state = isOutOfWorld ? Blocks.AIR.getDefaultState() : lastChunk.getBlockState(pos);
             if(state.getBlock().canCollideCheck(state, stopOnLiquid) && (stopOnLiquid && FluidloggedUtils.isFluid(state) || !ignoreBlockWithoutBoundingBox || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB)) {
                 result = state.collisionRayTrace(world, pos, vec, end);
                 if(result != null) { return result; }
@@ -639,40 +828,40 @@ public final class PluginWorld implements IASMPlugin
                 EnumFacing facing;
 
                 if(coveredX < coveredY && coveredX < coveredZ) {
-                    facing = endX > prevX ? WEST : EAST;
+                    facing = endX > prevX ? EnumFacing.WEST : EnumFacing.EAST;
                     vec = new Vec3d(x, vec.y + distY * coveredX, vec.z + distZ * coveredX);
                 }
 
                 else if(coveredY < coveredZ) {
-                    facing = endY > prevY ? DOWN : UP;
+                    facing = endY > prevY ? EnumFacing.DOWN : EnumFacing.UP;
                     vec = new Vec3d(vec.x + distX * coveredY, y, vec.z + distZ * coveredY);
                 }
 
                 else {
-                    facing = endZ > prevZ ? NORTH : SOUTH;
+                    facing = endZ > prevZ ? EnumFacing.NORTH : EnumFacing.SOUTH;
                     vec = new Vec3d(vec.x + distX * coveredZ, vec.y + distY * coveredZ, z);
                 }
 
-                prevX = MathHelper.floor(vec.x) - (facing == EAST  ? 1 : 0);
-                prevY = MathHelper.floor(vec.y) - (facing == UP    ? 1 : 0);
-                prevZ = MathHelper.floor(vec.z) - (facing == SOUTH ? 1 : 0);
+                prevX = MathHelper.floor(vec.x) - (facing == EnumFacing.EAST  ? 1 : 0);
+                prevY = MathHelper.floor(vec.y) - (facing == EnumFacing.UP    ? 1 : 0);
+                prevZ = MathHelper.floor(vec.z) - (facing == EnumFacing.SOUTH ? 1 : 0);
 
                 pos = new BlockPos(prevX, prevY, prevZ);
+                isOutOfWorld = world.isOutsideBuildHeight(pos);
+                if(!lastChunk.isAtLocation(prevX >> 4, prevZ >> 4)) lastChunk = world.getChunk(pos);
 
                 //check FluidState
-                if(stopOnLiquid) {
-                    FluidState fluidState = FluidState.get(world, pos);
-                    if(!fluidState.isEmpty()) {
-                        if(fluidState.getBlock().canCollideCheck(fluidState.getState(), true)) {
-                            result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
-                            if(result != null) return result;
-                        }
-
-                        else lastResult = new RayTraceResult(RayTraceResult.Type.MISS, vec, facing, pos);
+                fluidState = isOutOfWorld ? FluidState.EMPTY : FluidState.getFromProvider(lastChunk, pos);
+                if(!ignoreBlockWithoutBoundingBox || stopOnLiquid && !fluidState.isEmpty() || fluidState.getState().getCollisionBoundingBox(world, pos) != Block.NULL_AABB) {
+                    if(fluidState.getBlock().canCollideCheck(fluidState.getState(), stopOnLiquid)) {
+                        result = fluidState.getState().collisionRayTrace(world, pos, vec, end);
+                        if(result != null) return result;
                     }
+
+                    else lastResult = new RayTraceResult(RayTraceResult.Type.MISS, vec, facing, pos);
                 }
 
-                state = world.getBlockState(pos);
+                state = isOutOfWorld ? Blocks.AIR.getDefaultState() : lastChunk.getBlockState(pos);
                 if(!ignoreBlockWithoutBoundingBox || state.getMaterial() == Material.PORTAL || stopOnLiquid && FluidloggedUtils.isFluid(state) || state.getCollisionBoundingBox(world, pos) != Block.NULL_AABB) {
                     if(state.getBlock().canCollideCheck(state, stopOnLiquid)) {
                         result = state.collisionRayTrace(world, pos, vec, end);
@@ -684,6 +873,15 @@ public final class PluginWorld implements IASMPlugin
             }
 
             return returnLastUncollidableBlock ? lastResult : null;
+        }
+
+        @SuppressWarnings("UnusedReturnValue")
+        public static boolean setBlockToAir(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState airState, final int blockFlags) {
+            if(world.isRemote) return false; // prevents possible client desync
+            @Nonnull final FluidState fluidState = FluidState.get(world, pos);
+            return world.setBlockState(pos, fluidState.getBlock() instanceof BlockStaticLiquid
+                    ? FluidState.of(BlockLiquid.getFlowingBlock(fluidState.getMaterial())).withLevel(fluidState.getLevel()).getState()
+                    : fluidState.getState(), blockFlags);
         }
 
         public static boolean useNeighborBrightness(@Nonnull World world, @Nonnull BlockPos pos) {

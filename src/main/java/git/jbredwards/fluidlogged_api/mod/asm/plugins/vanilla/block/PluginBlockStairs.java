@@ -6,7 +6,6 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockStairs;
@@ -26,10 +25,9 @@ public final class PluginBlockStairs implements IASMPlugin
 {
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggable");
         /*
          * New code:
-         * //update neighboring fluids when this changes shape
+         * // update neighboring fluids when this changes shape
          * @ASMGenerated
          * public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos)
          * {
@@ -51,9 +49,8 @@ public final class PluginBlockStairs implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static void notifyNeighboringFluids(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull Block blockIn, @Nonnull BlockPos fromPos) {
-            if(pos.getY() == fromPos.getY() && BlockStairs.isBlockStairs(blockIn.getDefaultState()))
-                FluidloggedUtils.notifyFluids(world, pos, FluidState.get(world, pos), false, EnumFacing.UP, EnumFacing.DOWN);
+        public static void notifyNeighboringFluids(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final Block blockIn, @Nonnull final BlockPos fromPos) {
+            if(pos.getY() == fromPos.getY() && BlockStairs.isBlockStairs(blockIn.getDefaultState())) FluidloggedUtils.notifyFluids(world, pos, null, false, EnumFacing.UP, EnumFacing.DOWN);
         }
     }
 }

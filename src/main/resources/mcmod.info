@@ -1,9 +1,10 @@
 [{
   "modid": "fluidlogged_api",
   "name": "Fluidlogged API",
-  "description": "This mod adds basic fluidlogging to 1.12",
-  "version": "${version}",
+  "description": "Fluidlogged API is a library mod that adds highly customizable fluidlogging to 1.12.2!",
+  "version": "${mod_version}",
   "mcversion": "1.12.2",
   "url": "https://github.com/jbredwards/Fluidlogged-API",
-  "authorList": ["jbredwards"]
+  "authorList": ["jbredwards"],
+  "credits": "\n- jbredwards: creator and maintainer\n- embeddedt: compatibility with legacy pre-v1.7 worlds\n- meldexun: compatibility with newer Nothirium versions\n- rongmario: fluid chunk storage optimizations"
 }]
