@@ -17,10 +17,7 @@ import org.apache.commons.io.IOUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -84,10 +81,11 @@ public final class FluidloggedAPIConfigs
 
         for(@Nonnull final ModContainer mod : Loader.instance().getModList()) {
             bar.step(mod.getName());
+            @Nonnull final String fixedModid = mod.getModId().replaceAll("[<>:\"|?*]", "_");
 
             // for auto config
             if(FluidloggedAPIConfig.downloadModConfigs != FluidloggedAPIConfig.OnlineConfigMode.DISABLED) {
-                @Nonnull final Path autoConfig = Paths.get("config/fluidlogged_api/internal", mod.getModId(), fileName);
+                @Nonnull final Path autoConfig = Paths.get("config/fluidlogged_api/internal", fixedModid, fileName);
                 if(Files.exists(autoConfig)) {
                     try { getAsIterable(new JsonParser().parse(Files.newBufferedReader(autoConfig)), Function.identity()).forEach(json -> action.accept(autoConfig.toString(), json)); }
                     catch(@Nonnull final Throwable t) { t.printStackTrace(); } // catch here, to not stop reading other files
@@ -96,7 +94,7 @@ public final class FluidloggedAPIConfigs
 
             // for mod instances
             if(FluidloggedAPIConfig.allowDefaults) {
-                @Nonnull final String path = "/assets/" + mod.getModId() + "/fluidlogged_api";
+                @Nonnull final String path = "/assets/" + fixedModid + "/fluidlogged_api";
                 @Nullable InputStream folder = Loader.class.getResourceAsStream(path);
                 if(folder != null) { // only proceed if the mod has any fluidlogged api configs
                     IOUtils.closeQuietly(folder);
