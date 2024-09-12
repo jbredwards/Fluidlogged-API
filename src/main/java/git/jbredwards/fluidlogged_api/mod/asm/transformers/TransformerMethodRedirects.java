@@ -102,7 +102,7 @@ public final class TransformerMethodRedirects implements IClassTransformer
             else return false;
         }
 
-        public float getExplosionResistance(@Nonnull final Block block, @Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final Entity exploder, @Nonnull final Explosion explosion) {
+        public static float getExplosionResistance(@Nonnull final Block block, @Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final Entity exploder, @Nonnull final Explosion explosion) {
             final float bResistance = block.getExplosionResistance(world, pos, exploder, explosion);
             if(bResistance >= Integer.MAX_VALUE || FluidloggedUtils.isFluid(block)) return bResistance;
 
