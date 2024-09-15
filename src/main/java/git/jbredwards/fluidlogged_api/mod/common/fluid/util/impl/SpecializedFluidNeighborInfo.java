@@ -24,16 +24,9 @@ public abstract class SpecializedFluidNeighborInfo extends FluidNeighborInfo imp
 {
     public static class Forge extends SpecializedFluidNeighborInfo implements ISpecializedFluidNeighborInfo.Forge
     {
-        @Nonnull
-        protected final Map<Block, Boolean> displacements;
-        public Forge(@Nonnull final IBlockAccess accessIn, @Nonnull final BlockPos originIn, @Nonnull final FluidState originStateIn, final int radius, @Nonnull final Map<Block, Boolean> displacementsIn) {
+        public Forge(@Nonnull final IBlockAccess accessIn, @Nonnull final BlockPos originIn, @Nonnull final FluidState originStateIn, final int radius) {
             super(accessIn, originIn, originStateIn, radius);
-            displacements = displacementsIn;
         }
-
-        @Nonnull
-        @Override
-        public Map<Block, Boolean> getDisplacements() { return displacements; }
     }
 
     public static class Vanilla extends SpecializedFluidNeighborInfo implements ISpecializedFluidNeighborInfo.Vanilla

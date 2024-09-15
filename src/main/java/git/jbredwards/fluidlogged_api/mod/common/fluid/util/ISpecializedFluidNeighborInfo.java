@@ -10,7 +10,6 @@ import git.jbredwards.fluidlogged_api.api.fluid.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockDoor;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -19,7 +18,6 @@ import net.minecraft.util.EnumFacing;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Map;
 
 /**
  *
@@ -30,15 +28,12 @@ public interface ISpecializedFluidNeighborInfo extends IFluidNeighborInfo
 {
     interface Forge extends ISpecializedFluidNeighborInfo
     {
-        @Nonnull
-        Map<Block, Boolean> getDisplacements();
-
         @Override
         default boolean canDisplaceI(final int xi, final int yi, final int zi) {
             @Nonnull final IBlockState state = getBlockStateI(xi, yi, zi);
             if(FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidFromState(state), getOrigin().getFluid())) return true;
 
-            @Nullable final Boolean displacement = getDisplacements().get(state.getBlock());
+            @Nullable final Boolean displacement = getOrigin().getDisplacements().get(state.getBlock());
             if(displacement != null) return displacement;
 
             @Nonnull final Material material = state.getMaterial();
@@ -48,7 +43,7 @@ public interface ISpecializedFluidNeighborInfo extends IFluidNeighborInfo
         @Override
         default int getEffectiveQuantaI(final int xi, final int yi, final int zi) {
             if(!isCompatibleFluidI(xi, yi, zi)) return getCache().isAirBlock(getPosIB(xi, yi, zi)) ? 0 : -1;
-            final int quantaValue = getOrigin().getQuantaPerBlock() - getFluidStateI(xi, yi, zi).getLevel();
+            final int quantaValue = getFluidStateI(xi, yi, zi).getQuantaValue();
             return quantaValue > 0 && quantaValue < getOrigin().getQuantaPerBlock() && hasVerticalFlowI(xi, yi, zi) ? getOrigin().getQuantaPerBlock() : quantaValue;
         }
     }
@@ -95,14 +90,14 @@ public interface ISpecializedFluidNeighborInfo extends IFluidNeighborInfo
     // ------------------------
 
     boolean canDisplaceI(final int xi, final int yi, final int zi);
-    default boolean canFlowIntoI(final int xi, final int yi, final int zi, final int flowMeta, @Nonnull final EnumFacing sideToCheck, final boolean allowMatching) {
+    default boolean canFlowIntoI(final int xi, final int yi, final int zi, final int flowMeta, @Nonnull final EnumFacing sideToCheck, final boolean checkReplaceable, final boolean allowMatching) {
         final int xio = xi + sideToCheck.getDirectionVec().getX(), yio = yi + sideToCheck.getDirectionVec().getY() *- getOrigin().getDensityDir(), zio = zi + sideToCheck.getDirectionVec().getZ();
         if(getOrigin().getBlock() instanceof IConditionalFluid) {
             if(((IConditionalFluid)getOrigin().getBlock()).cannotFlowAt(getCache(), getPosIB(xio, yio, zio), getOrigin().withLevel(flowMeta))) return false;
         }
 
-        return canFluidFlowI(xi, yi, zi, sideToCheck) && (isReplaceableI(xio, yio, zio, getOrigin().withLevel(flowMeta), sideToCheck.getOpposite(), true, allowMatching)
-                || canFluidFlowI(xio, yio, zio, sideToCheck.getOpposite()) && isFluidloggableI(xio, yio, zio, getOrigin().withLevel(flowMeta), sideToCheck.getOpposite(), true, allowMatching));
+        return canFluidFlowI(xi, yi, zi, sideToCheck) && (isReplaceableI(xio, yio, zio, getOrigin().withLevel(flowMeta), sideToCheck.getOpposite(), checkReplaceable, allowMatching)
+                || canFluidFlowI(xio, yio, zio, sideToCheck.getOpposite()) && isFluidloggableI(xio, yio, zio, getOrigin().withLevel(flowMeta), sideToCheck.getOpposite(), checkReplaceable, allowMatching));
     }
 
     int getEffectiveQuantaI(final int xi, final int yi, final int zi);
@@ -137,7 +132,7 @@ public interface ISpecializedFluidNeighborInfo extends IFluidNeighborInfo
         else*/ if(isVaporizableI(xi, yi, zi, fluidToPlace, sideToCheck)) return true; // return getIsReplaceable()[index] = true;
 
         // default
-        else return /*getIsReplaceable()[index] =*/ getCache().isAirBlock(getPosIB(xi, yi, zi)) || canDisplaceI(xi, yi, zi) && !isFluidloggableI(xi, yi, zi, fluidToPlace.asSource(), sideToCheck, false, false);
+        else return /*getIsReplaceable()[index] =*/ getCache().isAirBlock(getPosIB(xi, yi, zi)) || canDisplaceI(xi, yi, zi) && !isFluidloggableI(xi, yi, zi, fluidToPlace.toSource(), sideToCheck, false, false);
     }
 
     default boolean isVaporizableI(final int xi, final int yi, final int zi, @Nonnull final FluidState fluidToPlace, @Nullable final EnumFacing sideToCheck) {
@@ -169,8 +164,8 @@ public interface ISpecializedFluidNeighborInfo extends IFluidNeighborInfo
         return canDisplaceI(getXI(x), getYI(y), getZI(z));
     }
 
-    default boolean canFlowInto(final int x, final int y, final int z, final int flowMeta, @Nonnull final EnumFacing sideToCheck, final boolean allowMatching) {
-        return canFlowIntoI(getXI(x), getYI(y), getZI(z), flowMeta, sideToCheck, allowMatching);
+    default boolean canFlowInto(final int x, final int y, final int z, final int flowMeta, @Nonnull final EnumFacing sideToCheck, final boolean checkReplaceable, final boolean allowMatching) {
+        return canFlowIntoI(getXI(x), getYI(y), getZI(z), flowMeta, sideToCheck, checkReplaceable, allowMatching);
     }
 
     default int getEffectiveQuanta(final int x, final int y, final int z) {

@@ -8,11 +8,13 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.exnihilo;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -65,11 +67,12 @@ public final class PluginExNihiloCreatio implements IASMPlugin
     public static final class Hooks
     {
         @Nonnull
-        public static Block getConnectedFluidOrReal(@Nonnull World world, BlockPos pos) {
-            final IBlockState here = world.getBlockState(pos);
-            return FluidloggedUtils.isFluid(here) || here.getBlock().isAir(here, world, pos)
-                    || !FluidloggedUtils.canFluidFlow(world, pos, here, EnumFacing.DOWN)
-                    ? here.getBlock() : FluidState.get(world, pos).getBlock();
+        public static Block getConnectedFluidOrReal(@Nonnull final World world, final BlockPos pos) {
+            @Nonnull final Chunk chunk = world.getChunk(pos);
+            @Nonnull final IBlockState here = chunk.getBlockState(pos);
+            return FluidloggedUtils.isFluid(here) || here.getBlock().isAir(here, world, pos) ||
+                   FluidloggedAPIConfig.fixBadFluidMixing && !FluidloggedUtils.canFluidFlow(world, pos, here, EnumFacing.DOWN)
+                   ? here.getBlock() : FluidState.getFromProvider(chunk, pos).getBlock();
         }
     }
 }

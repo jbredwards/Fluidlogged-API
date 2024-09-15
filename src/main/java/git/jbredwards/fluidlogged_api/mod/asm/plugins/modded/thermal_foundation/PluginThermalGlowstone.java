@@ -16,8 +16,6 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.BlockStateContainer;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.util.Constants;
 import org.objectweb.asm.tree.ClassNode;
 
@@ -43,13 +41,11 @@ public final class PluginThermalGlowstone implements IASMPlugin
             }
         );
         overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_180650_b" : "updateTick"),
-            "update", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Ljava/util/Random;Ljava/util/Map;ZZI)V", generator -> {
+            "update", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Ljava/util/Random;ZZI)V", generator -> {
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "displacements", "Ljava/util/Map;");
                 generator.visitFieldInsn(GETSTATIC, classNode.name, "enableSourceCondense", "Z");
                 generator.visitFieldInsn(GETSTATIC, classNode.name, "enableSourceFloat", "Z");
                 generator.visitFieldInsn(GETSTATIC, classNode.name, "maxHeight", "I");
@@ -66,14 +62,14 @@ public final class PluginThermalGlowstone implements IASMPlugin
             return pos.getY() > maxHeight;
         }
 
-        public static void update(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState state, @Nonnull final Random rand, @Nonnull final Map<Block, Boolean> displacements, final boolean condense, final boolean doFloat, final int maxHeight) {
+        public static void update(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState state, @Nonnull final Random rand, final boolean condense, final boolean doFloat, final int maxHeight) {
             @Nonnull final FluidState fluidState = FluidState.of(state);
             if(fluidState.isSource()) {
-                @Nonnull final ISpecializedFluidNeighborInfo info = new SpecializedFluidNeighborInfo.Forge(world, pos, fluidState, 0, displacements);
+                @Nonnull final ISpecializedFluidNeighborInfo info = new SpecializedFluidNeighborInfo.Forge(world, pos, fluidState, 0);
 
                 // source block condense (thermal foundation functionality)
                 final int densityDir = fluidState.getDensityDir();
-                if(condense && (pos.getY() + densityDir > maxHeight || pos.getY() + densityDir > maxHeight * 0.8 && info.canFlowInto(0, 0, 0, fluidState.getMetadata(), fluidState.getDownDensityFace(), false))) {
+                if(condense && (pos.getY() + densityDir > maxHeight || pos.getY() + densityDir > maxHeight * 0.8 && info.canFlowInto(0, 0, 0, fluidState.getMetadata(), fluidState.getDownDensityFace(), true, false))) {
                     if(info.getBlockState(0, 0, 0).getBlock().isReplaceable(world, pos)) world.setBlockState(pos, Blocks.GLOWSTONE.getDefaultState(), Constants.BlockFlags.DEFAULT | 32);
                     else FluidloggedUtils.setFluidToAir(world, pos, null, Constants.BlockFlags.DEFAULT);
                     return;
@@ -88,7 +84,7 @@ public final class PluginThermalGlowstone implements IASMPlugin
                 return;
             }
 
-            FluidFlowHandler.updateClassic(world, pos, fluidState, displacements);
+            FluidFlowHandler.updateClassic(world, pos, fluidState);
         }
     }
 }

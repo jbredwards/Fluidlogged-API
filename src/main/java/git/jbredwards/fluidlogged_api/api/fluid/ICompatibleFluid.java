@@ -33,4 +33,14 @@ public interface ICompatibleFluid
         //ie every fluid doesn't have to have hardcoded compat
         return FluidloggedUtils.isCompatibleFluid(getParentFluid(), otherFluid);
     }
+
+    /**
+     * @param other
+     * @return
+     * @throws NullPointerException If other is null.
+     *
+     * @since 3.0.0
+     * @author jbred
+     */
+    default int getFluidCompatibility(@Nonnull final Fluid other) { return isCompatibleFluid(other) ? 1 : 0; }
 }

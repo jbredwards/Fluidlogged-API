@@ -15,7 +15,6 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ChunkCache;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
@@ -85,9 +84,9 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
     @Nonnull
     @Override
     public EnumActionResult onFluidFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState newFluid, int blockFlags) {
-        return !newFluid.isSource() && newFluid.getActualHeight(new ChunkCache(world, pos, pos, 0), pos) == 1
+        return !newFluid.isSource() && newFluid.getActualHeight(world, pos) == 1
                 && FluidloggedUtils.canCreateSource(newFluid.getState(), world, pos)
-                && FluidloggedUtils.setFluidState(world, pos, here, newFluid.asSource(), false)
+                && FluidloggedUtils.setFluidState(world, pos, here, newFluid.toSource(), false)
                 ? EnumActionResult.SUCCESS : EnumActionResult.PASS;
     }
 
@@ -105,5 +104,5 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
     }
 
     @Override
-    public boolean overrideApplyDefaultsSetting(@Nonnull IBlockState state) { return true; }
+    public boolean overrideApplyDefaultsSetting() { return true; }
 }

@@ -9,15 +9,18 @@ import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.fluid.IFlowCostFluid;
 import git.jbredwards.fluidlogged_api.api.fluid.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.world.IFluidStateProvider;
+import git.jbredwards.fluidlogged_api.api.world.IWorldProvider;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IDefaultFluidState;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.ILevelFluidStateLookup;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidBase;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockDynamicLiquid;
 import net.minecraft.block.BlockLiquid;
+import net.minecraft.block.BlockStaticLiquid;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -35,6 +38,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * holds a fluid & a block state
@@ -53,7 +58,7 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
      * <ul>
      * <li>This exists to fix older (unsupported) mods. New mods not wanting to keep FluidStates on blockState
      * placement should use the 32 flag (x | 32, example: Constants.BlockFlags.SEND_TO_CLIENT | 32)
-     * when calling {@link World#setBlockState(BlockPos, IBlockState, int)}. Conversely, new mods can use the 64 flag to
+     * when calling {@link World#setBlockState(BlockPos, IBlockState, int)}. Likewise, new mods can use the 64 flag to
      * skip this check and <i>keep</i> any existing FluidStates.</li>
      * <li>Blocks that implement {@link git.jbredwards.fluidlogged_api.api.block.IFluidloggable IFluidloggable} are
      * exempt from this check, and will always keep existing FluidStates on world gen (unless the 32 flag is set,
@@ -135,8 +140,9 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
         }
 
         // set a default FluidState for later use
-        @Nonnull final FluidState fluidState = fluid.getBlock() != state.getBlock() && !(fluid.getBlock() instanceof BlockLiquid)
-                ? FluidState.of(fluid).withLevel(state.getValue(BlockLiquid.LEVEL)) : new FluidState(fluid, state);
+        @Nonnull final FluidState fluidState = fluid.getBlock() != state.getBlock()
+                && !(fluid.getBlock() instanceof BlockLiquid) && fluid.getBlock() instanceof IFluidBlock
+                ? of(fluid).withLevel(state.getValue(BlockLiquid.LEVEL)) : new FluidState(fluid, state);
         ((IDefaultFluidState)state).setDefaultFluidState(fluidState);
         return fluidState;
     }
@@ -172,7 +178,7 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
 
     /**
      * @param pos Position.
-     * @return The fluid state stored at the position from the {@link Minecraft#world} instance,
+     * @return The fluid state stored at the position from the {@link net.minecraft.client.Minecraft#world client world} instance,
      * if no fluid state is here this returns {@link FluidState#EMPTY}.
      *
      * @throws NullPointerException If pos is null.
@@ -181,7 +187,7 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
      */
     @Nonnull
     @SideOnly(Side.CLIENT)
-    public static FluidState get(@Nonnull final BlockPos pos) { return get(Minecraft.getMinecraft().world, pos); }
+    public static FluidState get(@Nonnull final BlockPos pos) { return get(IWorldProvider.getClientWorld(), pos); }
 
     /**
      * @param provider Capability provider (usually a chunk). If the capability provider is a World,
@@ -356,20 +362,29 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
     }
 
     /**
-     * {@link FluidState#isEmpty() FluidState::isEmpty} should typically be checked at least once before this method.
-     *
      * @return True if this FluidState is a source block (can be picked up by a bucket), false otherwise.
-     * @throws UnsupportedOperationException If this FluidState is empty.
      *
      * @since 3.0.0
      * @author jbred
      */
     public boolean isSource() {
-        return getLevel() == (getBlock() instanceof BlockFluidFinite ? getQuantaPerBlock() - 1 : 0);
+        return isValid() && getLevel() == (getBlock() instanceof BlockFluidFinite ? getQuantaPerBlock() - 1 : 0);
     }
 
     /**
      * {@link FluidState#isEmpty() FluidState::isEmpty} should typically be checked at least once before this method.
+     *
+     * @return This as a source block.
+     * @throws UnsupportedOperationException If this FluidState is empty.
+     *
+     * @since 3.0.0
+     * @author jbred
+     */
+    @Nonnull
+    public FluidState toSource() { return withLevel(0); }
+
+    /**
+     * {@link FluidState#isValid() FluidState::isValid} should typically be checked at least once before this method.
      *
      * @param level The fluid level of the FluidState to be returned.
      * @return The FluidState that has the provided fluid level and that has this FluidState's other properties.
@@ -391,10 +406,8 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
 
             // create and fill the FluidState lookup array
             lookup.setFluidStateLookup(new FluidState[states.length][BlockLiquid.LEVEL.getAllowedValues().size()]);
-            for(final int[] stateId = {0}; stateId[0] < states.length; stateId[0]++) BlockLiquid.LEVEL.getAllowedValues().forEach(lvl -> {
-                lookup.getFluidStateLookup()[stateId[0]][lvl] = FluidState.of(states[stateId[0]].withProperty(BlockLiquid.LEVEL, lvl));
-                lookup.getFluidStateLookup()[stateId[0]][lvl].propsKey = stateId[0];
-            });
+            for(final int[] stateId = {0}; stateId[0] < states.length; stateId[0]++) BlockLiquid.LEVEL.getAllowedValues().forEach(lvl ->
+                (lookup.getFluidStateLookup()[stateId[0]][lvl] = FluidState.of(states[stateId[0]].withProperty(BlockLiquid.LEVEL, lvl))).propsKey = stateId[0]);
         }
 
         // get FluidState from lookup
@@ -402,7 +415,7 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
     }
 
     /**
-     * {@link FluidState#isEmpty() FluidState::isEmpty} should typically be checked at least once before this method.
+     * {@link FluidState#isValid() FluidState::isValid} should typically be checked at least once before this method.
      *
      * @param toAdd The fluid level to add to this one.
      * @return The FluidState that has a level equal to (level + toAdd) (capped at quantaPerBlock - 1), and that has
@@ -415,40 +428,30 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
      */
     @Nonnull
     public FluidState addLevel(final int toAdd) {
-        if(getBlock() instanceof BlockFluidFinite) return withLevel(Math.max(getLevel() - toAdd, 1));
+        if(getBlock() instanceof BlockFluidFinite) return withLevel(Math.max(getLevel() - toAdd, 0));
         else return withLevel(Math.min(getLevel() + toAdd, Math.max(getQuantaPerBlock() - 1, 0)));
     }
 
     /**
-     * {@link FluidState#isEmpty() FluidState::isEmpty} should typically be checked at least once before this method.
-     *
-     * @return This as a source block.
-     * @throws UnsupportedOperationException If this FluidState is empty.
+     * @return This FluidState as a flowing liquid block if it's a static liquid block, otherwise returns itself.
      *
      * @since 3.0.0
      * @author jbred
      */
     @Nonnull
-    public FluidState asSource() { return withLevel(0); }
-
-    // ===================================================
-    // UTILITY ACCESSOR METHODS FOR FLUID BLOCK PROPERTIES
-    // ===================================================
-
-    public int getFlowCost(@Nonnull final World world) {
-        return getBlock() instanceof IFlowCostFluid ? ((IFlowCostFluid)getBlock()).getFlowCost(world) : 1;
+    public FluidState toFlowing() {
+        return getBlock() instanceof BlockStaticLiquid ? of(BlockLiquid.getFlowingBlock(getMaterial())).withLevel(getLevel()) : this;
     }
 
-    public int getDensity() {
-        return getBlock() instanceof BlockFluidBase ? ((BlockFluidBase)getBlock()).getDensity() : getFluid().getDensity();
-    }
-
-    public int getTemperature() {
-        return getBlock() instanceof BlockFluidBase ? ((BlockFluidBase)getBlock()).getTemperature() : getFluid().getTemperature();
-    }
-
-    public int getDensityDir() {
-        return getBlock() instanceof PluginBlockFluidBase.Accessor ? ((PluginBlockFluidBase.Accessor)getBlock()).getDensityDir_Public() : -1;
+    /**
+     * @return This FluidState as a static liquid block if it's a flowing liquid block, otherwise returns itself.
+     *
+     * @since 3.0.0
+     * @author jbred
+     */
+    @Nonnull
+    public FluidState toStatic() {
+        return getBlock() instanceof BlockDynamicLiquid ? of(BlockLiquid.getStaticBlock(getMaterial())).withLevel(getLevel()) : this;
     }
 
     public float getQuantaFraction() {
@@ -463,17 +466,65 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
         return getBlock() instanceof PluginBlockFluidBase.Accessor ? ((PluginBlockFluidBase.Accessor)getBlock()).getQuantaPerBlockFloat_Public() : 8f;
     }
 
+    public int getQuantaValue() {
+        return getBlock() instanceof BlockFluidFinite ? getLevel() + 1 : getQuantaPerBlock() - getLevel();
+    }
+
+    public final int getQuantaValue(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
+        @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 0, 0) : world;
+        if(access.isAirBlock(pos)) return 0;
+
+        @Nonnull final FluidState fluidState = FluidloggedUtils.getFluidState(access, pos);
+        return FluidloggedUtils.isCompatibleFluid(this, fluidState) ? fluidState.getQuantaValue() : -1;
+    }
+
+    public final int getQuantaValueAbove(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, final int aboveThis) {
+        final int quantaRemaining = getQuantaValue(world, pos);
+        return quantaRemaining <= aboveThis ? -1 : quantaRemaining;
+    }
+
+    public final int getQuantaValueBelow(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, final int belowThis) {
+        final int quantaRemaining = getQuantaValue(world, pos);
+        return quantaRemaining >= belowThis ? -1 : quantaRemaining;
+    }
+
+    // ===================================================
+    // UTILITY ACCESSOR METHODS FOR FLUID BLOCK PROPERTIES
+    // ===================================================
+
+    public int getFlowCost(@Nonnull final World world) {
+        return getBlock() instanceof IFlowCostFluid ? ((IFlowCostFluid)getBlock()).getFlowCost(this, world) : 1;
+    }
+
+    public int getDensity() {
+        return getBlock() instanceof BlockFluidBase ? ((BlockFluidBase)getBlock()).getDensity() : getFluid().getDensity();
+    }
+
+    public int getTemperature() {
+        return getBlock() instanceof BlockFluidBase ? ((BlockFluidBase)getBlock()).getTemperature() : getFluid().getTemperature();
+    }
+
+    public int getDensityDir() {
+        return getBlock() instanceof PluginBlockFluidBase.Accessor ? ((PluginBlockFluidBase.Accessor)getBlock()).getDensityDir_Public() : -1;
+    }
+
+    @Nonnull
+    public Map<Block, Boolean> getDisplacements() {
+        return getBlock() instanceof PluginBlockFluidBase.Accessor ? ((PluginBlockFluidBase.Accessor)getBlock()).getDisplacements_Public() : Collections.emptyMap();
+    }
+
     protected float fluidHeight = Float.MAX_VALUE;
     public float getHeight() {
         if(fluidHeight != Float.MAX_VALUE) return fluidHeight;
         else if(getBlock() instanceof BlockLiquid) return 1 - BlockLiquid.getLiquidHeightPercent(getLevel() >= 8 ? 1 : getLevel());
-        else if(getBlock() instanceof BlockFluidFinite) return fluidHeight = (1 + getLevel()) * getQuantaFraction() / getQuantaPerBlockFloat();
-        else if(getBlock() instanceof BlockFluidBase) return fluidHeight = (getQuantaPerBlock() - getLevel()) * getQuantaFraction() / getQuantaPerBlockFloat();
+        else if(getBlock() instanceof BlockFluidBase) return fluidHeight = getQuantaValue() * getQuantaFraction() / getQuantaPerBlockFloat();
         else throw new UnsupportedOperationException("Cannot get fluid height from invalid FluidState!");
     }
 
-    public float getActualHeight(@Nonnull final IBlockAccess access, @Nonnull final BlockPos pos) {
+    public float getActualHeight(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
+        @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 1, 1) : world;
         @Nonnull final EnumFacing side = getUpDensityFace();
+
         if(FluidloggedUtils.canFluidFlow(access, pos, access.getBlockState(pos), side)) {
             @Nonnull final BlockPos offset = pos.offset(side);
             @Nonnull final IBlockState above = access.getBlockState(offset);
@@ -493,18 +544,19 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
     }
 
     /**
-     * {@link FluidState#isEmpty() FluidState::isEmpty} should typically be checked at least once before this method.
+     * {@link FluidState#isValid() FluidState::isValid} should typically be checked at least once before this method.
      *
      * @return A new {@link FluidStack} containing this FluidState's fluid.
      * The returned {@link FluidStack} will have a size of 0 if this FluidState is not a source block.
-     * @throws UnsupportedOperationException If this FluidState is empty.
+     * @throws UnsupportedOperationException If this FluidState is not valid.
      *
      * @since 3.0.0
+     * @author jbred
      */
     @Nonnull
     public FluidStack createFluidStack() {
         if(getBlock() instanceof BlockFluidFinite) { // finite fluid blocks handle FluidStacks differently
-            return new FluidStack(getFluid(), MathHelper.floor((getLevel() + 1) / getQuantaPerBlockFloat() * Fluid.BUCKET_VOLUME));
+            return new FluidStack(getFluid(), MathHelper.floor(getQuantaValue() / getQuantaPerBlockFloat() * Fluid.BUCKET_VOLUME));
         }
 
         return new FluidStack(getFluid(), isSource() ? Fluid.BUCKET_VOLUME : 0);

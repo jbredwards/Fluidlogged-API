@@ -57,8 +57,8 @@ public interface IFluidloggableFluid
         if(allowMatching && FluidloggedUtils.isCompatibleFluid(fluidState, other) || other.isSource()) return true;
         else if(fluidState.isSource()) return false;
 
-        final int hereDensity = fluidState.getWrappedLevel(world) *- fluidState.getDensity();
-        final int otherDensity = other.getWrappedLevel(world) *- other.getDensity();
+        final int hereDensity = fluidState.withLevel(fluidState.getWrappedLevel(world)).getQuantaValue() * fluidState.getDensity();
+        final int otherDensity = other.withLevel(other.getWrappedLevel(world)).getQuantaValue() * other.getDensity();
 
         return allowMatching ? hereDensity <= otherDensity : hereDensity < otherDensity;
     }
@@ -84,7 +84,7 @@ public interface IFluidloggableFluid
 
         // defaults
         else return state.getBlock() instanceof IFluidloggable && (FluidloggedAPIConfig.allowDefaults
-                    || ((IFluidloggable)state.getBlock()).overrideApplyDefaultsSetting(state))
+                    || ((IFluidloggable)state.getBlock()).overrideApplyDefaultsSetting())
                     && ((IFluidloggable)state.getBlock()).isFluidloggable(state, world, pos, fluidState);
     }
 }

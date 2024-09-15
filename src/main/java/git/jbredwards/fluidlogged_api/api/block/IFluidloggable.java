@@ -113,12 +113,11 @@ public interface IFluidloggable
     }
 
     /**
-     * @param state
      * @return
      * @throws NullPointerException If state is null.
      *
      * @since 3.0.0
      * @author jbred
      */
-    default boolean overrideApplyDefaultsSetting(@Nonnull final IBlockState state) { return false; }
+    default boolean overrideApplyDefaultsSetting() { return false; }
 }

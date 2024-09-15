@@ -5,6 +5,9 @@
 
 package git.jbredwards.fluidlogged_api.mod.common.config.util;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -12,18 +15,18 @@ import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.ICanFluidFlowHandler;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigAccessor;
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigs;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.JsonUtils;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Map;
+import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -39,6 +42,16 @@ public interface ConfigPredicate
     @Nonnull ConfigPredicate ALWAYS = (world, pos, state, fluidState) -> true;
     @Nonnull ConfigPredicate TRUE_FOR_SOURCE = (world, pos, state, fluidState) -> fluidState.isSource();
     @Nonnull ConfigPredicate TRUE_FOR_SIDE = (world, pos, state, fluidState) -> fluidState.isSource() || FluidloggedUtils.canFluidOccupy(state, world, pos, fluidState);
+
+    // Internal:
+    Multimap<Class<?>, Block> CLASS_TO_BLOCK = HashMultimap.create();
+    static void fillClassToBlockLookup() { if(CLASS_TO_BLOCK.isEmpty()) ForgeRegistries.BLOCKS.forEach(b -> {
+        for(@Nonnull Class<?> c = b.getClass(); !c.isAssignableFrom(Block.class); c = c.getSuperclass()) CLASS_TO_BLOCK.put(c, b);
+    }); }
+
+    // Internal:
+    Multimap<String, Block> MODID_TO_BLOCK = HashMultimap.create();
+    static void fillModIdToBlockLookup() { if(MODID_TO_BLOCK.isEmpty()) ForgeRegistries.BLOCKS.getEntries().forEach(e -> MODID_TO_BLOCK.put(e.getKey().getNamespace(), e.getValue())); }
 
     /**
      * @return true if the input arguments match the predicate, otherwise false.
@@ -68,43 +81,40 @@ public interface ConfigPredicate
                 return;
             }
 
+            fillClassToBlockLookup();
             // generate config for each block that is an instanceof the class
-            boolean foundBlock = false;
-            for(@Nonnull final Map.Entry<ResourceLocation, Block> entry : ForgeRegistries.BLOCKS.getEntries()) {
-                if(blockClass.isAssignableFrom(entry.getValue().getClass())) {
-                    foundBlock = true;
-                    try { helper.forEachState(entry.getValue(), configGetter, configSetter); }
-                    // don't skip remaining blocks
-                    catch(@Nonnull final Throwable t) {
-                        @Nonnull final String error = "An error has occurred while deserializing config predicate for \"%s\" of class \"%s\" in file \"%s\", skipping...";
-                        new JsonParseException(String.format(error, entry.getKey(), classId, fileName), t).printStackTrace();
-                    }
+            @Nullable final Collection<Block> blocks = CLASS_TO_BLOCK.get(blockClass);
+            if(blocks != null) blocks.forEach(block -> {
+                try { helper.forEachState(block, configGetter, configSetter); }
+                // don't skip remaining blocks
+                catch(@Nonnull final Throwable t) {
+                    @Nonnull final String error = "An error has occurred while deserializing config predicate for \"%s\" of class \"%s\" in file \"%s\", skipping...";
+                    new JsonParseException(String.format(error, block.getRegistryName(), classId, fileName), t).printStackTrace();
                 }
-            }
+            });
 
-            // no blocks were found with the provided class, alert the user
-            if(!foundBlock && !(json.has("allowMissing") && JsonUtils.getBoolean(json.get("allowMissing"), "allowMissing")))
+            // no blocks were found with the provided class, alert the logger
+            else if(!(json.has("allowMissing") && JsonUtils.getBoolean(json.get("allowMissing"), "allowMissing")))
                 new JsonParseException(String.format("Could not get any blocks from class \"%s\" in file \"%s\".", classId, fileName)).printStackTrace();
         });
 
         // deserialize blocks based on mod id
         else if(json.has("modId")) FluidloggedAPIConfigs.getAsIterable(json.get("modId"), JsonElement::getAsString).forEach(modId -> {
-            // generate config for each block that is an instanceof the class
-            boolean foundBlock = false;
-            for(@Nonnull final Map.Entry<ResourceLocation, Block> entry : ForgeRegistries.BLOCKS.getEntries()) {
-                if(modId.equals(entry.getKey().getNamespace())) {
-                    foundBlock = true;
-                    try { helper.forEachState(entry.getValue(), configGetter, configSetter); }
-                    // don't skip remaining blocks
-                    catch(@Nonnull final Throwable t) {
-                        @Nonnull final String error = "An error has occurred while deserializing config predicate for \"%s\" from mod id \"%s\" in file \"%s\", skipping...";
-                        new JsonParseException(String.format(error, entry.getKey(), modId, fileName), t).printStackTrace();
-                    }
-                }
-            }
+            fillModIdToBlockLookup();
 
-            // no blocks were found with the provided class, alert the user
-            if(!foundBlock && !(json.has("allowMissing") && JsonUtils.getBoolean(json.get("allowMissing"), "allowMissing")))
+            // generate config for each block that is an instanceof the class
+            @Nullable final Collection<Block> blocks = MODID_TO_BLOCK.get(modId);
+            if(blocks != null) blocks.forEach(block -> {
+                try { helper.forEachState(block, configGetter, configSetter); }
+                // don't skip remaining blocks
+                catch(@Nonnull final Throwable t) {
+                    @Nonnull final String error = "An error has occurred while deserializing config predicate for \"%s\" from mod id \"%s\" in file \"%s\", skipping...";
+                    new JsonParseException(String.format(error, block.getRegistryName(), modId, fileName), t).printStackTrace();
+                }
+            });
+
+            // no blocks were found with the provided modid, alert the logger
+            else if(!(json.has("allowMissing") && JsonUtils.getBoolean(json.get("allowMissing"), "allowMissing")))
                 new JsonParseException(String.format("Could not get any blocks from mod id \"%s\" in file \"%s\".", modId, fileName)).printStackTrace();
         });
 
@@ -127,6 +137,22 @@ public interface ConfigPredicate
                 new JsonParseException(String.format(error, blockId, fileName), t).printStackTrace();
             }
         });
+    }
+
+    /**
+     * Resets existing config whitelist/blacklist data.
+     */
+    static void reset() {
+        Iterables.concat(IConfigAccessor.BLACKLIST_CACHE, IConfigAccessor.WHITELIST_CACHE).forEach(a -> {
+            a.setBlacklistPredicate(null);
+            a.setWhitelistPredicate(null);
+
+            ((IConfigFluidBox)a).setBoxes(null);
+            ICanFluidFlowHandler.Accessor.setOverride(a, null);
+        });
+
+        IConfigAccessor.BLACKLIST_CACHE.clear();
+        IConfigAccessor.WHITELIST_CACHE.clear();
     }
 
     @FunctionalInterface

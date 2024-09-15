@@ -21,6 +21,7 @@ import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.BlockFluidFinite;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -70,7 +71,7 @@ public final class FluidExtendedStateHandler
 
         // only calculate client-side props if state is being gathered for rendering
         boolean calcFlowDirection = false;
-        if(MinecraftForgeClient.getRenderLayer() != null) {
+        if(FMLCommonHandler.instance().getSide().isClient() && MinecraftForgeClient.getRenderLayer() != null) {
             // don't calculate quads for sides that won't end up rendering anyway, this results in much better performance during rendering
             for(@Nonnull final EnumFacing side : EnumFacing.VALUES) state.shouldSideBeRenderedCache[side.getIndex()] = shouldFluidSideBeRendered(neighborInfo, side);
 

@@ -5,28 +5,27 @@
 
 package git.jbredwards.fluidlogged_api.mod.common.fluid.handler;
 
-import git.jbredwards.fluidlogged_api.mod.asm.iface.IConditionalFluid;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IConditionalFluid;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.IFluidUpdateHelper;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.ISpecializedFluidNeighborInfo;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.BlockStateContainer;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
+import net.minecraftforge.fluids.BlockFluidBase;
 
 import javax.annotation.Nonnull;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -91,13 +90,13 @@ public final class FluidFlowHandler
     // BlockFluidClassic
     // =================
 
-    public static void updateClassic(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull final FluidState originState, @Nonnull final Map<Block, Boolean> displacements) {
+    public static void updateClassic(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull final FluidState originState) {
         final int flowCost = originState.getFlowCost(world);
         final int slopeDist = originState.getQuantaPerBlock() >> (flowCost - 1);
         if(world.isRemote || !world.isAreaLoaded(origin, slopeDist - 1)) return;
 
         // world.profiler.startSection("fluidUpdateClassic");
-        @Nonnull final IFluidUpdateHelper helper = new IFluidUpdateHelper.Forge(world, origin, originState, slopeDist, displacements);
+        @Nonnull final IFluidUpdateHelper helper = new IFluidUpdateHelper.Forge(world, origin, originState, slopeDist);
 
         // check if the fluid can exist here before proceeding (compatibility with Thermal Foundation)
         /*if(originState.getBlock() instanceof IConditionalFluid && ((IConditionalFluid)originState.getBlock()).canCondenseAt(helper.getCache(), origin, originState)) {
@@ -147,32 +146,7 @@ public final class FluidFlowHandler
             // decay calculation
             if(expQuanta != quantaRemaining) {
                 quantaRemaining = expQuanta;
-                @Nonnull final FluidState fluidState = expQuanta <= 0 ? FluidState.EMPTY : originState.withLevel(originState.getQuantaPerBlock() - expQuanta);
-
-                // set IBlockState
-                if(helper.getBlockState(0, 0, 0) == originState.getState() || expQuanta > 0 && helper.vaporize(0, 0, 0, fluidState, null)) {
-                    if(expQuanta <= 0) world.setBlockState(origin, BlockStateContainer.AIR_BLOCK_STATE);
-                    else {
-                        world.setBlockState(origin, fluidState.getState(), Constants.BlockFlags.SEND_TO_CLIENTS);
-                        world.scheduleUpdate(origin, originState.getBlock(), originState.getBlock().tickRate(world));
-                        world.notifyNeighborsOfStateChange(origin, originState.getBlock(), false);
-                    }
-                }
-
-                // set FluidState
-                else {
-                    if(expQuanta <= 0) FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), FluidState.EMPTY, false);
-                    else {
-                        if(!helper.isFluidloggable(0, 0, 0, fluidState, null, false, false))
-                            FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), FluidState.EMPTY, false);
-                        else {
-                            FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), fluidState, false, Constants.BlockFlags.SEND_TO_CLIENTS);
-                            world.scheduleUpdate(origin, originState.getBlock(), originState.getBlock().tickRate(world));
-                            world.notifyNeighborsOfStateChange(origin, originState.getBlock(), false);
-                        }
-                    }
-                }
-
+                helper.setFluid(0, 0, 0, expQuanta <= 0 ? FluidState.EMPTY : originState.withLevel(originState.getQuantaPerBlock() - expQuanta), expQuanta <= 0, originState.getBlock().tickRate(world));
                 // changed data in world, reset non-chunk data in helper
                 helper.resetDataAt(0, 0, 0);
             }
@@ -184,8 +158,8 @@ public final class FluidFlowHandler
         }
 
         // flow vertically if possible
-        if(helper.canFlowInto(0, 0, 0, flowCost, originState.getDownDensityFace(), false) && (!helper.getFluidState(0, 0, 0).isSource() || !helper.isCompatibleFluid(0, -1, 0))) {
-            helper.flowInto(0, 0, 0, flowCost, originState.getDownDensityFace(), Constants.BlockFlags.DEFAULT);
+        if(helper.canFlowInto(0, 0, 0, flowCost, originState.getDownDensityFace(), true, false) && (!helper.getFluidState(0, 0, 0).isSource() || !helper.isCompatibleFluid(0, -1, 0))) {
+            helper.flowInto(0, 0, 0, flowCost, originState.getDownDensityFace(), true, false, Constants.BlockFlags.DEFAULT);
             // world.profiler.endSection();
             return;
         }
@@ -203,7 +177,7 @@ public final class FluidFlowHandler
             @Nonnull final boolean[] flowTo = helper.getOptimalFlowDirections(0, 0, 0, originState.getQuantaPerBlock(), flowMeta, flowCost, levelIn -> flowCost);
             for(int i = 0; i < 4; i++) if(flowTo[i]) {
                 @Nonnull final EnumFacing side = EnumFacing.HORIZONTALS[i];
-                helper.flowInto(0, 0, 0, flowMeta, side, Constants.BlockFlags.DEFAULT);
+                helper.flowInto(0, 0, 0, flowMeta, side, true, false, Constants.BlockFlags.DEFAULT);
             }
         }
 
@@ -266,31 +240,7 @@ public final class FluidFlowHandler
             if(level != newLevel) {
                 level = newLevel;
                 placeStatic = false;
-                @Nonnull final FluidState fluidState = level < 0 ? FluidState.EMPTY : originState.withLevel(level);
-
-                // set IBlockState
-                if(helper.getBlockState(0, 0, 0) == originState.getState() || level >= 0 && helper.vaporize(0, 0, 0, fluidState, null)) {
-                    if(level < 0) world.setBlockState(origin, BlockStateContainer.AIR_BLOCK_STATE);
-                    else {
-                        world.setBlockState(origin, fluidState.getState(), Constants.BlockFlags.SEND_TO_CLIENTS);
-                        world.scheduleUpdate(origin, originState.getBlock(), tickRate);
-                        world.notifyNeighborsOfStateChange(origin, originState.getBlock(), false);
-                    }
-                }
-
-                // set FluidState
-                else {
-                    if(level < 0) FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), FluidState.EMPTY, false);
-                    else {
-                        if(!helper.isFluidloggable(0, 0, 0, fluidState, null, false, false))
-                            FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), FluidState.EMPTY, false);
-                        else {
-                            FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), fluidState, false, Constants.BlockFlags.SEND_TO_CLIENTS);
-                            world.scheduleUpdate(origin, originState.getBlock(), tickRate);
-                            world.notifyNeighborsOfStateChange(origin, originState.getBlock(), false);
-                        }
-                    }
-                }
+                helper.setFluid(0, 0, 0, level < 0 ? FluidState.EMPTY : originState.withLevel(level), level < 0, tickRate);
             }
         }
 
@@ -319,8 +269,8 @@ public final class FluidFlowHandler
         }
 
         // flow vertically if possible
-        if(helper.canFlowInto(0, 0, 0, level >= 8 ? level : level + 8, originState.getDownDensityFace(), false) && (!helper.getFluidState(0, 0, 0).isSource() || !helper.isCompatibleFluid(0, -1, 0))) {
-            helper.flowInto(0, 0, 0, level >= 8 ? level : level + 8, originState.getDownDensityFace(), Constants.BlockFlags.DEFAULT);
+        if(helper.canFlowInto(0, 0, 0, level >= 8 ? level : level + 8, originState.getDownDensityFace(), true, false) && (!helper.getFluidState(0, 0, 0).isSource() || !helper.isCompatibleFluid(0, -1, 0))) {
+            helper.flowInto(0, 0, 0, level >= 8 ? level : level + 8, originState.getDownDensityFace(), true, false, Constants.BlockFlags.DEFAULT);
             // world.profiler.endSection();
             return;
         }
@@ -332,7 +282,7 @@ public final class FluidFlowHandler
                 @Nonnull final boolean[] flowTo = helper.getOptimalFlowDirections(0, 0, 0, 8, newLevel, flowCost, levelIn -> levelIn >= 8 ? levelIn : levelIn + 8);
                 for(int i = 0; i < 4; i++) if(flowTo[i]) {
                     @Nonnull final EnumFacing side = EnumFacing.HORIZONTALS[i];
-                    helper.flowInto(0, 0, 0, newLevel, side, Constants.BlockFlags.DEFAULT);
+                    helper.flowInto(0, 0, 0, newLevel, side, true, false, Constants.BlockFlags.DEFAULT);
                 }
             }
         }
@@ -344,7 +294,139 @@ public final class FluidFlowHandler
     // BlockFluidFinite
     // ================
 
-    public static void updateFinite(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull final FluidState originState, @Nonnull final Map<Block, Boolean> displacements) {
+    public static void updateFinite(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull final FluidState originState, @Nonnull final Random rand) {
+        final int tickRate = originState.getBlock().tickRate(world);
 
+        boolean changed = false;
+        int quantaRemaining = originState.getQuantaValue();
+        @Nonnull final IFluidUpdateHelper helper = new IFluidUpdateHelper.Forge(world, origin, originState, 1);
+
+        if(helper.canFluidFlow(0, 0, 0, originState.getDownDensityFace())) {
+            @Nonnull final BlockPos below = origin.up(originState.getDensityDir());
+
+            // flow vertically into void
+            if(world.isOutsideBuildHeight(below)) {
+                FluidloggedUtils.setFluidToAir(world, origin, null, Constants.BlockFlags.DEFAULT);
+                return;
+            }
+
+            // merge vertically if possible
+            final int prevRemaining = quantaRemaining;
+            int amt = originState.getQuantaValueBelow(helper.getCache(), below, originState.getQuantaPerBlock());
+            if(amt >= 0) {
+                amt += quantaRemaining;
+                if(amt > originState.getQuantaPerBlock()) {
+                    if(helper.flowInto(0, 0, 0, originState.getQuantaPerBlock() - 1, originState.getDownDensityFace(), false, true, Constants.BlockFlags.DEFAULT)) {
+                        world.scheduleUpdate(below, originState.getBlock(), tickRate);
+                        quantaRemaining = amt - originState.getQuantaPerBlock();
+                    }
+                }
+                else if(amt > 0) {
+                    if(helper.flowInto(0, 0, 0, amt - 1, originState.getDownDensityFace(), false, true, Constants.BlockFlags.DEFAULT)) {
+                        world.scheduleUpdate(below, originState.getBlock(), tickRate);
+                        FluidloggedUtils.setFluidToAir(world, origin, null, Constants.BlockFlags.DEFAULT);
+                        return;
+                    }
+                }
+            }
+
+            // flow vertically if possible
+            else {
+                final int density_other = BlockFluidBase.getDensity(helper.getCache(), below);
+                if(density_other == Integer.MAX_VALUE) {
+                    if(helper.flowInto(0, 0, 0, quantaRemaining - 1, originState.getDownDensityFace(), true, true, Constants.BlockFlags.DEFAULT)) {
+                        world.scheduleUpdate(below, originState.getBlock(), tickRate);
+                        FluidloggedUtils.setFluidToAir(world, origin, null, Constants.BlockFlags.DEFAULT);
+                        return;
+                    }
+                }
+                // swap this with fluid below
+                else if(helper.canFluidFlow(0, -1, 0, originState.getUpDensityFace())) {
+                    if(originState.getDensityDir() < 0
+                            ? density_other < originState.getDensity()
+                            : density_other > originState.getDensity()) {
+                        @Nonnull final FluidState fluidToSwap = helper.getFluidState(0, -1, 0);
+                        if(fluidToSwap.isValid() && !(fluidToSwap.getBlock() instanceof IConditionalFluid
+                        && ((IConditionalFluid)fluidToSwap.getBlock()).cannotFlowAt(helper.getCache(), origin, fluidToSwap))) {
+                            // ensure top can swap with bottom
+                            if(helper.getBlockState(0, -1, 0) == fluidToSwap.getState()
+                            || helper.isReplaceable(0, -1, 0, originState.withLevel(quantaRemaining - 1), null, false, true)
+                            || helper.isFluidloggable(0, -1, 0, originState.withLevel(quantaRemaining - 1), null, false, true)) {
+                                @Nonnull final IFluidUpdateHelper toSwapHelper = fluidToSwap.getBlock() instanceof BlockLiquid
+                                        ? new IFluidUpdateHelper.Vanilla(helper.getCache(), origin, fluidToSwap, 1)
+                                        : new IFluidUpdateHelper.Forge(helper.getCache(), origin, fluidToSwap, 1);
+                                // ensure bottom can swap with top
+                                if(toSwapHelper.getBlockState(0, 0, 0) == originState.getState()
+                                || toSwapHelper.isReplaceable(0, 0, 0, fluidToSwap, null, false, true)
+                                || toSwapHelper.isFluidloggable(0, 0, 0, fluidToSwap, null, false, true)) {
+                                    // do swap
+                                    helper.flowInto(0, 0, 0, quantaRemaining - 1, originState.getDownDensityFace(), false, true, Constants.BlockFlags.DEFAULT);
+                                    toSwapHelper.flowInto(0, -1, 0, fluidToSwap.getLevel(), originState.getUpDensityFace(), false, true, Constants.BlockFlags.DEFAULT);
+                                    world.scheduleUpdate(below, originState.getBlock(), tickRate);
+                                    world.scheduleUpdate(origin, fluidToSwap.getBlock(), fluidToSwap.getBlock().tickRate(world));
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if(quantaRemaining < 1) return;
+            else if(quantaRemaining != prevRemaining) {
+                changed = true;
+                if(quantaRemaining == 1) helper.setFluid(0, 0, 0, originState.withLevel(0), false, 0);
+            }
+            else if(quantaRemaining == 1) return;
+        }
+        else if(quantaRemaining == 1) return;
+
+        // --------------------
+        // flow out if possible
+        // --------------------
+
+        int lowerThan = quantaRemaining - 1;
+        int total = quantaRemaining;
+        int count = 1;
+
+        @Nonnull final List<EnumFacing> sides = new ArrayList<>();
+        for(@Nonnull final EnumFacing side : EnumFacing.HORIZONTALS) {
+            if(helper.canFlowInto(0, 0, 0, lowerThan, side, true, false)) {
+                sides.add(side);
+                count++;
+                total += Math.max(originState.getQuantaValueBelow(helper.getCache(), origin.offset(side), lowerThan), 0);
+            }
+        }
+
+        if(count == 1) {
+            if(changed) helper.setFluid(0, 0, 0, originState.withLevel(quantaRemaining - 1), false, 0);
+            return;
+        }
+
+        int each = total / count;
+        int rem = total % count;
+
+        for(@Nonnull final EnumFacing side : sides) {
+            @Nonnull final BlockPos off = origin.offset(side);
+
+            int newQuanta = each;
+            if(rem == count || rem > 1 && rand.nextInt(count - rem) != 0) {
+                ++newQuanta;
+                --rem;
+            }
+
+            final int quanta = Math.max(0, originState.getQuantaValue(helper.getCache(), off));
+            if(quanta < lowerThan && newQuanta != quantaRemaining) {
+                if(newQuanta == 0) FluidloggedUtils.setFluidToAir(world, off, helper.getBlockState(side.getXOffset(), 0, side.getZOffset()), Constants.BlockFlags.DEFAULT);
+                else if(helper.flowInto(0, 0, 0, newQuanta - 1, side, true, false, Constants.BlockFlags.SEND_TO_CLIENTS)) {
+                    world.scheduleUpdate(off, originState.getBlock(), tickRate);
+                    changed = true;
+                }
+            }
+            --count;
+        }
+
+        if(rem > 0) ++each;
+        if(changed) helper.setFluid(0, 0, 0, originState.withLevel(each - 1), false, 0);
     }
 }

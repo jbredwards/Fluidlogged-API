@@ -30,12 +30,11 @@ import net.minecraftforge.common.model.TRSRTransformation;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,12 +50,12 @@ import java.util.function.Function;
 @SideOnly(Side.CLIENT)
 public class BakedModelFluid implements IBakedModel
 {
-    @Nonnull protected static final Logger LOGGER = LogManager.getFormatterLogger("Fluidlogged API Renderer");
+    public static boolean DEBUG = FMLLaunchHandler.isDeobfuscatedEnvironment();
 
     protected static final int[] WSEN = { 1, 0, 3, 2 }; // [W, S, E, N]
     protected static final int[] x = { 0, 0, 1, 1 };
     protected static final int[] z = { 0, 1, 1, 0 };
-    protected static final float eps = 1e-3f;
+    protected static final float eps = 1e-3f*2;
 
     @Nullable protected final TRSRTransformation transformation;
     @Nonnull protected final ImmutableMap<ItemCameraTransforms.TransformType, TRSRTransformation> transforms;
@@ -256,7 +255,7 @@ public class BakedModelFluid implements IBakedModel
     // mod is passing in default state (shouldn't happen), assuming default properties for default state...
     @Nonnull
     protected static FluidExtendedStateHandler.FluidExtendedBlockState createFluidExtendedState(@Nonnull final IExtendedBlockState stateIn) {
-        LOGGER.error("Either a mod is trying to render a fluid without calling Block.getExtendedState, or the fluid block overrides Block.getExtendedState! Assuming default properties for: \"" + stateIn + '"');
+        if(DEBUG) new IllegalStateException("Either a mod is trying to render a fluid without calling Block.getExtendedState, or the fluid block overrides Block.getExtendedState! Assuming default properties for: \"" + stateIn + '"').printStackTrace();
 
         @Nonnull final FluidExtendedStateHandler.FluidExtendedBlockState state = new FluidExtendedStateHandler.FluidExtendedBlockState(stateIn);
         for(int i = 0; i < 4; i++) {

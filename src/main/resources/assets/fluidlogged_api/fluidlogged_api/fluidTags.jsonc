@@ -1,0 +1,11 @@
+// default fluid tags
+[
+    {
+        "id": "builtin:material_lava",
+        "fluids": {"materialId": "lava"}
+    },
+    {
+        "id": "builtin:material_water",
+        "fluids": {"materialId": "water"}
+    }
+]

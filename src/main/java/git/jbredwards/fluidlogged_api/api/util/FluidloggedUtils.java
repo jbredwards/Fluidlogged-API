@@ -18,6 +18,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidClassic;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncFluidState;
+import git.jbredwards.fluidlogged_api.mod.common.message.SMessageVaporizeEffects;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -39,8 +40,10 @@ import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -192,7 +195,7 @@ public final class FluidloggedUtils
 
         //if the world is too warm for the fluid, vaporize it
         if(event.doesVaporize()) {
-            event.fluidState.getFluid().vaporize(null, world, pos, event.getFluidStack());
+            playVaporizeEffects(world, pos, event.getFluidStack());
             return true;
         }
 
@@ -301,9 +304,11 @@ public final class FluidloggedUtils
     //checks if two fluids are compatible
     public static boolean isCompatibleFluid(@Nullable Fluid fluid1, @Nullable Fluid fluid2) {
         if(fluid1 == null || fluid2 == null) return false;
-        else return fluid1.equals(fluid2)
-                || fluid1 instanceof ICompatibleFluid && ((ICompatibleFluid)fluid1).isCompatibleFluid(fluid2)
-                || fluid2 instanceof ICompatibleFluid && ((ICompatibleFluid)fluid2).isCompatibleFluid(fluid1);
+        else if(fluid1.equals(fluid2)) return true;
+
+        final int compat1 = fluid1 instanceof ICompatibleFluid ? ((ICompatibleFluid)fluid1).getFluidCompatibility(fluid2) : 0;
+        final int compat2 = fluid2 instanceof ICompatibleFluid ? ((ICompatibleFluid)fluid2).getFluidCompatibility(fluid1) : 0;
+        return (compat1 == compat2 ? compat1 : Math.max(compat1, compat2) - Math.min(compat1, compat2)) > 0;
     }
 
     /**
@@ -421,5 +426,13 @@ public final class FluidloggedUtils
         }
 
         return total - overlapping < 1;
+    }
+
+    public static void playVaporizeEffects(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final FluidStack fluidStack) {
+        if(!world.isRemote) {
+            fluidStack.getFluid().vaporize(null, world, pos, fluidStack); // play serverside effects (like sounds)
+            FluidloggedAPI.WRAPPER.sendToAllAround(new SMessageVaporizeEffects(fluidStack, pos),
+                    new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 64));
+        }
     }
 }

@@ -6,11 +6,14 @@
 package git.jbredwards.fluidlogged_api.mod;
 
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.client.optifine.OptifineCustomWaterColors;
 import git.jbredwards.fluidlogged_api.mod.common.capability.util.FluidStateStorage;
+import git.jbredwards.fluidlogged_api.mod.common.command.CommandFluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandReloadConfig;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandSetFluidState;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigs;
+import git.jbredwards.fluidlogged_api.mod.common.config.handler.LegacyConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.datafix.FluidloggedAPIFixableData;
 import git.jbredwards.fluidlogged_api.mod.common.datafix.LegacyDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.datafix.ToFluidloggedDataFixer;
@@ -26,6 +29,7 @@ import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.common.event.*;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.Pair;
@@ -59,13 +63,15 @@ public final class FluidloggedAPI
     @Mod.EventHandler
     static void preInit(@Nonnull final FMLPreInitializationEvent event) {
         // register capability
-        CapabilityManager.INSTANCE.register(IFluidStateCapability.class, FluidStateStorage.INSTANCE, () -> null);
+        CapabilityManager.INSTANCE.register(IFluidStateCapability.class, FluidStateStorage.INSTANCE, () -> { throw new UnsupportedOperationException(); });
         // register packets
         WRAPPER.registerMessage(SMessageSyncFluidState.Handler.INSTANCE, SMessageSyncFluidState.class, 1, Side.CLIENT);
         WRAPPER.registerMessage(SMessageSyncFluidStates.Handler.INSTANCE, SMessageSyncFluidStates.class, 2, Side.CLIENT);
         WRAPPER.registerMessage(SMessageVaporizeEffects.Handler.INSTANCE, SMessageVaporizeEffects.class, 3, Side.CLIENT);
         WRAPPER.registerMessage(CMessageSyncGameRule.Handler.INSTANCE, CMessageSyncGameRule.class, 4, Side.SERVER);
         WRAPPER.registerMessage(SMessageSyncGameRule.Handler.INSTANCE, SMessageSyncGameRule.class, 5, Side.CLIENT);
+        WRAPPER.registerMessage(SMessageCommandPrint.Handler.INSTANCE, SMessageCommandPrint.class, 6, Side.CLIENT);
+        WRAPPER.registerMessage(SMessageSyncRuntimeConfigs.Handler.INSTANCE, SMessageSyncRuntimeConfigs.class, 7, Side.CLIENT);
     }
 
     @SideOnly(Side.CLIENT)
@@ -77,9 +83,10 @@ public final class FluidloggedAPI
 
     @Mod.EventHandler
     static void init(@Nonnull final FMLInitializationEvent event) throws IOException {
-        // misc config settings
-        FluidloggedAPIConfigs.initConfigs(false);
-        ForgeModContainer.fixVanillaCascading = true;
+        // fix old config data if present
+        LegacyConfigHandler.convertOldFile();
+        // fix certain weird lighting issues with fluidlogged blocks
+        ForgeRegistries.BLOCKS.getValuesCollection().stream().filter(FluidloggedUtils::isFluid).forEach(b -> b.useNeighborBrightness = true);
         // fix legacy world data
         FMLCommonHandler.instance().getDataFixer().init(MODID, FluidloggedAPIFixableData.DATA_VERSION).registerFix(FixTypes.CHUNK, new FluidloggedAPIFixableData());
         if(Loader.isModLoaded("tropicraft")) ToFluidloggedDataFixer.STATE_MAPPERS.add((blockName, blockID, blockMetadata) -> { // fix old tropicraft "pseudo-fluidlogged" fences
@@ -98,15 +105,22 @@ public final class FluidloggedAPI
     @Mod.EventHandler
     static void start(@Nonnull final FMLServerStartingEvent event) {
         // register commands
-        event.registerServerCommand(new CommandReloadConfig());
-        event.registerServerCommand(new CommandReloadConfig.Trimmed());
-        event.registerServerCommand(new CommandReloadConfig.TrimmedAPI());
-        event.registerServerCommand(new CommandSetFluidState());
+        event.registerServerCommand(new CommandSetFluidState(null));
+        event.registerServerCommand(new CommandReloadConfig(null, "reloadFluidloggedAPI"));
+        event.registerServerCommand(new CommandFluidloggedAPI("fluidloggedAPI"));
+        event.registerServerCommand(new CommandFluidloggedAPI("fluidlogged"));
     }
 
     @Mod.EventHandler
-    static void aboutToStart(@Nonnull final FMLServerAboutToStartEvent event) { LegacyDataFixer.init(); }
+    static void aboutToStart(@Nonnull final FMLServerAboutToStartEvent event) throws IOException {
+        LegacyDataFixer.init();
+        // config settings
+        ForgeModContainer.fixVanillaCascading = true;
+        FluidloggedAPIConfigs.initConfigs(event.getServer(), false);
+    }
 
     @Mod.EventHandler
-    static void stopped(@Nonnull final FMLServerStoppedEvent event) { LegacyDataFixer.reset(); }
+    static void stopped(@Nonnull final FMLServerStoppedEvent event) {
+        LegacyDataFixer.reset();
+    }
 }

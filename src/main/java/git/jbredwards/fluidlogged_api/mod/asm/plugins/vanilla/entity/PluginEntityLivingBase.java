@@ -10,6 +10,10 @@ import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IWaterHeight;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.MoverType;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.math.MathHelper;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -22,6 +26,8 @@ import javax.annotation.Nullable;
  */
 public final class PluginEntityLivingBase implements IASMPlugin
 {
+    int moveIndex;
+
     @Override
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
         if(method.name.equals(obfuscated ? "func_70636_d" : "onLivingUpdate")) return 1;
@@ -68,25 +74,39 @@ public final class PluginEntityLivingBase implements IASMPlugin
                 return true;
             }
         }
-
-        /*
-         * travel: (changes are around lines 2224 & 2264)
-         * Old code:
-         * if (this.collidedHorizontally && this.isOffsetPositionInLiquid(this.motionX, this.motionY + 0.6000000238418579D - this.posY + d4, this.motionZ))
-         * {
-         *     this.motionY = 0.30000001192092896D;
-         * }
-         *
-         * New code:
-         * //fix issue#151
-         * if (this.collidedHorizontally && this.isOffsetPositionInLiquid(this.motionX, this.motionY + Hooks.getCheckOffset() - this.posY + d4, this.motionZ))
-         * {
-         *     this.motionY = 0.30000001192092896D;
-         * }
-         */
-        else if(insn.getOpcode() == LDC && ((LdcInsnNode)insn).cst.equals(0.6000000238418579)) {
-            instructions.insertBefore(insn, genMethodNode("getCheckOffset", "()D"));
-            instructions.remove(insn);
+        if(index == 2) {
+            /*
+             * travel: (changes are around lines 2214 & 2254)
+             * Old code:
+             * this.move(MoverType.SELF, this.motionX, this.motionY, this.motionZ);
+             *
+             * New code:
+             * // add ladder functionality while submerged
+             * Hooks.moveWithLadder(MoverType.SELF, this.motionX, this.motionY, this.motionZ);
+             */
+            if(checkMethod(insn, obfuscated ? "func_70091_d" : "move") && moveIndex ++>= 1) {
+                instructions.insert(insn, genMethodNode("moveWithLadder", "(Lnet/minecraft/entity/EntityLivingBase;Lnet/minecraft/entity/MoverType;DDD)V"));
+                instructions.remove(insn);
+            }
+            /*
+             * travel: (changes are around lines 2224 & 2264)
+             * Old code:
+             * if (this.collidedHorizontally && this.isOffsetPositionInLiquid(this.motionX, this.motionY + 0.6000000238418579D - this.posY + d4, this.motionZ))
+             * {
+             *     this.motionY = 0.30000001192092896D;
+             * }
+             *
+             * New code:
+             * //fix issue#151
+             * if (this.collidedHorizontally && Hooks.isOffsetPositionInLiquid(this, this.motionX, this.motionY + 0.6000000238418579D - this.posY + d4, this.motionZ))
+             * {
+             *     this.motionY = 0.30000001192092896D;
+             * }
+             */
+            else if(checkMethod(insn, obfuscated ? "func_70038_c" : "isOffsetPositionInLiquid")) {
+                instructions.insert(insn, genMethodNode("isOffsetPositionInLiquid", "(Lnet/minecraft/entity/EntityLivingBase;DDD)Z"));
+                instructions.remove(insn);
+            }
         }
 
         return false;
@@ -95,10 +115,6 @@ public final class PluginEntityLivingBase implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static double getCheckOffset() {
-            return FluidloggedAPIConfig.ignoreLowFluidCollision ? 0.6 : 0.2;
-        }
-
         public static boolean isInDeepWater(@Nonnull final Entity entity) {
             if(!FluidloggedAPIConfig.ignoreLowFluidCollision || !entity.isPushedByWater()) return entity.isInWater();
             else if(!entity.isInWater()) return false;
@@ -115,6 +131,25 @@ public final class PluginEntityLivingBase implements IASMPlugin
 
             @Nullable final IConfigFluidBox.HeightBox box = ((IWaterHeight)entity).getBox();
             return box != null && box.max - box.min <= 0.4;
+        }
+
+        public static boolean isOffsetPositionInLiquid(@Nonnull final EntityLivingBase entity, final double x, final double y, final double z) {
+            return !entity.onGround && !entity.isOnLadder() && entity.isOffsetPositionInLiquid(x, y, z);
+        }
+
+        public static void moveWithLadder(@Nonnull final EntityLivingBase entity, @Nonnull final MoverType type, final double x, final double y, final double z) {
+            double moveX = x, moveY = y, moveZ = z;
+            if(entity.isOnLadder()) {
+                moveX = MathHelper.clamp(moveX, -0.15, 0.15);
+                moveZ = MathHelper.clamp(moveZ, -0.15, 0.15);
+                entity.fallDistance = 0;
+
+                if(moveY < 0 && entity instanceof EntityPlayer && entity.isSneaking()) moveY = 0;
+                // else if(moveY < -0.15) moveY = -0.15;
+            }
+
+            entity.move(type, moveX, moveY, moveZ);
+            if(entity.collidedHorizontally && entity.motionY < 0.16 && entity.isOnLadder()) entity.motionY = 0.16;
         }
     }
 }

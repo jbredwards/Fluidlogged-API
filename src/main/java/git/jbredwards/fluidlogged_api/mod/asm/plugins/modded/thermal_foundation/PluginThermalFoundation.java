@@ -19,7 +19,6 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.BlockStateContainer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.ForgeEventFactory;
@@ -27,7 +26,6 @@ import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * fix conflicts
@@ -234,9 +232,9 @@ public final class PluginThermalFoundation implements IASMPlugin
             return world.getGameRules().getBoolean("doFireTick") && Blocks.FIRE.canCatchFire(world, pos, side);
         }
 
-        public static boolean canSpreadFire(@Nonnull final Block unused, @Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing side, @Nonnull final FluidState state, @Nonnull final Map<Block, Boolean> displacements) {
-            @Nonnull final ISpecializedFluidNeighborInfo info = new SpecializedFluidNeighborInfo.Forge(world, pos, state, 0, displacements);
-            return info.canFlowInto(0, -side.getYOffset(), 0, state.getMetadata(), side, false) && info.isVaporizable(0, 0, 0, state, side);
+        public static boolean canSpreadFire(@Nonnull final Block unused, @Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing side, @Nonnull final FluidState state) {
+            @Nonnull final ISpecializedFluidNeighborInfo info = new SpecializedFluidNeighborInfo.Forge(world, pos, state, 1);
+            return info.canFlowInto(0, -side.getYOffset(), 0, state.getMetadata(), side, false, false) && info.isVaporizable(0, 0, 0, state, side);
         }
 
         public static boolean isHereSideSolid(@Nonnull final IBlockState unused, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing side) {

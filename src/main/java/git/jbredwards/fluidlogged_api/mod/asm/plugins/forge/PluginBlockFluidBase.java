@@ -27,8 +27,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * modded fluids work properly with the mod & prevent startup crash
@@ -186,16 +184,14 @@ public final class PluginBlockFluidBase implements IASMPlugin
          * @Nonnull
          * public IBlockState getExtendedState(@Nonnull IBlockState oldState, @Nonnull IBlockAccess world, @Nonnull BlockPos pos)
          * {
-         *     return Hooks.getFluidExtendedState(world, pos, oldState, this.displacements);
+         *     return Hooks.getFluidExtendedState(world, pos, oldState);
          * }
          */
         overrideMethod(classNode, method -> method.name.equals("getExtendedState"),
-            "getFluidExtendedState", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Ljava/util/Map;)Lnet/minecraft/block/state/IBlockState;", generator -> {
+            "getFluidExtendedState", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)Lnet/minecraft/block/state/IBlockState;", generator -> {
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 1);
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "displacements", "Ljava/util/Map;");
             }
         );
         /*
@@ -204,15 +200,13 @@ public final class PluginBlockFluidBase implements IASMPlugin
          * //don't flow into/from invalid sides
          * public Vec3d getFlowVector(IBlockAccess world, BlockPos pos)
          * {
-         *     return Hooks.getFluidFlowVector(world, pos, this.displacements);
+         *     return Hooks.getFluidFlowVector(world, pos);
          * }
          */
         overrideMethod(classNode, method -> method.name.equals("getFlowVector"),
-            "getFluidFlowVector", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Ljava/util/Map;)Lnet/minecraft/util/math/Vec3d;", generator -> {
+            "getFluidFlowVector", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/util/math/Vec3d;", generator -> {
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "displacements", "Ljava/util/Map;");
             }
         );
         /*
@@ -363,6 +357,20 @@ public final class PluginBlockFluidBase implements IASMPlugin
             generator.visitVarInsn(ALOAD, 0);
             generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "quantaFraction", "F");
         });
+        /*
+         * Accessor:
+         * New code:
+         * //add public accessor for private field
+         * @ASMGenerated
+         * public Map<Block, Boolean> getDisplacements_Public()
+         * {
+         *     return this.displacements;
+         * }
+         */
+        addMethod(classNode, "getDisplacements_Public", "()Ljava/util/Map;", "()Ljava/util/Map<Lnet/minecraft/block/Block;Ljava/lang/Boolean;>;", null, null, generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "displacements", "Ljava/util/Map;");
+        });
 
         return true;
     }
@@ -428,13 +436,13 @@ public final class PluginBlockFluidBase implements IASMPlugin
         }
 
         @Nonnull
-        public static IBlockState getFluidExtendedState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull final IBlockState state, @Nonnull Map<Block, Boolean> displacements) {
-            return FluidExtendedStateHandler.getExtendedState(state, new SpecializedFluidNeighborInfo.Forge(world, pos, FluidState.of(state), 1, displacements), FluidFlowHandler::getFlowAngle);
+        public static IBlockState getFluidExtendedState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull final IBlockState state) {
+            return FluidExtendedStateHandler.getExtendedState(state, new SpecializedFluidNeighborInfo.Forge(world, pos, FluidState.of(state), 1), FluidFlowHandler::getFlowAngle);
         }
 
         @Nonnull
-        public static Vec3d getFluidFlowVector(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull Map<Block, Boolean> displacements) {
-            return FluidFlowHandler.getFlowVec(new SpecializedFluidNeighborInfo.Forge(world, pos, FluidloggedUtils.getFluidState(world, pos), 1, displacements));
+        public static Vec3d getFluidFlowVector(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
+            return FluidFlowHandler.getFlowVec(new SpecializedFluidNeighborInfo.Forge(world, pos, FluidloggedUtils.getFluidState(world, pos), 1));
         }
 
         public static boolean hasVerticalFlow(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final Fluid fluid, final int densityDir) {
@@ -476,5 +484,8 @@ public final class PluginBlockFluidBase implements IASMPlugin
         int getQuantaPerBlock_Public();
         float getQuantaFraction_Public();
         float getQuantaPerBlockFloat_Public();
+
+        @Nonnull
+        Map<Block, Boolean> getDisplacements_Public();
     }
 }

@@ -32,8 +32,8 @@ import javax.annotation.Nullable;
  */
 public class FluidCache extends IBlockAccessWrapper.Impl
 {
-    @Nonnull
-    public final IBlockState[] states;
+    // @Nonnull
+    // public final IBlockState[] states;
 
     @Nonnull
     protected final OptionalChunk[] chunks;
@@ -70,7 +70,7 @@ public class FluidCache extends IBlockAccessWrapper.Impl
         cMaxX = maxX >> 4;
         cMaxZ = maxZ >> 4;
 
-        states = new IBlockState[(maxXIn - minXIn + 1) * (maxYIn - minYIn + 1) * (maxZIn - minZIn + 1)];
+        // states = new IBlockState[(maxXIn - minXIn + 1) * (maxYIn - minYIn + 1) * (maxZIn - minZIn + 1)];
         chunks = new OptionalChunk[(cMaxX - cMinX + 1) * (cMaxZ - cMinZ + 1)];
     }
 
@@ -106,13 +106,13 @@ public class FluidCache extends IBlockAccessWrapper.Impl
 
     @Nonnull
     public IBlockState getBlockState(final int x, final int y, final int z) {
-        if(x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
+        /*if(x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
             final int index = (y - minY) * (maxZ - minZ + 1) * (maxX - minX + 1) + (z - minZ) * (maxX - minX + 1) + x - minX;
             if(states[index] != null) return states[index];
 
             @Nullable final Chunk chunk = getChunk(x >> 4, z >> 4);
             return states[index] = (chunk != null ? chunk.getBlockState(x, y, z) : wrapped.getBlockState(mutablePos.setPos(x, y, z)));
-        }
+        }*/
 
         @Nullable final Chunk chunk = getChunk(x >> 4, z >> 4);
         return chunk != null ? chunk.getBlockState(x, y, z) : wrapped.getBlockState(mutablePos.setPos(x, y, z));

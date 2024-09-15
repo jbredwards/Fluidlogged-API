@@ -359,16 +359,17 @@ public final class PluginBlockLiquid implements IASMPlugin
          * New code:
          * // When lava flows in the overworld, its fluid level increases by 2 instead of 1
          * @ASMGenerated
-         * public int getFlowCost(World world)
+         * public int getFlowCost(FluidState fluidState, World world)
          * {
-         *     return Hooks.getFlowCost(world, this.material);
+         *     return Hooks.getFlowCost(fluidState, world);
          * }
          */
-        addMethod(classNode, "getFlowCost", "(Lnet/minecraft/world/World;)I", "getFlowCost", "(Lnet/minecraft/world/World;Lnet/minecraft/block/material/Material;)I", generator -> {
-            generator.visitVarInsn(ALOAD, 1);
-            generator.visitVarInsn(ALOAD, 0);
-            generator.visitFieldInsn(GETFIELD, "net/minecraft/block/Block", obfuscated ? "field_149764_J" : "material", "Lnet/minecraft/block/material/Material;");
-        });
+        addMethod(classNode, "getFlowCost", "(Lgit/jbredwards/fluidlogged_api/api/util/FluidState;Lnet/minecraft/world/World;)I",
+            "getFlowCost", "(Lgit/jbredwards/fluidlogged_api/api/util/FluidState;Lnet/minecraft/world/World;)I", generator -> {
+                generator.visitVarInsn(ALOAD, 1);
+                generator.visitVarInsn(ALOAD, 2);
+            }
+        );
         /*
          * requiresUpdates:
          * New code:
@@ -442,8 +443,8 @@ public final class PluginBlockLiquid implements IASMPlugin
             return FluidFlowHandler.getFlowVec(new SpecializedFluidNeighborInfo.Vanilla(world, pos, FluidloggedUtils.getFluidState(world, pos, here), 1));
         }
 
-        public static int getFlowCost(@Nonnull final World world, @Nonnull final Material material) {
-            return material == Material.LAVA && !world.provider.doesWaterVaporize() ? 2 : 1;
+        public static int getFlowCost(@Nonnull final FluidState fluidState, @Nonnull final World world) {
+            return fluidState.getMaterial() == Material.LAVA && !world.provider.doesWaterVaporize() ? 2 : 1;
         }
 
         @Nonnull

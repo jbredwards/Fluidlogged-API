@@ -16,11 +16,9 @@ import org.apache.commons.io.IOUtils;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.Arrays;
+import java.util.Collections;
 
 /**
  *
@@ -34,6 +32,15 @@ public final class LegacyConfigHandler
 
     @SuppressWarnings("deprecation")
     public static void convertOldFile() throws IOException {
+        @Nonnull final Path blacklist = Paths.get("config", "fluidlogged_api", "blacklist.cfg");
+        @Nonnull final Path fluidTags = Paths.get("config", "fluidlogged_api", "fluidTags.cfg");
+        @Nonnull final Path whitelist = Paths.get("config", "fluidlogged_api", "whitelist.cfg");
+
+        if(!Files.exists(blacklist)) Files.write(blacklist, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE);
+        if(!Files.exists(fluidTags)) Files.write(fluidTags, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE);
+        if(!Files.exists(whitelist)) Files.write(whitelist, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE);
+
+        // convert old file
         if(Files.exists(OLD_CONFIG_PATH)) {
             @Nonnull final byte[] bytes = Files.readAllBytes(OLD_CONFIG_PATH);
             @Nonnull final JsonObject json = new JsonParser().parse('{' + new String(bytes) + '}').getAsJsonObject();
@@ -54,9 +61,9 @@ public final class LegacyConfigHandler
             ConfigManager.sync(FluidloggedAPI.MODID, Config.Type.INSTANCE);
 
             // move specialized settings
-            if(json.has("blacklist")) Files.copy(IOUtils.toInputStream(JsonUtils.getJsonArray(json.get("blacklist"), "blacklist").toString()), Paths.get("config", "fluidlogged_api", "blacklist.cfg"), StandardCopyOption.REPLACE_EXISTING);
-            if(json.has("fluidTags")) Files.copy(IOUtils.toInputStream(JsonUtils.getJsonArray(json.get("fluidTags"), "fluidTags").toString()), Paths.get("config", "fluidlogged_api", "fluidTags.cfg"), StandardCopyOption.REPLACE_EXISTING);
-            if(json.has("fluidTags")) Files.copy(IOUtils.toInputStream(JsonUtils.getJsonArray(json.get("whitelist"), "whitelist").toString()), Paths.get("config", "fluidlogged_api", "whitelist.cfg"), StandardCopyOption.REPLACE_EXISTING);
+            if(json.has("blacklist")) Files.copy(IOUtils.toInputStream(JsonUtils.getJsonArray(json.get("blacklist"), "blacklist").toString()), blacklist, StandardCopyOption.REPLACE_EXISTING);
+            if(json.has("fluidTags")) Files.copy(IOUtils.toInputStream(JsonUtils.getJsonArray(json.get("fluidTags"), "fluidTags").toString()), fluidTags, StandardCopyOption.REPLACE_EXISTING);
+            if(json.has("fluidTags")) Files.copy(IOUtils.toInputStream(JsonUtils.getJsonArray(json.get("whitelist"), "whitelist").toString()), whitelist, StandardCopyOption.REPLACE_EXISTING);
 
             // move old settings to a backup file, then delete the old file
             Files.write(Paths.get("config", "fluidlogged_api.cfg_old"), bytes);

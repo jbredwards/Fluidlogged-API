@@ -11,7 +11,6 @@ import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidFlowHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -28,8 +27,6 @@ import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import java.util.Map;
 
 /**
  * modded fluids work properly with the mod
@@ -56,16 +53,14 @@ public final class PluginBlockFluidClassic implements IASMPlugin
          * @Override
          * public int getQuantaValue(IBlockAccess world, BlockPos pos)
          * {
-         *     return Hooks.getQuantaValue(this, world, pos, quantaPerBlock);
+         *     return Hooks.getQuantaValue(this, world, pos);
          * }
          */
         overrideMethod(classNode, method -> method.name.equals("getQuantaValue"),
-            "getQuantaValue", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;I)I", generator -> {
+            "getQuantaValue", "(Lnet/minecraftforge/fluids/IFluidBlock;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", generator -> {
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "quantaPerBlock", "I");
             }
         );
         /*
@@ -75,16 +70,14 @@ public final class PluginBlockFluidClassic implements IASMPlugin
          * @Override
          * public void updateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand)
          * {
-         *     Hooks.fluidUpdateTick(world, pos, state, this.displacements);
+         *     Hooks.fluidUpdateTick(world, pos, state);
          * }
          */
         overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_180650_b" : "updateTick"),
-            "fluidUpdateTick", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Ljava/util/Map;)V", generator -> {
+            "fluidUpdateTick", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;)V", generator -> {
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "displacements", "Ljava/util/Map;");
             }
         );
         /*
@@ -152,8 +145,8 @@ public final class PluginBlockFluidClassic implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static void fluidUpdateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull final Map<Block, Boolean> displacements) {
-            FluidFlowHandler.updateClassic(world, pos, FluidState.of(state), displacements);
+        public static void fluidUpdateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
+            FluidFlowHandler.updateClassic(world, pos, FluidState.of(state));
         }
 
         public static boolean canDrain(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
@@ -180,17 +173,20 @@ public final class PluginBlockFluidClassic implements IASMPlugin
             return !fluidState.isSource() ? null : stack == null ? fluidState.createFluidStack() : stack.copy();
         }
 
-        public static int getQuantaValue(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, int quantaPerBlock) {
+        public static int getQuantaValue(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
             @Nonnull final FluidCache cache = new FluidCache(world, pos, 0, 1);
             @Nonnull final FluidState fluidState = FluidloggedUtils.getFluidState(cache, pos);
 
-            return FluidloggedUtils.isCompatibleFluid(fluidState.getFluid(), block.getFluid()) ? quantaPerBlock - fluidState.getLevel() : cache.isAirBlock(pos) ? 0 : -1;
+            return FluidloggedUtils.isCompatibleFluid(fluidState.getFluid(), block.getFluid()) ? fluidState.getQuantaValue() : cache.isAirBlock(pos) ? 0 : -1;
         }
 
         public static int place(@Nonnull IFluidBlock block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidStack fluidStack, boolean doPlace, @Nonnull IBlockState defaultState) {
             if(fluidStack.amount < Fluid.BUCKET_VOLUME) return 0;
+            // check vaporize (already handled by FluidUtil, this check exists just in case IFluidBlock::place is called directly)
+            else if(world.provider.doesWaterVaporize() && fluidStack.getFluid().doesVaporize(fluidStack)) FluidloggedUtils.playVaporizeEffects(world, pos, fluidStack);
+            // place the fluid
             else if(doPlace && !world.isRemote) {
-                @Nonnull final FluidState fluidState = FluidState.of(defaultState);
+                @Nonnull final FluidState fluidState = FluidState.of(defaultState).toFlowing();
 
                 @Nonnull final Chunk chunk = world.getChunk(pos);
                 @Nonnull final IBlockState here = chunk.getBlockState(pos);
@@ -198,15 +194,17 @@ public final class PluginBlockFluidClassic implements IASMPlugin
                 // check that any existing FluidState is replaceable by the new one
                 @Nonnull final FluidState fluidHere = FluidloggedUtils.getFluidState(chunk, pos, here);
                 if(fluidHere.getFluid() == fluidState.getFluid() && fluidHere.getLevel() == fluidState.getLevel() || fluidHere.getBlock() instanceof IFluidloggableFluid
-                        && !((IFluidloggableFluid)fluidHere.getBlock()).isReplaceableByOther(world, fluidHere, fluidState, true)) return Fluid.BUCKET_VOLUME;
+                && !((IFluidloggableFluid)fluidHere.getBlock()).isReplaceableByOther(world, fluidHere, fluidState, true))
+                    return Fluid.BUCKET_VOLUME;
 
                 // if the block here is fluidloggable by the new FluidState, fluidlog the block here
                 @Nonnull final IFluidloggableFluid handler = (IFluidloggableFluid)block;
-                if(handler.isFluidloggableFluid(fluidState) && handler.isStateFluidloggable(here, world, pos, fluidState) && FluidloggedUtils.setFluidState(world, pos, here, fluidState, true)) return Fluid.BUCKET_VOLUME;
+                if(handler.isFluidloggableFluid(fluidState) && handler.isStateFluidloggable(here, world, pos, fluidState) && FluidloggedUtils.setFluidState(world, pos, here, fluidState, true))
+                    return Fluid.BUCKET_VOLUME;
 
                 // if the block here is not fluidloggable by the new FluidState, destroy it and place the FluidState as a block
                 FluidUtil.destroyBlockOnFluidPlacement(world, pos);
-                world.setBlockState(pos, defaultState, Constants.BlockFlags.DEFAULT_AND_RERENDER);
+                world.setBlockState(pos, fluidState.getState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
             }
 
             return Fluid.BUCKET_VOLUME;

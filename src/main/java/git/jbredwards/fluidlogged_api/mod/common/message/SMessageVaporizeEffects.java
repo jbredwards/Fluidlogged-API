@@ -7,9 +7,11 @@ package git.jbredwards.fluidlogged_api.mod.common.message;
 
 import git.jbredwards.fluidlogged_api.api.network.IClientMessageHandler;
 import git.jbredwards.fluidlogged_api.api.network.message.AbstractMessage;
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fml.common.network.ByteBufUtils;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -23,11 +25,11 @@ import javax.annotation.Nonnull;
  */
 public final class SMessageVaporizeEffects extends AbstractMessage
 {
-    public FluidState fluid;
+    public FluidStack fluid;
     public BlockPos pos;
 
     public SMessageVaporizeEffects() {}
-    public SMessageVaporizeEffects(@Nonnull FluidState fluidIn, @Nonnull BlockPos posIn) {
+    public SMessageVaporizeEffects(@Nonnull FluidStack fluidIn, @Nonnull BlockPos posIn) {
         fluid = fluidIn;
         pos = posIn;
         isValid = true;
@@ -35,13 +37,13 @@ public final class SMessageVaporizeEffects extends AbstractMessage
 
     @Override
     public void read(@Nonnull PacketBuffer buf) {
-        fluid = FluidState.deserialize(buf.readVarInt());
+        fluid = FluidStack.loadFluidStackFromNBT(ByteBufUtils.readTag(buf));
         pos = buf.readBlockPos();
     }
 
     @Override
     public void write(@Nonnull PacketBuffer buf) {
-        buf.writeVarInt(fluid.serialize());
+        buf.writeCompoundTag(fluid.writeToNBT(new NBTTagCompound()));
         buf.writeBlockPos(pos);
     }
 
@@ -52,7 +54,7 @@ public final class SMessageVaporizeEffects extends AbstractMessage
         @SideOnly(Side.CLIENT)
         @Override
         public void handleMessage(@Nonnull final SMessageVaporizeEffects message, @Nonnull final MessageContext ctx) {
-            message.fluid.getFluid().vaporize(null, IClientMessageHandler.getWorldFromContext(ctx), message.pos, message.fluid.createFluidStack());
+            message.fluid.getFluid().vaporize(null, IClientMessageHandler.getWorldFromContext(ctx), message.pos, message.fluid);
         }
     }
 }

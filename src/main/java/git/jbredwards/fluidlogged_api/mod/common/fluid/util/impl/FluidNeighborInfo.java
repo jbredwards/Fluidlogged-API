@@ -29,7 +29,18 @@ public class FluidNeighborInfo implements IFluidNeighborInfo
     public final int originX, originY, originZ;
 
     public FluidNeighborInfo(@Nonnull final IBlockAccess accessIn, @Nonnull final BlockPos originIn, @Nonnull final FluidState originStateIn, final int radius) {
-        cache = new FluidCache(accessIn, originIn, radius, 1);
+        if(accessIn instanceof FluidCache) { // use accessIn as cache, if it's both a cache and if the new radius can fit
+            @Nonnull final FluidCache cacheIn = (FluidCache)accessIn;
+            if(cacheIn.minX <= originIn.getX() - radius
+            && cacheIn.maxZ >= originIn.getX() + radius
+            && cacheIn.minY <= originIn.getY() - 1
+            && cacheIn.maxY >= originIn.getY() + 1
+            && cacheIn.minZ <= originIn.getZ() - radius
+            && cacheIn.maxZ >= originIn.getZ() + radius) cache = cacheIn;
+            else cache = new FluidCache(accessIn, originIn, radius, 1);
+        }
+
+        else cache = new FluidCache(accessIn, originIn, radius, 1);
         originState = originStateIn;
         originX = originIn.getX();
         originY = originIn.getY();

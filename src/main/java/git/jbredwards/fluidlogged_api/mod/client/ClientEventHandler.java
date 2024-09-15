@@ -5,23 +5,21 @@
 
 package git.jbredwards.fluidlogged_api.mod.client;
 
+import com.google.common.base.Functions;
+import com.google.common.collect.Maps;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.client.renderer.block.statemap.StateMapperBase;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.model.TRSRTransformation;
@@ -33,7 +31,6 @@ import net.minecraftforge.fml.relauncher.Side;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Objects;
 
 /**
  *
@@ -43,48 +40,37 @@ import java.util.Objects;
 @Mod.EventBusSubscriber(modid = FluidloggedAPI.MODID, value = Side.CLIENT)
 public final class ClientEventHandler
 {
-    @SubscribeEvent(priority = EventPriority.LOW)
-    static void removeBuiltInLiquidStateMappers(@Nonnull TextureStitchEvent.Pre event) {
-        Minecraft.getMinecraft().modelManager.getBlockModelShapes().getBlockStateMapper()
-                .setBuiltInBlocks.removeIf(b -> b instanceof BlockLiquid);
-    }
-
-    //allow vanilla liquid blocks to use the new fluid renderer
-    @SubscribeEvent(priority = EventPriority.LOW)
-    static void registerLiquidStateMappers(@Nonnull ModelRegistryEvent event) {
-        for(Block block : ForgeRegistries.BLOCKS) {
-            if(block instanceof BlockLiquid && FluidloggedUtils.isFluid(block)) {
-                ModelLoader.setCustomStateMapper(block, new StateMapperBase() {
-                    @Nonnull
-                    @Override
-                    protected ModelResourceLocation getModelResourceLocation(@Nullable IBlockState state) {
-                        return new ModelResourceLocation(Objects.requireNonNull(block.getRegistryName()), "fluid");
-                    }
-                });
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    static void registerLiquidStateMappers(@Nonnull final ModelRegistryEvent event) {
+        ForgeRegistries.BLOCKS.getEntries().forEach(entry -> {
+            if(entry.getValue() instanceof BlockLiquid && FluidloggedUtils.isFluid(entry.getValue())) {
+                ModelLoader.setCustomStateMapper(entry.getValue(), block ->
+                        Maps.toMap(block.getBlockState().getValidStates(),
+                        Functions.constant(new ModelResourceLocation(entry.getKey(), "fluid"))));
             }
-        }
+        });
     }
 
     @SuppressWarnings("ConstantConditions")
     @SubscribeEvent(priority = EventPriority.LOW)
-    static void registerLiquidBakedModels(@Nonnull ModelBakeEvent event) {
-        for(Block block : ForgeRegistries.BLOCKS) {
-            if(block instanceof BlockLiquid && FluidloggedUtils.isFluid(block)) {
-                final ModelResourceLocation location = new ModelResourceLocation(block.getRegistryName(), "fluid");
-                final IBakedModel model = new ModelFluid(FluidloggedUtils.getFluidFromBlock(block)).bake(
-                    TRSRTransformation.identity(), DefaultVertexFormats.BLOCK, ModelLoader.defaultTextureGetter()
-                );
+    static void registerLiquidBakedModels(@Nonnull final ModelBakeEvent event) {
+        ForgeRegistries.BLOCKS.getEntries().forEach(entry -> {
+            if(entry.getValue() instanceof BlockLiquid && FluidloggedUtils.isFluid(entry.getValue())) {
+                @Nonnull final ModelResourceLocation location = new ModelResourceLocation(entry.getKey(), "fluid");
+                @Nonnull final IBakedModel model = new ModelFluid(FluidloggedUtils.getFluidFromBlock(entry.getValue()))
+                        .bake(TRSRTransformation.identity(), DefaultVertexFormats.BLOCK, ModelLoader.defaultTextureGetter());
 
                 event.getModelRegistry().putObject(location, model);
+                event.getModelManager().getBlockModelShapes().getBlockStateMapper().setBuiltInBlocks.remove(entry.getValue());
             }
-        }
+        });
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)
-    static void improveDebugScreen(@Nonnull RenderGameOverlayEvent.Text event) {
-        final @Nullable RayTraceResult trace = Minecraft.getMinecraft().objectMouseOver;
+    static void improveDebugScreen(@Nonnull final RenderGameOverlayEvent.Text event) {
+        @Nullable final RayTraceResult trace = Minecraft.getMinecraft().objectMouseOver;
         if(trace != null && trace.typeOfHit == RayTraceResult.Type.BLOCK && !event.getRight().isEmpty()) {
-            final FluidState fluidState = FluidState.get(trace.getBlockPos());
+            @Nonnull final FluidState fluidState = FluidState.get(trace.getBlockPos());
             if(fluidState != FluidState.EMPTY) {
                 // separate the fluid info from the block info
                 event.getRight().add("");

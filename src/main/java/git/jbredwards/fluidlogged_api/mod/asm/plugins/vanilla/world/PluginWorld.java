@@ -18,8 +18,6 @@ import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLiquid;
-import net.minecraft.block.BlockStaticLiquid;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -877,11 +875,9 @@ public final class PluginWorld implements IASMPlugin
 
         @SuppressWarnings("UnusedReturnValue")
         public static boolean setBlockToAir(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState airState, final int blockFlags) {
-            if(world.isRemote) return false; // prevents possible client desync
-            @Nonnull final FluidState fluidState = FluidState.get(world, pos);
-            return world.setBlockState(pos, fluidState.getBlock() instanceof BlockStaticLiquid
-                    ? FluidState.of(BlockLiquid.getFlowingBlock(fluidState.getMaterial())).withLevel(fluidState.getLevel()).getState()
-                    : fluidState.getState(), blockFlags);
+            @Nonnull final Chunk chunk = world.getChunk(pos);
+            if(world.isRemote && FluidloggedUtils.isFluid(chunk.getBlockState(pos))) return false; // prevents possible client desync
+            else return world.setBlockState(pos, FluidState.getFromProvider(chunk, pos).toFlowing().getState(), blockFlags | 32);
         }
 
         public static boolean useNeighborBrightness(@Nonnull World world, @Nonnull BlockPos pos) {

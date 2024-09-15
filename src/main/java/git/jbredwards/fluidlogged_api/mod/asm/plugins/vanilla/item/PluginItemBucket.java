@@ -93,15 +93,17 @@ public final class PluginItemBucket implements IASMPlugin
         // helper
         @Nonnull
         public static ActionResult<ItemStack> drainFluid(@Nonnull final World world, @Nonnull final EntityPlayer player, @Nonnull final ItemStack held, @Nonnull final RayTraceResult trace) {
-            @Nonnull final FluidActionResult filledResult = FluidUtil.tryPickUpFluid(held, player, world, trace.getBlockPos(), trace.sideHit);
-            if(filledResult.isSuccess()) {
-                if(!player.isCreative()) {
-                    held.shrink(1);
-                    if(held.isEmpty()) return ActionResult.newResult(EnumActionResult.SUCCESS, filledResult.getResult());
-                    ItemHandlerHelper.giveItemToPlayer(player, filledResult.getResult());
-                }
+            if(world.isBlockModifiable(player, trace.getBlockPos())) {
+                @Nonnull final FluidActionResult filledResult = FluidUtil.tryPickUpFluid(held.copy(), player, world, trace.getBlockPos(), trace.sideHit);
+                if(filledResult.isSuccess()) {
+                    if(!player.isCreative()) {
+                        held.shrink(1);
+                        if(held.isEmpty()) return ActionResult.newResult(EnumActionResult.SUCCESS, filledResult.getResult());
+                        ItemHandlerHelper.giveItemToPlayer(player, filledResult.getResult());
+                    }
 
-                return ActionResult.newResult(EnumActionResult.SUCCESS, held);
+                    return ActionResult.newResult(EnumActionResult.SUCCESS, held);
+                }
             }
 
             // could not interact with fluid
@@ -119,8 +121,8 @@ public final class PluginItemBucket implements IASMPlugin
                         ? trace.getBlockPos() : trace.getBlockPos().offset(trace.sideHit);
 
                 // can the player place there?
-                if(player.canPlayerEdit(targetPos, trace.sideHit, held)) {
-                    @Nonnull final FluidActionResult drainedResult = FluidUtil.tryPlaceFluid(player, world, targetPos, held, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
+                if(world.isBlockModifiable(player, targetPos) && player.canPlayerEdit(targetPos, trace.sideHit, held)) {
+                    @Nonnull final FluidActionResult drainedResult = FluidUtil.tryPlaceFluid(null, world, targetPos, held.copy(), new FluidStack(fluid, Fluid.BUCKET_VOLUME));
 
                     // drained fluid from bucket and placed it at the pos
                     if(drainedResult.isSuccess()) {

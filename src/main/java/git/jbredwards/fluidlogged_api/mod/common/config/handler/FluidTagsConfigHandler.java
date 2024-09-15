@@ -7,6 +7,7 @@ package git.jbredwards.fluidlogged_api.mod.common.config.handler;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -38,44 +39,29 @@ public final class FluidTagsConfigHandler
     @Nonnull private static final String error = "An error occurred while parsing a fluid tag in file \"%s\", skipping...";
     @Nullable public static Multimap<String, Fluid> FLUID_TAGS = null;
 
-    public static void buildDefaults() {
+    public static void init(@Nonnull final JsonObject configs) throws IOException {
         FLUID_TAGS = HashMultimap.create();
-        FLUID_TAGS.putAll("builtin:material_lava", FluidRegistry.getRegisteredFluids().values().stream()
-                .filter(fluidIn -> fluidIn.canBePlacedInWorld() && fluidIn.getBlock().getDefaultState().getMaterial() == Material.LAVA && !isNonFluidloggable(fluidIn.getBlock()))
-                .collect(Collectors.toSet()));
-        FLUID_TAGS.putAll("builtin:material_water", FluidRegistry.getRegisteredFluids().values().stream()
-                .filter(fluidIn -> fluidIn.canBePlacedInWorld() && fluidIn.getBlock().getDefaultState().getMaterial() == Material.WATER && !isNonFluidloggable(fluidIn.getBlock()))
-                .collect(Collectors.toSet()));
-    }
-
-    public static void init() throws IOException {
-        assert FLUID_TAGS != null;
 
         // run for auto configs, mod instances, and user config
-        FluidloggedAPIConfigs.forEach("fluidTags.cfg", (file, jsonIn) -> {
+        FluidloggedAPIConfigs.forEach(configs, "FLUID_TAGS", "fluidTags", (file, jsonIn) -> {
             try {
                 @Nonnull final JsonObject json = jsonIn.getAsJsonObject();
                 @Nonnull final String id = JsonUtils.getString(json, "id");
                 final boolean allowMissing = json.has("allowMissing") && JsonUtils.getBoolean(json.get("allowMissing"), "allowMissing");
 
-                // convert fluid strings into fluid objects
-                if(json.has("fluid")) {
-                    @Nonnull final Set<Fluid> fluids = new HashSet<>();
-                    FluidloggedAPIConfigs.getAsIterable(json.get("fluid"), Function.identity()).forEach(element -> fluids.addAll(getFluids(id, element, allowMissing)));
-                    FLUID_TAGS.putAll(id, fluids);
-                }
-
-                // convert fluid strings into fluid objects (for old configs)
-                if(json.has("fluids")) {
-                    @Nonnull final Set<Fluid> fluids = new HashSet<>();
-                    FluidloggedAPIConfigs.getAsIterable(json.get("fluids"), Function.identity()).forEach(element -> fluids.addAll(getFluids(id, element, allowMissing)));
-                    FLUID_TAGS.putAll(id, fluids);
-                }
-
                 // remove the specified fluids from the tag
                 if(json.has("remove")) {
-                    @Nonnull final Set<Fluid> fluids = new HashSet<>(FLUID_TAGS.removeAll(id));
-                    FluidloggedAPIConfigs.getAsIterable(json.get("remove"), Function.identity()).forEach(element -> fluids.removeAll(getFluids(id, element, allowMissing)));
+                    @Nonnull final Set<Fluid> fluids = new HashSet<>();
+                    FluidloggedAPIConfigs.getAsIterable(json.get("remove"), Function.identity()).forEach(element -> fluids.addAll(getFluids(id, element, allowMissing)));
+
+                    if(fluids.isEmpty()) FLUID_TAGS.removeAll(id);
+                    else FLUID_TAGS.putAll(id, Sets.difference(new HashSet<>(FLUID_TAGS.removeAll(id)), fluids));
+                }
+
+                // add the fluid tag
+                else {
+                    @Nonnull final Set<Fluid> fluids = new HashSet<>();
+                    if(json.has("fluids")) FluidloggedAPIConfigs.getAsIterable(json.get("fluids"), Function.identity()).forEach(element -> fluids.addAll(getFluids(id, element, allowMissing)));
                     FLUID_TAGS.putAll(id, fluids);
                 }
             }
@@ -137,7 +123,7 @@ public final class FluidTagsConfigHandler
     }
 
     static boolean isNonFluidloggable(@Nullable final Block block) {
-        if(!(block instanceof IFluidloggableFluid) || block.delegate.name() == null) return true;
+        if(!(block instanceof IFluidloggableFluid) || block.getRegistryName() == null) return true;
 
         // the block is a fluidloggable fluid for at least one of its states
         @Nonnull final IFluidloggableFluid handler = (IFluidloggableFluid)block;

@@ -30,21 +30,14 @@ import java.util.Objects;
  * @author jbred
  *
  */
-public class CommandSetFluidState extends CommandBase
+public class CommandSetFluidState extends CommandChildBase
 {
     @Nullable
     protected static ResourceLocation[] TAB_COMPLETIONS = null;
-
-    @Nonnull
-    @Override
-    public String getName() { return "setfluid"; }
+    public CommandSetFluidState(@Nullable final ICommand parentIn) { super(parentIn, "setfluid"); }
 
     @Override
     public int getRequiredPermissionLevel() { return 2; }
-
-    @Nonnull
-    @Override
-    public String getUsage(@Nonnull final ICommandSender sender) { return "commands.setfluid.usage"; }
 
     @Override
     public void execute(@Nonnull final MinecraftServer server, @Nonnull final ICommandSender sender, @Nonnull final String[] args) throws CommandException {
@@ -53,7 +46,7 @@ public class CommandSetFluidState extends CommandBase
 
         @Nonnull final BlockPos pos = parseBlockPos(sender, args, 0, false);
         @Nonnull final World world = sender.getEntityWorld();
-        if(!world.isBlockLoaded(pos)) throw new CommandException("commands.setfluid.outOfWorld");
+        if(!world.isBlockLoaded(pos)) throw new CommandException("commands.fluidlogged_api.setfluid.outOfWorld");
 
         @Nonnull final Block block = getBlockByText(sender, args[3]);
         @Nonnull final FluidState fluidState = args.length == 5 ? FluidState.of(convertArgToBlockState(block, args[4])) : FluidState.of(block);
@@ -61,11 +54,11 @@ public class CommandSetFluidState extends CommandBase
 
         if(FluidloggedUtils.isStateFluidloggable(here, world, pos, fluidState)) {
             if(!FluidloggedUtils.setFluidState(world, pos, here, fluidState, false, Constants.BlockFlags.DEFAULT))
-                throw new CommandException("commands.setfluid.noChange");
+                throw new CommandException("commands.fluidlogged_api.setfluid.noChange");
         }
 
-        else if(!world.setBlockState(pos, fluidState.getState())) throw new CommandException("commands.setfluid.noChange");
-        notifyCommandListener(sender, this, "commands.setfluid.success");
+        else if(!world.setBlockState(pos, fluidState.getState())) throw new CommandException("commands.fluidlogged_api.setfluid.noChange");
+        notifyCommandListener(sender, this, "commands.fluidlogged_api.setfluid.success");
     }
 
     @Nonnull

@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 @Config.LangKey("configgui.fluidloggedAPI.general")
 public final class FluidloggedAPIConfig
 {
+    @Config.RequiresWorldRestart // prevent multiplayer desync
     @Config.LangKey("configgui.fluidloggedAPI.general.allowDefaults")
     public static boolean allowDefaults = true;
 
@@ -55,6 +56,7 @@ public final class FluidloggedAPIConfig
     }
 
     @Nonnull
+    @Config.RequiresWorldRestart // prevent multiplayer desync
     @Config.LangKey("configgui.fluidloggedAPI.general.downloadModConfigs")
     public static OnlineConfigMode downloadModConfigs = OnlineConfigMode.KEEP_UPDATED;
     public enum OnlineConfigMode

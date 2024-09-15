@@ -10,6 +10,7 @@ import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -67,25 +68,37 @@ public final class PluginBlockSponge implements IASMPlugin
                     final BlockPos offset = pos.offset(facing);
                     final FluidState fluidState = FluidloggedUtils.getFluidState(world, offset);
 
-                    if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER) {
-                        //don't drain bad fluid blocks (looking at you BOP kelp)
-                        if(fluidState.isValid()) {
-                            fluidState.getFluidBlock().drain(world, offset, true);
-                            if(distance < 6) queue.add(Pair.of(offset, distance + 1));
-                            absorbed++;
-                        }
-                        //drain bad fluid blocks
-                        else if(world.setBlockState(pos, Blocks.AIR.getDefaultState(), 2)) {
-                            world.playEvent(WorldEvents.BREAK_BLOCK_EFFECTS, offset, Block.getStateId(fluidState.getState()));
-                            fluidState.getBlock().dropBlockAsItem(world, offset, fluidState.getState(), 0);
-                            if(distance < 6) queue.add(Pair.of(offset, distance + 1));
-                            absorbed++;
-                        }
+                    if(!fluidState.isEmpty() && fluidState.getMaterial() == Material.WATER && drain(world, offset, fluidState, 2)) {
+                        if(distance < 6) queue.add(Pair.of(offset, distance + 1));
+                        absorbed++;
                     }
                 }
             }
 
             return absorbed > 0;
+        }
+
+        // helper
+        public static boolean drain(@Nonnull final World world, @Nonnull final BlockPos pos, final int flags, @Nonnull final IBlockState fluidState) {
+            return drain(world, pos, FluidState.of(fluidState), flags);
+        }
+
+        // helper
+        public static boolean drain(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState, final int flags) {
+            // don't drain bad fluid blocks (looking at you BOP kelp)
+            if(fluidState.isValid()) {
+                fluidState.getFluidBlock().drain(world, pos, true);
+                return true;
+            }
+            // drain bad fluid blocks
+            else if(world.setBlockState(pos, Blocks.AIR.getDefaultState(), flags | 32)) {
+                world.playEvent(WorldEvents.BREAK_BLOCK_EFFECTS, pos, Block.getStateId(fluidState.getState()));
+                if(fluidState.getBlock().getHarvestTool(fluidState.getState()) == null)
+                    fluidState.getBlock().dropBlockAsItem(world, pos, fluidState.getState(), 0);
+                return true;
+            }
+            // should never pass
+            return false;
         }
     }
 }

@@ -10,16 +10,13 @@ import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidFlowHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.impl.SpecializedFluidNeighborInfo;
-import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.BlockStateContainer;
 import net.minecraftforge.common.util.Constants;
 import org.objectweb.asm.tree.ClassNode;
 
 import javax.annotation.Nonnull;
-import java.util.Map;
 import java.util.Random;
 
 /**
@@ -39,13 +36,11 @@ public final class PluginThermalAerotheum implements IASMPlugin
             }
         );
         overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_180650_b" : "updateTick"),
-            "update", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Ljava/util/Random;Ljava/util/Map;ZZI)V", generator -> {
+            "update", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Ljava/util/Random;ZZI)V", generator -> {
                 generator.visitVarInsn(ALOAD, 1);
                 generator.visitVarInsn(ALOAD, 2);
                 generator.visitVarInsn(ALOAD, 3);
                 generator.visitVarInsn(ALOAD, 4);
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitFieldInsn(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "displacements", "Ljava/util/Map;");
                 generator.visitFieldInsn(GETSTATIC, classNode.name, "enableSourceDissipate", "Z");
                 generator.visitFieldInsn(GETSTATIC, classNode.name, "enableSourceFloat", "Z");
                 generator.visitFieldInsn(GETSTATIC, classNode.name, "maxHeight", "I");
@@ -62,12 +57,12 @@ public final class PluginThermalAerotheum implements IASMPlugin
             return pos.getY() > maxHeight;
         }
 
-        public static void update(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState state, @Nonnull final Random rand, @Nonnull final Map<Block, Boolean> displacements, final boolean dissipate, final boolean doFloat, final int maxHeight) {
+        public static void update(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState state, @Nonnull final Random rand, final boolean dissipate, final boolean doFloat, final int maxHeight) {
             @Nonnull final FluidState fluidState = FluidState.of(state);
             if(fluidState.isSource()) {
                 // source block dissipate (thermal foundation functionality)
                 final int densityDir = fluidState.getDensityDir();
-                if(dissipate && (pos.getY() + densityDir > maxHeight || pos.getY() + densityDir > maxHeight * 0.8 && new SpecializedFluidNeighborInfo.Forge(world, pos, fluidState, 0, displacements).canFlowInto(0, 0, 0, fluidState.getMetadata(), fluidState.getDownDensityFace(), false))) {
+                if(dissipate && (pos.getY() + densityDir > maxHeight || pos.getY() + densityDir > maxHeight * 0.8 && new SpecializedFluidNeighborInfo.Forge(world, pos, fluidState, 0).canFlowInto(0, 0, 0, fluidState.getMetadata(), fluidState.getDownDensityFace(), true, false))) {
                     FluidloggedUtils.setFluidToAir(world, pos, null, Constants.BlockFlags.DEFAULT);
                     return;
                 }
@@ -81,7 +76,7 @@ public final class PluginThermalAerotheum implements IASMPlugin
                 return;
             }
 
-            FluidFlowHandler.updateClassic(world, pos, fluidState, displacements);
+            FluidFlowHandler.updateClassic(world, pos, fluidState);
         }
     }
 }

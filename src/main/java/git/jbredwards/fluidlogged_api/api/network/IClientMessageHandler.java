@@ -62,7 +62,9 @@ public interface IClientMessageHandler<REQ extends AbstractMessage> extends IMes
      */
     @Deprecated
     @SideOnly(Side.CLIENT)
-    default void handleMessage(@Nonnull final REQ message) {}
+    default void handleMessage(@Nonnull final REQ message) {
+        // NO-OP
+    }
 
     /**
      * Called when a message is received of the appropriate type. This method is thread-safe.
@@ -75,7 +77,9 @@ public interface IClientMessageHandler<REQ extends AbstractMessage> extends IMes
      * @author jbred
      */
     @SideOnly(Side.CLIENT)
-    default void handleMessage(@Nonnull final REQ message, @Nonnull final MessageContext ctx) { handleMessage(message); }
+    default void handleMessage(@Nonnull final REQ message, @Nonnull final MessageContext ctx) throws Exception {
+        handleMessage(message);
+    }
 
     /**
      * Should always be used in place of calling {@link net.minecraft.client.Minecraft#world Minecraft.world} directly.
@@ -89,5 +93,7 @@ public interface IClientMessageHandler<REQ extends AbstractMessage> extends IMes
      */
     @Nonnull
     @SideOnly(Side.CLIENT)
-    static WorldClient getWorldFromContext(@Nonnull final MessageContext ctx) { return ctx.getClientHandler().world; }
+    static WorldClient getWorldFromContext(@Nonnull final MessageContext ctx) {
+        return ctx.getClientHandler().world;
+    }
 }
