@@ -27,6 +27,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.buildcraft.PluginTi
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.buildcraft.PluginTilePump;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.builders_wands.PluginBuildersWands;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cb_multipart.PluginCBMultipart;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.ceramics.PluginItemClayBucket;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.chiseled_me.PluginChiseledMe;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cofhcore.PluginCoFHCore;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.crafttweaker.PluginCraftTweaker;
@@ -182,6 +183,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("hellfirepvp.astralsorcery.common.entities.EntityCrystalTool", new PluginEntityCrystal()); // make astral sorcery's crystal growth FluidState-sensitive
             plugins.put("io.github.lxgaming.sledgehammer.mixin.core.block.BlockDynamicLiquidMixin", new PluginSledgehammer()); // remove redundant transformer
             plugins.put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()); // fix mixin annotation to target fluidlogged api transform
+            plugins.put("knightminer.ceramics.items.ItemClayBucket", new PluginItemClayBucket()); // offset the placement pos if the block is fluidloggable, so it can be fluidlogged
             plugins.put("net.journey.items.JItemWaterLily", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
             plugins.put("lumien.randomthings.item.ItemEnderBucket", new PluginRandomThings()); // make random things' ender buckets sensitive to FluidStates
             plugins.put("lumien.randomthings.item.ItemReinforcedEnderBucket", new PluginRandomThings()); // make random things' ender buckets sensitive to FluidStates
