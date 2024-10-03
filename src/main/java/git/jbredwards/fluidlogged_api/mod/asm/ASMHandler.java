@@ -50,6 +50,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.nethercraft.PluginN
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.nothirium.PluginNothirium;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.openblocks.PluginOpenBlocks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginOptifine;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginSVertexBuilder;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.plus_tweaks.PluginPlusTweaks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.projectred.PluginProjectRed;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.railcraft.PluginRailcraft;
@@ -201,6 +202,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.dries007.tfc.objects.blocks.BlockFluidTFC", new PluginTFCBlockFluid()); // duplicate fluid logic isn't needed, and causes conflicts with this mod
             plugins.put("net.dries007.tfc.objects.fluids.FluidsTFC", new PluginTFCFluids()); // use ICompatibleFluid for water-like fluids
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); // better optifine compat
+            plugins.put("net.optifine.shaders.SVertexBuilder", new PluginSVertexBuilder()); // set the block renderType (aka mc_Entity.y) to 1 if the block is a BlockLiquid
             plugins.put("net.tropicraft.core.client.TropicraftWaterRenderFixer", new PluginTropicraftOverlays()); // account for FluidStates and improved fluid collisions
             plugins.put("net.tropicraft.core.common.block.BlockTropicraftFence", new PluginTropicraftFence()); // fixes for tropicraft fences
             plugins.put("net.tropicraft.core.common.block.BlockTropicraftSands", new PluginTropicraftSand()); // account for FluidStates
