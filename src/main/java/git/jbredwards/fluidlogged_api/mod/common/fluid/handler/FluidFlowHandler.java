@@ -92,8 +92,8 @@ public final class FluidFlowHandler
 
     public static void updateClassic(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull final FluidState originState) {
         final int flowCost = originState.getFlowCost(world);
-        final int slopeDist = originState.getQuantaPerBlock() >> (flowCost - 1);
-        if(world.isRemote || !world.isAreaLoaded(origin, slopeDist - 1)) return;
+        final int slopeDist = originState.getQuantaPerBlock() >> flowCost;
+        if(world.isRemote || !world.isAreaLoaded(origin, slopeDist)) return;
 
         // world.profiler.startSection("fluidUpdateClassic");
         @Nonnull final IFluidUpdateHelper helper = new IFluidUpdateHelper.Forge(world, origin, originState, slopeDist);
@@ -190,7 +190,7 @@ public final class FluidFlowHandler
 
     public static void updateDynamic(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull final FluidState originState, @Nonnull final Random rand) {
         final int flowCost = originState.getFlowCost(world);
-        final int slopeDist = originState.getQuantaPerBlock() >> (flowCost - 1);
+        final int slopeDist = originState.getQuantaPerBlock() >> flowCost;
         if(world.isRemote || !world.isAreaLoaded(origin, slopeDist)) return;
         // world.profiler.startSection("fluidUpdateVanilla");
 
@@ -246,9 +246,9 @@ public final class FluidFlowHandler
 
         // place static block
         if(placeStatic) {
-            @Nonnull final FluidState fluidState = FluidState.of(BlockLiquid.getStaticBlock(originState.getMaterial())).withLevel(level);
-            if(helper.getBlockState(0, 0, 0) == originState.getState() || helper.vaporize(0, 0, 0, fluidState, null)) world.setBlockState(origin, fluidState.getState(), Constants.BlockFlags.SEND_TO_CLIENTS);
-            else FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), fluidState, false, Constants.BlockFlags.SEND_TO_CLIENTS);
+            @Nonnull final FluidState fluidState = originState.toStatic();
+            if(helper.getBlockState(0, 0, 0) == originState.getState() || helper.vaporize(0, 0, 0, fluidState, null)) world.setBlockState(origin, fluidState.getState(), Constants.BlockFlags.SEND_TO_CLIENTS | Constants.BlockFlags.NO_RERENDER | Constants.BlockFlags.NO_OBSERVERS);
+            else FluidloggedUtils.setFluidState(world, origin, helper.getBlockState(0, 0, 0), fluidState, false, Constants.BlockFlags.SEND_TO_CLIENTS | Constants.BlockFlags.NO_RERENDER | Constants.BlockFlags.NO_OBSERVERS);
         }
 
         // changed data in world, reset non-chunk data in helper

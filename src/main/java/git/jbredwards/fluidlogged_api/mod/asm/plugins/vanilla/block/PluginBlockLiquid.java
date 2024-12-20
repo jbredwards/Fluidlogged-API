@@ -19,6 +19,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.BlockPos;
@@ -59,10 +60,10 @@ public final class PluginBlockLiquid implements IASMPlugin
          *
          * New code:
          * //change render type, so it can be handled by forge's fluid rendering system
-         * return EnumBlockRenderType.MODEL;
+         * return Hooks.getRenderType(EnumBlockRenderType.LIQUID);
          */
-        if(index == 1 && checkField(insn, "LIQUID")) {
-            ((FieldInsnNode)insn).name = "MODEL";
+        if(index == 1 && insn.getOpcode() == ARETURN) {
+            instructions.insertBefore(insn, genMethodNode("getRenderType", "(Lnet/minecraft/util/EnumBlockRenderType;)Lnet/minecraft/util/EnumBlockRenderType;"));
             return true;
         }
         /*
@@ -450,6 +451,11 @@ public final class PluginBlockLiquid implements IASMPlugin
         @Nonnull
         public static Fluid getLiquid(@Nonnull Material material) {
             return material == Material.WATER ? FluidRegistry.WATER : FluidRegistry.LAVA;
+        }
+
+        @Nonnull
+        public static EnumBlockRenderType getRenderType(@Nonnull EnumBlockRenderType oldType) {
+            return FluidloggedAPIConfig.fancyFluidRenderer ? EnumBlockRenderType.MODEL : oldType;
         }
 
         //helper, exists to fix issue#59

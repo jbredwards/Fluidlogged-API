@@ -23,6 +23,7 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.model.ModelFluid;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.model.TRSRTransformation;
+import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -40,6 +41,11 @@ import javax.annotation.Nullable;
 @Mod.EventBusSubscriber(modid = FluidloggedAPI.MODID, value = Side.CLIENT)
 public final class ClientEventHandler
 {
+    @SubscribeEvent(priority = EventPriority.LOW)
+    static void updateRenderOnConfigChange(@Nonnull final ConfigChangedEvent.PostConfigChangedEvent event) {
+        if(event.isWorldRunning() && FluidloggedAPI.MODID.equals(event.getModID())) Minecraft.getMinecraft().renderGlobal.loadRenderers();
+    }
+
     @SubscribeEvent(priority = EventPriority.HIGH)
     static void registerLiquidStateMappers(@Nonnull final ModelRegistryEvent event) {
         ForgeRegistries.BLOCKS.getEntries().forEach(entry -> {

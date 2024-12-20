@@ -277,6 +277,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.client.particle.ParticleSuspend", new PluginWaterParticles()); // this doesn't instantly disappear while inside water FluidStates
             plugins.put("net.minecraft.client.renderer.chunk.RenderChunk", new PluginRenderChunk()); // allows the game to render FluidStates
             plugins.put("net.minecraft.client.renderer.ActiveRenderInfo", new PluginActiveRenderInfo()); // get block fog color from possible FluidState
+            plugins.put("net.minecraft.client.renderer.BlockFluidRenderer", new PluginBlockFluidRenderer()); // allow the vanilla fluid renderer to recognize FluidStates
             plugins.put("net.minecraft.client.renderer.EntityRenderer", new PluginEntityRenderer()); // fixes graphical underwater block selection; lava FluidStates now emit smoke while raining; fixes FluidState fog color
             plugins.put("net.minecraft.entity.ai.EntityAIPanic", new PluginEntityAIPanic()); // water FluidStates are now seen as water blocks
             plugins.put("net.minecraft.entity.ai.RandomPositionGenerator", new PluginRandomPositionGenerator()); // water FluidStates are now seen as water blocks

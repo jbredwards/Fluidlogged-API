@@ -51,6 +51,8 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
     // ------------------------
 
     default int calculateFlowCostI(final int xi, final int yi, final int zi, final int quantaPerBlock, final int flowMeta, final int flowCost, final int recurseDepth, @Nonnull final IntUnaryOperator downMeta, @Nonnull final IntSet checkedX, @Nonnull final IntSet checkedZ) {
+        if(flowMeta + recurseDepth >= quantaPerBlock) return 1000;
+
         @Nonnull final IntSet adjX = new IntOpenHashSet(checkedX), adjZ = new IntOpenHashSet(checkedZ);
         adjX.add(xi);
         adjZ.add(zi);
@@ -63,11 +65,11 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
             if(checkedX.contains(xio) && checkedZ.contains(zio)) continue;
 
             @Nonnull final FluidState fluid = getFluidStateI(xio, yi, zio);
-            final int cappedLvl = Math.max(flowMeta + recurseDepth, quantaPerBlock);
+            final int cappedLvl = flowMeta + recurseDepth;
 
             if((!FluidloggedUtils.isCompatibleFluid(fluid, getOrigin()) || !fluid.isSource()) && canFlowIntoI(xi, yi, zi, cappedLvl, side, true, true)) {
                 if(canFlowIntoI(xio, yi, zio, downMeta.applyAsInt(cappedLvl), getOrigin().getDownDensityFace(), true, true)) return recurseDepth;
-                else if(/*flowMeta +*/ recurseDepth + flowCost < quantaPerBlock - flowCost) cost = Math.min(cost, calculateFlowCostI(xio, yi, zio, quantaPerBlock, flowMeta, flowCost, recurseDepth + flowCost, downMeta, adjX, adjZ));
+                else if(/*flowMeta +*/ recurseDepth < quantaPerBlock >> flowCost) cost = Math.min(cost, calculateFlowCostI(xio, yi, zio, quantaPerBlock, flowMeta, flowCost, recurseDepth + flowCost, downMeta, adjX, adjZ));
             }
         }
 
@@ -127,7 +129,7 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
                         if(oldState.getBlock() != getOrigin().getBlock() && getOrigin().getMaterial() == Material.LAVA && !oldState.getBlock().isAir(oldState, getCache(), getPosIB(xio, yio, zio)))
                             FluidloggedUtils.playVaporizeEffects(getCache().getWorld(), getCache().mutablePos, getOrigin().withLevel(level).createFluidStack());
 
-                        else if(oldState.getBlock().getHarvestTool(oldState) == null) oldState.getBlock().dropBlockAsItem(getCache().getWorld(), getPosIB(xio, yio, zio), oldState, 0);
+                        else if(oldState.getMaterial().isToolNotRequired()) oldState.getBlock().dropBlockAsItem(getCache().getWorld(), getPosIB(xio, yio, zio), oldState, 0);
                     }
 
                     ret = getCache().getWorld().setBlockState(getPosIB(xio, yio, zio), getOrigin().withLevel(level).getState(), blockFlags);

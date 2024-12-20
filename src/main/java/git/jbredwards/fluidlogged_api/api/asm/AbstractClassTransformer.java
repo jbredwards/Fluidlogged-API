@@ -39,15 +39,14 @@ public abstract class AbstractClassTransformer implements IClassTransformer
      * @param transformedName Deobfuscated name of the class to be transformed.
      * @param basicClass Bytecode of the class to be transformed.
      * @return The bytecode to be used during runtime.
-     * @throws NullPointerException If transformedName is null while basicClass is not null.
      *
      * @since 1.9.0
      * @author jbred
      */
     @Nullable
     @Override
-    public byte[] transform(@Nonnull final String name, @Nonnull final String transformedName, @Nullable final byte[] basicClass) {
-        if(basicClass == null) return null;
+    public byte[] transform(@Nullable final String name, @Nullable final String transformedName, @Nullable final byte[] basicClass) {
+        if(basicClass == null || transformedName == null) return basicClass;
         @Nullable final IASMPlugin plugin = plugins.get(transformedName);
         if(plugin == null) return basicClass;
 

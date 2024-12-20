@@ -90,7 +90,7 @@ public class BakedModelFluid implements IBakedModel
         gas = fluidIn.isLighterThanAir();
 
         // blockQuads = this::buildQuads; // for testing
-        blockQuads = CacheBuilder.newBuilder().maximumSize(512).build(CacheLoader.from(this::buildQuads));
+        blockQuads = CacheBuilder.newBuilder().maximumSize(200).build(CacheLoader.from(this::buildQuads));
     }
 
     @Nonnull
@@ -298,17 +298,11 @@ public class BakedModelFluid implements IBakedModel
         public final EnumFacing sideToBuild; // only not null if the cache isn't being used (for testing purposes)
         public SerializedProps(@Nullable final EnumFacing side, @Nonnull final FluidExtendedStateHandler.FluidExtendedBlockState state) {
             serializedProps = (MathHelper.clamp((int)Math.round(Math.toDegrees(state.flowDirection)), -1000, 1000) + 1024)
-                    | (state.renderUnder ? 0b100000000000 : 0)
-                    | (Boolean.TRUE.equals(state.sideOverlays[0]) ? 0b1000000000000 : 0)
-                    | (Boolean.TRUE.equals(state.sideOverlays[1]) ? 0b10000000000000 : 0)
-                    | (Boolean.TRUE.equals(state.sideOverlays[2]) ? 0b100000000000000 : 0)
-                    | (Boolean.TRUE.equals(state.sideOverlays[3]) ? 0b1000000000000000 : 0);
-                    // | (Boolean.TRUE.equals(state.shouldSideBeRenderedCache[0]) ? 0b10000000000000000 : 0)
-                    // | (Boolean.TRUE.equals(state.shouldSideBeRenderedCache[1]) ? 0b100000000000000000 : 0)
-                    // | (Boolean.TRUE.equals(state.shouldSideBeRenderedCache[2]) ? 0b1000000000000000000 : 0)
-                    // | (Boolean.TRUE.equals(state.shouldSideBeRenderedCache[3]) ? 0b10000000000000000000 : 0)
-                    // | (Boolean.TRUE.equals(state.shouldSideBeRenderedCache[4]) ? 0b100000000000000000000 : 0)
-                    // | (Boolean.TRUE.equals(state.shouldSideBeRenderedCache[5]) ? 0b1000000000000000000000 : 0);
+                    | (state.renderUnder ? 1 << 11 : 0)
+                    | (Boolean.TRUE.equals(state.sideOverlays[0]) ? 1 << 12 : 0)
+                    | (Boolean.TRUE.equals(state.sideOverlays[1]) ? 1 << 13 : 0)
+                    | (Boolean.TRUE.equals(state.sideOverlays[2]) ? 1 << 14 : 0)
+                    | (Boolean.TRUE.equals(state.sideOverlays[3]) ? 1 << 15 : 0);
             cornerHeights[0] = Float.floatToRawIntBits(state.levelCorners[0]);
             cornerHeights[1] = Float.floatToRawIntBits(state.levelCorners[1]);
             cornerHeights[2] = Float.floatToRawIntBits(state.levelCorners[2]);
@@ -317,7 +311,17 @@ public class BakedModelFluid implements IBakedModel
         }
 
         public int flowDirection() { return (serializedProps & 2047) - 1024; }
-        public boolean renderUnder() { return (serializedProps & 0b100000000000) != 0; }
+        public boolean renderUnder() { return (serializedProps & (1 << 11)) != 0; }
+
+        @Nonnull
+        public boolean[] sideOverlays() {
+            @Nonnull final boolean[] ret = new boolean[4];
+            ret[0] = (serializedProps >> 12 & 1) != 0;
+            ret[1] = (serializedProps >> 13 & 1) != 0;
+            ret[2] = (serializedProps >> 14 & 1) != 0;
+            ret[3] = (serializedProps >> 15 & 1) != 0;
+            return ret;
+        }
 
         @Nonnull
         public float[] levelCorners() {
@@ -326,28 +330,6 @@ public class BakedModelFluid implements IBakedModel
             ret[1] = Float.intBitsToFloat(cornerHeights[1]);
             ret[2] = Float.intBitsToFloat(cornerHeights[2]);
             ret[3] = Float.intBitsToFloat(cornerHeights[3]);
-            return ret;
-        }
-
-        @Nonnull
-        public boolean[] sideOverlays() {
-            @Nonnull final boolean[] ret = new boolean[4];
-            ret[0] = (serializedProps & 0b1000000000000) != 0;
-            ret[1] = (serializedProps & 0b10000000000000) != 0;
-            ret[2] = (serializedProps & 0b100000000000000) != 0;
-            ret[3] = (serializedProps & 0b1000000000000000) != 0;
-            return ret;
-        }
-
-        @Nonnull
-        public boolean[] shouldSideBeRenderedCache() {
-            @Nonnull final boolean[] ret = new boolean[6];
-            ret[0] = (serializedProps & 0b10000000000000000) != 0;
-            ret[1] = (serializedProps & 0b100000000000000000) != 0;
-            ret[2] = (serializedProps & 0b1000000000000000000) != 0;
-            ret[3] = (serializedProps & 0b10000000000000000000) != 0;
-            ret[4] = (serializedProps & 0b100000000000000000000) != 0;
-            ret[5] = (serializedProps & 0b1000000000000000000000) != 0;
             return ret;
         }
 

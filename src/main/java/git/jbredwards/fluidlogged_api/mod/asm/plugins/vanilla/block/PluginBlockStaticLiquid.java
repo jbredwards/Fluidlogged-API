@@ -78,8 +78,8 @@ public final class PluginBlockStaticLiquid implements IASMPlugin
         public static void updateLiquid(@Nonnull World worldIn, @Nonnull BlockPos pos, @Nonnull IBlockState state) {
             @Nonnull final FluidState dynState = FluidState.of(BlockLiquid.getFlowingBlock(state.getMaterial())).withLevel(state.getValue(BlockLiquid.LEVEL));
 
-            if(FluidState.get(worldIn, pos).isEmpty()) worldIn.setBlockState(pos, dynState.getState(), Constants.BlockFlags.SEND_TO_CLIENTS);
-            else FluidloggedUtils.setFluidState(worldIn, pos, null, dynState, false, Constants.BlockFlags.SEND_TO_CLIENTS);
+            if(FluidState.get(worldIn, pos).isEmpty()) worldIn.setBlockState(pos, dynState.getState(), Constants.BlockFlags.SEND_TO_CLIENTS | Constants.BlockFlags.NO_RERENDER | Constants.BlockFlags.NO_OBSERVERS);
+            else FluidloggedUtils.setFluidState(worldIn, pos, null, dynState, false, Constants.BlockFlags.SEND_TO_CLIENTS | Constants.BlockFlags.NO_RERENDER | Constants.BlockFlags.NO_OBSERVERS);
 
             worldIn.scheduleUpdate(pos, dynState.getBlock(), dynState.getBlock().tickRate(worldIn));
         }

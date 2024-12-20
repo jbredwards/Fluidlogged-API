@@ -106,6 +106,9 @@ public final class FluidloggedAPIConfig
         public String toString() { return langKey; }
     }
 
+    @Config.LangKey("configgui.fluidloggedAPI.general.fancyFluidRenderer")
+    public static boolean fancyFluidRenderer = true;
+
     @Config.LangKey("configgui.fluidloggedAPI.general.fixBadFluidMixing")
     public static boolean fixBadFluidMixing = true;
 
