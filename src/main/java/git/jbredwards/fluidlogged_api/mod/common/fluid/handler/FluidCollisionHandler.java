@@ -77,7 +77,8 @@ public final class FluidCollisionHandler
 
     @Nonnull
     static Boolean isAABBInsideLiquid(@Nonnull final IBlockAccess worldIn, @Nonnull final BlockPos pos, @Nonnull final AxisAlignedBB bb, @Nullable final IBlockState stateIn, @Nullable final Object entity, final boolean checkCache) {
-        if(!FluidloggedAPIConfig.fancyFluidEntityCollision.test(bb, entity)
+        if(bb.minX > pos.getX() + 1 || bb.maxX < pos.getX() || bb.minZ > pos.getZ() + 1 || bb.maxZ < pos.getZ()) return Boolean.FALSE; // don't collide with fluid if BB doesn't horizontally intersect
+        else if(!FluidloggedAPIConfig.fancyFluidEntityCollision.test(bb, entity)
                 || bb.minX < pos.getX() && bb.maxX > pos.getZ() + 1 && bb.minZ < pos.getZ() && bb.maxZ > pos.getZ() + 1
                 || !IWorldProvider.getWorld(worldIn).isAreaLoaded(pos.add(-1, -1, -1), pos.add(1, 1, 1))) {
             @Nonnull final IBlockAccess world = worldIn instanceof World ? new FluidCache(worldIn, pos, 0, 1) : worldIn;
