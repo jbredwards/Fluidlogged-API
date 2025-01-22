@@ -7,6 +7,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
@@ -15,6 +16,7 @@ import net.minecraftforge.fluids.FluidRegistry;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+import java.util.Optional;
 
 /**
  * allow the vanilla fluid renderer to recognize FluidStates
@@ -36,6 +38,7 @@ public final class PluginBlockFluidRenderer implements IASMPlugin
             return 1;
         }
 
+        else if(method.name.equals(obfuscated ? "func_178268_a" : "initAtlasSprites")) return 3;
         else return method.name.equals(obfuscated ? "func_178269_a" : "getFluidHeight") ? 2 : 0;
     }
 
@@ -169,6 +172,27 @@ public final class PluginBlockFluidRenderer implements IASMPlugin
                 return true;
             }
         }
+        /*
+         * initAtlasSprites: (changes are around lines 38-40)
+         * Old code:
+         * this.atlasSpritesWater[0] = texturemap.getAtlasSprite("minecraft:blocks/water_still");
+         * this.atlasSpritesWater[1] = texturemap.getAtlasSprite("minecraft:blocks/water_flow");
+         * this.atlasSpriteWaterOverlay = texturemap.getAtlasSprite("minecraft:blocks/water_overlay");
+         *
+         * New code:
+         * // Inject subaquatic fluid textures if that mod is installed, so it's compatible with the vanilla fluid renderer
+         * this.atlasSpritesWater[0] = texturemap.getAtlasSprite(Hooks.getWaterStill("minecraft:blocks/water_still"));
+         * this.atlasSpritesWater[1] = texturemap.getAtlasSprite(Hooks.getWaterFlow("minecraft:blocks/water_flow"));
+         * this.atlasSpriteWaterOverlay = texturemap.getAtlasSprite(Hooks.getWaterOverlay("minecraft:blocks/water_overlay"));
+         */
+        else if(index == 3 && insn.getOpcode() == LDC) {
+            if("minecraft:blocks/water_still".equals(((LdcInsnNode) insn).cst)) instructions.insert(insn, genMethodNode("getWaterStill", "(Ljava/lang/String;)Ljava/lang/String;"));
+            else if("minecraft:blocks/water_flow".equals(((LdcInsnNode) insn).cst)) instructions.insert(insn, genMethodNode("getWaterFlow", "(Ljava/lang/String;)Ljava/lang/String;"));
+            else if("minecraft:blocks/water_overlay".equals(((LdcInsnNode) insn).cst)) {
+                instructions.insert(insn, genMethodNode("getWaterOverlay", "(Ljava/lang/String;)Ljava/lang/String;"));
+                return true;
+            }
+        }
 
         return false;
     }
@@ -185,6 +209,21 @@ public final class PluginBlockFluidRenderer implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
+        @Nonnull
+        public static String getWaterFlow(@Nonnull final String original) {
+            return FluidloggedAPI.isSubaquatic ? FluidRegistry.WATER.getFlowing().toString() : original;
+        }
+
+        @Nonnull
+        public static String getWaterOverlay(@Nonnull final String original) {
+            return FluidloggedAPI.isSubaquatic ? Optional.ofNullable(FluidRegistry.WATER.getOverlay()).map(Object::toString).orElse(original) : original;
+        }
+
+        @Nonnull
+        public static String getWaterStill(@Nonnull final String original) {
+            return FluidloggedAPI.isSubaquatic ? FluidRegistry.WATER.getStill().toString() : original;
+        }
+
         @Nonnull
         public static Material matchMaterialIfFluid(@Nonnull final IBlockAccess access, @Nonnull final BlockPos pos, @Nonnull final Material toMatch) {
             return matchMaterialIfFluid(FluidloggedUtils.getFluidOrReal(access, pos), toMatch);

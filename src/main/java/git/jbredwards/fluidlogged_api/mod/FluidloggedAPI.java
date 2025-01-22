@@ -66,7 +66,8 @@ public final class FluidloggedAPI
             isBetterFoliage = Loader.isModLoaded("betterfoliage"),
             isChiseledMe    = Loader.isModLoaded("chiseled_me"),
             isCubicChunks   = Loader.isModLoaded("cubicchunks"),
-            isDynamicLights = Loader.isModLoaded("dynamiclights");
+            isDynamicLights = Loader.isModLoaded("dynamiclights"),
+            isSubaquatic    = Loader.isModLoaded("subaquatic");
 
     @Mod.EventHandler
     static void preInit(@Nonnull final FMLPreInitializationEvent event) {
