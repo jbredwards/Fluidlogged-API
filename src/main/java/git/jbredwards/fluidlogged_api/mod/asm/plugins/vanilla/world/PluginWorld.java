@@ -487,6 +487,9 @@ public final class PluginWorld implements IASMPlugin
         return false;
     }
 
+    @Override
+    public boolean recalcFrames(final boolean obfuscated) { return true; }
+
     @SuppressWarnings("unused")
     public static final class Hooks
     {
