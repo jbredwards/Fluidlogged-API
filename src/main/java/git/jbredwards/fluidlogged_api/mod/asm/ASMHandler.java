@@ -53,6 +53,8 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.openblocks.PluginOp
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginOptifine;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginSVertexBuilder;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.plus_tweaks.PluginPlusTweaks;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.projecte.PluginProjectEAmulet;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.projecte.PluginProjectEProjectile;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.projectred.PluginProjectRed;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.quantumflux.PluginQuantumFlux;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.railcraft.PluginRailcraft;
@@ -201,6 +203,10 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockFluidGC", new PluginGalacticraft()); // fix rendering issues with certain galacticraft fluids
             plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockWallGC", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("mods.railcraft.common.fluids.CustomContainerHandler", new PluginRailcraft()); // fix railcraft uncraftable potion bug when collecting water bottles (issue#148)
+            plugins.put("moze_intel.projecte.gameObjs.entity.EntityLavaProjectile", new PluginProjectEProjectile(false)); // allow the Volcanite Amulet projectile to lavalog blocks, and fix lava placement breaking blocks
+            plugins.put("moze_intel.projecte.gameObjs.entity.EntityWaterProjectile", new PluginProjectEProjectile(true)); // allow the Evertide Amulet projectile to waterlog blocks
+            plugins.put("moze_intel.projecte.gameObjs.items.EvertideAmulet", new PluginProjectEAmulet()); // allow the Evertide Amulet to waterlog blocks
+            plugins.put("moze_intel.projecte.gameObjs.items.VolcaniteAmulet", new PluginProjectEAmulet()); // allow the Volcanite Amulet to lavalog blocks
             plugins.put("mrtjp.projectred.core.TFaceConnectable$class", new PluginProjectRed()); // allow wires to connect through fluids
             plugins.put("mrtjp.projectred.exploration.BlockDecorativeWall", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("net.dries007.tfc.objects.blocks.BlockFluidTFC", new PluginTFCBlockFluid()); // duplicate fluid logic isn't needed, and causes conflicts with this mod

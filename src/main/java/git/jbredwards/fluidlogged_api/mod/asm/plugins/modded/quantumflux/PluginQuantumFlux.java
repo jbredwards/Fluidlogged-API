@@ -12,6 +12,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.item.PluginItemBuc
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.stats.StatList;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumHand;
@@ -32,6 +33,7 @@ import org.objectweb.asm.tree.ClassNode;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -113,8 +115,10 @@ public final class PluginQuantumFlux implements IASMPlugin
                 }
             }
 
+            if(drainedFluids.isEmpty()) return ActionResult.newResult(EnumActionResult.FAIL, held);
+            player.addStat(Objects.requireNonNull(StatList.getObjectUseStats(held.getItem())));
             drainedFluids.forEach(f -> world.playSound(null, player.posX, player.posY + 0.5, player.posZ, f.getFillSound(), SoundCategory.BLOCKS, 1, 1));
-            return ActionResult.newResult(drainedFluids.isEmpty() ? EnumActionResult.FAIL : EnumActionResult.SUCCESS, held);
+            return ActionResult.newResult(EnumActionResult.SUCCESS, held);
         }
 
         @Nonnull

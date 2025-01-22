@@ -15,6 +15,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.stats.StatList;
 import net.minecraft.util.ActionResult;
@@ -113,6 +114,12 @@ public final class PluginItemBucket implements IASMPlugin
         // helper
         @Nonnull
         public static ActionResult<ItemStack> placeFluid(@Nonnull final World world, @Nonnull final EntityPlayer player, @Nonnull final Block contained, @Nonnull final ItemStack held, @Nonnull final RayTraceResult trace) {
+            return placeFluid(world, player, contained, held, trace, held.getItem());
+        }
+
+        // helper
+        @Nonnull
+        public static ActionResult<ItemStack> placeFluid(@Nonnull final World world, @Nonnull final EntityPlayer player, @Nonnull final Block contained, @Nonnull final ItemStack held, @Nonnull final RayTraceResult trace, @Nonnull final Item itemForStats) {
             @Nullable final Fluid fluid = FluidloggedUtils.getFluidFromBlock(contained);
             if(fluid != null && world.isBlockModifiable(player, trace.getBlockPos())) {
                 @Nonnull final BlockPos targetPos = trace.sideHit == EnumFacing.UP
@@ -127,7 +134,7 @@ public final class PluginItemBucket implements IASMPlugin
                     // drained fluid from bucket and placed it at the pos
                     if(drainedResult.isSuccess()) {
                         if(player instanceof EntityPlayerMP) CriteriaTriggers.PLACED_BLOCK.trigger((EntityPlayerMP)player, targetPos, held);
-                        player.addStat(Objects.requireNonNull(StatList.getObjectUseStats(held.getItem())));
+                        player.addStat(Objects.requireNonNull(StatList.getObjectUseStats(itemForStats)));
 
                         if(!player.isCreative()) {
                             held.shrink(1);
