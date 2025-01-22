@@ -19,8 +19,13 @@ import git.jbredwards.fluidlogged_api.mod.common.datafix.LegacyDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.datafix.ToFluidloggedDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.message.*;
 import net.minecraft.block.BlockDispenser;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.init.Items;
 import net.minecraft.util.datafix.FixTypes;
+import net.minecraftforge.client.resource.ISelectiveResourceReloadListener;
+import net.minecraftforge.client.resource.VanillaResourceType;
 import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fluids.DispenseFluidContainer;
@@ -35,8 +40,10 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 /**
@@ -51,6 +58,7 @@ public final class FluidloggedAPI
     // Mod Constants
     @Nonnull public static final String MODID = "fluidlogged_api";
     @Nonnull public static final SimpleNetworkWrapper WRAPPER = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
+    @Nullable private static String creditsKey, descKey;
 
     // Mod Compatibility
     public static final boolean
@@ -92,6 +100,18 @@ public final class FluidloggedAPI
         if(Loader.isModLoaded("tropicraft")) ToFluidloggedDataFixer.STATE_MAPPERS.add((blockName, blockID, blockMetadata) -> { // fix old tropicraft "pseudo-fluidlogged" fences
             if(blockMetadata < 2 && blockName.getNamespace().equals("tropicraft") && blockName.getPath().endsWith("_fence")) return Pair.of(OptionalInt.of(0), "tropicraft:water");
             else return null;
+        });
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Mod.EventHandler
+    static void initClient(@Nonnull final FMLInitializationEvent event) {
+        // allow this mod's description and credits to be translated
+        ((IReloadableResourceManager)Minecraft.getMinecraft().getResourceManager()).registerReloadListener((ISelectiveResourceReloadListener)(manager, condition) -> {
+            if(condition.test(VanillaResourceType.LANGUAGES)) Optional.ofNullable(Loader.instance().getIndexedModList().get(MODID)).map(ModContainer::getMetadata).ifPresent(metadata -> {
+                metadata.credits = I18n.format(creditsKey == null ? creditsKey = metadata.credits : creditsKey).replace("\\n", "\n");
+                metadata.description = I18n.format(descKey == null ? descKey = metadata.description : descKey);
+            });
         });
     }
 
