@@ -41,7 +41,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
         else if(checkMethod(method, "<clinit>", "()V")) return 2;
         else if(method.name.equals("getFlowDirection") || method.name.equals("getDensity") || method.name.equals("getTemperature")) return 4;
         else if(method.name.equals("getFluid")) return 5;
-        else if(checkMethod(method, "getFilledPercentage", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)F")) return 6;
         else return method.name.equals("getFogColor") ? 3 : 0;
     }
 
@@ -114,37 +113,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
             instructions.insert(insn, new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "definedFluid", "Lnet/minecraftforge/fluids/Fluid;"));
             instructions.remove(insn.getPrevious());
             instructions.remove(insn);
-            return true;
-        }
-        /*
-         * getFilledPercentage: (changes are around line 823)
-         * Old code:
-         * return remaining * (density > 0 ? 1 : -1);
-         *
-         * New code:
-         * //fixes a general inaccuracy with modded fluids (this especially comes up in other mods like Biomes O'Plenty)
-         * return applyQuantaFraction(remaining * (density > 0 ? 1 : -1), this.quantaFraction);
-         */
-        else if(index == 6 && insn.getOpcode() == FRETURN) {
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
-            instructions.insertBefore(insn, new FieldInsnNode(GETFIELD, "net/minecraftforge/fluids/BlockFluidBase", "quantaFraction", "F"));
-            instructions.insertBefore(insn, genMethodNode("applyQuantaFraction", "(FF)F"));
-            return true;
-        }
-        /*
-         * getStateAtViewpoint: (changes are around line 864)
-         * Old code:
-         * return world.getBlockState(pos.down(this.densityDir));
-         *
-         * New code:
-         * //return the other block here if the player isn't within the fluid
-         * return Hooks.getStateAtViewpoint(world, pos, state, viewpoint);
-         */
-        else if(index == 7 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
-            instructions.insert(insn, genMethodNode("getStateAtViewpoint", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/block/state/IBlockState;"));
-            instructions.insert(insn, new VarInsnNode(ALOAD, 4));
-            instructions.insert(insn, new VarInsnNode(ALOAD, 1));
-            removeFrom(instructions, insn, -3);
             return true;
         }
 
@@ -381,10 +349,6 @@ public final class PluginBlockFluidBase implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static float applyQuantaFraction(final float remaining, final float quantaFraction) {
-            return (int)remaining == remaining ? remaining : remaining * quantaFraction;
-        }
-
         @Nonnull
         public static Map<Block, Boolean> defaultDisplacements(@Nonnull Map<Block, Boolean> map) {
             final Map<Block, Boolean> ret = new HashMap<>();

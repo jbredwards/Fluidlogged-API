@@ -5,6 +5,7 @@
 
 package git.jbredwards.fluidlogged_api.mod.common.fluid.handler;
 
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.api.world.IWorldProvider;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
@@ -27,7 +28,6 @@ import net.minecraft.world.chunk.BlockStateContainer;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.IFluidBlock;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -135,10 +135,7 @@ public final class FluidCollisionHandler
     }
 
     static boolean isYWithinFluidEstimate(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, final double minY, final double maxY, @Nonnull final IBlockState state, final boolean checkCache) {
-        return isYWithinFluid(FluidloggedUtils.getFluidFromState(state), pos, minY, maxY, applyQolOffset(state.getBlock() instanceof BlockLiquid ? BlockLiquid.getBlockLiquidHeight(state, world, pos)
-                : state.getBlock() instanceof BlockFluidBase ? ((BlockFluidBase)state.getBlock()).getFilledPercentage(world, pos) // don't use World if the block is a BlockFluidBase
-                : ((IFluidBlock)state.getBlock()).getFilledPercentage(IWorldProvider.getWorld(world), pos) // should never pass
-        ), checkCache);
+        return isYWithinFluid(FluidloggedUtils.getFluidFromState(state), pos, minY, maxY, applyQolOffset(getFilledPercentage(FluidState.of(state), world, pos)), checkCache);
     }
 
     static boolean isYWithinFluid(@Nullable final Fluid fluid, @Nonnull final BlockPos pos, final double minY, final double maxY, final double fluidHeight, final boolean checkCache) {
@@ -160,8 +157,18 @@ public final class FluidCollisionHandler
         return true;
     }
 
-    static double applyQolOffset(final double fluidHeight) {
+    public static double applyQolOffset(final double fluidHeight) {
         final double qolOffset = 0.015; // move the level to check down slightly, so things like lava next to soul sand don't light players on fire
         return (int)fluidHeight == fluidHeight ? fluidHeight : fluidHeight - qolOffset;
+    }
+
+    public static float getFilledPercentage(@Nonnull final FluidState state, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
+        if(state.getBlock() instanceof BlockLiquid) return BlockLiquid.getBlockLiquidHeight(state.getState(), world, pos);
+        final float remaining = state.getBlock() instanceof BlockFluidBase ? ((BlockFluidBase)state.getBlock()).getFilledPercentage(world, pos) // don't use World if the block is a BlockFluidBase
+                : state.getFluidBlock().getFilledPercentage(IWorldProvider.getWorld(world), pos); // should never pass
+
+        // fixes a general inaccuracy with modded fluids (this especially comes up in other mods like Biomes O'Plenty)
+        final float filled = (int)remaining == remaining ? remaining : remaining * state.getQuantaFraction();
+        return filled < 0 ? 1 - filled : filled; // ensure this is positive (gaseous fluids measure top-down)
     }
 }

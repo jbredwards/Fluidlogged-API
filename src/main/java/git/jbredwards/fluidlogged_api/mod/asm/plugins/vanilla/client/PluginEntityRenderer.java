@@ -8,6 +8,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -172,11 +173,8 @@ public final class PluginEntityRenderer implements IASMPlugin
             final AxisAlignedBB aabb = here.getBoundingBox(world, pos);
             //skip fluid check if none are present, or if it's a bad fluid
             if(fluidState.isEmpty() || !fluidState.isValid()) return aabb;
-            final double fluidHeight = Math.max(
-                    FluidloggedUtils.isFluid(here) ? 0 : aabb.maxY,
-                    fluidState.getFluidBlock().getFilledPercentage(world, pos));
-
-            return new AxisAlignedBB(0, 0, 0, 0, fluidHeight, 0);
+            final double fluidHeight = Math.max(FluidloggedUtils.isFluid(here) ? 0 : aabb.maxY, FluidCollisionHandler.getFilledPercentage(fluidState, world, pos));
+            return new AxisAlignedBB(0, 0, 0, 1, fluidHeight, 1);
         }
     }
 }

@@ -8,6 +8,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -253,7 +254,7 @@ public final class PluginEntity implements IASMPlugin
                 final BlockPos pos = result.getBlockPos();
                 final FluidState fluidState = FluidloggedUtils.getFluidState(entity.world, pos);
                 if(!fluidState.isEmpty() && fluidState.isValid()) {
-                    final float filled = fluidState.getFluidBlock().getFilledPercentage(entity.world, pos);
+                    final float filled = FluidCollisionHandler.getFilledPercentage(fluidState, entity.world, pos);
                     return pos.getY() + (filled < 0 ? filled + 1.1f : filled - 0.1f);
                 }
             }

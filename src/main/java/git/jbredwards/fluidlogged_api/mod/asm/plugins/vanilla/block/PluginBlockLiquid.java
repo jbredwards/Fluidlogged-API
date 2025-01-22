@@ -344,7 +344,7 @@ public final class PluginBlockLiquid implements IASMPlugin
          * @ASMGenerated
          * public float getFilledPercentage(World world, BlockPos pos)
          * {
-         *     return Hooks.getBlockLiquidHeight(FluidloggedUtils.getFluidOrReal(world, pos), world, pos);
+         *     return Hooks.getFilledPercentage(FluidloggedUtils.getFluidOrReal(world, pos), world, pos);
          * }
          */
         addMethod(classNode, "getFilledPercentage", "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)F", null, null, generator -> {
@@ -353,7 +353,7 @@ public final class PluginBlockLiquid implements IASMPlugin
             generator.visitMethodInsn(INVOKESTATIC, "git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;", false);
             generator.visitVarInsn(ALOAD, 1);
             generator.visitVarInsn(ALOAD, 2);
-            generator.visitMethodInsn(INVOKESTATIC, getHookClass(), "getBlockLiquidHeight", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)F", false);
+            generator.visitMethodInsn(INVOKESTATIC, getHookClass(), "getFilledPercentage", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)F", false);
         });
         /*
          * getFlowCost:
@@ -437,6 +437,10 @@ public final class PluginBlockLiquid implements IASMPlugin
                     && FluidloggedUtils.canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), EnumFacing.UP);
 
             return flag ? 1 : 1 - BlockLiquid.getLiquidHeightPercent(state.getValue(BlockLiquid.LEVEL));
+        }
+
+        public static float getFilledPercentage(@Nonnull IBlockState state, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
+            return Math.min(getBlockLiquidHeight(state, worldIn, pos) * 9f/8, 1); // apply BlockFluidBase inaccuracy for consistency
         }
 
         @Nonnull
