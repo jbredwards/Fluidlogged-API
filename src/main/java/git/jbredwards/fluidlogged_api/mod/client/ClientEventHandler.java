@@ -82,9 +82,9 @@ public final class ClientEventHandler
                 event.getRight().add("");
                 // display FluidState block & fluid
                 event.getRight().add(String.valueOf(fluidState.getBlock().getRegistryName()));
-                event.getRight().add(I18n.format("debugOverlay.fluidloggedAPI.fluid", fluidState.getFluid().getName()));
+                event.getRight().add(I18n.format("debug.fluidlogged_api.fluid", fluidState.getFluid().getName()));
                 // display FluidState level
-                if(!fluidState.isEmpty()) event.getRight().add(I18n.format("debugOverlay.fluidloggedAPI.level", fluidState.getLevel()));
+                if(!fluidState.isEmpty()) event.getRight().add(I18n.format("debug.fluidlogged_api.level", fluidState.getLevel()));
             }
         }
     }

@@ -5,28 +5,30 @@
 
 package git.jbredwards.fluidlogged_api.mod.client.gui;
 
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.ForgeHooks;
-import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.client.config.ConfigGuiType;
 import net.minecraftforge.fml.client.config.GuiConfigEntries;
 import net.minecraftforge.fml.client.config.IConfigElement;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Objects;
+import java.util.Optional;
 
 /**
  *
  * @author jbred
  *
  */
+@SideOnly(Side.CLIENT)
 public class ComponentConfigEntry implements GuiConfigEntries.IConfigEntry
 {
     @Nonnull protected static final Field NAME = ReflectionHelper.findField(GuiConfigEntries.ListEntryBase.class, "name");
@@ -37,23 +39,26 @@ public class ComponentConfigEntry implements GuiConfigEntries.IConfigEntry
 
     public ComponentConfigEntry(@Nonnull final GuiConfigEntries.IConfigEntry parentIn) {
         if(parentIn instanceof GuiConfigEntries.ListEntryBase) {
-            @Nonnull final String oldName = (String)get(NAME, parentIn);
+            @Nonnull final String oldName = get(NAME, parentIn).toString();
             @Nonnull final String newName = (component = ForgeHooks.newChatWithLinks(oldName)).getFormattedText();
 
             set(NAME, parentIn, newName);
             @Nonnull final List<String> tooltips = (List<String>)get(TOOLTIP, parentIn);
             for(@Nonnull final ListIterator<String> it = tooltips.listIterator(); it.hasNext();) {
-                @Nonnull final String tooltip = it.next();
-                @Nonnull final ITextComponent tooltipComponent = ForgeHooks.newChatWithLinks(tooltip);
+                @Nonnull final ITextComponent tooltipComponent = ForgeHooks.newChatWithLinks(it.next());
 
                 component.appendSibling(tooltipComponent);
                 tooltipComponent.getSiblings().forEach(component::appendSibling);
                 it.set(tooltipComponent.getFormattedText().replace(oldName, newName));
             }
 
-            if(parentIn.getConfigElement().getType() != ConfigGuiType.CONFIG_CATEGORY) {
+            @Nonnull final IConfigElement element = parentIn.getConfigElement();
+            if(element.getType() != ConfigGuiType.CONFIG_CATEGORY && element.getDefaults().length == 0) {
                 tooltips.remove(tooltips.size() - 1);
-                tooltips.add(TextFormatting.AQUA + I18n.format("fml.configgui.tooltip.default", I18n.format("configgui.fluidloggedAPI.default." + parentIn.getConfigElement().getDefault().toString())));
+                tooltips.add(TextFormatting.AQUA + I18n.format("fml.configgui.tooltip.default", Optional.ofNullable(element.getDefault()).map(o -> {
+                    if(element.getType() == ConfigGuiType.STRING) return I18n.format(element.getLanguageKey() + '.' + o);
+                    else return element.getType() == ConfigGuiType.BOOLEAN ? I18n.format(o.toString()) : o.toString();
+                }).orElse("[]")));
             }
         }
 
@@ -63,11 +68,10 @@ public class ComponentConfigEntry implements GuiConfigEntries.IConfigEntry
 
     @Override
     public boolean mousePressed(final int slotIndex, final int mouseX, final int mouseY, final int mouseEvent, final int relativeX, final int relativeY) {
-        if(parent.mousePressed(slotIndex, mouseX, mouseY, mouseEvent, relativeX, relativeY)) return true;
-        @Nonnull final GuiScreen openGui = Objects.requireNonNull(FMLClientHandler.instance().getClient().currentScreen);
-
-        for(@Nonnull final ITextComponent sibling : component.getSiblings()) if(openGui.handleComponentClick(sibling)) return true;
-        return openGui.handleComponentClick(component);
+        return parent.mousePressed(slotIndex, mouseX, mouseY, mouseEvent, relativeX, relativeY) || Optional.ofNullable(Minecraft.getMinecraft().currentScreen).map(openGui -> {
+            for(@Nonnull final ITextComponent sibling : component.getSiblings()) if(openGui.handleComponentClick(sibling)) return Boolean.TRUE;
+            return openGui.handleComponentClick(component);
+        }).orElse(Boolean.FALSE);
     }
 
     // =====

@@ -44,11 +44,11 @@ public final class FluidloggedAPIGuiFactory implements IModGuiFactory
         @Nonnull final List<IConfigElement> configElements = new ArrayList<>();
         configElements.add(ConfigElement.from(FluidloggedAPIConfig.class));
         // special category handlers
-        configElements.add(new DummyConfigElement.DummyCategoryElement("fluidlogged_api/fluidTags", "configgui.fluidloggedAPI.fluidTags", Collections.emptyList()));
-        configElements.add(new DummyConfigElement.DummyCategoryElement("fluidlogged_api/blacklist", "configgui.fluidloggedAPI.blacklist", Collections.emptyList()));
-        configElements.add(new DummyConfigElement.DummyCategoryElement("fluidlogged_api/whitelist", "configgui.fluidloggedAPI.whitelist", Collections.emptyList()));
+        configElements.add(new DummyConfigElement.DummyCategoryElement("fluidlogged_api/fluidTags", "configgui.fluidlogged_api.fluidTags", Collections.emptyList()));
+        configElements.add(new DummyConfigElement.DummyCategoryElement("fluidlogged_api/blacklist", "configgui.fluidlogged_api.blacklist", Collections.emptyList()));
+        configElements.add(new DummyConfigElement.DummyCategoryElement("fluidlogged_api/whitelist", "configgui.fluidlogged_api.whitelist", Collections.emptyList()));
         // don't change main gui screen
-        return new GuiComponentConfig(parentScreen, configElements, FluidloggedAPI.MODID, false, false, I18n.format("configgui.fluidloggedAPI.configTitle"));
+        return new GuiComponentConfig(parentScreen, configElements, FluidloggedAPI.MODID, false, false, I18n.format("configgui.fluidlogged_api.configTitle"));
     }
 
     // NO-OP

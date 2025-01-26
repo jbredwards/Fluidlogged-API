@@ -22,27 +22,27 @@ import java.util.function.Predicate;
  *
  */
 @Config(modid = FluidloggedAPI.MODID, name = "fluidlogged_api/general")
-@Config.LangKey("configgui.fluidloggedAPI.general")
+@Config.LangKey("configgui.fluidlogged_api.general")
 public final class FluidloggedAPIConfig
 {
     @Config.RequiresWorldRestart // prevent multiplayer desync
-    @Config.LangKey("configgui.fluidloggedAPI.general.allowDefaults")
+    @Config.LangKey("configgui.fluidlogged_api.general.allowDefaults")
     public static boolean allowDefaults = true;
 
     @Nonnull
-    @Config.LangKey("configgui.fluidloggedAPI.general.bucketFluidlogging")
+    @Config.LangKey("configgui.fluidlogged_api.general.bucketFluidlogging")
     public static BucketFluidloggingMode bucketFluidlogging = BucketFluidloggingMode.ALWAYS;
     public enum BucketFluidloggingMode implements Predicate<Entity>
     {
-        ALWAYS("configgui.fluidloggedAPI.general.bucketFluidlogging.always") {
+        ALWAYS("configgui.fluidlogged_api.general.bucketFluidlogging.ALWAYS") {
             @Override
             public boolean test(@Nonnull final Entity user) { return true; }
         },
-        NO_SNEAK("configgui.fluidloggedAPI.general.bucketFluidlogging.noSneak") {
+        NO_SNEAK("configgui.fluidlogged_api.general.bucketFluidlogging.NO_SNEAK") {
             @Override
             public boolean test(@Nonnull final Entity user) { return !user.isSneaking(); }
         },
-        ON_SNEAK("configgui.fluidloggedAPI.general.bucketFluidlogging.onSneak") {
+        ON_SNEAK("configgui.fluidlogged_api.general.bucketFluidlogging.ON_SNEAK") {
             @Override
             public boolean test(@Nonnull final Entity user) { return user.isSneaking(); }
         };
@@ -57,13 +57,13 @@ public final class FluidloggedAPIConfig
 
     @Nonnull
     @Config.RequiresWorldRestart // prevent multiplayer desync
-    @Config.LangKey("configgui.fluidloggedAPI.general.downloadModConfigs")
+    @Config.LangKey("configgui.fluidlogged_api.general.downloadModConfigs")
     public static OnlineConfigMode downloadModConfigs = OnlineConfigMode.KEEP_UPDATED;
     public enum OnlineConfigMode
     {
-        DISABLED("configgui.fluidloggedAPI.general.downloadModConfigs.disabled"),
-        IGNORE_UPDATES("configgui.fluidloggedAPI.general.downloadModConfigs.ignoreUpdates"),
-        KEEP_UPDATED("configgui.fluidloggedAPI.general.downloadModConfigs.keepUpdated");
+        DISABLED("configgui.fluidlogged_api.general.downloadModConfigs.DISABLED"),
+        IGNORE_UPDATES("configgui.fluidlogged_api.general.downloadModConfigs.IGNORE_UPDATES"),
+        KEEP_UPDATED("configgui.fluidlogged_api.general.downloadModConfigs.KEEP_UPDATED");
 
         @Nonnull final String langKey;
         OnlineConfigMode(@Nonnull final String langKeyIn) { langKey = langKeyIn; }
@@ -73,27 +73,27 @@ public final class FluidloggedAPIConfig
         public String toString() { return langKey; }
     }
 
-    @Config.LangKey("configgui.fluidloggedAPI.general.ignoreLowFluidCollision")
+    @Config.LangKey("configgui.fluidlogged_api.general.ignoreLowFluidCollision")
     public static boolean ignoreLowFluidCollision = true;
 
     @Nonnull
-    @Config.LangKey("configgui.fluidloggedAPI.general.fancyFluidEntityCollision")
+    @Config.LangKey("configgui.fluidlogged_api.general.fancyFluidEntityCollision")
     public static FancyCollisionMode fancyFluidEntityCollision = FancyCollisionMode.PLAYERS;
     public enum FancyCollisionMode implements BiPredicate<AxisAlignedBB, Object>
     {
-        NEVER("configgui.fluidloggedAPI.general.fancyFluidEntityCollision.never") {
+        NEVER("configgui.fluidlogged_api.general.fancyFluidEntityCollision.NEVER") {
             @Override
             public boolean test(@Nonnull final AxisAlignedBB bb, @Nullable final Object entity) { return false; }
         },
-        PLAYERS("configgui.fluidloggedAPI.general.fancyFluidEntityCollision.players") {
+        PLAYERS("configgui.fluidlogged_api.general.fancyFluidEntityCollision.PLAYERS") {
             @Override
             public boolean test(@Nonnull final AxisAlignedBB bb, @Nullable final Object entity) { return MEDIUM.test(bb, entity) && entity instanceof EntityPlayer; }
         },
-        MEDIUM("configgui.fluidloggedAPI.general.fancyFluidEntityCollision.medium") {
+        MEDIUM("configgui.fluidlogged_api.general.fancyFluidEntityCollision.MEDIUM") {
             @Override
             public boolean test(@Nonnull final AxisAlignedBB bb, @Nullable final Object entity) { return bb.maxX - bb.minX < 3 && bb.maxY - bb.minY < 3 && bb.maxZ - bb.minZ < 3; }
         },
-        ALWAYS("configgui.fluidloggedAPI.general.fancyFluidEntityCollision.always") {
+        ALWAYS("configgui.fluidlogged_api.general.fancyFluidEntityCollision.ALWAYS") {
             @Override
             public boolean test(@Nonnull final AxisAlignedBB bb, @Nullable final Object entity) { return true; }
         };
@@ -106,24 +106,23 @@ public final class FluidloggedAPIConfig
         public String toString() { return langKey; }
     }
 
-    @Config.LangKey("configgui.fluidloggedAPI.general.fancyFluidRenderer")
+    @Config.LangKey("configgui.fluidlogged_api.general.fancyFluidRenderer")
     public static boolean fancyFluidRenderer = true;
 
-    @Config.LangKey("configgui.fluidloggedAPI.general.fixBadFluidMixing")
+    @Config.LangKey("configgui.fluidlogged_api.general.fixBadFluidMixing")
     public static boolean fixBadFluidMixing = true;
 
-    @Config.LangKey("configgui.fluidloggedAPI.general.fluidStateIsFireInsulator")
+    @Config.LangKey("configgui.fluidlogged_api.general.fluidStateIsFireInsulator")
     public static boolean fluidStateIsFireInsulator = true;
 
     @Nonnull
-    @Config.LangKey("configgui.fluidloggedAPI.general.lavalogVaporizeFlammable")
+    @Config.LangKey("configgui.fluidlogged_api.general.lavalogVaporizeFlammable")
     public static LavaVaporizingMode lavalogVaporizeFlammable = LavaVaporizingMode.NEVER;
     public enum LavaVaporizingMode
     {
-        NEVER("configgui.fluidloggedAPI.general.lavalogVaporizeFlammable.never"),
-        FLUIDLOGGABLE("configgui.fluidloggedAPI.general.lavalogVaporizeFlammable.fluidloggable"),
-        FLAMMABLE("configgui.fluidloggedAPI.general.lavalogVaporizeFlammable.flammable")/*,
-        ALWAYS("configgui.fluidloggedAPI.general.lavalogVaporizeFlammable.always")*/;
+        NEVER("configgui.fluidlogged_api.general.lavalogVaporizeFlammable.NEVER"),
+        FLUIDLOGGABLE("configgui.fluidlogged_api.general.lavalogVaporizeFlammable.FLUIDLOGGABLE"),
+        FLAMMABLE("configgui.fluidlogged_api.general.lavalogVaporizeFlammable.FLAMMABLE");
 
         @Nonnull final String langKey;
         LavaVaporizingMode(@Nonnull final String langKeyIn) { langKey = langKeyIn; }
@@ -133,6 +132,6 @@ public final class FluidloggedAPIConfig
         public String toString() { return langKey; }
     }
 
-    @Config.LangKey("configgui.fluidloggedAPI.general.nonSourceFluidlogging")
+    @Config.LangKey("configgui.fluidlogged_api.general.nonSourceFluidlogging")
     public static boolean nonSourceFluidlogging = true;
 }
