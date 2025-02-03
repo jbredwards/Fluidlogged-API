@@ -28,12 +28,7 @@ minecraft {
 
 repositories {
     maven { url 'https://cursemaven.com' }
-    maven { url 'https://maven.covers1624.net' }
-    maven { url 'https://maven.ic2.player.to' }
     maven { url 'https://oss.sonatype.org/content/repositories/public/' }
-    // cb multipart
-    maven { url 'https://chickenbones.net/maven' }
-    maven { url 'https://modmaven.dev' }
 }
 
 dependencies {
@@ -41,12 +36,14 @@ dependencies {
     deobfProvided 'io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0-SNAPSHOT'
     deobfProvided 'curse.maven:astral-sorcery-241721:3044416'
     deobfProvided 'curse.maven:better-foliage-228529:3393955'
+    deobfProvided 'curse.maven:cb-multipart-258426:2755790'
+    deobfProvided 'curse.maven:cofh-core-69162:2920433'
     deobfProvided 'curse.maven:dynamic-lights-227874:2563244'
+    deobfProvided 'curse.maven:industrial-craft-242638:3838713'
     deobfProvided 'curse.maven:mekanism-268560:2835175'
-    deobfProvided 'codechicken:ForgeMultipart:1.12.2-2.6.2.+:universal'
-    deobfProvided 'cofh:CoFHCore:1.12.2-4.6.0.+:universal'
-    deobfProvided 'cofh:RedstoneFlux:1.12-2.1.0.6:universal'
-    deobfProvided 'net.industrial-craft:industrialcraft-2:2.8.170-ex112:api'
+    // optional mod compat (dependencies)
+    deobfProvided 'curse.maven:codechicken-lib-242818:2779848'
+    deobfProvided 'curse.maven:redstone-flux-270789:2920436'
 }
 
 processResources {
