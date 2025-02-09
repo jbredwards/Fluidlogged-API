@@ -31,7 +31,7 @@ public final class PluginTropicraftFence implements IASMPlugin
 
         // make tropicraft fences override the "applyDefaults" setting, as they must be fluidloggable for world gen
         classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/block/IFluidloggable");
-        addMethod(classNode, "overrideApplyDefaultsSetting", "(Lnet/minecraft/block/state/IBlockState;)Z", null, null, generator -> generator.visitInsn(ICONST_1));
+        addMethod(classNode, "overrideApplyDefaultsSetting", "()Z", null, null, generator -> generator.visitInsn(ICONST_1));
         return false;
     }
 }

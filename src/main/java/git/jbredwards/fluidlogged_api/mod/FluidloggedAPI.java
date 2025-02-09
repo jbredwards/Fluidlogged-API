@@ -12,11 +12,11 @@ import git.jbredwards.fluidlogged_api.mod.common.capability.util.FluidStateStora
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandFluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandReloadConfig;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandSetFluidState;
+import git.jbredwards.fluidlogged_api.mod.common.datafix.tropicraft.TropicraftDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigs;
 import git.jbredwards.fluidlogged_api.mod.common.config.handler.LegacyConfigHandler;
 import git.jbredwards.fluidlogged_api.mod.common.datafix.FluidloggedAPIFixableData;
 import git.jbredwards.fluidlogged_api.mod.common.datafix.LegacyDataFixer;
-import git.jbredwards.fluidlogged_api.mod.common.datafix.ToFluidloggedDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.message.*;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.client.Minecraft;
@@ -37,14 +37,12 @@ import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.OptionalInt;
 
 /**
  *
@@ -98,10 +96,7 @@ public final class FluidloggedAPI
         ForgeRegistries.BLOCKS.getValuesCollection().stream().filter(FluidloggedUtils::isFluid).forEach(b -> b.useNeighborBrightness = true);
         // fix legacy world data
         FMLCommonHandler.instance().getDataFixer().init(MODID, FluidloggedAPIFixableData.DATA_VERSION).registerFix(FixTypes.CHUNK, new FluidloggedAPIFixableData());
-        if(Loader.isModLoaded("tropicraft")) ToFluidloggedDataFixer.STATE_MAPPERS.add((blockName, blockID, blockMetadata) -> { // fix old tropicraft "pseudo-fluidlogged" fences
-            if(blockMetadata < 2 && blockName.getNamespace().equals("tropicraft") && blockName.getPath().endsWith("_fence")) return Pair.of(OptionalInt.of(0), "tropicraft:water");
-            else return null;
-        });
+        if(Loader.isModLoaded("tropicraft")) TropicraftDataFixer.register(); // fix old tropicraft "pseudo-fluidlogged" fences
     }
 
     @SideOnly(Side.CLIENT)

@@ -104,6 +104,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraftforge.client.model.ModelFluid$BakedFluid", new PluginModelFluid()); // fixes all issues with fluidlogged z-fighting
             plugins.put("net.minecraftforge.common.util.BlockSnapshot", new PluginBlockSnapshot()); // save FluidStates in block snapshots
             plugins.put("net.minecraftforge.common.ForgeHooks", new PluginForgeHooks()); // fix ForgeHooks#isInsideOfMaterial by allowing it to access stored fluid blocks
+            plugins.put("net.minecraftforge.fluids.capability.wrappers.FluidBucketWrapper", new PluginFluidBucketWrapper()); // fixes modded ItemBucket item instances
             plugins.put("net.minecraftforge.fluids.BlockFluidBase", new PluginBlockFluidBase()); // modded fluids work properly with the mod & prevent startup crash
             plugins.put("net.minecraftforge.fluids.BlockFluidClassic", new PluginBlockFluidClassic()); // modded fluids work properly with the mod
             plugins.put("net.minecraftforge.fluids.BlockFluidFinite", new PluginBlockFluidFinite()); // modded finite fluids work properly with the mod
@@ -216,7 +217,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.tropicraft.core.client.TropicraftWaterRenderFixer", new PluginTropicraftOverlays()); // account for FluidStates and improved fluid collisions
             plugins.put("net.tropicraft.core.common.block.BlockTropicraftFence", new PluginTropicraftFence()); // fixes for tropicraft fences
             plugins.put("net.tropicraft.core.common.block.BlockTropicraftSands", new PluginTropicraftSand()); // account for FluidStates
-            plugins.put("net.tropicraft.core.common.fluid.FluidTropicsWater", new PluginTropicraftFluid()); // fix issue#183
+            plugins.put("net.tropicraft.core.common.block.BlockTropicsWater", new PluginTropicraftFluid(true)); // fix flow direction
+            plugins.put("net.tropicraft.core.common.fluid.FluidTropicsWater", new PluginTropicraftFluid(false)); // fix issue#183
             plugins.put("openblocks.common.block.BlockSponge", new PluginOpenBlocks()); // make openblocks' sponge FluidState-sensitive
             plugins.put("org.spongepowered.common.mixin.core.block.BlockDynamicLiquidMixin", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.block.BlockLiquidMixin", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods

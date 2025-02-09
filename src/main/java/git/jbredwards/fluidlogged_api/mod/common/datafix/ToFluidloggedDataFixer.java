@@ -5,10 +5,11 @@
 
 package git.jbredwards.fluidlogged_api.mod.common.datafix;
 
+import git.jbredwards.fluidlogged_api.api.datafix.IFluidloggedDataMapper;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.NibbleArray;
 import net.minecraftforge.common.util.Constants;
@@ -16,7 +17,8 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Objects;
+import java.util.OptionalInt;
 
 /**
  * Converts certain fake "pseudo-fluidlogged" blocks into real ones.
@@ -29,11 +31,8 @@ import java.util.*;
 public final class ToFluidloggedDataFixer
 {
     @Nonnull
-    public static final List<Mapper> STATE_MAPPERS = new ArrayList<>();
-
-    @Nonnull
     public static NBTTagCompound fix(@Nonnull final NBTTagCompound compound) {
-        if(STATE_MAPPERS.isEmpty()) return compound;
+        if(IFluidloggedDataMapper.MAPPERS.isEmpty()) return compound;
         else {
             @Nonnull final BlockPos.MutableBlockPos posBuilder = new BlockPos.MutableBlockPos();
 
@@ -62,18 +61,21 @@ public final class ToFluidloggedDataFixer
                     final int blockMeta = metadataArray.get(x, y, z);
 
                     @Nonnull final Block block = Block.getBlockById(blockID);
-                    @Nullable final ResourceLocation blockName = block.getRegistryName();
-                    if(blockName != null) { // should never pass, but let's be safe
-                        @Nonnull final Optional<Pair<OptionalInt, String>> mapping = STATE_MAPPERS.stream()
-                                .map(mapper -> mapper.map(blockName, blockID, blockMeta))
-                                .filter(Objects::nonNull).findFirst();
-                        if(mapping.isPresent()) {
-                            @Nonnull final NBTTagCompound nbt = new NBTTagCompound();
-                            nbt.setString("id", mapping.get().getRight());
-                            nbt.setLong("pos", posBuilder.setPos(blockX | x, blockY | y, blockZ | z).toLong());
-                            /* Store a fluid location for later */
-                            capabilityData.appendTag(nbt);
-                            metadataArray.set(x, y, z, mapping.get().getLeft().orElse(blockMeta));
+                    if(block.getRegistryName() != null) { // ensure the block is registered
+                        @Nullable final Pair<OptionalInt, FluidState> mapping = IFluidloggedDataMapper.MAPPERS.get(block).stream()
+                                .map(mapper -> mapper.remapFluidData(blockID, blockMeta))
+                                .filter(Objects::nonNull).findFirst().orElse(null);
+
+                        if(mapping != null) {
+                            mapping.getLeft().ifPresent(meta -> metadataArray.set(x, y, z, meta));
+                            if(!mapping.getRight().isEmpty()) {
+                                @Nonnull final NBTTagCompound nbt = new NBTTagCompound();
+                                nbt.setLong("pos", posBuilder.setPos(blockX | x, blockY | y, blockZ | z).toLong());
+                                nbt.setString("id", String.valueOf(mapping.getRight().getBlock().getRegistryName()));
+                                nbt.setInteger("meta", mapping.getRight().getMetadata());
+                                /* Store a fluid data for later */
+                                capabilityData.appendTag(nbt);
+                            }
                         }
                     }
                 }
@@ -81,20 +83,5 @@ public final class ToFluidloggedDataFixer
         }
 
         return compound;
-    }
-
-    public interface Mapper
-    {
-        /**
-         * @param blockName The block registry name.
-         * @param blockID The old block id. Useful for remapped blocks.
-         * @param blockMetadata The block metadata.
-         * @return A pair containing an optional new metadata value for the block, and the fluid block to store as a FluidState.
-         * To remap a block, use Forge's {@link net.minecraftforge.event.RegistryEvent.MissingMappings MissingMappings} event.
-         * If you want to map a block that was remapped: cache its
-         * {@link net.minecraftforge.event.RegistryEvent.MissingMappings.Mapping#id old ID} and compare it with the blockID provided.
-         */
-        @Nullable
-        Pair<OptionalInt, String> map(@Nonnull final ResourceLocation blockName, final int blockID, final int blockMetadata);
     }
 }

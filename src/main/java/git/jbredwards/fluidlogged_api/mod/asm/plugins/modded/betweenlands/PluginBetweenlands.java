@@ -18,7 +18,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 
 /**
- * the betweenlands mod overrides most forge fluid methods to implement its own sudo fluidlogging,
+ * the betweenlands mod overrides most forge fluid methods to implement its own pseudo fluidlogging,
  * this mod fixes everything betweenlands did already, so this undoes all of its stuff
  * @author jbred
  *
