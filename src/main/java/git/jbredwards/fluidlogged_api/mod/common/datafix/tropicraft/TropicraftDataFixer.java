@@ -5,13 +5,12 @@
 
 package git.jbredwards.fluidlogged_api.mod.common.datafix.tropicraft;
 
+import git.jbredwards.fluidlogged_api.api.datafix.FluidMappingData;
 import git.jbredwards.fluidlogged_api.api.datafix.IFluidloggedDataMapper;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import net.tropicraft.core.registry.BlockRegistry;
-import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
-import java.util.OptionalInt;
 
 /**
  *
@@ -32,7 +31,7 @@ public enum TropicraftDataFixer implements IFluidloggedDataMapper
 
     @Nonnull
     @Override
-    public Pair<OptionalInt, FluidState> remapFluidData(final int blockID, final int blockMetadata) {
-        return Pair.of(OptionalInt.of(0), blockMetadata < 2 ? FluidState.of(BlockRegistry.tropicsWater) : FluidState.EMPTY);
+    public FluidMappingData remapFluidData(final int blockID, final int blockMetadata) {
+        return new FluidMappingData(blockMetadata < 2 ? FluidState.of(BlockRegistry.tropicsWater) : FluidState.EMPTY).withMetadata(0);
     }
 }

@@ -38,6 +38,8 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.enderio.PluginEnder
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.exnihilo.PluginExNihiloCreatio;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.extrautils.PluginExtraUtilsAccessDelegate;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.extrautils.PluginExtraUtilsAccessServer;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.PluginBlockGrating;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.PluginGCBlocks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.PluginGalacticraft;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.hesperus.PluginHesperus;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.industrial_renewal.PluginIndustrialRenewal;
@@ -201,8 +203,11 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("mekanism.common.tile.TileEntityElectricPump", new PluginMekanismPump()); // make mekanism's electric pump FluidState-sensitive
             plugins.put("mekanism.common.util.MekanismUtils", new PluginMekanismUtils()); // make mekanism's fluid getter methods FluidState-sensitive
             plugins.put("meldexun.nothirium.mc.renderer.chunk.SectionRenderCache", new PluginNothirium()); // nothirium compat
-            plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockFluidGC", new PluginGalacticraft()); // fix rendering issues with certain galacticraft fluids
+            plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockFluidGC", new PluginGalacticraft(false)); // fix rendering issues with certain galacticraft fluids
+            plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockGrating", new PluginBlockGrating()); // make Galacticraft's grating block use actual fluidlogging, instead of pseudo fluidlogging
             plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockWallGC", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
+            plugins.put("micdoodle8.mods.galacticraft.core.util.FluidUtil", new PluginGalacticraft(true)); // make galacticraft fluid fog texture overlay rendering account for FluidStates
+            plugins.put("micdoodle8.mods.galacticraft.core.GCBlocks", new PluginGCBlocks()); // don't register Galacticraft's water & lava grating blocks, so they can be remapped
             plugins.put("mods.railcraft.common.fluids.CustomContainerHandler", new PluginRailcraft()); // fix railcraft uncraftable potion bug when collecting water bottles (issue#148)
             plugins.put("moze_intel.projecte.gameObjs.entity.EntityLavaProjectile", new PluginProjectEProjectile(false)); // allow the Volcanite Amulet projectile to lavalog blocks, and fix lava placement breaking blocks
             plugins.put("moze_intel.projecte.gameObjs.entity.EntityWaterProjectile", new PluginProjectEProjectile(true)); // allow the Evertide Amulet projectile to waterlog blocks

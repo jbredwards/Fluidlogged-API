@@ -12,6 +12,7 @@ import git.jbredwards.fluidlogged_api.mod.common.capability.util.FluidStateStora
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandFluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandReloadConfig;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandSetFluidState;
+import git.jbredwards.fluidlogged_api.mod.common.datafix.galacticraft.GalacticraftDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.datafix.tropicraft.TropicraftDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigs;
 import git.jbredwards.fluidlogged_api.mod.common.config.handler.LegacyConfigHandler;
@@ -65,6 +66,7 @@ public final class FluidloggedAPI
             isChiseledMe    = Loader.isModLoaded("chiseled_me"),
             isCubicChunks   = Loader.isModLoaded("cubicchunks"),
             isDynamicLights = Loader.isModLoaded("dynamiclights"),
+            isGalacticraft  = Loader.isModLoaded("galacticraftcore"),
             isSubaquatic    = Loader.isModLoaded("subaquatic");
 
     @Mod.EventHandler
@@ -97,6 +99,7 @@ public final class FluidloggedAPI
         // fix legacy world data
         FMLCommonHandler.instance().getDataFixer().init(MODID, FluidloggedAPIFixableData.DATA_VERSION).registerFix(FixTypes.CHUNK, new FluidloggedAPIFixableData());
         if(Loader.isModLoaded("tropicraft")) TropicraftDataFixer.register(); // fix old tropicraft "pseudo-fluidlogged" fences
+        if(isGalacticraft) GalacticraftDataFixer.register(); // fix old galacticraft "pseudo-fluidlogged" grating
     }
 
     @SideOnly(Side.CLIENT)
@@ -129,6 +132,7 @@ public final class FluidloggedAPI
 
     @Mod.EventHandler
     static void aboutToStart(@Nonnull final FMLServerAboutToStartEvent event) throws IOException {
+        if(isGalacticraft) GalacticraftDataFixer.init();
         LegacyDataFixer.init();
         // config settings
         ForgeModContainer.fixVanillaCascading = true;
@@ -137,6 +141,7 @@ public final class FluidloggedAPI
 
     @Mod.EventHandler
     static void stopped(@Nonnull final FMLServerStoppedEvent event) {
+        if(isGalacticraft) GalacticraftDataFixer.reset();
         LegacyDataFixer.reset();
     }
 }

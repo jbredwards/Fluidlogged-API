@@ -6,19 +6,17 @@
 package git.jbredwards.fluidlogged_api.mod.common.datafix;
 
 import git.jbredwards.fluidlogged_api.api.datafix.IFluidloggedDataMapper;
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.datafix.FluidMappingData;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.NibbleArray;
 import net.minecraftforge.common.util.Constants;
-import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Objects;
-import java.util.OptionalInt;
 
 /**
  * Converts certain fake "pseudo-fluidlogged" blocks into real ones.
@@ -51,6 +49,8 @@ public final class ToFluidloggedDataFixer
                 @Nonnull final NibbleArray metadataArray = new NibbleArray(section.getByteArray("Data"));
 
                 final int blockY = section.getInteger("Y") << 4;
+                boolean dirty = false;
+
                 for(int pos = 0; pos < blockIDs.length; pos++) {
                     final int x = pos & 15;
                     final int y = pos >> 8 & 15;
@@ -62,22 +62,40 @@ public final class ToFluidloggedDataFixer
 
                     @Nonnull final Block block = Block.getBlockById(blockID);
                     if(block.getRegistryName() != null) { // ensure the block is registered
-                        @Nullable final Pair<OptionalInt, FluidState> mapping = IFluidloggedDataMapper.MAPPERS.get(block).stream()
+                        @Nullable final FluidMappingData mapping = IFluidloggedDataMapper.MAPPERS.get(block).stream()
                                 .map(mapper -> mapper.remapFluidData(blockID, blockMeta))
                                 .filter(Objects::nonNull).findFirst().orElse(null);
 
                         if(mapping != null) {
-                            mapping.getLeft().ifPresent(meta -> metadataArray.set(x, y, z, meta));
-                            if(!mapping.getRight().isEmpty()) {
+                            dirty = true;
+
+                            if(mapping.meta != -1) metadataArray.set(x, y, z, mapping.meta);
+                            if(mapping.block != null) {
+                                // Calculate the new block ID, and block ID extension from the block
+                                final int newBlockID = Block.getIdFromBlock(mapping.block);
+                                // Update the block ID in the original chunk
+                                blockIDs[pos] = (byte)newBlockID;
+                                // Update the extended block ID
+                                extIDs.set(x, y, z, newBlockID >> 8 & 15);
+                            }
+
+                            if(mapping.fluidState.isValid()) {
                                 @Nonnull final NBTTagCompound nbt = new NBTTagCompound();
                                 nbt.setLong("pos", posBuilder.setPos(blockX | x, blockY | y, blockZ | z).toLong());
-                                nbt.setString("id", String.valueOf(mapping.getRight().getBlock().getRegistryName()));
-                                nbt.setInteger("meta", mapping.getRight().getMetadata());
+                                nbt.setString("id", String.valueOf(mapping.fluidState.getBlock().getRegistryName()));
+                                nbt.setInteger("meta", mapping.fluidState.getMetadata());
                                 /* Store a fluid data for later */
                                 capabilityData.appendTag(nbt);
                             }
                         }
                     }
+                }
+
+                // Update the block IDs and metadata in the section
+                if(dirty) {
+                    section.setByteArray("Blocks", blockIDs);
+                    section.setByteArray("Data", metadataArray.getData());
+                    section.setByteArray("Add", extIDs.getData());
                 }
             }
         }

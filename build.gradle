@@ -39,6 +39,7 @@ dependencies {
     deobfProvided 'curse.maven:cb-multipart-258426:2755790'
     deobfProvided 'curse.maven:cofh-core-69162:2920433'
     deobfProvided 'curse.maven:dynamic-lights-227874:2563244'
+    deobfProvided 'curse.maven:galacticraft-legacy-564236:4671122'
     deobfProvided 'curse.maven:industrial-craft-242638:3838713'
     deobfProvided 'curse.maven:mekanism-268560:2835175'
     deobfProvided 'curse.maven:tropicraft-254794:2713918'

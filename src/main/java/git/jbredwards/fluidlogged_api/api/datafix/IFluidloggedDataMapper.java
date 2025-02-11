@@ -7,13 +7,10 @@ package git.jbredwards.fluidlogged_api.api.datafix;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import net.minecraft.block.Block;
-import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.OptionalInt;
 
 /**
  * Converts data for "pseudo-fluidlogged" blocks into real FluidState data, with the option of changing the block metadata.
@@ -48,5 +45,5 @@ public interface IFluidloggedDataMapper
      * @author jbred
      */
     @Nullable
-    Pair<OptionalInt, FluidState> remapFluidData(final int blockID, final int blockMetadata);
+    FluidMappingData remapFluidData(final int blockID, final int blockMetadata);
 }
