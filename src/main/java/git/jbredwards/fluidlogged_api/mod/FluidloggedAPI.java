@@ -122,6 +122,7 @@ public final class FluidloggedAPI
     }
 
     @SideOnly(Side.CLIENT)
+    @Mod.EventHandler
     static void loadCompleteClient(@Nonnull final FMLLoadCompleteEvent event) {
         // load Optifine reflection classes
         if(FMLClientHandler.instance().hasOptifine()) OptifineHelper.onLoadComplete();
