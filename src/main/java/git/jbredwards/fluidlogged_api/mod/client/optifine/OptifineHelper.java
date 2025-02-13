@@ -5,6 +5,7 @@
 
 package git.jbredwards.fluidlogged_api.mod.client.optifine;
 
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginIResolvable;
 import net.minecraft.init.Biomes;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.biome.Biome;
@@ -20,7 +21,7 @@ import java.lang.reflect.Method;
  * @author jbred
  *
  */
-public final class OptifineCustomWaterColors
+public final class OptifineHelper
 {
     static final Field waterColors_Field;
     static final Method getColor_Method;
@@ -56,4 +57,6 @@ public final class OptifineCustomWaterColors
             catch(final IllegalAccessException | InvocationTargetException e) { throw new RuntimeException(e); }
         };
     }
+
+    public static void onLoadComplete() { PluginIResolvable.Hooks.resolve(); }
 }

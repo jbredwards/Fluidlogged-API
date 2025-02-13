@@ -52,6 +52,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.mekanism.PluginMeka
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.nethercraft.PluginNethercraftClassic;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.nothirium.PluginNothirium;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.openblocks.PluginOpenBlocks;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginIResolvable;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginOptifine;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginSVertexBuilder;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.plus_tweaks.PluginPlusTweaks;
@@ -218,6 +219,10 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.dries007.tfc.objects.blocks.BlockFluidTFC", new PluginTFCBlockFluid()); // duplicate fluid logic isn't needed, and causes conflicts with this mod
             plugins.put("net.dries007.tfc.objects.fluids.FluidsTFC", new PluginTFCFluids()); // use ICompatibleFluid for water-like fluids
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); // better optifine compat
+            plugins.put("net.optifine.reflect.ReflectorClass", new PluginIResolvable()); // fix crashes caused by Optifine loading classes too early
+            plugins.put("net.optifine.reflect.ReflectorConstructor", new PluginIResolvable()); // fix crashes caused by Optifine loading classes too early
+            plugins.put("net.optifine.reflect.ReflectorField", new PluginIResolvable()); // fix crashes caused by Optifine loading classes too early
+            plugins.put("net.optifine.reflect.ReflectorMethod", new PluginIResolvable()); // fix crashes caused by Optifine loading classes too early
             plugins.put("net.optifine.shaders.SVertexBuilder", new PluginSVertexBuilder()); // set the block renderType (aka mc_Entity.y) to 1 if the block is a BlockLiquid
             plugins.put("net.tropicraft.core.client.TropicraftWaterRenderFixer", new PluginTropicraftOverlays()); // account for FluidStates and improved fluid collisions
             plugins.put("net.tropicraft.core.common.block.BlockTropicraftFence", new PluginTropicraftFence()); // fixes for tropicraft fences

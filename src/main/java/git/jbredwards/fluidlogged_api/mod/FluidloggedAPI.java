@@ -7,7 +7,7 @@ package git.jbredwards.fluidlogged_api.mod;
 
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import git.jbredwards.fluidlogged_api.mod.client.optifine.OptifineCustomWaterColors;
+import git.jbredwards.fluidlogged_api.mod.client.optifine.OptifineHelper;
 import git.jbredwards.fluidlogged_api.mod.common.capability.util.FluidStateStorage;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandFluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandReloadConfig;
@@ -87,7 +87,7 @@ public final class FluidloggedAPI
     @Mod.EventHandler
     static void preInitClient(@Nonnull final FMLPreInitializationEvent event) {
         // optifine custom water colors
-        if(FMLClientHandler.instance().hasOptifine()) OptifineCustomWaterColors.setWaterColorHelper();
+        if(FMLClientHandler.instance().hasOptifine()) OptifineHelper.setWaterColorHelper();
     }
 
     @Mod.EventHandler
@@ -119,6 +119,12 @@ public final class FluidloggedAPI
         // fixes the vanilla bucket dispenser actions by replacing them with the forge one
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
+    }
+
+    @SideOnly(Side.CLIENT)
+    static void loadCompleteClient(@Nonnull final FMLLoadCompleteEvent event) {
+        // load Optifine reflection classes
+        if(FMLClientHandler.instance().hasOptifine()) OptifineHelper.onLoadComplete();
     }
 
     @Mod.EventHandler
