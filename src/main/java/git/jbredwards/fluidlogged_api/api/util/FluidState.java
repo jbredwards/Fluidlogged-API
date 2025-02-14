@@ -516,9 +516,10 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
     protected float fluidHeight = Float.MAX_VALUE;
     public float getHeight() {
         if(fluidHeight != Float.MAX_VALUE) return fluidHeight;
-        else if(getBlock() instanceof BlockLiquid) return 1 - BlockLiquid.getLiquidHeightPercent(getLevel() >= 8 ? 1 : getLevel());
-        else if(getBlock() instanceof BlockFluidBase) return fluidHeight = getQuantaValue() * getQuantaFraction() / getQuantaPerBlockFloat();
-        else throw new UnsupportedOperationException("Cannot get fluid height from invalid FluidState!");
+        else if(getBlock() instanceof BlockLiquid) return fluidHeight = 1 - BlockLiquid.getLiquidHeightPercent(getLevel() >= 8 ? 1 : getLevel());
+        else if(isValid()) return fluidHeight = getQuantaValue() * getQuantaFraction() / getQuantaPerBlockFloat();
+        else if(isEmpty()) throw new UnsupportedOperationException("Cannot get fluid height from empty FluidState!");
+        else return fluidHeight = getQuantaFraction(); // fallback for badly coded fluid blocks (#255)
     }
 
     public float getActualHeight(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
