@@ -63,7 +63,7 @@ public abstract class AbstractMessage implements IMessage
      * @param buf The packet buffer.
      * @throws NullPointerException If buf is null.
      *
-     * @since 1.9.0
+     * @since 1.9.0.3
      * @author jbred
      */
     public abstract void read(@Nonnull final PacketBuffer buf);
@@ -74,7 +74,7 @@ public abstract class AbstractMessage implements IMessage
      * @param buf The packet buffer.
      * @throws NullPointerException If buf is null.
      *
-     * @since 1.9.0
+     * @since 1.9.0.3
      * @author jbred
      */
     public abstract void write(@Nonnull final PacketBuffer buf);
