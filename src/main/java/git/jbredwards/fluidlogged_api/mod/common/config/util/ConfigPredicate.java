@@ -46,7 +46,10 @@ public interface ConfigPredicate
     // Internal:
     Multimap<Class<?>, Block> CLASS_TO_BLOCK = HashMultimap.create();
     static void fillClassToBlockLookup() { if(CLASS_TO_BLOCK.isEmpty()) ForgeRegistries.BLOCKS.forEach(b -> {
-        for(@Nonnull Class<?> c = b.getClass(); !c.isAssignableFrom(Block.class); c = c.getSuperclass()) CLASS_TO_BLOCK.put(c, b);
+        for(@Nonnull Class<?> c = b.getClass(); !c.isAssignableFrom(Block.class); c = c.getSuperclass()) {
+            for(@Nonnull final Class<?> iface : c.getInterfaces()) CLASS_TO_BLOCK.put(iface, b);
+            CLASS_TO_BLOCK.put(c, b);
+        }
     }); }
 
     // Internal:
@@ -83,8 +86,8 @@ public interface ConfigPredicate
 
             fillClassToBlockLookup();
             // generate config for each block that is an instanceof the class
-            @Nullable final Collection<Block> blocks = CLASS_TO_BLOCK.get(blockClass);
-            if(blocks != null) blocks.forEach(block -> {
+            @Nonnull final Collection<Block> blocks = CLASS_TO_BLOCK.get(blockClass);
+            if(!blocks.isEmpty()) blocks.forEach(block -> {
                 try { helper.forEachState(block, configGetter, configSetter); }
                 // don't skip remaining blocks
                 catch(@Nonnull final Throwable t) {
@@ -103,8 +106,8 @@ public interface ConfigPredicate
             fillModIdToBlockLookup();
 
             // generate config for each block that is an instanceof the class
-            @Nullable final Collection<Block> blocks = MODID_TO_BLOCK.get(modId);
-            if(blocks != null) blocks.forEach(block -> {
+            @Nonnull final Collection<Block> blocks = MODID_TO_BLOCK.get(modId);
+            if(!blocks.isEmpty()) blocks.forEach(block -> {
                 try { helper.forEachState(block, configGetter, configSetter); }
                 // don't skip remaining blocks
                 catch(@Nonnull final Throwable t) {
