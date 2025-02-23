@@ -20,7 +20,6 @@
             "net.minecraft.block.BlockFence", // properly coded fence blocks
             "net.minecraft.block.BlockFenceGate", // properly coded fence gate blocks
             "net.minecraft.block.BlockFlowerPot", // properly coded flower pot blocks
-            "net.minecraft.block.BlockHopper", // properly coded hopper blocks
             "net.minecraft.block.BlockLadder", // properly coded ladder blocks
             "net.minecraft.block.BlockLever", // properly coded lever blocks
             "net.minecraft.block.BlockPane", // properly coded glass pane blocks (this includes iron bars)
@@ -42,6 +41,8 @@
         "replace": "never", "allowMissing": true,
         "canFluidFlow": true, // for these blocks, this flag allows fluids to flow out from any side
         "classId": [
+            "git.jbredwards.fluidlogged_api.mod.asm.iface.IModdedWall", // badly coded wall blocks
+            "net.minecraft.block.BlockHopper", // properly coded hopper blocks
             "net.minecraft.block.BlockLeaves", // properly coded leaf blocks
             "net.minecraft.block.BlockMobSpawner" // properly coded mob spawner blocks
         ]

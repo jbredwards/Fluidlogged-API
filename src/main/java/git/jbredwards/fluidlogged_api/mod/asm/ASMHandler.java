@@ -148,7 +148,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("com.enderio.core.client.handlers.FluidVisualsHandler", new PluginEnderCore()); // make endercore's fluid overlay renderer FluidState-sensitive
             plugins.put("com.enderio.core.common.fluid.BlockFluidEnder", new PluginEnderCore()); // fix endercore fluid collisions
             plugins.put("com.enderio.core.common.util.IBlockAccessWrapper", new PluginEnderCore()); // make endercore's block access wrapper FluidState-sensitive
-            plugins.put("com.gildedgames.the_aether.blocks.decorative.BlockAetherWall", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("com.kashdeya.tinyprogressions.items.misc.InfinBucket", new PluginTinyProgressions()); // allow tiny progressions' bucket to recognise tanks and FluidStates
             plugins.put("com.legacy.blue_skies.blocks.natural.BlockSkyFarmland", new PluginBlockFarmland()); // farmland blocks now recognise water FluidStates
             plugins.put("com.legacy.blue_skies.blocks.natural.BlockSkyLilyPad", new PluginBlockLilyPad()); // lily pads can stay on certain water FluidStates
@@ -169,7 +168,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("com.lycanitesmobs.core.block.BlockFluidBase", new PluginLycanitesFluidBase()); // remove isEntityInsideMaterial override
             plugins.put("com.rwtema.extrautils2.utils.blockaccess.BlockAccessDelegate", new PluginExtraUtilsAccessDelegate()); // extrautils' block access wrapper FluidState-sensitive
             plugins.put("com.rwtema.extrautils2.utils.blockaccess.ThreadSafeBlockAccess", new PluginExtraUtilsAccessServer()); // extrautils' block access wrapper FluidState-sensitive
-            plugins.put("com.teammetallurgy.atum.blocks.base.BlockAtumWall", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("crafttweaker.mc1120.block.MCWorldBlock", new PluginCraftTweaker()); // MCWorldBlock.getFluid can read FluidStates
             plugins.put("crazypants.enderio.base.block.insulation.BlockIndustrialInsulation", new PluginEnderIOSponge()); // make ender io's sponge (industrial insulation block) FluidState-sensitive
             plugins.put("crazypants.enderio.base.fluid.BlockFluidEio$FireWater", new PluginEnderIO()); // fix fire water fluid collision
@@ -179,8 +177,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("dev.necauqua.mods.cm.mixin.entity.EntityLivingBaseMixin", new PluginChiseledMe()); // fix chiseled me conflict
             plugins.put("dev.necauqua.mods.cm.mixin.entity.EntityMixin", new PluginChiseledMe()); // fix chiseled me conflict
             plugins.put("dev.necauqua.mods.cm.mixin.WorldMixin", new PluginChiseledMe()); // fix chiseled me conflict
-            plugins.put("endreborn.mod.blocks.BlockWallBase", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
-            plugins.put("erebus.blocks.BlockWallErebus", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("exnihilocreatio.barrel.modes.fluid.BarrelModeFluid", new PluginExNihiloCreatio()); // allow "fluid on top" barrel crafting to accept FluidStates
             plugins.put("hellfirepvp.astralsorcery.client.util.AirBlockRenderWorld", new PluginAstralSorceryAccess()); // make astral sorcery's block access wrappers FluidState-sensitive
             plugins.put("hellfirepvp.astralsorcery.client.util.BlockArrayRenderHelper$WorldBlockArrayRenderAccess", new PluginAstralSorceryAccess()); // make astral sorcery's block access wrappers FluidState-sensitive
@@ -206,7 +202,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("meldexun.nothirium.mc.renderer.chunk.SectionRenderCache", new PluginNothirium()); // nothirium compat
             plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockFluidGC", new PluginGalacticraft(false)); // fix rendering issues with certain galacticraft fluids
             plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockGrating", new PluginBlockGrating()); // make Galacticraft's grating block use actual fluidlogging, instead of pseudo fluidlogging
-            plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockWallGC", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("micdoodle8.mods.galacticraft.core.util.FluidUtil", new PluginGalacticraft(true)); // make galacticraft fluid fog texture overlay rendering account for FluidStates
             plugins.put("micdoodle8.mods.galacticraft.core.GCBlocks", new PluginGCBlocks()); // don't register Galacticraft's water & lava grating blocks, so they can be remapped
             plugins.put("mods.railcraft.common.fluids.CustomContainerHandler", new PluginRailcraft()); // fix railcraft uncraftable potion bug when collecting water bottles (issue#148)
@@ -215,7 +210,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("moze_intel.projecte.gameObjs.items.EvertideAmulet", new PluginProjectEAmulet()); // allow the Evertide Amulet to waterlog blocks
             plugins.put("moze_intel.projecte.gameObjs.items.VolcaniteAmulet", new PluginProjectEAmulet()); // allow the Volcanite Amulet to lavalog blocks
             plugins.put("mrtjp.projectred.core.TFaceConnectable$class", new PluginProjectRed()); // allow wires to connect through fluids
-            plugins.put("mrtjp.projectred.exploration.BlockDecorativeWall", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("net.dries007.tfc.objects.blocks.BlockFluidTFC", new PluginTFCBlockFluid()); // duplicate fluid logic isn't needed, and causes conflicts with this mod
             plugins.put("net.dries007.tfc.objects.fluids.FluidsTFC", new PluginTFCFluids()); // use ICompatibleFluid for water-like fluids
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); // better optifine compat
@@ -236,16 +230,13 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("org.spongepowered.common.mixin.core.entity.EntityMixin", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.optimization.world.chunk.ChunkMixin_Async_Lighting", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.mod.mixin.core.forge.fluids.BlockFluidClassicMixin_Forge", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods
-            plugins.put("paulevs.betternether.blocks.BNWall", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockFluidBase", new PluginPlusTweaks()); // fix crash with PlusTweaks mod fluid interactions
             plugins.put("plus.misterplus.plustweaks.mixins.MixinBlockLiquid", new PluginPlusTweaks()); // fix crash with PlusTweaks mod fluid interactions
             plugins.put("portablejim.bbw.core.WandWorker", new PluginBuildersWands()); // better builders wands compat
             plugins.put("stevekung.mods.moreplanets.planets.fronos.blocks.BlockFronosLilyPad", new PluginBlockLilyPad()); // lily pads can stay on certain water FluidStates
             plugins.put("stevekung.mods.moreplanets.planets.fronos.item.ItemBlockFronosLilyPad", new PluginItemLilyPad()); // lily pads can stay on certain water FluidStates
             plugins.put("stevekung.mods.moreplanets.utils.blocks.BlockFarmlandMP", new PluginBlockFarmland()); // farmland blocks now recognise water FluidStates
-            plugins.put("stevekung.mods.moreplanets.utils.blocks.BlockWallMP", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("thebetweenlands.common.block.plant.BlockAlgae", new PluginBlockLilyPad()); // lily pads can stay on certain water FluidStates
-            plugins.put("thebetweenlands.common.block.structure.BlockWallBetweenlands", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("thebetweenlands.common.block.terrain.BlockLifeCrystalStalactite", new PluginBetweenlandsStates()); // keep FluidExtendedBlockState at the time of rendering
             plugins.put("thebetweenlands.common.block.terrain.BlockRootUnderwater", new PluginBetweenlandsStates()); // keep FluidExtendedBlockState at the time of rendering
             plugins.put("thebetweenlands.common.block.terrain.BlockRubber", new PluginBetweenlandsRubber()); // fix fluid collisions
@@ -254,14 +245,11 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("thebetweenlands.common.block.terrain.BlockTar", new PluginBetweenlandsRubber()); // fix fluid collisions
             plugins.put("thebetweenlands.common.entity.mobs.EntityTarBeast", new PluginBetweenlandsTarBeast()); // tar beast cannot be pushed by fluids
             plugins.put("thebetweenlands.common.item.ItemWaterPlaceable", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
-            plugins.put("thedarkcolour.futuremc.block.villagepillage.BlockWall", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
-            plugins.put("thelm.jaopca.additions.block.BlockWallBase", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("twilightforest.block.BlockTFHugeLilyPad", new PluginBlockLilyPad()); // lily pads can stay on certain water FluidStates
             plugins.put("twilightforest.item.ItemBlockTFHugeLilyPad", new PluginTwilightForest()); // 2x2 lily pads can be placed on certain water FluidStates
             plugins.put("twilightforest.item.ItemBlockTFHugeWaterLily", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
             plugins.put("vazkii.botania.common.item.ItemOpenBucket", new PluginBotania()); // allow botania's void bucket item to recognise tanks and FluidStates
             plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); // wooden bowls can now be filled by using water FluidStates
-            plugins.put("WayofTime.bloodmagic.block.BlockEnumWall", new PluginBlockWall()); // fixes a bug with walls that caused the post to unintentionally render
             plugins.put("xreliquary.items.ItemEmperorChalice", new PluginReliquary()); // make reliquary's chalice use its IFluidHandler when placing/taking fluids
             // -------
             // vanilla
@@ -334,6 +322,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             "git.jbredwards.fluidlogged_api.mod.asm.transformers.TransformerLevelProperty",
             "git.jbredwards.fluidlogged_api.mod.asm.transformers.TransformerMethodRedirects",
             "git.jbredwards.fluidlogged_api.mod.asm.transformers.TransformerModdedBoats",
+            "git.jbredwards.fluidlogged_api.mod.asm.transformers.TransformerModdedWalls",
             "git.jbredwards.fluidlogged_api.mod.asm.transformers.TransformerSmoothWater"
         };
     }
