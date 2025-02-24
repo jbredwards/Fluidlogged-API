@@ -133,7 +133,7 @@ public final class FluidloggedAPI
         // register commands
         event.registerServerCommand(new CommandSetFluidState(null));
         event.registerServerCommand(new CommandReloadConfig(null, "reloadFluidloggedAPI"));
-        event.registerServerCommand(new CommandFluidloggedAPI("fluidloggedAPI"));
+        event.registerServerCommand(new CommandFluidloggedAPI("fluidlogged_api"));
         event.registerServerCommand(new CommandFluidloggedAPI("fluidlogged"));
     }
 

@@ -1,19 +1,19 @@
 commands.fluidlogged_api.fluidlogged.usage=Use /fluidlogged <subcommand>
-commands.fluidlogged_api.fluidloggedAPI.usage=Use /fluidloggedAPI <subcommand>
+commands.fluidlogged_api.fluidlogged_api.usage=Use /fluidlogged_api <subcommand>
 commands.fluidlogged_api.generic.finished=Command finished! Check the console for any potential errors
 
 commands.fluidlogged_api.fluidlogged.print.usage=Use /fluidlogged print [additional arguments]
-commands.fluidlogged_api.fluidloggedAPI.print.usage=Use /fluidloggedAPI print [additional arguments]
+commands.fluidlogged_api.fluidlogged_api.print.usage=Use /fluidlogged_api print [additional arguments]
 commands.fluidlogged_api.print.badSender=Command must be executed by either a Player or the Server
 commands.fluidlogged_api.print.start=Writing Fluidlogged API information...
 
 commands.fluidlogged_api.fluidlogged.reload.usage=Use /fluidlogged reload
-commands.fluidlogged_api.fluidloggedAPI.reload.usage=Use /fluidloggedAPI reload
+commands.fluidlogged_api.fluidlogged_api.reload.usage=Use /fluidlogged_api reload
 commands.fluidlogged_api.reloadFluidloggedAPI.usage=Use /reloadFluidloggedAPI
 commands.fluidlogged_api.reloadFluidloggedAPI.start=Reloading Fluidlogged API configs...
 
 commands.fluidlogged_api.fluidlogged.setfluid.usage=Use /fluidlogged setfluid <x> <y> <z> <fluid block> [dataValue|state]
-commands.fluidlogged_api.fluidloggedAPI.setfluid.usage=Use /fluidloggedAPI setfluid <x> <y> <z> <fluid block> [dataValue|state]
+commands.fluidlogged_api.fluidlogged_api.setfluid.usage=Use /fluidlogged_api setfluid <x> <y> <z> <fluid block> [dataValue|state]
 commands.fluidlogged_api.setfluid.usage=Use /setfluid <x> <y> <z> <fluid block> [dataValue|state]
 commands.fluidlogged_api.setfluid.success=Fluid placed
 commands.fluidlogged_api.setfluid.outOfWorld=Cannot place fluid outside world
