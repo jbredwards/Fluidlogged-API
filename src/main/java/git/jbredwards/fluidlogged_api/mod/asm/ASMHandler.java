@@ -116,6 +116,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             // ------
             plugins.put("appeng.entity.EntityChargedQuartz", new PluginAE2()); // make ae2's fluix crystal creation FluidState-sensitive
             plugins.put("appeng.entity.EntityGrowingCrystal", new PluginAE2()); // make ae2's crystal seed growth FluidState-sensitive
+            plugins.put("biomesoplenty.common.block.BlockBOPDirt", new PluginBlockGrass()); // fix grass & mycelium growing and not decaying underwater
+            plugins.put("biomesoplenty.common.block.BlockBOPGrass", new PluginBlockGrass()); // fix grass & mycelium growing and not decaying underwater
             plugins.put("biomesoplenty.common.block.BlockBOPFarmland", new PluginBlockFarmland()); // farmland blocks now recognise water FluidStates
             plugins.put("biomesoplenty.common.fluids.blocks.BlockBloodFluid", new PluginBiomesOPlenty(false)); // fix BOP fluid block mixing
             plugins.put("biomesoplenty.common.fluids.blocks.BlockHoneyFluid", new PluginBiomesOPlenty(false)); // fix BOP fluid block mixing
@@ -264,10 +266,10 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.block.BlockFarmland", new PluginBlockFarmland()); // farmland blocks now recognise water FluidStates
             plugins.put("net.minecraft.block.BlockFlowerPot", new PluginBlockFlowerPot()); // fix FluidState voiding if a fluidlogged flower pot is removed
             plugins.put("net.minecraft.block.BlockFire", new PluginBlockFire()); // fire doesn't destroy fluidlogged fluids
-            plugins.put("net.minecraft.block.BlockGrass", new PluginBlockGrass()); // use World#getBlockLightOpacity for FluidState sensitivity
+            plugins.put("net.minecraft.block.BlockGrass", new PluginBlockGrass()); // fix grass growing and not decaying underwater
             plugins.put("net.minecraft.block.BlockLilyPad", new PluginBlockLilyPad()); // lily pads can stay on certain water FluidStates
             plugins.put("net.minecraft.block.BlockLiquid", new PluginBlockLiquid()); // significantly changes the BlockLiquid class to work with the mod
-            plugins.put("net.minecraft.block.BlockMycelium", new PluginBlockMycelium()); // use World#getBlockLightOpacity for FluidState sensitivity
+            plugins.put("net.minecraft.block.BlockMycelium", new PluginBlockGrass()); // fix mycelium growing and not decaying underwater
             plugins.put("net.minecraft.block.BlockReed", new PluginBlockReed()); // sugar cane blocks now recognise water FluidStates
             plugins.put("net.minecraft.block.BlockSkull", new PluginBlockSkull()); // wither skulls no longer void the FluidState here when summoning the wither
             plugins.put("net.minecraft.block.BlockSponge", new PluginBlockSponge()); // fixes drain interactions across all modded fluids & FluidStates
