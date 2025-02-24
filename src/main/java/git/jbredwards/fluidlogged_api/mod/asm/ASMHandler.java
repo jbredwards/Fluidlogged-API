@@ -72,10 +72,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.thermal_foundation.
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.thermal_foundation.PluginThermalFoundation;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.thermal_foundation.PluginThermalGlowstone;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.tiny_progressions.PluginTinyProgressions;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.tropicraft.PluginTropicraftFence;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.tropicraft.PluginTropicraftFluid;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.tropicraft.PluginTropicraftOverlays;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.tropicraft.PluginTropicraftSand;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.tropicraft.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.twilight_forest.PluginTwilightForest;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.waila.PluginWaila;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block.*;
@@ -222,6 +219,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.tropicraft.core.common.block.BlockTropicraftFence", new PluginTropicraftFence()); // fixes for tropicraft fences
             plugins.put("net.tropicraft.core.common.block.BlockTropicraftSands", new PluginTropicraftSand()); // account for FluidStates
             plugins.put("net.tropicraft.core.common.block.BlockTropicsWater", new PluginTropicraftFluid(true)); // fix flow direction
+            plugins.put("net.tropicraft.core.common.event.ItemEvents", new PluginTropicraftBucket()); // account for FluidStates
             plugins.put("net.tropicraft.core.common.fluid.FluidTropicsWater", new PluginTropicraftFluid(false)); // fix issue#183
             plugins.put("openblocks.common.block.BlockSponge", new PluginOpenBlocks()); // make openblocks' sponge FluidState-sensitive
             plugins.put("org.spongepowered.common.mixin.core.block.BlockDynamicLiquidMixin", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods
