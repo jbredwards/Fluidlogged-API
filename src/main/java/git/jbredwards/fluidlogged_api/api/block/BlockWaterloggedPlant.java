@@ -24,29 +24,28 @@ import net.minecraftforge.fluids.FluidRegistry;
 import javax.annotation.Nonnull;
 
 /**
- * A basic implementation of an always waterlogged plant for mod devs to use
+ * A basic implementation of an always waterlogged plant for mod devs to use.
+ *
+ * @since 1.8.0
  * @author jbred
  *
  */
 public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidloggable
 {
-    //used as a base to determine which fluids can support this plant
+    // used as a base to determine which fluids can support this plant
     @Nonnull protected Fluid parentFluid = FluidRegistry.WATER;
 
-    protected BlockWaterloggedPlant(@Nonnull Material materialIn) {
-        this(materialIn, materialIn.getMaterialMapColor());
-    }
-
-    protected BlockWaterloggedPlant(@Nonnull Material materialIn, @Nonnull MapColor mapColorIn) {
+    protected BlockWaterloggedPlant(@Nonnull final Material materialIn) { this(materialIn, materialIn.getMaterialMapColor()); }
+    protected BlockWaterloggedPlant(@Nonnull final Material materialIn, @Nonnull final MapColor mapColorIn) {
         super(materialIn, mapColorIn);
     }
 
     /**
-     * This can only be placed in compatible fluid blocks
+     * This can only be placed in compatible fluid blocks.
      */
     @Override
-    public boolean canPlaceBlockAt(@Nonnull World worldIn, @Nonnull BlockPos pos) {
-        final FluidState fluidState = FluidloggedUtils.getFluidState(worldIn, pos);
+    public boolean canPlaceBlockAt(@Nonnull final World worldIn, @Nonnull final BlockPos pos) {
+        @Nonnull final FluidState fluidState = FluidloggedUtils.getFluidState(worldIn, pos);
         return !fluidState.isEmpty() && fluidState.isFluidloggable()
                 && fluidState.getFluidBlockHandler().isFluidloggableFluid(fluidState)
                 && isFluidloggable(getDefaultState(), worldIn, pos, fluidState)
@@ -54,40 +53,42 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
     }
 
     /**
-     * Ensures that only compatible fluids can be placed inside this
+     * This can only be placed in compatible fluids
      */
     @Override
-    public boolean isFluidValid(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull Fluid fluid) {
+    public boolean isFluidValid(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final Fluid fluid) {
         return FluidloggedUtils.isCompatibleFluid(parentFluid, fluid);
     }
 
     /**
-     *
-     * @param state
-     * @param world
-     * @param pos
-     * @param fluidState
-     * @return
-     *
-     * @throws NullPointerException If any of the parameters are null.
-     * @since 3.0.0
+     * This can only be placed in source blocks or 1-block-tall fluids.
      */
     @Override
-    public boolean isFluidloggable(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
+    public boolean isFluidloggable(@Nonnull final IBlockState state, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState) {
         return fluidState.isEmpty() ? isFluidloggable(state, IWorldProvider.getWorld(world), pos) : isFluidValid(state, IWorldProvider.getWorld(world), pos, fluidState.getFluid())
-           && (fluidState.isSource() || fluidState.getActualHeight(world, pos) == 1 && FluidloggedUtils.canCreateSource(fluidState.getState(), IWorldProvider.getWorld(world), pos));
+           && (fluidState.isSource() || fluidState.getActualHeight(world, pos) >= 1 && FluidloggedUtils.canCreateSource(fluidState.getState(), IWorldProvider.getWorld(world), pos));
     }
 
     /**
-     * Creates a new source block at this position, if the new fluid isn't one, and if the new fluid can be turned into one.
+     * Creates a new source block at this position (if the new fluid isn't one and if the new fluid can be turned into one).
+     * This is the feature from Vanilla that lets you place kelp in waterfalls to turn them into source blocks.
      */
     @Nonnull
     @Override
-    public EnumActionResult onFluidFill(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull FluidState newFluid, int blockFlags) {
-        return !newFluid.isSource() && newFluid.getActualHeight(world, pos) == 1
-                && FluidloggedUtils.canCreateSource(newFluid.getState(), world, pos)
-                && FluidloggedUtils.setFluidState(world, pos, here, newFluid.toSource(), false)
-                ? EnumActionResult.SUCCESS : EnumActionResult.PASS;
+    public EnumActionResult onFluidFill(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState here, @Nonnull final FluidState newFluid, final int blockFlags) {
+        if(!newFluid.isSource()) {
+            if(newFluid.getActualHeight(world, pos) < 1) {
+                world.playEvent(Constants.WorldEvents.BREAK_BLOCK_EFFECTS, pos, getStateId(here));
+                dropBlockAsItem(world, pos, here, 0);
+                world.setBlockState(pos, newFluid.getState(), blockFlags);
+                return EnumActionResult.SUCCESS;
+            }
+
+            else if(FluidloggedUtils.canCreateSource(newFluid.getState(), world, pos)
+            && FluidloggedUtils.setFluidState(world, pos, here, newFluid.toSource(), false)) return EnumActionResult.SUCCESS;
+        }
+
+        return EnumActionResult.PASS;
     }
 
     /**
@@ -95,14 +96,17 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
      */
     @Nonnull
     @Override
-    public EnumActionResult onFluidDrain(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState here, int blockFlags) {
+    public EnumActionResult onFluidDrain(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState here, final int blockFlags) {
         world.playEvent(Constants.WorldEvents.BREAK_BLOCK_EFFECTS, pos, getStateId(here));
         dropBlockAsItem(world, pos, here, 0);
         world.setBlockState(pos, Blocks.AIR.getDefaultState(), blockFlags);
-        //skip updating the capability, as that was just handled through world#setBlockState
+        // skip updating the capability, as that was just handled through world#setBlockState
         return EnumActionResult.SUCCESS;
     }
 
+    /**
+     * A safety measure to keep this block's functionality in the event of a player recklessly disabling "applyDefaults".
+     */
     @Override
     public boolean overrideApplyDefaultsSetting() { return true; }
 }

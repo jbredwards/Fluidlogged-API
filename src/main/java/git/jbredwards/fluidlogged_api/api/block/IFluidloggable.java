@@ -22,36 +22,58 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nonnull;
 
 /**
- * use this if your block can be fluidlogged.
+ * Have your block implement this if it can be fluidlogged.
+ * <p>Use {@link net.minecraftforge.fml.common.Optional Forge's Optional @interfaces} to prevent a required Fluidlogged API dependency.</p>
+ *
+ * @since 1.7.0
  * @author jbred
  *
  */
 public interface IFluidloggable
 {
     /**
-     * @return true if the IBlockState is fluidloggable
+     * Called by {@link IFluidloggable#isFluidloggable(IBlockState, IBlockAccess, BlockPos, FluidState)}.
+     *
+     * @param state IBlockState to test.
+     * @param world World of the IBlockState.
+     * @param pos Position of the IBlockState.
+     * @return True if the IBlockState is fluidloggable.
+     *
+     * @throws NullPointerException If any parameters are null.
+     * @since 1.8.0
+     * @author jbred
      */
     default boolean isFluidloggable(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos) {
         return true;
     }
 
     /**
-     * @return true if the IBlockState can be fluidlogged with the input fluid
+     * Called by {@link IFluidloggable#isFluidloggable(IBlockState, IBlockAccess, BlockPos, FluidState)}.
+     *
+     * @param state IBlockState to test.
+     * @param world World of the IBlockState.
+     * @param pos Position of the IBlockState.
+     * @param fluid Fluid to test.
+     * @return True if the IBlockState can be fluidlogged with the input fluid.
+     *
+     * @throws NullPointerException If any parameters are null.
+     * @since 1.8.0
+     * @author jbred
      */
     default boolean isFluidValid(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final Fluid fluid) {
         return isFluidloggable(state, world, pos);
     }
 
     /**
+     * @param state IBlockState to test.
+     * @param access World of the IBlockState.
+     * @param pos Position of the IBlockState.
+     * @param fluidState FluidState to test, may be empty.
+     * @return True if the IBlockState can be fluidlogged with the input FluidState.
      *
-     * @param state
-     * @param access
-     * @param pos
-     * @param fluidState
-     * @return
-     *
-     * @throws NullPointerException If any of the parameters are null.
+     * @throws NullPointerException If any parameters are null.
      * @since 3.0.0
+     * @author jbred
      */
     default boolean isFluidloggable(@Nonnull final IBlockState state, @Nonnull final IBlockAccess access, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState) {
         @Nonnull final World world = IWorldProvider.getWorld(access);
@@ -65,18 +87,34 @@ public interface IFluidloggable
     }
 
     /**
-     * called by {@link FluidloggedUtils#canFluidFlow},
+     * Called by {@link FluidloggedUtils#canFluidFlow},
      * which is invoked a lot, so try to keep the code for this fairly light.
      *
-     * @return true if the contained fluid can flow from the specified side,
-     * or if a fluid can flow into this block from the specified side
+     * @param world World.
+     * @param pos Position.
+     * @param here IBlockState at the position.
+     * @param side Side to flow from.
+     * @return True if the contained fluid can flow from the specified side,
+     * or if a fluid can flow into this block from the specified side.
+     *
+     * @throws NullPointerException If any parameters are null.
+     * @since 1.8.0
+     * @author jbred
      */
     default boolean canFluidFlow(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final IBlockState here, @Nonnull final EnumFacing side) {
         return here.getBlockFaceShape(world, pos, side) != BlockFaceShape.SOLID;
     }
 
     /**
-     * @return true if the FluidState should be visible while this is fluidlogged
+     * @param world IBlockAccess.
+     * @param pos Position.
+     * @param here IBlockState at the position.
+     * @param fluidState FluidState at the position.
+     * @return True if the FluidState should be visible while this is fluidlogged.
+     *
+     * @throws NullPointerException If parameters are null.
+     * @since 1.8.0
+     * @author jbred
      */
     @SideOnly(Side.CLIENT)
     default boolean shouldFluidRender(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final IBlockState here, @Nonnull final FluidState fluidState) {
@@ -84,12 +122,18 @@ public interface IFluidloggable
     }
 
     /**
-     * called by {@link FluidloggedUtils#setFluidState}
-     * when the stored FluidState is changed
+     * Called by {@link FluidloggedUtils#setFluidState} when the stored FluidState is to be changed.
      *
-     * @return PASS - run & return {@link FluidloggedUtils#setFluidState_Internal},
-     * FAIL - assume the change never happened,
-     * SUCCESS - assume the change happened
+     * @param world World.
+     * @param pos Position.
+     * @param here IBlockState at the position.
+     * @param newFluid FluidState to be set at the position, may be empty.
+     * @param blockFlags The flags used when calling {@link FluidloggedUtils#setFluidState(World, BlockPos, IBlockState, FluidState, boolean, int)}.
+     * @return PASS - Run & return {@link FluidloggedUtils#setFluidState_Internal}, FAIL - Assume the change never happened, SUCCESS - Assume the change happened.
+     *
+     * @throws NullPointerException If parameters are null.
+     * @since 1.8.0
+     * @author jbred
      */
     @Nonnull
     default EnumActionResult onFluidChange(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState here, @Nonnull final FluidState newFluid, final int blockFlags) {
@@ -97,7 +141,18 @@ public interface IFluidloggable
     }
 
     /**
-     * convenience method called by {@link IFluidloggable#onFluidChange} when a new FluidState is put here
+     * Convenience method called by {@link IFluidloggable#onFluidChange} when a new FluidState is to be set.
+     *
+     * @param world World.
+     * @param pos Position.
+     * @param here IBlockState at the position.
+     * @param newFluid FluidState to be set at the position, is never empty.
+     * @param blockFlags The flags used when calling {@link FluidloggedUtils#setFluidState(World, BlockPos, IBlockState, FluidState, boolean, int)}.
+     * @return PASS - Run & return {@link FluidloggedUtils#setFluidState_Internal}, FAIL - Assume the change never happened, SUCCESS - Assume the change happened.
+     *
+     * @throws NullPointerException If parameters are null.
+     * @since 1.8.0
+     * @author jbred
      */
     @Nonnull
     default EnumActionResult onFluidFill(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState here, @Nonnull final FluidState newFluid, final int blockFlags) {
@@ -105,7 +160,17 @@ public interface IFluidloggable
     }
 
     /**
-     * convenience method called by {@link IFluidloggable#onFluidChange} when the stored FluidState is removed
+     * Convenience method called by {@link IFluidloggable#onFluidChange} when the stored FluidState is to be removed.
+     *
+     * @param world World.
+     * @param pos Position.
+     * @param here IBlockState at the position.
+     * @param blockFlags The flags used when calling {@link FluidloggedUtils#setFluidState(World, BlockPos, IBlockState, FluidState, boolean, int)}.
+     * @return PASS - Run & return {@link FluidloggedUtils#setFluidState_Internal}, FAIL - Assume the change never happened, SUCCESS - Assume the change happened.
+     *
+     * @throws NullPointerException If parameters are null.
+     * @since 1.8.0
+     * @author jbred
      */
     @Nonnull
     default EnumActionResult onFluidDrain(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState here, final int blockFlags) {
@@ -113,8 +178,7 @@ public interface IFluidloggable
     }
 
     /**
-     * @return
-     * @throws NullPointerException If state is null.
+     * @return True if this block should not have its fluidlogging functionality disabled while "applyDefaults" is turned off.
      *
      * @since 3.0.0
      * @author jbred
