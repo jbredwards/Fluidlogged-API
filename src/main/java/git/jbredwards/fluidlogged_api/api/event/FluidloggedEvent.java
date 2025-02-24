@@ -17,9 +17,17 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import javax.annotation.Nonnull;
 
 /**
- * fired when trying to fluidlog/unfluidlog a block
- * if cancelled, the block will not become fluidlogged
- * result default = default code gets ran; result allow = block was fluidlogged; result deny = block was not fluidlogged
+ * This event is fired on the {@link net.minecraftforge.common.MinecraftForge#EVENT_BUS} when fluidlogging/un-fluidlogging a block.<br>
+ * <br>
+ * This event is {@link Cancelable cancelable}.<br>
+ * If this event is canceled, the block will not become fluidlogged.<br>
+ * <br>
+ * This event has a {@link HasResult result}:
+ * <li>{@link Result#ALLOW} means that the state was fluidlogged.</li>
+ * <li>{@link Result#DEFAULT} means that the default code for fluidlogging the state will run.</li>
+ * <li>{@link Result#DENY} means that the state was not fluidlogged.</li>
+ *
+ * @since 1.7.0
  * @author jbred
  *
  */
@@ -45,11 +53,26 @@ public class FluidloggedEvent extends Event
         this.blockFlags = blockFlags;
     }
 
+    /**
+     * @return True if fluidState will vaporize.
+     * @since 1.9.0
+     * @author jbred
+     */
     public boolean doesVaporize() {
         return checkVaporize && !fluidState.isEmpty() && world.provider.doesWaterVaporize() && fluidState.getFluid().doesVaporize(getFluidStack());
     }
 
-    //throws an exception if fluidState is empty
+    /**
+     * {@link FluidState#isValid() fluidState.isValid()} should typically be checked at least once before this method.
+     *
+     * @return A new {@link FluidStack} containing this fluidState's fluid.
+     * The returned {@link FluidStack} will have a size of 0 if fluidState is not a source block,
+     * or a size based on its level and quanta if it's a {@link net.minecraftforge.fluids.BlockFluidFinite}.
+     * @throws UnsupportedOperationException If fluidState is not valid.
+     *
+     * @since 1.9.0
+     * @author jbred
+     */
     @Nonnull
     public FluidStack getFluidStack() { return fluidState.createFluidStack(); }
 }
