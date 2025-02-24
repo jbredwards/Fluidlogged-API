@@ -21,6 +21,9 @@ import javax.annotation.Nonnull;
 
 /**
  * Have your fluid block implement this if it should be able to hold fluidloggable blocks.
+ * Note that {@link net.minecraft.block.BlockLiquid}, {@link net.minecraftforge.fluids.BlockFluidClassic},
+ * and {@link net.minecraftforge.fluids.BlockFluidFinite} already implement this at runtime.
+ * <p>Use {@link net.minecraftforge.fml.common.Optional Forge's Optional @interfaces} to prevent a required Fluidlogged API dependency.</p>
  *
  * @since 3.0.0
  * @author jbred
@@ -42,11 +45,11 @@ public interface IFluidloggableFluid
     }
 
     /**
-     * @param world
-     * @param fluidState
-     * @param other
-     * @param allowMatching
-     * @return
+     * @param world World.
+     * @param fluidState This FluidState.
+     * @param other Other FluidState.
+     * @param allowMatching True if this should allow replacing of same fluids.
+     * @return True if this fluid can be replaced by other, based on fluid quanta and density.
      *
      * @throws NullPointerException If any of the parameters are null.
      * @throws IllegalArgumentException If either of the FluidState parameters are empty.
@@ -68,7 +71,7 @@ public interface IFluidloggableFluid
      * @param world World.
      * @param pos Position.
      * @param fluidState FluidState.
-     * @return
+     * @return True if state is fluidloggable with this fluid.
      *
      * @throws NullPointerException If any of the parameters are null.
      * @since 3.0.0
