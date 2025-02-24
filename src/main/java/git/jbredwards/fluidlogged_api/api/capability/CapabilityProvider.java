@@ -15,7 +15,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * A general purpose capability provider class.
+ * A general-purpose capability provider class.
+ *
+ * @since 1.9.0
  * @author jbred
  *
  */

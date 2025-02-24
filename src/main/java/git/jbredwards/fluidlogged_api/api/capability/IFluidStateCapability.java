@@ -18,7 +18,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Hold IFluidStateContainers
+ * Holds {@link IFluidStateContainer IFluidStateContainers}. All methods in this interface should only be used internally! If you're a modder,
+ * see {@link git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils FluidloggedUtils}.
+ *
+ * @since 1.9.0
  * @author jbred
  *
  */
@@ -29,14 +32,27 @@ public interface IFluidStateCapability extends INBTSerializable<NBTBase>
     @Nonnull Capability<IFluidStateCapability> CAPABILITY = null;
     @Nonnull ResourceLocation CAPABILITY_ID = new ResourceLocation(FluidloggedAPI.MODID, "fluid_states");
 
-    //get this from a capability provider
+    /**
+     * @param provider ICapabilityProvider.
+     * @return This from a capability provider.
+     *
+     * @since 1.9.0
+     * @author jbred
+     */
     @Nullable
     static IFluidStateCapability get(@Nullable final ICapabilityProvider provider) {
         if(provider instanceof IHardcodedCapability) return ((IHardcodedCapability)provider).getFluidStateCapability();
         return provider != null && provider.hasCapability(CAPABILITY, null) ? provider.getCapability(CAPABILITY, null) : null;
     }
 
-    //having exactly ONE container per 16x16x16 area of the world is expected
+    /**
+     * Having at minimum ONE container per 16x16x16 area of the world is expected.
+     * @param y Y position (block position format, not chunk position format).
+     * @return The container stored at the y position.
+     *
+     * @since 3.0.0
+     * @author jbred
+     */
     @Nonnull
     IFluidStateContainer getContainer(final int y);
 }
