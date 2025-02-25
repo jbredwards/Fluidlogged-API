@@ -21,10 +21,7 @@ import org.apache.commons.io.IOUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -45,7 +42,10 @@ public final class FluidloggedAPIConfigs
      * Note that <i>configs/fluidlogged_api/general.cfg</i> is not handled by this, but rather by forge's config api.
      */
     public static void initConfigs(@Nonnull final MinecraftServer server, final boolean isReload) throws IOException {
-        OnlineConfigHandler.downloadModConfigs();
+        try { OnlineConfigHandler.downloadModConfigs(); }
+        catch(@Nonnull final IOException e) { e.printStackTrace(); }
+
+        // process config data
         @Nonnull final JsonObject configs = readConfigFiles(server);
         if(!MinecraftForge.EVENT_BUS.post(new FluidloggedAPIConfigsEvent.Apply(server, configs, isReload))) {
             init(configs);
@@ -86,7 +86,7 @@ public final class FluidloggedAPIConfigs
             if(FluidloggedAPIConfig.downloadModConfigs != FluidloggedAPIConfig.OnlineConfigMode.DISABLED) {
                 @Nonnull final Path autoConfig = Paths.get("config/fluidlogged_api/internal", fixedModid, fileName + ".jsonc");
                 if(Files.exists(autoConfig)) {
-                    try { onlineData.add(fixedModid, new JsonParser().parse(Files.newBufferedReader(autoConfig))); }
+                    try(@Nonnull final Reader reader = Files.newBufferedReader(autoConfig)) { onlineData.add(fixedModid, new JsonParser().parse(reader)); }
                     catch(@Nonnull final Throwable t) { t.printStackTrace(); } // catch here, to not stop reading other files
                 }
             }
@@ -99,12 +99,12 @@ public final class FluidloggedAPIConfigs
                     IOUtils.closeQuietly(folder);
                     @Nonnull final String file = path + '/' + fileName;
                     // allow any of the following file types: (cfg, json, jsonc, txt)
-                    @Nullable InputStream modConfig = Loader.class.getResourceAsStream(fileName);
+                    @Nullable InputStream modConfig = Loader.class.getResourceAsStream(file + ".cfg");
                     if(modConfig == null) modConfig = Loader.class.getResourceAsStream(file + ".json");
                     if(modConfig == null) modConfig = Loader.class.getResourceAsStream(file + ".jsonc");
                     if(modConfig == null) modConfig = Loader.class.getResourceAsStream(file + ".txt");
                     if(modConfig != null) {
-                        try { modData.add(fixedModid, new JsonParser().parse(new BufferedReader(new InputStreamReader(modConfig)))); }
+                        try(@Nonnull final Reader reader = new BufferedReader(new InputStreamReader(modConfig))) { modData.add(fixedModid, new JsonParser().parse(reader)); }
                         catch(@Nonnull final Throwable t) { t.printStackTrace(); } // catch here, to not stop reading other files
                     }
                 }
@@ -118,7 +118,7 @@ public final class FluidloggedAPIConfigs
         // for user config
         @Nonnull final Path file = Paths.get("config/fluidlogged_api", fileName + ".cfg");
         if(Files.exists(file)) {
-            try { json.add("USER", new JsonParser().parse(Files.newBufferedReader(file))); }
+            try(@Nonnull final Reader reader = Files.newBufferedReader(file)) { json.add("USER", new JsonParser().parse(reader)); }
             catch(@Nonnull final Throwable t) { t.printStackTrace(); } // catch here to let the game still launch
         }
     }
