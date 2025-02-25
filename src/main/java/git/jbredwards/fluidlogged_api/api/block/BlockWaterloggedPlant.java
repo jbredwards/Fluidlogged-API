@@ -46,8 +46,7 @@ public abstract class BlockWaterloggedPlant extends BlockBush implements IFluidl
     @Override
     public boolean canPlaceBlockAt(@Nonnull final World worldIn, @Nonnull final BlockPos pos) {
         @Nonnull final FluidState fluidState = FluidloggedUtils.getFluidState(worldIn, pos);
-        return !fluidState.isEmpty() && fluidState.isFluidloggable()
-                && fluidState.getFluidBlockHandler().isFluidloggableFluid(fluidState)
+        return fluidState.isFluidloggable()
                 && isFluidloggable(getDefaultState(), worldIn, pos, fluidState)
                 && super.canPlaceBlockAt(worldIn, pos);
     }

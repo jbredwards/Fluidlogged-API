@@ -358,14 +358,14 @@ public final class FluidloggedUtils
     }
 
     /**
-     * Deprecated since 3.0.0, use {@link FluidState#getFluidBlockHandler()} instead.
+     * Deprecated since 3.0.0, use {@link FluidState#isFluidloggable()} instead.
      *
      * @since 1.8.0
+     * @author jbred
      */
     @Deprecated
-    public static boolean isFluidloggableFluid(@Nonnull IBlockState fluid, @Nonnull World world, @Nonnull BlockPos pos) {
-        @Nonnull final FluidState fluidState = FluidState.of(fluid);
-        return fluidState.isFluidloggable() && fluidState.getFluidBlockHandler().isFluidloggableFluid(fluidState);
+    public static boolean isFluidloggableFluid(@Nullable final IBlockState fluid, @Nullable final World world, @Nullable final BlockPos pos) {
+        return FluidState.of(fluid).isFluidloggable();
     }
 
     /**
@@ -379,7 +379,7 @@ public final class FluidloggedUtils
      * @since 3.0.0
      */
     public static boolean isStateFluidloggable(@Nonnull final IBlockState state, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final FluidState fluid) {
-        return fluid.isFluidloggable() && fluid.getFluidBlockHandler().isFluidloggableFluid(fluid) && fluid.getFluidBlockHandler().isStateFluidloggable(state, world, pos, fluid);
+        return fluid.isFluidloggable() && fluid.getFluidBlockHandler().isStateFluidloggable(state, world, pos, fluid);
     }
 
     public static boolean canCreateSource(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos) {

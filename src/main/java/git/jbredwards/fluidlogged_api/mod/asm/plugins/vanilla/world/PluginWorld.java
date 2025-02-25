@@ -693,7 +693,7 @@ public final class PluginWorld implements IASMPlugin
                 // this mod adds two special flags:
                 // 32: (x | 32, example: Constants.BlockFlags.DEFAULT | 32) that removes any FluidState here
                 // 64: (x | 64, example: Constants.BlockFlags.DEFAULT | 64) that ignores FluidState.removeOnBlockChange
-                if((blockFlags & 64) == 0 && ((blockFlags & 32) != 0 || !(newState.getBlock() instanceof IFluidloggable) && FluidState.removeOnBlockChange.get())) {
+                if((blockFlags & 64) == 0 && ((blockFlags & 32) != 0 || !(newState.getBlock() instanceof IFluidloggable) && FluidState.removeOnBlockChange != null)) {
                     if(fluidState != FluidState.EMPTY) FluidloggedUtils.setFluidState(world, pos, newState, FluidState.EMPTY, false, blockFlags);
                 }
 

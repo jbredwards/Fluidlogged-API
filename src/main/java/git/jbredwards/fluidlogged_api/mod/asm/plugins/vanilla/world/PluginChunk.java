@@ -40,7 +40,7 @@ public final class PluginChunk implements IASMPlugin
         else if(method.name.equals(obfuscated ? "func_177436_a" : "setBlockState")) return 3;
         else if(method.name.equals(obfuscated ? "func_177440_h" : "getPrecipitationHeight")) return 4;
         else if(method.name.equals(obfuscated ? "func_76594_o" : "enqueueRelightChecks")) return 5;
-        else if(checkMethod(method, obfuscated ? "func_186030_a" : "populate", "(Lnet/minecraft/world/chunk/IChunkProvider;Lnet/minecraft/world/gen/IChunkGenerator;)V")) return 8;
+        else if(checkMethod(method, obfuscated ? "func_186034_a" : "populate", "(Lnet/minecraft/world/gen/IChunkGenerator;)V")) return 8;
         else return checkMethod(method, obfuscated ? "func_150811_f" : "checkLight", "(II)Z") ? 6 : 0;
     }
 
@@ -216,33 +216,27 @@ public final class PluginChunk implements IASMPlugin
             return true;
         }
         /*
-         * populate (changes are around lines 1047 and 1076):
+         * populate (changes are around lines 1083 and 1098):
          * Old code:
          * {
+         *     Chunk.populating = this.getPos();
          *     ...
+         *     Chunk.populating = prev;
          * }
          *
          * New code:
-         * //
+         * // make the currently generating chunk public
          * {
-         *     FluidState.removeOnBlockChange.set(Boolean.TRUE);
+         *     Chunk.populating = this.getPos();
+         *     FluidState.removeOnBlockChange = Chunk.populating;
          *     ...
-         *     FluidState.removeOnBlockChange.set(Boolean.FALSE);
+         *     Chunk.populating = prev;
+         *     FluidState.removeOnBlockChange = Chunk.populating;
          * }
          */
-        else if(index == 8) {
-            @Nonnull final InsnList before = new InsnList();
-            before.add(new FieldInsnNode(GETSTATIC, "git/jbredwards/fluidlogged_api/api/util/FluidState", "removeOnBlockChange", "Ljava/lang/ThreadLocal;"));
-            before.add(new FieldInsnNode(GETSTATIC, "java/lang/Boolean", "TRUE", "Ljava/lang/Boolean;"));
-            before.add(new MethodInsnNode(INVOKEVIRTUAL, "java/lang/ThreadLocal", "set", "(Ljava/lang/Object;)V", false));
-            instructions.insert(instructions.getFirst().getNext(), before);
-
-            @Nonnull final InsnList after = new InsnList();
-            after.add(new FieldInsnNode(GETSTATIC, "git/jbredwards/fluidlogged_api/api/util/FluidState", "removeOnBlockChange", "Ljava/lang/ThreadLocal;"));
-            after.add(new FieldInsnNode(GETSTATIC, "java/lang/Boolean", "FALSE", "Ljava/lang/Boolean;"));
-            after.add(new MethodInsnNode(INVOKEVIRTUAL, "java/lang/ThreadLocal", "set", "(Ljava/lang/Object;)V", false));
-            instructions.insertBefore(instructions.getLast().getPrevious(), after);
-            return true;
+        else if(index == 8 && insn.getOpcode() == PUTSTATIC && checkField(insn, "populating")) {
+            instructions.insert(insn, new FieldInsnNode(PUTSTATIC, "git/jbredwards/fluidlogged_api/api/util/FluidState", "removeOnBlockChange", "Ljava/lang/Object;"));
+            instructions.insert(insn, new FieldInsnNode(GETSTATIC, "net/minecraft/world/chunk/Chunk", "populating", "Lnet/minecraft/util/math/ChunkPos;"));
         }
 
         return false;

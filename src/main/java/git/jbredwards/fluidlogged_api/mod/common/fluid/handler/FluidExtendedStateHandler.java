@@ -203,7 +203,7 @@ public final class FluidExtendedStateHandler
     static float getRenderLevel(@Nonnull final IFluidNeighborInfo neighborInfo, final int xi, final int yi, final int zi) {
         @Nonnull final FluidState fluidState = neighborInfo.getFluidStateI(xi, yi, zi);
         if(fluidState.getBlock() instanceof BlockFluidBase) return fluidState.getMetadata() == ((BlockFluidBase)fluidState.getBlock()).getMaxRenderHeightMeta() ? fluidState.getQuantaFraction() : fluidState.getHeight();
-        else return fluidState.getLevel() == 0 ? fluidState.getQuantaFraction() : fluidState.getHeight();
+        else return fluidState.isSource() ? fluidState.getQuantaFraction() : fluidState.getHeight();
     }
 
     @Nonnull
