@@ -91,9 +91,7 @@ public final class FluidloggedAPI
     }
 
     @Mod.EventHandler
-    static void init(@Nonnull final FMLInitializationEvent event) throws IOException {
-        // fix old config data if present
-        LegacyConfigHandler.convertOldFile();
+    static void init(@Nonnull final FMLInitializationEvent event) {
         // fix certain weird lighting issues with fluidlogged blocks
         ForgeRegistries.BLOCKS.getValuesCollection().stream().filter(FluidloggedUtils::isFluid).forEach(b -> b.useNeighborBrightness = true);
         // fix legacy world data
@@ -119,6 +117,12 @@ public final class FluidloggedAPI
         // fixes the vanilla bucket dispenser actions by replacing them with the forge one
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.LAVA_BUCKET, DispenseFluidContainer.getInstance());
         BlockDispenser.DISPENSE_BEHAVIOR_REGISTRY.putObject(Items.WATER_BUCKET, DispenseFluidContainer.getInstance());
+    }
+
+    @Mod.EventHandler
+    static void loadComplete(@Nonnull final FMLLoadCompleteEvent event) throws IOException {
+        // fix old config data if present
+        LegacyConfigHandler.convertOldFile();
     }
 
     @SideOnly(Side.CLIENT)

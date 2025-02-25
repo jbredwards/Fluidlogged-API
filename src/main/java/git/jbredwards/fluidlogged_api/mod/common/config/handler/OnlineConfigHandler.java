@@ -63,8 +63,9 @@ public final class OnlineConfigHandler
             @Nullable final JsonElement oldElement = oldVersions.get(modid);
 
             if(newElement == null) { if(oldElement != null) FileUtils.deleteDirectory(new File("config/fluidlogged_api/internal", modid)); }
-            else if(oldElement == null || JsonUtils.getInt(oldElement, modid) < JsonUtils.getInt(newElement, modid)) {
-
+            else if(oldElement == null
+            || JsonUtils.getInt(oldElement, modid) < JsonUtils.getInt(newElement, modid)
+            || !Files.exists(Paths.get("config/fluidlogged_api/internal", modid))) {
                 downloadModConfig(modid, "whitelist.jsonc");
                 downloadModConfig(modid, "blacklist.jsonc");
                 downloadModConfig(modid, "fluidTags.jsonc");
