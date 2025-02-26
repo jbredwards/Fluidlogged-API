@@ -54,7 +54,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 /**
- * A utility class containing various functions for getting and setting FluidStates.
+ * A utility class containing various functions for FluidStates.
  *
  * @since 1.7.0
  * @author jbred
@@ -70,8 +70,9 @@ public final class FluidloggedUtils
      * @param pos Position.
      * @return The state at the position as a fluidState (if the state is a fluid). Otherwise, returns the fluidState at the position.
      *
-     * @throws NullPointerException if world or pos are null.
+     * @throws NullPointerException If world or pos are null.
      * @since 1.7.0
+     * @author jbred
      */
     @Nonnull
     public static FluidState getFluidState(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
@@ -88,8 +89,9 @@ public final class FluidloggedUtils
      * @param state IBlockState at the position.
      * @return The state at the position as a fluidState (if the state is a fluid). Otherwise, returns the fluidState at the position.
      *
-     * @throws NullPointerException if pos is null.
+     * @throws NullPointerException If pos is null.
      * @since 1.7.0
+     * @author jbred
      */
     @Nonnull
     public static FluidState getFluidState(@Nullable final IBlockAccess world, @Nonnull final BlockPos pos, @Nullable final IBlockState state) {
@@ -104,8 +106,9 @@ public final class FluidloggedUtils
      * @param pos Position.
      * @return The state at the position as a fluidState (if the state is a fluid). Otherwise, returns the fluidState at the position.
      *
-     * @throws NullPointerException if chunk or pos are null.
+     * @throws NullPointerException If chunk or pos are null.
      * @since 3.0.0
+     * @author jbred
      */
     @Nonnull
     public static FluidState getFluidState(@Nonnull final Chunk chunk, @Nonnull final BlockPos pos) {
@@ -121,8 +124,9 @@ public final class FluidloggedUtils
      * @param state IBlockState at the position.
      * @return The state at the position as a fluidState (if the state is a fluid). Otherwise, returns the fluidState at the position.
      *
-     * @throws NullPointerException if pos is null.
+     * @throws NullPointerException If pos is null.
      * @since 3.0.0
+     * @author jbred
      */
     @Nonnull
     public static FluidState getFluidState(@Nullable final Chunk chunk, @Nonnull final BlockPos pos, @Nullable final IBlockState state) {
@@ -130,14 +134,13 @@ public final class FluidloggedUtils
     }
 
     /**
-     *
-     *
      * @param world IBlockAccess.
      * @param pos Position.
-     * @return
+     * @return The IBlockState at the position if it's either a fluid or if there's no FluidState at the position. Otherwise, return the FluidState at the position.
      *
-     * @throws NullPointerException if world or pos are null.
+     * @throws NullPointerException If chunk or pos are null.
      * @since 1.7.0
+     * @author jbred
      */
     @Nonnull
     public static IBlockState getFluidOrReal(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
@@ -145,21 +148,48 @@ public final class FluidloggedUtils
         return chunk != null ? getFluidOrReal(chunk, pos) : getFluidOrReal(world, pos, world.getBlockState(pos));
     }
 
-    //tries to get the fluid at the pos (prioritizing ones physically in the world, then the fluid capability),
-    //if none return input state
+    /**
+     * @param world IBlockAccess.
+     * @param pos Position.
+     * @param state IBlockState at the position.
+     * @return The IBlockState at the position if it's either a fluid or if there's no FluidState at the position. Otherwise, return the FluidState at the position.
+     *
+     * @throws NullPointerException If any of the parameters are null.
+     * @since 1.7.0
+     * @author jbred
+     */
     @Nonnull
-    public static IBlockState getFluidOrReal(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull final IBlockState state) {
+    public static IBlockState getFluidOrReal(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final IBlockState state) {
         if(isFluid(state)) return state; // if the state here is a fluid, return it
 
         @Nonnull final FluidState fluidState = FluidState.get(world, pos);
         return fluidState.isEmpty() ? state : fluidState.getState();
     }
 
+    /**
+     * @param chunk Chunk.
+     * @param pos Position.
+     * @return The IBlockState at the position if it's either a fluid or if there's no FluidState at the position. Otherwise, return the FluidState at the position.
+     *
+     * @throws NullPointerException If chunk or pos are null.
+     * @since 3.0.0
+     * @author jbred
+     */
     @Nonnull
     public static IBlockState getFluidOrReal(@Nonnull final Chunk chunk, @Nonnull final BlockPos pos) {
         return getFluidOrReal(chunk, pos, chunk.getBlockState(pos));
     }
 
+    /**
+     * @param chunk Chunk.
+     * @param pos Position.
+     * @param state IBlockState at the position.
+     * @return The IBlockState at the position if it's either a fluid or if there's no FluidState at the position. Otherwise, return the FluidState at the position.
+     *
+     * @throws NullPointerException If pos or state are null.
+     * @since 3.0.0
+     * @author jbred
+     */
     @Nonnull
     public static IBlockState getFluidOrReal(@Nullable final Chunk chunk, @Nonnull final BlockPos pos, @Nonnull final IBlockState state) {
         if(isFluid(state)) return state; // if the state here is a fluid, return it
@@ -168,12 +198,63 @@ public final class FluidloggedUtils
         return fluidState.isEmpty() ? state : fluidState.getState();
     }
 
-    //convenience method that uses default block flags
-    public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize) {
+    /**
+     * Only if the block state here is a fluid block, this sets it to air. Otherwise, this sets the FluidState at the position to {@link FluidState#EMPTY}.
+     *
+     * @param world
+     * @param pos
+     * @param here
+     * @param blockFlags
+     * @return True if a FluidState or fluid block were set to air, false otherwise.
+     *
+     * @throws NullPointerException If world or pos are null.
+     * @since 3.0.0
+     * @author jbred
+     */
+    public static boolean setFluidToAir(@Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final IBlockState here, final int blockFlags) {
+        if(here != null) return isFluid(here) ? world.setBlockState(pos, BlockStateContainer.AIR_BLOCK_STATE, blockFlags | 32) : setFluidState(world, pos, here, FluidState.EMPTY, false, blockFlags);
+
+        @Nonnull final IBlockState state = world.getBlockState(pos);
+        return isFluid(state) ? world.setBlockState(pos, BlockStateContainer.AIR_BLOCK_STATE, blockFlags | 32) : setFluidState(world, pos, state, FluidState.EMPTY, false, blockFlags);
+    }
+
+    /**
+     * Set a FluidState in the world.
+     *
+     * @param world World.
+     * @param pos Position.
+     * @param here IBlockState at the position, may be null.
+     * @param fluidState FluidState to place in the world, may be empty.
+     * @param checkVaporize True if fluid vaporizing should be checked. For example, water vaporizing in the nether.
+     * @return True if the FluidState was successfully set, false otherwise.
+     *
+     * @throws NullPointerException If world, pos, or fluidState are null.
+     * @since 1.7.0
+     * @author jbred
+     */
+    public static boolean setFluidState(@Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final IBlockState here, @Nonnull final FluidState fluidState, final boolean checkVaporize) {
         return setFluidState(world, pos, here, fluidState, checkVaporize, Constants.BlockFlags.DEFAULT);
     }
 
-    public static boolean setFluidState(@Nonnull World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull FluidState fluidState, boolean checkVaporize, int blockFlags) {
+    /**
+     * Set a FluidState in the world.
+     *
+     * @param world World.
+     * @param pos Position.
+     * @param here IBlockState at the position, may be null.
+     * @param fluidState FluidState to place in the world, may be empty.
+     * @param checkVaporize True if fluid vaporizing should be checked. For example, water vaporizing in the nether.
+     * @param blockFlags Flag 1 will cause a block update. Flag 2 will send the change to clients. Flag 4 will prevent the block from
+     * being re-rendered, if this is a client world. Flag 8 will force any re-renders to run on the main thread instead
+     * of the worker pool, if this is a client world and flag 4 is clear. Flag 16 will prevent observers from seeing
+     * this change. Flags can be OR-ed.
+     * @return True if the FluidState was successfully set, false otherwise.
+     *
+     * @throws NullPointerException If world, pos, or fluidState are null.
+     * @since 1.7.0
+     * @author jbred
+     */
+    public static boolean setFluidState(@Nonnull final World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull final FluidState fluidState, final boolean checkVaporize, final int blockFlags) {
         if(world.isOutsideBuildHeight(pos) || world.getWorldType() == WorldType.DEBUG_ALL_BLOCK_STATES) return false;
 
         @Nonnull final Chunk chunk = world.getChunk(pos);
@@ -185,36 +266,36 @@ public final class FluidloggedUtils
         else if(cap.getContainer(pos.getY()).getFluidState(pos, FluidState.EMPTY) == fluidState) return false;
         pos = pos.toImmutable();
 
-        //update the chunk's precipitationHeightMap
+        // update the chunk's precipitationHeightMap
         final int precipitationIndex = (pos.getZ() & 15) << 4 | (pos.getX() & 15);
         if(pos.getY() >= chunk.precipitationHeightMap[precipitationIndex] - 1) chunk.precipitationHeightMap[precipitationIndex] = -999;
 
-        //handle event
+        // handle event
         final FluidloggedEvent event = new FluidloggedEvent(world, chunk, pos, here, fluidState, checkVaporize, blockFlags);
         if(MinecraftForge.EVENT_BUS.post(event) && event.getResult() != Event.Result.DEFAULT) return event.getResult() == Event.Result.ALLOW;
 
-        //if the world is too warm for the fluid, vaporize it
+        // if the world is too warm for the fluid, vaporize it
         if(event.doesVaporize()) {
             playVaporizeEffects(world, pos, event.getFluidStack());
             return true;
         }
 
-        //check for IFluidloggable
+        // check for IFluidloggable
         if(here.getBlock() instanceof IFluidloggable) {
             final EnumActionResult result = ((IFluidloggable)here.getBlock()).onFluidChange(world, pos, here, event.fluidState, event.blockFlags);
             if(result != EnumActionResult.PASS) return result == EnumActionResult.SUCCESS;
         }
 
-        //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
+        // moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
         setFluidState_Internal(world, chunk, here, pos, event.fluidState, event.blockFlags);
 
-        //default
+        // default
         return true;
     }
 
-    //if you're not an event instance or an IFluidloggable instance, use setFluidState instead!
-    //moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-    public static void setFluidState_Internal(@Nonnull World world, @Nonnull Chunk chunk, @Nonnull IBlockState here, @Nonnull BlockPos pos, @Nonnull FluidState fluidState, int blockFlags) {
+    // if you're not an event instance or an IFluidloggable instance, use setFluidState instead!
+    // moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
+    public static void setFluidState_Internal(@Nonnull final World world, @Nonnull final Chunk chunk, @Nonnull final IBlockState here, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState, final int blockFlags) {
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
         if(cap == null) throw new NullPointerException("There was a critical internal error involving the Fluidlogged API mod, notify the mod author!");
         else if(world.isRemote) { if(!cap.getContainer(pos.getY()).setFluidState(pos, fluidState)) return; }
@@ -226,16 +307,36 @@ public final class FluidloggedUtils
             fluidState.getBlock().onBlockAdded(world, pos, fluidState.getState());
         }
 
-        //update blocks & fluids
+        // update blocks & fluids
         relightFluidBlock(world, pos, chunk, fluidState);
         world.markAndNotifyBlock(pos, chunk, here, here, blockFlags);
     }
 
-    //causes a light level & light opacity update
-    public static void relightFluidBlock(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull FluidState fluidState) {
+    /**
+     * Causes a light level & light opacity update.
+     * @param world World.
+     * @param pos Position.
+     * @param fluidState FluidState causing the update, may be empty.
+     *
+     * @throws NullPointerException If any of the parameters are null.
+     * @since 1.7.0
+     * @author jbred
+     */
+    public static void relightFluidBlock(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState) {
         relightFluidBlock(world, pos, world.getChunk(pos), fluidState);
     }
 
+    /**
+     * Causes a light level & light opacity update.
+     * @param world World.
+     * @param pos Position.
+     * @param chunk Chunk.
+     * @param fluidState FluidState causing the update, may be empty.
+     *
+     * @throws NullPointerException If any of the parameters are null.
+     * @since 3.0.0
+     * @author jbred
+     */
     public static void relightFluidBlock(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final Chunk chunk, @Nonnull final FluidState fluidState) {
         final int x = pos.getX() & 15;
         final int z = pos.getZ() & 15;
@@ -255,15 +356,19 @@ public final class FluidloggedUtils
         world.profiler.endSection();
     }
 
-    public static boolean setFluidToAir(@Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final IBlockState here, final int blockFlags) {
-        if(here != null) return isFluid(here) ? world.setBlockState(pos, BlockStateContainer.AIR_BLOCK_STATE, blockFlags | 32) : setFluidState(world, pos, here, FluidState.EMPTY, false, blockFlags);
-
-        @Nonnull final IBlockState state = world.getBlockState(pos);
-        return isFluid(state) ? world.setBlockState(pos, BlockStateContainer.AIR_BLOCK_STATE, blockFlags | 32) : setFluidState(world, pos, state, FluidState.EMPTY, false, blockFlags);
-    }
-
-    //functions the same as World#notifyNeighborsOfStateChange, but for fluids
-    public static void notifyFluids(@Nonnull World world, @Nonnull BlockPos pos, @Nullable FluidState fluidState, boolean notifyHere, @Nullable EnumFacing... except) {
+    /**
+     * The same as {@link World#notifyNeighborsOfStateChange(BlockPos, Block, boolean)}, but for fluids.
+     * @param world World.
+     * @param pos Position.
+     * @param fluidState FluidState causing the update. If null, it's assumed that the FluidState at the position caused the update.
+     * @param notifyHere True if the FluidState at the position should be notified.
+     * @param except Sides to not send updates.
+     *
+     * @throws NullPointerException If world or pos are null.
+     * @since 1.7.0
+     * @author jbred
+     */
+    public static void notifyFluids(@Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final FluidState fluidState, final boolean notifyHere, @Nullable final EnumFacing... except) {
         @Nonnull final FluidCache cache = new FluidCache(world, pos, 1, 1);
         @Nonnull final EnumSet<EnumFacing> set = EnumSet.allOf(EnumFacing.class);
 
@@ -272,10 +377,10 @@ public final class FluidloggedUtils
         if(ForgeEventFactory.onNeighborNotify(world, pos, source, set, false).isCanceled())
             return;
 
-        //update state here
+        // update state here
         if(notifyHere) source.neighborChanged(world, pos, source.getBlock(), pos);
 
-        //update neighboring states
+        // update neighboring states
         for(@Nonnull final EnumFacing facing : set) {
             @Nonnull final BlockPos offset = pos.offset(facing);
             @Nonnull final FluidState neighbor = getFluidState(cache, offset);
@@ -284,10 +389,20 @@ public final class FluidloggedUtils
         }
     }
 
-    //has two purposes:
-    //1: returns true if the contained fluid can flow from the specified side
-    //2: returns true if a fluid can flow into this block from the specified side
-    public static boolean canFluidFlow(@Nonnull IBlockAccess access, @Nonnull BlockPos pos, @Nonnull IBlockState here, @Nonnull EnumFacing side) {
+    /**
+     * <li> Returns true if the contained fluid can flow from the specified side.</li>
+     * <li> Returns true if a fluid can flow into this block from the specified side.</li>
+     *
+     * @param access IBlockAccess.
+     * @param pos Position.
+     * @param here IBlockState at the position.
+     * @param side Side to test.
+     *
+     * @throws NullPointerException If any of the parameters are null.
+     * @since 1.7.0
+     * @author jbred
+     */
+    public static boolean canFluidFlow(@Nonnull final IBlockAccess access, @Nonnull BlockPos pos, @Nonnull final IBlockState here, @Nonnull final EnumFacing side) {
         pos = pos.toImmutable(); // this is dumb, but without it corner rendering breaks for some reason
 
         // config override
@@ -301,8 +416,15 @@ public final class FluidloggedUtils
                 : here.getBlockFaceShape(access, pos, side) != BlockFaceShape.SOLID;
     }
 
-    //checks if two fluids are compatible
-    public static boolean isCompatibleFluid(@Nullable Fluid fluid1, @Nullable Fluid fluid2) {
+    /**
+     * @param fluid1 Fluid.
+     * @param fluid2 Fluid to be compared to fluid1.
+     * @return True if fluid1 and fluid2 are compatible. See {@link ICompatibleFluid}.
+     *
+     * @since 1.7.0
+     * @author jbred
+     */
+    public static boolean isCompatibleFluid(@Nullable final Fluid fluid1, @Nullable final Fluid fluid2) {
         if(fluid1 == null || fluid2 == null) return false;
         else if(fluid1.equals(fluid2)) return true;
 
@@ -312,81 +434,130 @@ public final class FluidloggedUtils
     }
 
     /**
+     * @param fluidState1 FluidState.
+     * @param fluidState2 FluidState whose fluid is to be compared with the fluid of fluidState1.
+     * @return True if the fluids of fluidState1 and fluidState2 are compatible. See {@link ICompatibleFluid}.
+     *
+     * @throws NullPointerException If fluidState1 or fluidState2 are null.
      * @since 3.0.0
+     * @author jbred
      */
     public static boolean isCompatibleFluid(@Nonnull final FluidState fluidState1, @Nonnull final FluidState fluidState2) {
         return isCompatibleFluid(fluidState1.getFluid(), fluidState2.getFluid());
     }
 
-    //convenience method that takes in an IBlockState rather than a Block
+    /**
+     * @param state IBlockState.
+     * @return The fluid associated with the provided block state, or null if the provided block state is not a fluid block.
+     *
+     * @since 1.7.0
+     * @author jbred
+     */
     @Nullable
-    public static Fluid getFluidFromState(@Nullable IBlockState fluid) {
-        if(fluid == null) return null;
-        else if(fluid.getBlock() instanceof IFluidBlock) return ((IFluidBlock)fluid.getBlock()).getFluid();
+    public static Fluid getFluidFromState(@Nullable final IBlockState state) {
+        if(state == null) return null;
+        else if(state.getBlock() instanceof IFluidBlock) return ((IFluidBlock)state.getBlock()).getFluid();
 
-        final Material material = fluid.getMaterial();
-        if(material == Material.WATER) return FluidRegistry.WATER;
-        else return material == Material.LAVA ? FluidRegistry.LAVA : null;
-    }
-
-    //fork of IFluidBlock#getFluid
-    //(BlockLiquid extends IFluidBlock during runtime through asm)
-    @Nullable
-    public static Fluid getFluidFromBlock(@Nullable Block fluid) {
-        if(fluid instanceof IFluidBlock) return ((IFluidBlock)fluid).getFluid();
-        else if(fluid == null) return null;
-
-        @Nonnull final Material material = fluid.getDefaultState().getMaterial();
+        @Nonnull final Material material = state.getMaterial();
         return material == Material.WATER ? FluidRegistry.WATER : material == Material.LAVA ? FluidRegistry.LAVA : null;
     }
 
-    //return true if the input state or block is a fluid
-    public static boolean isFluid(@Nullable Block fluid) {
-        if(fluid instanceof IFluidBlock) return true;
-        else if(fluid == null) return false;
-
-        @Nonnull final Material material = fluid.getDefaultState().getMaterial();
-        return material == Material.WATER || material == Material.LAVA;
-    }
-
-    public static boolean isFluid(@Nullable IBlockState fluid) {
-        if(fluid == null) return false;
-        else if(fluid.getBlock() instanceof IFluidBlock) return true;
-
-        @Nonnull final Material material = fluid.getMaterial();
-        return material == Material.WATER || material == Material.LAVA;
-    }
-
     /**
-     * Deprecated since 3.0.0, use {@link FluidState#isFluidloggable()} instead.
+     * @param block Block.
+     * @return The fluid associated with the provided block, or null if the provided block is not a fluid block.
      *
-     * @since 1.8.0
+     * @since 1.7.0
      * @author jbred
      */
-    @Deprecated
-    public static boolean isFluidloggableFluid(@Nullable final IBlockState fluid, @Nullable final World world, @Nullable final BlockPos pos) {
-        return FluidState.of(fluid).isFluidloggable();
+    @Nullable
+    public static Fluid getFluidFromBlock(@Nullable final Block block) {
+        if(block instanceof IFluidBlock) return ((IFluidBlock)block).getFluid();
+        else if(block == null) return null;
+
+        @Nonnull final Material material = block.getDefaultState().getMaterial();
+        return material == Material.WATER ? FluidRegistry.WATER : material == Material.LAVA ? FluidRegistry.LAVA : null;
     }
 
     /**
-     * @param state
-     * @param world
-     * @param pos
-     * @param fluid
-     * @return
+     * @param state IBlockState.
+     * @return True if the input block state is a fluid.
+     *
+     * @since 1.9.0
+     * @author jbred
+     */
+    public static boolean isFluid(@Nullable final IBlockState state) {
+        if(state == null) return false;
+        else if(state.getBlock() instanceof IFluidBlock) return true;
+
+        @Nonnull final Material material = state.getMaterial();
+        return material == Material.WATER || material == Material.LAVA;
+    }
+
+    /**
+     * @param block Block.
+     * @return True if the input block is a fluid.
+     *
+     * @since 1.9.0
+     * @author jbred
+     */
+    public static boolean isFluid(@Nullable final Block block) {
+        if(block instanceof IFluidBlock) return true;
+        else if(block == null) return false;
+
+        @Nonnull final Material material = block.getDefaultState().getMaterial();
+        return material == Material.WATER || material == Material.LAVA;
+    }
+
+    /**
+     * @param state IBlockState to check.
+     * @param world IBlockAccess.
+     * @param pos Position.
+     * @param fluid FluidState to check.
+     * @return True if the provided block state can be fluidlogged with the provided FluidState.
      *
      * @throws NullPointerException If any of the parameters are null.
      * @since 3.0.0
+     * @author jbred
      */
     public static boolean isStateFluidloggable(@Nonnull final IBlockState state, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final FluidState fluid) {
         return fluid.isFluidloggable() && fluid.getFluidBlockHandler().isStateFluidloggable(state, world, pos, fluid);
     }
 
+    /**
+     * @param state The fluid block as a block state.
+     * @param world World.
+     * @param pos Position.
+     * @return True if the fluid block state can create source blocks.
+     *
+     * @throws NullPointerException If any of the parameters are null.
+     * @since 3.0.0
+     * @author jbred
+     */
     public static boolean canCreateSource(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos) {
         return ForgeEventFactory.canCreateFluidSource(world, pos, state, state.getBlock() instanceof BlockLiquid ? state.getMaterial() == Material.WATER
                 : state.getBlock() instanceof PluginBlockFluidClassic.Accessor && ((PluginBlockFluidClassic.Accessor)state.getBlock()).canCreateSource_Public());
     }
 
+    /**<b>
+     * This method is intended to only be used by {@link IFluidloggable#isFluidloggable(IBlockState, IBlockAccess, BlockPos, FluidState) IFluidloggable.isFluidloggable()},
+     * and is completely separate from normal fluidlogging checks.</b> For those, only use {@link FluidState#isFluidloggable()} and
+     * {@link FluidloggedUtils#isStateFluidloggable(IBlockState, IBlockAccess, BlockPos, FluidState) isStateFluidloggable()}.
+     * <p>
+     * This method checks that the provided FluidState will be able to *fit outside* the provided actual state. It does this by comparing
+     * the state's collision boxes (or user-specified "boxes" if provided) with the estimated bounding box for the FluidState, and
+     * making sure that part of the FluidState's bounding box sticks out.
+     * </p>
+     *
+     * @param actualState {@link IBlockState#getActualState Actual IBlockState} to test.
+     * @param world IBlockAccess.
+     * @param pos Position.
+     * @param fluidState FluidState to test.
+     * @return True if the FluidState fits outside the provided actual state.
+     *
+     * @throws NullPointerException If any of the parameters are null.
+     * @since 3.0.0
+     * @author jbred
+     */
     public static boolean canFluidOccupy(@Nonnull final IBlockState actualState, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState) {
         if(canFluidFlow(world, pos, actualState, fluidState.getDownDensityFace())) return true;
         else if(!fluidState.isValid()) return false;
@@ -428,11 +599,56 @@ public final class FluidloggedUtils
         return total - overlapping < 1;
     }
 
+    /**
+     * Utility method that runs {@link Fluid#vaporize} from the server, while still allowing clients to see any particles.
+     *
+     * @param world World.
+     * @param pos Position.
+     * @param fluidStack FluidStack.
+     *
+     * @throws NullPointerException If any of the parameters are null.
+     * @since 3.0.0
+     * @author jbred
+     */
     public static void playVaporizeEffects(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final FluidStack fluidStack) {
         if(!world.isRemote) {
             fluidStack.getFluid().vaporize(null, world, pos, fluidStack); // play serverside effects (like sounds)
             FluidloggedAPI.WRAPPER.sendToAllAround(new SMessageVaporizeEffects(fluidStack, pos),
                     new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 64));
         }
+    }
+
+    /**
+     * Deprecated since 3.0.0, use {@link FluidState#isFluidloggable()} instead.
+     *
+     * @since 1.8.0
+     * @author jbred
+     */
+    @Deprecated
+    public static boolean isFluidloggableFluid(@Nullable final Block fluid) {
+        return FluidState.of(fluid).isFluidloggable();
+    }
+
+    /**
+     * Deprecated since 3.0.0, use {@link FluidState#isFluidloggable()} instead.
+     *
+     * @since 1.8.0
+     * @author jbred
+     */
+    @Deprecated
+    public static boolean isFluidloggableFluid(@Nullable final IBlockState fluid, @Nullable final World world, @Nullable final BlockPos pos) {
+        return FluidState.of(fluid).isFluidloggable();
+    }
+
+    /**
+     * Deprecated since 3.0.0, use the FluidState-sensitive version instead.
+     *
+     * @throws NullPointerException If state, world, or pos are null.
+     * @since 1.8.0
+     * @author jbred
+     */
+    @Deprecated
+    public static boolean isStateFluidloggable(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final Fluid fluid) {
+        return isStateFluidloggable(state, world, pos, FluidState.of(fluid));
     }
 }
