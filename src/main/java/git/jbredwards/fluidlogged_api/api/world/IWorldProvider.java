@@ -40,21 +40,20 @@ public interface IWorldProvider
     /**
      * @param access IBlockAccess.
      * @return The provided {@link IBlockAccess}'s {@link World} instance, or the client world as a fallback. For any {@link World}
-     * instance, the built-in implementation of {@link IWorldProvider#getWorld()} simply returns itself.
+     * instance, the built-in implementation of {@link IWorldProvider#getWorld()} simply returns itself. If null is provided, this returns null.
      * @throws IllegalArgumentException If access is not a {@link IWorldProvider} and this is not being executed from a client-side thread.
-     * @throws NullPointerException If access is null and this is not being executed from a client-side thread, or
-     *                              if there is no client world loaded and this is being executed from a client-side thread.
+     * @throws NullPointerException If there is no client world loaded and this is being executed from a client-side thread.
      *
      * @since 3.0.0
      * @author jbred
      */
-    @Nonnull
-    static World getWorld(@Nonnull final IBlockAccess access) {
+    static World getWorld(@Nullable final IBlockAccess access) {
         if(access instanceof IWorldProvider) return ((IWorldProvider)access).getWorld();
+        else if(access == null) return null; // let's allow null to be used, and return null back
         else if(!FMLLaunchHandler.isDeobfuscatedEnvironment() && // easier issue detection for devs
                 FMLCommonHandler.instance().getSide().isClient() && FMLCommonHandler.instance().getEffectiveSide().isClient())
 
-            return Objects.requireNonNull(getClientWorld(), "Cannot get client world while none is loaded.");
+            return Objects.requireNonNull(getWorldClient(), "Cannot get client world while none is loaded.");
         else throw new IllegalArgumentException("Could not get world from: \"" + access.getClass().toGenericString() + '"');
     }
 
@@ -66,5 +65,5 @@ public interface IWorldProvider
      */
     @Nullable
     @SideOnly(Side.CLIENT)
-    static World getClientWorld() { return FMLClientHandler.instance().getWorldClient(); }
+    static World getWorldClient() { return FMLClientHandler.instance().getWorldClient(); }
 }

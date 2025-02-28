@@ -42,12 +42,12 @@ public final class SMessageCommandPrint extends AbstractMessage
     @Override
     public void read(@Nonnull final PacketBuffer buf) {
         path = Paths.get(buf.readString(Short.MAX_VALUE));
-        args = (fluidloggableType = buf.readEnumValue(CommandPrint.FluidloggableType.class)).read(buf);
+        args = (fluidloggableType = buf.readEnumValue(CommandPrint.FluidloggableType.class)).packetRead(buf);
     }
 
     @Override
     public void write(@Nonnull final PacketBuffer buf) {
-        fluidloggableType.write(buf.writeString(path.toString()).writeEnumValue(fluidloggableType), args);
+        fluidloggableType.packetWrite(buf.writeString(path.toString()).writeEnumValue(fluidloggableType), args);
     }
 
     public enum Handler implements IClientMessageHandler<SMessageCommandPrint>

@@ -194,7 +194,7 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
     @Nonnull
     @SideOnly(Side.CLIENT)
     public static FluidState get(@Nonnull final BlockPos pos) {
-        return get(IWorldProvider.getClientWorld(), pos);
+        return get(IWorldProvider.getWorldClient(), pos);
     }
 
     /**

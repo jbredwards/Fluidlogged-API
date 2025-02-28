@@ -9,6 +9,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
+import git.jbredwards.fluidlogged_api.api.event.FluidloggableEvent;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigs;
 import git.jbredwards.fluidlogged_api.mod.common.message.SMessageCommandPrint;
@@ -25,8 +27,13 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.JsonUtils;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.chunk.BlockStateContainer;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.eventhandler.EventBus;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import net.minecraftforge.fml.relauncher.Side;
 
 import javax.annotation.Nonnull;
@@ -36,6 +43,7 @@ import java.io.Writer;
 import java.nio.file.*;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  *
@@ -49,11 +57,12 @@ public class CommandPrint extends CommandChildBase
             .withRequiredArg().withValuesConvertedBy(new EnumConverter<Side>(Side.class) {});
     @Nonnull protected final OptionSpec<ConfigType> configToSaveSpec = parser.accepts("configToSave", "Config type (all, blacklist, fluidTags, whitelist) to output.")
             .withRequiredArg().withValuesConvertedBy(ConfigType.DESERIALIZER);
-    @Nonnull protected final OptionSpec<FluidloggableType> fluidloggableTypeSpec = parser.accepts("handlerType", "Fluidloggable handler type (all, builtin, config) to output.")
+    @Nonnull protected final OptionSpec<FluidloggableType> fluidloggableTypeSpec = parser.accepts("handlerType", "Fluidloggable handler type (all, builtin, config, listener) to output.")
             .withRequiredArg().withValuesConvertedBy(FluidloggableType.DESERIALIZER);
     @Nonnull protected final OptionSpec<Path> pathSpec = parser.accepts("path", "File path.")
             .withRequiredArg().withValuesConvertedBy(new PathConverter());
 
+    protected static final int eventID = ReflectionHelper.getPrivateValue(EventBus.class, MinecraftForge.EVENT_BUS, "busID");
     public CommandPrint(@Nullable final ICommand parentIn) { super(parentIn, "print"); }
 
     @Override
@@ -76,7 +85,7 @@ public class CommandPrint extends CommandChildBase
         if(side.isServer() || isPlayer && !server.isDedicatedServer() && ((EntityPlayerMP)sender).connection.getNetworkManager().isLocalChannel()) {
             try {
                 sender.sendMessage(new TextComponentTranslation("commands.fluidlogged_api.print.start"));
-                fluidloggableType.save(path, fluidloggableType.getArgs(configToSave, server));
+                fluidloggableType.save(path, fluidloggableType.getCommandArgs(configToSave, server));
                 sender.sendMessage(new TextComponentTranslation("commands.fluidlogged_api.generic.finished"));
             }
             catch(@Nonnull final Exception e) {
@@ -88,7 +97,7 @@ public class CommandPrint extends CommandChildBase
         // run command on client
         else if(isPlayer) {
             sender.sendMessage(new TextComponentTranslation("commands.fluidlogged_api.print.start"));
-            FluidloggedAPI.WRAPPER.sendTo(new SMessageCommandPrint(path, fluidloggableType, fluidloggableType.getArgs(configToSave, server)), (EntityPlayerMP)sender);
+            FluidloggedAPI.WRAPPER.sendTo(new SMessageCommandPrint(path, fluidloggableType, fluidloggableType.getCommandArgs(configToSave, server)), (EntityPlayerMP)sender);
         }
 
         // don't run command
@@ -150,8 +159,37 @@ public class CommandPrint extends CommandChildBase
         ALL {
             @Override
             public void save(@Nonnull final Path path, @Nonnull final Object[] args) throws Exception {
-                PREDICATE.save(path, args);
-                INTERFACE.save(path, args);
+                for(int i = 1; i < values().length; i++) values()[i].save(path, (Object[])args[i - 1]);
+            }
+
+            @Nonnull
+            @Override
+            public Object[] getCommandArgs(@Nonnull final ConfigType configType, @Nonnull final MinecraftServer server) {
+                @Nonnull final Object[][] args = new Object[values().length - 1][];
+                for(int i = 1; i < values().length; i++) args[i - 1] = values()[i].getCommandArgs(configType, server);
+                return args;
+            }
+
+            @Nonnull
+            @Override
+            public Object[] packetRead(@Nonnull final PacketBuffer buf) {
+                @Nonnull final Object[][] args = new Object[values().length - 1][];
+                for(int i = 1; i < values().length; i++) args[i - 1] = values()[i].packetRead(buf);
+                return args;
+            }
+
+            @Override
+            public void packetWrite(@Nonnull final PacketBuffer buf, @Nonnull final Object[] args) {
+                for(int i = 1; i < values().length; i++) values()[i].packetWrite(buf, (Object[])args[i - 1]);
+            }
+        },
+        EVENT {
+            @Override
+            public void save(@Nonnull final Path path, @Nonnull final Object[] args) throws Exception {
+                Files.createDirectories(path);
+                @Nonnull final FluidloggableEvent dummyEvent = new FluidloggableEvent(BlockStateContainer.AIR_BLOCK_STATE, null, BlockPos.ORIGIN, FluidState.EMPTY);
+                @Nonnull final String[] lines = Arrays.stream(dummyEvent.getListenerList().getListeners(eventID)).flatMap(e -> Stream.of(e.toString(), "")).toArray(String[]::new);
+                Files.write(path.resolve("listeners.txt"), Arrays.asList(lines), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             }
         },
         INTERFACE {
@@ -168,17 +206,6 @@ public class CommandPrint extends CommandChildBase
                 System.arraycopy(collectedLines, 0, lines, 1, collectedLines.length);
                 Files.write(path.resolve("builtin.csv"), Arrays.asList(lines), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             }
-
-            @Nonnull
-            @Override
-            public Object[] getArgs(@Nonnull final ConfigType configType, @Nonnull final MinecraftServer server) { return new Object[0]; }
-
-            @Nonnull
-            @Override
-            public Object[] read(@Nonnull final PacketBuffer buf) { return new Object[0]; }
-
-            @Override
-            public void write(@Nonnull final PacketBuffer buf, @Nonnull final Object[] args) {}
         },
         PREDICATE {
             @Override
@@ -201,6 +228,32 @@ public class CommandPrint extends CommandChildBase
                 gson.toJson(configType.get(json), writer);
                 writer.close();
             }
+
+            @Nonnull
+            @Override
+            public Object[] getCommandArgs(@Nonnull final ConfigType configType, @Nonnull final MinecraftServer server) {
+                @Nonnull final Object[] args = new Object[2];
+                args[0] = configType;
+                args[1] = FluidloggedAPIConfigs.readConfigFiles(server);
+                return args;
+            }
+
+            @Nonnull
+            @Override
+            public Object[] packetRead(@Nonnull final PacketBuffer buf) {
+                @Nonnull final Object[] args = new Object[2];
+                args[0] = buf.readEnumValue(ConfigType.class);
+
+                @Nonnull final SMessageSyncRuntimeConfigs msg = new SMessageSyncRuntimeConfigs();
+                msg.read(buf);
+                args[1] = msg.configs;
+                return args;
+            }
+
+            @Override
+            public void packetWrite(@Nonnull final PacketBuffer buf, @Nonnull final Object[] args) {
+                new SMessageSyncRuntimeConfigs((JsonObject)args[1]).write(buf.writeEnumValue((ConfigType)args[0]));
+            }
         };
 
         @Nonnull
@@ -209,9 +262,14 @@ public class CommandPrint extends CommandChildBase
             @Override
             public FluidloggableType convert(@Nonnull final String value) {
                 switch(value.toLowerCase()) {
+                    case "l":
+                    case "listeners":
+                    case "e":
+                    case "fluidloggableevent":
+                    case "event": return EVENT;
                     case "i":
-                    case "ifluidloggable":
                     case "b":
+                    case "ifluidloggable":
                     case "builtin": return INTERFACE;
                     case "p":
                     case "c":
@@ -222,29 +280,12 @@ public class CommandPrint extends CommandChildBase
             }
         };
 
+        @Nonnull
+        public Object[] getCommandArgs(@Nonnull final ConfigType configType, @Nonnull final MinecraftServer server) { return new Object[0]; }
         public abstract void save(@Nonnull final Path path, @Nonnull final Object[] args) throws Exception;
 
         @Nonnull
-        public Object[] getArgs(@Nonnull final ConfigType configType, @Nonnull final MinecraftServer server) {
-            @Nonnull final Object[] args = new Object[2];
-            args[0] = configType;
-            args[1] = FluidloggedAPIConfigs.readConfigFiles(server);
-            return args;
-        }
-
-        @Nonnull
-        public Object[] read(@Nonnull final PacketBuffer buf) {
-            @Nonnull final Object[] args = new Object[2];
-            args[0] = buf.readEnumValue(ConfigType.class);
-
-            @Nonnull final SMessageSyncRuntimeConfigs msg = new SMessageSyncRuntimeConfigs();
-            msg.read(buf);
-            args[1] = msg.configs;
-            return args;
-        }
-
-        public void write(@Nonnull final PacketBuffer buf, @Nonnull final Object[] args) {
-            new SMessageSyncRuntimeConfigs((JsonObject)args[1]).write(buf.writeEnumValue((ConfigType)args[0]));
-        }
+        public Object[] packetRead(@Nonnull final PacketBuffer buf) { return new Object[0]; }
+        public void packetWrite(@Nonnull final PacketBuffer buf, @Nonnull final Object[] args) {}
     }
 }
