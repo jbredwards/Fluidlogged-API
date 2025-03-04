@@ -8,10 +8,8 @@ package git.jbredwards.fluidlogged_api.mod.common.fluid.util;
 import com.google.common.primitives.Ints;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.impl.SpecializedFluidNeighborInfo;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
-import it.unimi.dsi.fastutil.ints.IntSets;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
@@ -32,6 +30,8 @@ import java.util.function.IntUnaryOperator;
  */
 public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
 {
+    int DEFAULT_COST = 1000;
+
     class Forge extends SpecializedFluidNeighborInfo.Forge implements IFluidUpdateHelper
     {
         public Forge(@Nonnull final IBlockAccess accessIn, @Nonnull final BlockPos originIn, @Nonnull final FluidState originStateIn, final int radius) {
@@ -50,26 +50,21 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
     // index-relative functions
     // ------------------------
 
-    default int calculateFlowCostI(final int xi, final int yi, final int zi, final int quantaPerBlock, final int flowMeta, final int flowCost, final int recurseDepth, @Nonnull final IntUnaryOperator downMeta, @Nonnull final IntSet checkedX, @Nonnull final IntSet checkedZ) {
-        if(flowMeta + recurseDepth >= quantaPerBlock) return 1000;
-
-        @Nonnull final IntSet adjX = new IntOpenHashSet(checkedX), adjZ = new IntOpenHashSet(checkedZ);
-        adjX.add(xi);
-        adjZ.add(zi);
-        int cost = 1000;
+    default int calculateFlowCostI(final int xi, final int yi, final int zi, final int quantaPerBlock, final int flowMeta, final int flowCost, final int recurseDepth, @Nonnull final IntUnaryOperator downMeta, @Nonnull final EnumFacing checkedSide) {
+        int cost = DEFAULT_COST;
 
         for(int adjSide = 0; adjSide < 4; adjSide++) {
             @Nonnull final EnumFacing side = EnumFacing.HORIZONTALS[adjSide];
+            if(side != checkedSide) {
+                final int xio = xi + side.getXOffset(), zio = zi + side.getZOffset();
 
-            final int xio = xi + side.getXOffset(), zio = zi + side.getZOffset();
-            if(checkedX.contains(xio) && checkedZ.contains(zio)) continue;
+                @Nonnull final FluidState fluid = getFluidStateI(xio, yi, zio);
+                final int cappedLvl = Math.min(flowMeta + recurseDepth, quantaPerBlock - 1);
 
-            @Nonnull final FluidState fluid = getFluidStateI(xio, yi, zio);
-            final int cappedLvl = flowMeta + recurseDepth;
-
-            if((!FluidloggedUtils.isCompatibleFluid(fluid, getOrigin()) || !fluid.isSource()) && canFlowIntoI(xi, yi, zi, cappedLvl, side, true, true)) {
-                if(canFlowIntoI(xio, yi, zio, downMeta.applyAsInt(cappedLvl), getOrigin().getDownDensityFace(), true, true)) return recurseDepth;
-                else if(/*flowMeta +*/ recurseDepth < quantaPerBlock >> flowCost) cost = Math.min(cost, calculateFlowCostI(xio, yi, zio, quantaPerBlock, flowMeta, flowCost, recurseDepth + flowCost, downMeta, adjX, adjZ));
+                if((!FluidloggedUtils.isCompatibleFluid(fluid, getOrigin()) || !fluid.isSource()) && canFlowIntoI(xi, yi, zi, cappedLvl, side, true, true)) {
+                    if(canFlowIntoI(xio, yi, zio, downMeta.applyAsInt(cappedLvl), getOrigin().getDownDensityFace(), true, true)) return recurseDepth;
+                    else if(recurseDepth < quantaPerBlock >> flowCost) cost = Math.min(cost, calculateFlowCostI(xio, yi, zio, quantaPerBlock, flowMeta, flowCost, recurseDepth + flowCost, downMeta, side.getOpposite()));
+                }
             }
         }
 
@@ -77,34 +72,52 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
     }
 
     @Nonnull
-    default boolean[] getOptimalFlowDirectionsI(final int xi, final int yi, final int zi, final int quantaPerBlock, final int flowMeta, final int flowCost, @Nonnull final IntUnaryOperator downMeta) {
-        @Nonnull final IntSet checkedX = IntSets.singleton(xi), checkedZ = IntSets.singleton(zi);
+    default int[] getOptimalFlowDirectionsI(final int xi, final int yi, final int zi, final int quantaPerBlock, final int flowMeta, final int flowCost, @Nonnull final IntUnaryOperator downMeta) {
         @Nonnull final int[] adjFlowCost = new int[4];
 
         for(int sideI = 0; sideI < 4; sideI++) {
-            adjFlowCost[sideI] = 1000;
+            adjFlowCost[sideI] = DEFAULT_COST;
             @Nonnull final EnumFacing side = EnumFacing.HORIZONTALS[sideI];
             final int xio = xi + side.getXOffset(), zio = zi + side.getZOffset();
 
             @Nonnull final FluidState fluid = getFluidStateI(xio, yi, zio);
             if((!FluidloggedUtils.isCompatibleFluid(fluid, getOrigin()) || !fluid.isSource()) && canFlowIntoI(xi, yi, zi, flowMeta, side, true, true)) {
-                /*if(canFluidFlowI(xio, yi, zio, side.getOpposite()) && isCompatibleFluidI(xio, yi, zio)) {
-                    @Nonnull final FluidState fluidState = getFluidStateI(xio, yi, zio);
-                    if(!fluidState.isEmpty() && fluidState.getLevel() >= flowMeta) {
-                        adjFlowCost[sideI] = 0;
-                        continue;
-                    }
-                }*/
-
                 if(canFlowIntoI(xio, yi, zio, downMeta.applyAsInt(flowMeta), getOrigin().getDownDensityFace(), true, true)) adjFlowCost[sideI] = 0;
-                else adjFlowCost[sideI] = flowMeta < quantaPerBlock ? calculateFlowCostI(xio, yi, zio, quantaPerBlock, flowMeta, flowCost, flowCost, downMeta, checkedX, checkedZ) : 1000;
+                else adjFlowCost[sideI] = flowMeta < quantaPerBlock ? calculateFlowCostI(xio, yi, zio, quantaPerBlock, flowMeta, flowCost, flowCost, downMeta, side.getOpposite()) : DEFAULT_COST;
             }
         }
 
-        @Nonnull final boolean[] isOptimalFlowDirection = new boolean[4];
+        @Nonnull final int[] isOptimalFlowDirection = new int[4];
         final int min = Ints.min(adjFlowCost);
+        for(int sideI = 0; sideI < 4; sideI++) isOptimalFlowDirection[sideI] = adjFlowCost[sideI] == min ? flowMeta : -1;
 
-        for(int sideI = 0; sideI < 4; sideI++) isOptimalFlowDirection[sideI] = adjFlowCost[sideI] == min;
+        // allow fluidlogged source blocks to be created while non-source fluidlogging is disabled
+        if(!FluidloggedAPIConfig.nonSourceFluidlogging && FluidloggedUtils.canCreateSource(getOrigin().getState(), getCache().getWorld(), getPosIB(xi, yi, zi))) {
+            for(int sideI = 0; sideI < 4; sideI++) if(min == DEFAULT_COST || isOptimalFlowDirection[sideI] == -1 && canFluidFlowI(xi, yi, zi, EnumFacing.HORIZONTALS[sideI])) {
+                int adj = getOrigin().isSource() ? 1 : 0;
+
+                @Nonnull final EnumFacing side = EnumFacing.HORIZONTALS[sideI];
+                final int xio = xi + side.getXOffset(), zio = zi + side.getZOffset();
+
+                // check that this position is fluidloggable with a source block, and that it matches the criteria to become a source
+                if((getBlockStateI(xio, yi + getOrigin().getDensityDir(), zio).getMaterial().isSolid()
+                || !canFluidFlowI(xio, yi, zio, getOrigin().getDownDensityFace()) || isSourceI(xio, yi + getOrigin().getDensityDir(), zio, getOrigin().getUpDensityFace()))
+                && FluidloggedUtils.isStateFluidloggable(getBlockStateI(xio, yi, zio), getCache(), getPosIB(xio, yi, zio), getOrigin().toSource())) {
+
+                    // check neighbors
+                    for(@Nonnull final EnumFacing sideA : EnumFacing.HORIZONTALS) {
+                        if(sideA != side.getOpposite() && canFluidFlowI(xio, yi, zio, sideA)) {
+                            final int xioA = xio + sideA.getXOffset(), zioA = zio + sideA.getZOffset();
+                            if(isCompatibleFluidI(xioA, yi, zioA) && canFluidFlowI(xioA, yi, zioA, sideA.getOpposite()) && ++adj == 2) {
+                                isOptimalFlowDirection[sideI] = getOrigin().toSource().getLevel();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return isOptimalFlowDirection;
     }
 
@@ -214,12 +227,12 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
     // origin-relative functions
     // -------------------------
 
-    default int calculateFlowCost(final int x, final int y, final int z, final int quantaPerBlock, final int flowMeta, final int flowCost, final int recurseDepth, @Nonnull final IntUnaryOperator downMeta, @Nonnull final IntSet checkedX, @Nonnull final IntSet checkedZ) {
-        return calculateFlowCostI(getXI(x), getYI(y), getZI(z), quantaPerBlock, flowMeta, flowCost, recurseDepth, downMeta, checkedX, checkedZ);
+    default int calculateFlowCost(final int x, final int y, final int z, final int quantaPerBlock, final int flowMeta, final int flowCost, final int recurseDepth, @Nonnull final IntUnaryOperator downMeta, @Nonnull final EnumFacing checkedSide) {
+        return calculateFlowCostI(getXI(x), getYI(y), getZI(z), quantaPerBlock, flowMeta, flowCost, recurseDepth, downMeta, checkedSide);
     }
 
     @Nonnull
-    default boolean[] getOptimalFlowDirections(final int x, final int y, final int z, final int quantaPerBlock, final int flowMeta, final int flowCost, @Nonnull final IntUnaryOperator downMeta) {
+    default int[] getOptimalFlowDirections(final int x, final int y, final int z, final int quantaPerBlock, final int flowMeta, final int flowCost, @Nonnull final IntUnaryOperator downMeta) {
         return getOptimalFlowDirectionsI(getXI(x), getYI(y), getZI(z), quantaPerBlock, flowMeta, flowCost, downMeta);
     }
 

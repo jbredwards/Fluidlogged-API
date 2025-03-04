@@ -11,6 +11,7 @@ import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.*;
+import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -50,15 +51,20 @@ public class CommandSetFluidState extends CommandChildBase
 
         @Nonnull final Block block = getBlockByText(sender, args[3]);
         @Nonnull final FluidState fluidState = args.length == 5 ? FluidState.of(convertArgToBlockState(block, args[4])) : FluidState.of(block);
-        @Nonnull final IBlockState here = world.getBlockState(pos);
+        if(block != Blocks.AIR && !fluidState.isValid()) throw new WrongUsageException(getUsage(sender));
 
-        if(FluidloggedUtils.isStateFluidloggable(here, world, pos, fluidState)) {
+        @Nonnull final IBlockState here = world.getBlockState(pos);
+        if(fluidState.isEmpty() || FluidloggedUtils.isStateFluidloggable(here, world, pos, fluidState)) {
             if(!FluidloggedUtils.setFluidState(world, pos, here, fluidState, false, Constants.BlockFlags.DEFAULT))
                 throw new CommandException("commands.fluidlogged_api.setfluid.noChange");
         }
 
-        else if(!world.setBlockState(pos, fluidState.getState())) throw new CommandException("commands.fluidlogged_api.setfluid.noChange");
-        notifyCommandListener(sender, this, "commands.fluidlogged_api.setfluid.success");
+        else if(fluidState.isEmpty() && !FluidloggedUtils.isFluid(here) || !world.setBlockState(pos, fluidState.getState())) {
+            throw new CommandException("commands.fluidlogged_api.setfluid.noChange");
+        }
+
+        notifyCommandListener(sender, this, fluidState.isEmpty() ? "commands.fluidlogged_api.setfluid.successAir" : "commands.fluidlogged_api.setfluid.successFluid");
+        sender.setCommandStat(CommandResultStats.Type.AFFECTED_BLOCKS, 1);
     }
 
     @Nonnull
@@ -73,7 +79,9 @@ public class CommandSetFluidState extends CommandChildBase
                     .filter(Objects::nonNull)
                     .toArray(ResourceLocation[]::new);
 
-            TAB_COMPLETIONS = new ResourceLocation[fluidBlocks.length + 1];
+            TAB_COMPLETIONS = new ResourceLocation[fluidBlocks.length + 3];
+            TAB_COMPLETIONS[fluidBlocks.length + 2] = new ResourceLocation("flowing_water");
+            TAB_COMPLETIONS[fluidBlocks.length + 1] = new ResourceLocation("flowing_lava");
             TAB_COMPLETIONS[fluidBlocks.length] = new ResourceLocation("air");
 
             System.arraycopy(fluidBlocks, 0, TAB_COMPLETIONS, 0, fluidBlocks.length);

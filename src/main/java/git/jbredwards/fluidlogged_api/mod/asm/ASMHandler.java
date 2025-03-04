@@ -38,6 +38,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.enderio.PluginEnder
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.exnihilo.PluginExNihiloCreatio;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.extrautils.PluginExtraUtilsAccessDelegate;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.extrautils.PluginExtraUtilsAccessServer;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.flopper.PluginFlopper;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.PluginBlockGrating;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.PluginGCBlocks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.PluginGalacticraft;
@@ -165,6 +166,12 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("com.lycanitesmobs.core.block.fluid.BlockFluidVeshoney", new PluginLycanitesFluidMixing.Veshoney()); // fix lycanites fluid mixing
             plugins.put("com.lycanitesmobs.core.block.fluid.BlockFluidVesspoison", new PluginLycanitesFluidSources()); // fix lycanites fluid source logic
             plugins.put("com.lycanitesmobs.core.block.BlockFluidBase", new PluginLycanitesFluidBase()); // remove isEntityInsideMaterial override
+            plugins.put("com.mcwdoors.kikoz.objects.blocks.Door", new PluginBlockDoor()); // update upper FluidState
+            plugins.put("com.mcwdoors.kikoz.objects.blocks.JailDoor", new PluginBlockDoor()); // update upper FluidState
+            plugins.put("com.mcwdoors.kikoz.objects.blocks.JapaneseDoors", new PluginBlockDoor()); // update upper FluidState
+            plugins.put("com.mcwdoors.kikoz.objects.blocks.MetalDoor", new PluginBlockDoor()); // update upper FluidState
+            plugins.put("com.mcwdoors.kikoz.objects.blocks.StableDoor", new PluginBlockDoor()); // update upper FluidState
+            plugins.put("com.mcwdoors.kikoz.objects.blocks.Western", new PluginBlockDoor()); // update upper FluidState
             plugins.put("com.rwtema.extrautils2.utils.blockaccess.BlockAccessDelegate", new PluginExtraUtilsAccessDelegate()); // extrautils' block access wrapper FluidState-sensitive
             plugins.put("com.rwtema.extrautils2.utils.blockaccess.ThreadSafeBlockAccess", new PluginExtraUtilsAccessServer()); // extrautils' block access wrapper FluidState-sensitive
             plugins.put("crafttweaker.mc1120.block.MCWorldBlock", new PluginCraftTweaker()); // MCWorldBlock.getFluid can read FluidStates
@@ -224,6 +231,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.tropicraft.core.common.event.ItemEvents", new PluginTropicraftBucket()); // account for FluidStates
             plugins.put("net.tropicraft.core.common.fluid.FluidTropicsWater", new PluginTropicraftFluid(false)); // fix issue#183
             plugins.put("openblocks.common.block.BlockSponge", new PluginOpenBlocks()); // make openblocks' sponge FluidState-sensitive
+            plugins.put("org.cyclops.flopper.tileentity.TileFlopper", new PluginFlopper()); // make floppers account for FluidStates
             plugins.put("org.spongepowered.common.mixin.core.block.BlockDynamicLiquidMixin", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.block.BlockLiquidMixin", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.block.BlockStaticLiquidMixin", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods

@@ -12,10 +12,11 @@ import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import net.minecraft.util.JsonUtils;
 import net.minecraftforge.common.config.Config;
 import net.minecraftforge.common.config.ConfigManager;
-import org.apache.commons.io.IOUtils;
+import net.minecraftforge.common.crafting.CraftingHelper;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.*;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,8 +30,6 @@ public final class LegacyConfigHandler
 {
     @Nonnull
     private static final Path OLD_CONFIG_PATH = Paths.get("config", "fluidlogged_api.cfg");
-
-    @SuppressWarnings("deprecation")
     public static void convertOldFile() throws IOException {
         @Nonnull final Path blacklist = Paths.get("config", "fluidlogged_api", "blacklist.cfg");
         @Nonnull final Path fluidTags = Paths.get("config", "fluidlogged_api", "fluidTags.cfg");
@@ -61,9 +60,9 @@ public final class LegacyConfigHandler
             ConfigManager.sync(FluidloggedAPI.MODID, Config.Type.INSTANCE);
 
             // move specialized settings
-            if(json.has("blacklist")) Files.copy(IOUtils.toInputStream(JsonUtils.getJsonArray(json.get("blacklist"), "blacklist").toString()), blacklist, StandardCopyOption.REPLACE_EXISTING);
-            if(json.has("fluidTags")) Files.copy(IOUtils.toInputStream(JsonUtils.getJsonArray(json.get("fluidTags"), "fluidTags").toString()), fluidTags, StandardCopyOption.REPLACE_EXISTING);
-            if(json.has("fluidTags")) Files.copy(IOUtils.toInputStream(JsonUtils.getJsonArray(json.get("whitelist"), "whitelist").toString()), whitelist, StandardCopyOption.REPLACE_EXISTING);
+            if(json.has("blacklist")) try(@Nonnull final Writer writer = Files.newBufferedWriter(blacklist)) { CraftingHelper.GSON.toJson(json.get("blacklist"), writer); }
+            if(json.has("fluidTags")) try(@Nonnull final Writer writer = Files.newBufferedWriter(fluidTags)) { CraftingHelper.GSON.toJson(json.get("fluidTags"), writer); }
+            if(json.has("whitelist")) try(@Nonnull final Writer writer = Files.newBufferedWriter(whitelist)) { CraftingHelper.GSON.toJson(json.get("whitelist"), writer); }
 
             // move old settings to a backup file, then delete the old file
             Files.write(Paths.get("config", "fluidlogged_api.cfg_old"), bytes);

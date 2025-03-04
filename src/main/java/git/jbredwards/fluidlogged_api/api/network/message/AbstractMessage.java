@@ -12,7 +12,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import javax.annotation.Nonnull;
 
 /**
- *
+ * An IMessage base class that uses PacketBuffer and has "isValid" checks built-in.
  * @since 1.9.0
  * @author jbred
  *

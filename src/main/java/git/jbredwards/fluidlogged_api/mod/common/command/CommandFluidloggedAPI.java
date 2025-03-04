@@ -26,6 +26,7 @@ public final class CommandFluidloggedAPI extends CommandTreeBase
         addSubcommand(new CommandPrint(this));
         addSubcommand(new CommandReloadConfig(this, "reload"));
         addSubcommand(new CommandSetFluidState(this));
+        addSubcommand(new CommandTest(this));
         addSubcommand(new CommandTreeHelp(this));
     }
 

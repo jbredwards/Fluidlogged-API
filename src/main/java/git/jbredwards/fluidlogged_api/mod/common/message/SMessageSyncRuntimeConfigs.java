@@ -17,11 +17,9 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import org.apache.commons.io.IOUtils;
 
 import javax.annotation.Nonnull;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -43,9 +41,9 @@ public final class SMessageSyncRuntimeConfigs extends AbstractMessage
 
     @Override
     public void read(@Nonnull final PacketBuffer buf) {
-        @Nonnull final InputStreamReader reader = new InputStreamReader(new ByteBufInputStream(buf, buf.readInt()), StandardCharsets.UTF_8);
-        configs = new JsonParser().parse(reader).getAsJsonObject();
-        IOUtils.closeQuietly(reader);
+        try(@Nonnull final Reader reader = new InputStreamReader(new ByteBufInputStream(buf, buf.readInt()), StandardCharsets.UTF_8))
+        { configs = new JsonParser().parse(reader).getAsJsonObject(); }
+        catch (@Nonnull final IOException ignored) {}
     }
 
     @Override
@@ -53,9 +51,9 @@ public final class SMessageSyncRuntimeConfigs extends AbstractMessage
         buf.writeInt(0); // allocate size bytes
         final int startIndex = buf.writerIndex();
 
-        @Nonnull final OutputStreamWriter writer = new OutputStreamWriter(new ByteBufOutputStream(buf), StandardCharsets.UTF_8);
-        GSON.toJson(configs, writer);
-        IOUtils.closeQuietly(writer);
+        try(@Nonnull final Writer writer = new OutputStreamWriter(new ByteBufOutputStream(buf), StandardCharsets.UTF_8))
+        { GSON.toJson(configs, writer); }
+        catch (@Nonnull final IOException ignored) {}
 
         buf.setInt(startIndex - 4, buf.writerIndex() - startIndex); // write size to allocated bytes
     }

@@ -4,6 +4,7 @@
   "description": "mod.fluidlogged_api.description",
   "version": "${mod_version}",
   "mcversion": "1.12.2",
+  "logoFile": "logo.png",
   "url": "https://github.com/jbredwards/Fluidlogged-API",
   "authorList": ["jbredwards"],
   "credits": "mod.fluidlogged_api.credits"

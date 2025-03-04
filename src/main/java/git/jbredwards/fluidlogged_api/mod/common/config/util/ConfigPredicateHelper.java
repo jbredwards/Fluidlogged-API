@@ -168,7 +168,7 @@ public class ConfigPredicateHelper
                 .collect(Collectors.toSet())) {
 
             setter.accept(state, getter.apply(state) != null ? operation.apply(getter.apply(state), predicate) : predicate);
-            if(flowHandler != null) ICanFluidFlowHandler.Accessor.setOverride(state, flowHandler);
+            if(flowHandler != null && (operation != ConfigPredicateOperation.never || ((ICanFluidFlowHandler.Accessor)state).getCanFluidFlowOverride() == null)) ICanFluidFlowHandler.Accessor.setOverride(state, flowHandler);
             ((IConfigFluidBox)state).setBoxes(boxes.isEmpty() ? null : boxes);
         }
     }

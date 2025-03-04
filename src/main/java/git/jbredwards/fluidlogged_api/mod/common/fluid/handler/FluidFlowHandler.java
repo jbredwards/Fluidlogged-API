@@ -171,13 +171,13 @@ public final class FluidFlowHandler
             return;
         }
 
-        if(flowMeta >= 0 && (helper.getFluidState(0, 0, 0).isSource() || !helper.canFluidFlow(0, 0, 0, originState.getDownDensityFace()) || !helper.canFluidFlow(0, -1, 0, originState.getUpDensityFace()))) {
+        if(flowMeta >= 0 && (helper.getFluidState(0, 0, 0).isSource() || !helper.canFlowInto(0, 0, 0, flowCost, originState.getDownDensityFace(), true, true))) {
             if(helper.hasVerticalFlow(0, 0, 0)) flowMeta = flowCost;
 
-            @Nonnull final boolean[] flowTo = helper.getOptimalFlowDirections(0, 0, 0, originState.getQuantaPerBlock(), flowMeta, flowCost, levelIn -> flowCost);
-            for(int i = 0; i < 4; i++) if(flowTo[i]) {
+            @Nonnull final int[] flowTo = helper.getOptimalFlowDirections(0, 0, 0, originState.getQuantaPerBlock(), flowMeta, flowCost, levelIn -> flowCost);
+            for(int i = 0; i < 4; i++) if(flowTo[i] > -1) {
                 @Nonnull final EnumFacing side = EnumFacing.HORIZONTALS[i];
-                helper.flowInto(0, 0, 0, flowMeta, side, true, false, Constants.BlockFlags.DEFAULT);
+                helper.flowInto(0, 0, 0, flowTo[i], side, true, false, Constants.BlockFlags.DEFAULT);
             }
         }
 
@@ -276,13 +276,13 @@ public final class FluidFlowHandler
         }
 
         // flow outward if possible
-        if(level >= 0 && (helper.getFluidState(0, 0, 0).isSource() || !helper.canFluidFlow(0, 0, 0, originState.getDownDensityFace()) || !helper.canFluidFlow(0, -1, 0, originState.getUpDensityFace()))) {
+        if(level >= 0 && (helper.getFluidState(0, 0, 0).isSource() || !helper.canFlowInto(0, 0, 0, level >= 8 ? level : level + 8, originState.getDownDensityFace(), true, true))) {
             final int newLevel = level >= 8 ? flowCost : level + flowCost;
             if(newLevel < 8) {
-                @Nonnull final boolean[] flowTo = helper.getOptimalFlowDirections(0, 0, 0, 8, newLevel, flowCost, levelIn -> levelIn >= 8 ? levelIn : levelIn + 8);
-                for(int i = 0; i < 4; i++) if(flowTo[i]) {
+                @Nonnull final int[] flowTo = helper.getOptimalFlowDirections(0, 0, 0, 8, newLevel, flowCost, levelIn -> levelIn >= 8 ? levelIn : levelIn + 8);
+                for(int i = 0; i < 4; i++) if(flowTo[i] > -1) {
                     @Nonnull final EnumFacing side = EnumFacing.HORIZONTALS[i];
-                    helper.flowInto(0, 0, 0, newLevel, side, true, false, Constants.BlockFlags.DEFAULT);
+                    helper.flowInto(0, 0, 0, flowTo[i], side, true, false, Constants.BlockFlags.DEFAULT);
                 }
             }
         }

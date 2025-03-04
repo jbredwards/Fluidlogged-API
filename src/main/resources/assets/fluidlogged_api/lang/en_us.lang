@@ -12,12 +12,19 @@ commands.fluidlogged_api.fluidlogged_api.reload.usage=Use /fluidlogged_api reloa
 commands.fluidlogged_api.reloadFluidloggedAPI.usage=Use /reloadFluidloggedAPI
 commands.fluidlogged_api.reloadFluidloggedAPI.start=Reloading Fluidlogged API configs...
 
-commands.fluidlogged_api.fluidlogged.setfluid.usage=Use /fluidlogged setfluid <x> <y> <z> <fluid block> [dataValue|state]
-commands.fluidlogged_api.fluidlogged_api.setfluid.usage=Use /fluidlogged_api setfluid <x> <y> <z> <fluid block> [dataValue|state]
+commands.fluidlogged_api.fluidlogged.setfluid.usage=Use /fluidlogged setfluid <x> <y> <z> <air|fluid block> [dataValue|state]
+commands.fluidlogged_api.fluidlogged_api.setfluid.usage=Use /fluidlogged_api setfluid <x> <y> <z> <air|fluid block> [dataValue|state]
 commands.fluidlogged_api.setfluid.usage=Use /setfluid <x> <y> <z> <fluid block> [dataValue|state]
-commands.fluidlogged_api.setfluid.success=Fluid placed
-commands.fluidlogged_api.setfluid.outOfWorld=Cannot place fluid outside world
 commands.fluidlogged_api.setfluid.noChange=The fluid couldn't be placed
+commands.fluidlogged_api.setfluid.outOfWorld=Cannot place fluid outside world
+commands.fluidlogged_api.setfluid.successAir=Fluid drained
+commands.fluidlogged_api.setfluid.successFluid=Fluid placed
+
+commands.fluidlogged_api.fluidlogged.test.usage=Use /fluidlogged test <x> <y> <z> [fluid block] [dataValue|state]
+commands.fluidlogged_api.fluidlogged_api.test.usage=Use /fluidlogged_api test <x> <y> <z> [fluid block] [dataValue|state]
+commands.fluidlogged_api.test.fail=Did not find fluidloggable block
+commands.fluidlogged_api.test.outOfWorld=Cannot test position outside world
+commands.fluidlogged_api.test.success=Found fluidloggable block
 
 configgui.fluidlogged_api.configTitle=Fluidlogged API Configuration
 
@@ -55,7 +62,7 @@ configgui.fluidlogged_api.general.fixBadFluidMixing.tooltip=While enabled, water
 configgui.fluidlogged_api.general.fluidStateIsFireInsulator=Fluids Protect Against Fire
 configgui.fluidlogged_api.general.fluidStateIsFireInsulator.tooltip=While enabled, flammable blocks cannot ignite while fluidlogged with fireproof fluids.
 configgui.fluidlogged_api.general.ignoreLowFluidCollision=Prevent Shallow Fluid Swimming
-configgui.fluidlogged_api.general.ignoreLowFluidCollision.tooltip=While enabled, non-aquatic entities cannot swim in shallow fluids (like in Vanilla 1.13+).\nThis setting stacks with "Fancy Fluid Collision Mode", and has no performance impact while enabled.
+configgui.fluidlogged_api.general.ignoreLowFluidCollision.tooltip=While enabled, players cannot swim in shallow fluids (like in Vanilla 1.13+).\nThis setting stacks with "Fancy Fluid Collision Mode", and has no performance impact while enabled.
 configgui.fluidlogged_api.general.lavalogVaporizeFlammable=Lava Vaporizing Mode
 configgui.fluidlogged_api.general.lavalogVaporizeFlammable.tooltip=While enabled, any lava-like fluid (has the lava material) flowing into a flammable block will cause the block to be vaporized.\n- Never: This setting is disabled.\n- Flammable (Fluidloggable): Vaporize flammable blocks that can be fluidlogged.\n- Flammable (All): Vaporize blocks that are flammable.
 configgui.fluidlogged_api.general.lavalogVaporizeFlammable.FLAMMABLE=Flammable (All)

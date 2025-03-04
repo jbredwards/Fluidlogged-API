@@ -53,7 +53,7 @@ public class ComponentConfigEntry implements GuiConfigEntries.IConfigEntry
             }
 
             @Nonnull final IConfigElement element = parentIn.getConfigElement();
-            if(element.getType() != ConfigGuiType.CONFIG_CATEGORY && element.getDefaults().length == 0) {
+            if(element.getType() != ConfigGuiType.CONFIG_CATEGORY && !element.isList()) {
                 tooltips.remove(tooltips.size() - 1);
                 tooltips.add(TextFormatting.AQUA + I18n.format("fml.configgui.tooltip.default", Optional.ofNullable(element.getDefault()).map(o -> {
                     if(element.getType() == ConfigGuiType.STRING) return I18n.format(element.getLanguageKey() + '.' + o);

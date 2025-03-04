@@ -13,6 +13,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.ICanFluidFlowHandler;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigAccessor;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
@@ -74,13 +75,13 @@ public interface ConfigPredicate
             try { blockClass = Class.forName(classId); }
             catch(@Nonnull final ClassNotFoundException e) {
                 if(json.has("allowMissing") && JsonUtils.getBoolean(json.get("allowMissing"), "allowMissing")) return;
-                new JsonParseException(String.format("Could not get class from \"%s\" in file \"%s\", skipping...", classId, fileName), e).printStackTrace();
+                FluidloggedAPI.LOGGER.warn(String.format("Could not get class from \"%s\" in file \"%s\", skipping...", classId, fileName), e);
                 return;
             }
 
             // don't allow classes that every block in the game inherits from
             if(blockClass.isAssignableFrom(Block.class)) {
-                new JsonParseException(String.format("Class \"%s\" is too broad in file \"%s\", skipping...", classId, fileName)).printStackTrace();
+                FluidloggedAPI.LOGGER.warn(new JsonParseException(String.format("Class \"%s\" is too broad in file \"%s\", skipping...", classId, fileName)));
                 return;
             }
 
@@ -92,13 +93,13 @@ public interface ConfigPredicate
                 // don't skip remaining blocks
                 catch(@Nonnull final Throwable t) {
                     @Nonnull final String error = "An error has occurred while deserializing config predicate for \"%s\" of class \"%s\" in file \"%s\", skipping...";
-                    new JsonParseException(String.format(error, block.getRegistryName(), classId, fileName), t).printStackTrace();
+                    FluidloggedAPI.LOGGER.warn(String.format(error, block.getRegistryName(), classId, fileName), t);
                 }
             });
 
             // no blocks were found with the provided class, alert the logger
             else if(!(json.has("allowMissing") && JsonUtils.getBoolean(json.get("allowMissing"), "allowMissing")))
-                new JsonParseException(String.format("Could not get any blocks from class \"%s\" in file \"%s\".", classId, fileName)).printStackTrace();
+                FluidloggedAPI.LOGGER.warn(new JsonParseException(String.format("Could not get any blocks from class \"%s\" in file \"%s\".", classId, fileName)));
         });
 
         // deserialize blocks based on mod id
@@ -112,13 +113,13 @@ public interface ConfigPredicate
                 // don't skip remaining blocks
                 catch(@Nonnull final Throwable t) {
                     @Nonnull final String error = "An error has occurred while deserializing config predicate for \"%s\" from mod id \"%s\" in file \"%s\", skipping...";
-                    new JsonParseException(String.format(error, block.getRegistryName(), modId, fileName), t).printStackTrace();
+                    FluidloggedAPI.LOGGER.warn(String.format(error, block.getRegistryName(), modId, fileName), t);
                 }
             });
 
             // no blocks were found with the provided modid, alert the logger
             else if(!(json.has("allowMissing") && JsonUtils.getBoolean(json.get("allowMissing"), "allowMissing")))
-                new JsonParseException(String.format("Could not get any blocks from mod id \"%s\" in file \"%s\".", modId, fileName)).printStackTrace();
+                FluidloggedAPI.LOGGER.warn(new JsonParseException(String.format("Could not get any blocks from mod id \"%s\" in file \"%s\".", modId, fileName)));
         });
 
         // deserialize block based on id
@@ -129,7 +130,7 @@ public interface ConfigPredicate
             // don't create a predicate for invalid blocks
             if(block == null) {
                 if(json.has("allowMissing") && JsonUtils.getBoolean(json.get("allowMissing"), "allowMissing")) return;
-                new JsonParseException(String.format("Could not get block from \"%s\" in file \"%s\", skipping...", blockId, fileName)).printStackTrace();
+                FluidloggedAPI.LOGGER.warn(new JsonParseException(String.format("Could not get block from \"%s\" in file \"%s\", skipping...", blockId, fileName)));
                 return;
             }
 
@@ -137,7 +138,7 @@ public interface ConfigPredicate
             try { helper.forEachState(block, configGetter, configSetter); }
             catch(@Nonnull final Throwable t) {
                 @Nonnull final String error = "An error has occurred while deserializing config predicate for \"%s\" in file \"%s\", skipping...";
-                new JsonParseException(String.format(error, blockId, fileName), t).printStackTrace();
+                FluidloggedAPI.LOGGER.warn(String.format(error, blockId, fileName), t);
             }
         });
     }

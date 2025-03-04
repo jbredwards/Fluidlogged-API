@@ -70,8 +70,8 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
      * </ul>
      * @since 3.0.0
      */
-    @Nullable
-    public static Object removeOnBlockChange = null;
+    @Nonnull
+    public static final ThreadLocal<Object> removeOnBlockChange = new ThreadLocal<>();
 
     /**
      * Always used instead of a null value.
@@ -467,7 +467,7 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
     @Nonnull
     public FluidState addLevel(final int toAdd) {
         if(getBlock() instanceof BlockFluidFinite) return withLevel(Math.max(getLevel() - toAdd, 0));
-        else return withLevel(Math.min(getLevel() + toAdd, Math.max(getQuantaPerBlock() - 1, 0)));
+        else return withLevel(MathHelper.clamp(getLevel() + toAdd, 0, getQuantaPerBlock() - 1));
     }
 
     /**

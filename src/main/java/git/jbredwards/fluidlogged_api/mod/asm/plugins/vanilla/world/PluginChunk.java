@@ -228,15 +228,16 @@ public final class PluginChunk implements IASMPlugin
          * // make the currently generating chunk public
          * {
          *     Chunk.populating = this.getPos();
-         *     FluidState.removeOnBlockChange = Chunk.populating;
+         *     FluidState.removeOnBlockChange.set(Chunk.populating);
          *     ...
          *     Chunk.populating = prev;
-         *     FluidState.removeOnBlockChange = Chunk.populating;
+         *     FluidState.removeOnBlockChange.set(Chunk.populating);
          * }
          */
         else if(index == 8 && insn.getOpcode() == PUTSTATIC && checkField(insn, "populating")) {
-            instructions.insert(insn, new FieldInsnNode(PUTSTATIC, "git/jbredwards/fluidlogged_api/api/util/FluidState", "removeOnBlockChange", "Ljava/lang/Object;"));
+            instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "java/lang/ThreadLocal", "set", "(Ljava/lang/Object;)V", false));
             instructions.insert(insn, new FieldInsnNode(GETSTATIC, "net/minecraft/world/chunk/Chunk", "populating", "Lnet/minecraft/util/math/ChunkPos;"));
+            instructions.insert(insn, new FieldInsnNode(GETSTATIC, "git/jbredwards/fluidlogged_api/api/util/FluidState", "removeOnBlockChange", "Ljava/lang/ThreadLocal;"));
         }
 
         return false;

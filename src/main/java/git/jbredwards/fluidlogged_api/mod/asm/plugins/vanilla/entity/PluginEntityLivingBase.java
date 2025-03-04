@@ -116,7 +116,7 @@ public final class PluginEntityLivingBase implements IASMPlugin
     public static final class Hooks
     {
         public static boolean isInDeepWater(@Nonnull final Entity entity) {
-            if(!FluidloggedAPIConfig.ignoreLowFluidCollision || !entity.isPushedByWater()) return entity.isInWater();
+            if(!FluidloggedAPIConfig.ignoreLowFluidCollision || !entity.isPushedByWater() || !(entity instanceof EntityPlayer)) return entity.isInWater();
             else if(!entity.isInWater()) return false;
             else if(!entity.onGround) return true;
 
@@ -125,7 +125,7 @@ public final class PluginEntityLivingBase implements IASMPlugin
         }
 
         public static boolean isInShallowWater(@Nonnull final Entity entity) {
-            if(!FluidloggedAPIConfig.ignoreLowFluidCollision || !entity.isPushedByWater()) return entity.onGround;
+            if(!FluidloggedAPIConfig.ignoreLowFluidCollision || !entity.isPushedByWater() || !(entity instanceof EntityPlayer)) return entity.onGround;
             else if(entity.onGround) return true;
             else if(!entity.isInWater()) return false;
 
@@ -134,7 +134,7 @@ public final class PluginEntityLivingBase implements IASMPlugin
         }
 
         public static boolean isOffsetPositionInLiquid(@Nonnull final EntityLivingBase entity, final double x, final double y, final double z) {
-            return !entity.onGround && !entity.isOnLadder() && entity.isOffsetPositionInLiquid(x, y, z);
+            return (entity.isJumping || !(entity instanceof EntityPlayer)) && !entity.isOnLadder() && entity.isOffsetPositionInLiquid(x, y, z);
         }
 
         public static void moveWithLadder(@Nonnull final EntityLivingBase entity, @Nonnull final MoverType type, final double x, final double y, final double z) {
@@ -145,7 +145,7 @@ public final class PluginEntityLivingBase implements IASMPlugin
                 entity.fallDistance = 0;
 
                 if(moveY < 0 && entity instanceof EntityPlayer && entity.isSneaking()) moveY = 0;
-                // else if(moveY < -0.15) moveY = -0.15;
+                else if(moveY < -0.15) moveY = -0.15;
             }
 
             entity.move(type, moveX, moveY, moveZ);

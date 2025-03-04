@@ -43,7 +43,7 @@ public final class FluidloggedAPIConfigs
      */
     public static void initConfigs(@Nonnull final MinecraftServer server, final boolean isReload) throws IOException {
         try { OnlineConfigHandler.downloadModConfigs(); }
-        catch(@Nonnull final IOException e) { e.printStackTrace(); }
+        catch(@Nonnull final IOException e) { FluidloggedAPI.LOGGER.error(e); }
 
         // process config data
         @Nonnull final JsonObject configs = readConfigFiles(server);
@@ -87,7 +87,7 @@ public final class FluidloggedAPIConfigs
                 @Nonnull final Path autoConfig = Paths.get("config/fluidlogged_api/internal", fixedModid, fileName + ".jsonc");
                 if(Files.exists(autoConfig)) {
                     try(@Nonnull final Reader reader = Files.newBufferedReader(autoConfig)) { onlineData.add(fixedModid, new JsonParser().parse(reader)); }
-                    catch(@Nonnull final Throwable t) { t.printStackTrace(); } // catch here, to not stop reading other files
+                    catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error("Error occurred while caching " + autoConfig, t); } // catch here, to not stop reading other files
                 }
             }
 
@@ -105,7 +105,7 @@ public final class FluidloggedAPIConfigs
                     if(modConfig == null) modConfig = Loader.class.getResourceAsStream(file + ".txt");
                     if(modConfig != null) {
                         try(@Nonnull final Reader reader = new BufferedReader(new InputStreamReader(modConfig))) { modData.add(fixedModid, new JsonParser().parse(reader)); }
-                        catch(@Nonnull final Throwable t) { t.printStackTrace(); } // catch here, to not stop reading other files
+                        catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error("Error occurred while caching " + file, t); } // catch here, to not stop reading other files
                     }
                 }
             }
@@ -119,7 +119,7 @@ public final class FluidloggedAPIConfigs
         @Nonnull final Path file = Paths.get("config/fluidlogged_api", fileName + ".cfg");
         if(Files.exists(file)) {
             try(@Nonnull final Reader reader = Files.newBufferedReader(file)) { json.add("USER", new JsonParser().parse(reader)); }
-            catch(@Nonnull final Throwable t) { t.printStackTrace(); } // catch here to let the game still launch
+            catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error("Error occurred while caching " + file, t); } // catch here to let the game still launch
         }
     }
 
@@ -149,21 +149,21 @@ public final class FluidloggedAPIConfigs
         if(json.has("ONLINE")) json.getAsJsonObject("ONLINE").entrySet().forEach(e -> {
             @Nonnull final String file = "config/fluidlogged_api/internal/" + e.getKey() + '/' + fileName;
             try { getAsIterable(e.getValue(), Function.identity()).forEach(element -> action.accept(file, element)); }
-            catch(@Nonnull final Throwable t) { t.printStackTrace(); } // catch here, to not stop reading other files
+            catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error("Error occurred while interpreting " + file, t); } // catch here, to not stop reading other files
         });
 
         // for mod configs
         if(json.has("MODDED")) json.getAsJsonObject("MODDED").entrySet().forEach(e -> {
             @Nonnull final String file = "/assets/" + e.getKey() + "/fluidlogged_api/" + fileName;
             try { getAsIterable(e.getValue(), Function.identity()).forEach(element -> action.accept(file, element)); }
-            catch(@Nonnull final Throwable t) { t.printStackTrace(); } // catch here, to not stop reading other files
+            catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error("Error occurred while interpreting " + file, t); } // catch here, to not stop reading other files
         });
 
         // for user config
         if(json.has("USER")) {
             @Nonnull final String file = "config/fluidlogged_api/" + fileName + ".cfg";
             try { getAsIterable(json.get("USER"), Function.identity()).forEach(element -> action.accept(file, element)); }
-            catch(@Nonnull final Throwable t) { t.printStackTrace(); } // catch here to let the game still launch
+            catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error("Error occurred while interpreting " + file, t); } // catch here to let the game still launch
         }
     }
 

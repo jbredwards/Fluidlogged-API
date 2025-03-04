@@ -5,8 +5,6 @@
 
 package git.jbredwards.fluidlogged_api.mod.common.command;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.event.FluidloggableEvent;
@@ -31,6 +29,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.chunk.BlockStateContainer;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.fml.common.eventhandler.EventBus;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;
@@ -57,7 +56,7 @@ public class CommandPrint extends CommandChildBase
             .withRequiredArg().withValuesConvertedBy(new EnumConverter<Side>(Side.class) {});
     @Nonnull protected final OptionSpec<ConfigType> configToSaveSpec = parser.accepts("configToSave", "Config type (all, blacklist, fluidTags, whitelist) to output.")
             .withRequiredArg().withValuesConvertedBy(ConfigType.DESERIALIZER);
-    @Nonnull protected final OptionSpec<FluidloggableType> fluidloggableTypeSpec = parser.accepts("handlerType", "Fluidloggable handler type (all, builtin, config, listener) to output.")
+    @Nonnull protected final OptionSpec<FluidloggableType> fluidloggableTypeSpec = parser.accepts("handlerType", "Fluidloggable handler type (all, builtin, config, listeners) to output.")
             .withRequiredArg().withValuesConvertedBy(FluidloggableType.DESERIALIZER);
     @Nonnull protected final OptionSpec<Path> pathSpec = parser.accepts("path", "File path.")
             .withRequiredArg().withValuesConvertedBy(new PathConverter());
@@ -213,19 +212,17 @@ public class CommandPrint extends CommandChildBase
                 Files.createDirectories(path);
 
                 @Nonnull final ConfigType configType = (ConfigType)args[0];
-                @Nonnull final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-                if(configType != ConfigType.ALL) write(path, configType, (JsonObject)args[1], gson);
+                if(configType != ConfigType.ALL) write(path, configType, (JsonObject)args[1]);
                 else { // write all configs
                     @Nonnull final Path all = path.resolve(configType.fileName);
                     if(!Files.exists(all)) Files.createDirectory(all);
-                    for(int i = 1; i < ConfigType.values().length; i++) write(all, ConfigType.values()[i], (JsonObject)args[1], gson);
+                    for(int i = 1; i < ConfigType.values().length; i++) write(all, ConfigType.values()[i], (JsonObject)args[1]);
                 }
             }
 
-            void write(@Nonnull final Path path, @Nonnull final ConfigType configType, @Nonnull final JsonObject json, @Nonnull final Gson gson) throws IOException {
+            void write(@Nonnull final Path path, @Nonnull final ConfigType configType, @Nonnull final JsonObject json) throws IOException {
                 @Nonnull final Writer writer = Files.newBufferedWriter(path.resolve(configType.fileName));
-                gson.toJson(configType.get(json), writer);
+                CraftingHelper.GSON.toJson(configType.get(json), writer);
                 writer.close();
             }
 

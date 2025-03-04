@@ -6,7 +6,7 @@
 package git.jbredwards.fluidlogged_api.mod.common.config.handler;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
+import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.ICanFluidFlowHandler;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigAccessor;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigs;
@@ -28,7 +28,7 @@ public final class BlacklistConfigHandler
         // run for auto configs, mod instances, and user config
         FluidloggedAPIConfigs.forEach(configs, "BLACKLIST", "blacklist", (file, jsonIn) -> {
             try { ConfigPredicate.deserialize(file, jsonIn.getAsJsonObject(), IConfigAccessor::getBlacklistPredicate, IConfigAccessor::setBlacklistAndCache, ICanFluidFlowHandler::negate); }
-            catch(@Nonnull final Throwable t) { new JsonParseException(String.format(error, file), t).printStackTrace(); }
+            catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error(String.format(error, file), t); }
         });
     }
 }

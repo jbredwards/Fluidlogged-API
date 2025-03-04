@@ -94,10 +94,10 @@ public final class LegacyDataFixer
             if(mapping != null) {
                 final @Nullable Fluid fluid = FluidRegistry.getFluid(mapping);
                 if(fluid != null) return fluid.getBlock();
-                else System.err.println("Can't find fluid: " + mapping);
+                else FluidloggedAPI.LOGGER.error("Can't find fluid: " + mapping);
             }
 
-            else System.err.println("Can't find fluid from id: " + blockID);
+            else FluidloggedAPI.LOGGER.error("Can't find fluid from id: " + blockID);
             return null;
         });
     }
@@ -170,7 +170,7 @@ public final class LegacyDataFixer
                             final boolean needFluidStateAddition = containedBlock != null;
                             /* Attempt to at least keep the fluid, if not the block */
                             if(!needFluidStateAddition) {
-                                System.err.println("warning: can't find block \"" + entry.getValue().getContainedBlock() + "\" at " + pos + ", trying to only place fluid in world");
+                                FluidloggedAPI.LOGGER.error("warning: can't find block \"" + entry.getValue().getContainedBlock() + "\" at " + pos + ", trying to only place fluid in world");
                                 if(fluid != null) {
                                     containedBlock = fluid;
                                     containedMeta = 0;

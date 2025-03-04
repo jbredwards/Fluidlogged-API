@@ -36,8 +36,11 @@ import net.minecraftforge.fml.common.event.*;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -56,6 +59,7 @@ public final class FluidloggedAPI
 {
     // Mod Constants
     @Nonnull public static final String MODID = "fluidlogged_api";
+    @Nonnull public static final Logger LOGGER = LogManager.getFormatterLogger(MODID);
     @Nonnull public static final SimpleNetworkWrapper WRAPPER = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
     @Nullable private static String creditsKey, descKey;
 
@@ -103,11 +107,15 @@ public final class FluidloggedAPI
     @SideOnly(Side.CLIENT)
     @Mod.EventHandler
     static void initClient(@Nonnull final FMLInitializationEvent event) {
-        // allow this mod's description and credits to be translated
-        ((IReloadableResourceManager)Minecraft.getMinecraft().getResourceManager()).registerReloadListener((ISelectiveResourceReloadListener)(manager, condition) -> {
-            if(condition.test(VanillaResourceType.LANGUAGES)) Optional.ofNullable(Loader.instance().getIndexedModList().get(MODID)).map(ModContainer::getMetadata).ifPresent(metadata -> {
-                metadata.credits = I18n.format(creditsKey == null ? creditsKey = metadata.credits : creditsKey).replace("\\n", "\n");
-                metadata.description = I18n.format(descKey == null ? descKey = metadata.description : descKey);
+        Optional.ofNullable(Loader.instance().getIndexedModList().get(MODID)).ifPresent(mod -> {
+            // remove "disable" button in mod gui
+            ReflectionHelper.setPrivateValue(FMLModContainer.class, (FMLModContainer)mod, ModContainer.Disableable.NEVER, "disableability");
+            // allow this mod's description and credits to be translated
+            ((IReloadableResourceManager)Minecraft.getMinecraft().getResourceManager()).registerReloadListener((ISelectiveResourceReloadListener)(manager, condition) -> {
+                if(condition.test(VanillaResourceType.LANGUAGES) && mod.getMetadata() != null) {
+                    mod.getMetadata().credits = I18n.format(creditsKey == null ? creditsKey = mod.getMetadata().credits : creditsKey).replace("\\n", "\n");
+                    mod.getMetadata().description = I18n.format(descKey == null ? descKey = mod.getMetadata().description : descKey);
+                }
             });
         });
     }

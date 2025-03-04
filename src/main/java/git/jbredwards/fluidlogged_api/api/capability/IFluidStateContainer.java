@@ -101,7 +101,7 @@ public interface IFluidStateContainer extends IPosSerializer
      * @return True if fluidState was set, false otherwise.
      *
      * @throws NullPointerException If fluidState is null.
-     * @since 3.0.0
+     * @since 1.9.0
      * @author jbred
      */
     boolean setFluidState(final char serializedPos, @Nonnull final FluidState fluidState);
@@ -135,7 +135,7 @@ public interface IFluidStateContainer extends IPosSerializer
      * @return True if fluidState was set, false otherwise.
      *
      * @throws NullPointerException If pos or fluidState are null.
-     * @since 3.0.0
+     * @since 1.9.0
      * @author jbred
      */
     default boolean setFluidState(@Nonnull final BlockPos pos, @Nonnull final FluidState fluidState) {
