@@ -17,7 +17,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModContainer;
-import org.apache.commons.io.IOUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -96,7 +95,8 @@ public final class FluidloggedAPIConfigs
                 @Nonnull final String path = "/assets/" + fixedModid + "/fluidlogged_api";
                 @Nullable final InputStream folder = Loader.class.getResourceAsStream(path);
                 if(folder != null) { // only proceed if the mod has any fluidlogged api configs
-                    IOUtils.closeQuietly(folder);
+                    try { folder.close(); } // NPE may be thrown by old versions of Java 8?
+                    catch(@Nonnull final Throwable ignored) {} // assume stream has been closed
                     @Nonnull final String file = path + '/' + fileName;
                     // allow any of the following file types: (cfg, json, jsonc, txt)
                     @Nullable InputStream modConfig = Loader.class.getResourceAsStream(file + ".cfg");
