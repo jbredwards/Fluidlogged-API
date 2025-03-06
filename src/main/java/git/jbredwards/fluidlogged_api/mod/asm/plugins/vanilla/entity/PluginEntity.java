@@ -164,7 +164,10 @@ public final class PluginEntity implements IASMPlugin
             generator.visitFieldInsn(PUTFIELD, "net/minecraft/entity/Entity", "waterHeight", "Lgit/jbredwards/fluidlogged_api/mod/asm/iface/IConfigFluidBox$HeightBox;");
         });
 
-        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_145775_I" : "doBlockCollisions"), "doBlockCollisions", "(Lnet/minecraft/entity/Entity;)V", generator -> generator.visitVarInsn(ALOAD, 0));
+        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_145775_I" : "doBlockCollisions"), "doBlockCollisions", "(Lnet/minecraft/entity/Entity;D)V", generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitLdcInsn(0.001);
+        });
         return true;
     }
 
@@ -198,9 +201,9 @@ public final class PluginEntity implements IASMPlugin
             return false;
         }
 
-        public static void doBlockCollisions(@Nonnull final Entity entity) {
-            @Nonnull final BlockPos.PooledMutableBlockPos start = BlockPos.PooledMutableBlockPos.retain(entity.getEntityBoundingBox().minX + 0.001, entity.getEntityBoundingBox().minY + 0.001, entity.getEntityBoundingBox().minZ + 0.001);
-            @Nonnull final BlockPos.PooledMutableBlockPos end = BlockPos.PooledMutableBlockPos.retain(entity.getEntityBoundingBox().maxX - 0.001, entity.getEntityBoundingBox().maxY - 0.001, entity.getEntityBoundingBox().maxZ - 0.001);
+        public static void doBlockCollisions(@Nonnull final Entity entity, final double size) {
+            @Nonnull final BlockPos.PooledMutableBlockPos start = BlockPos.PooledMutableBlockPos.retain(entity.getEntityBoundingBox().minX + size, entity.getEntityBoundingBox().minY + size, entity.getEntityBoundingBox().minZ + size);
+            @Nonnull final BlockPos.PooledMutableBlockPos end = BlockPos.PooledMutableBlockPos.retain(entity.getEntityBoundingBox().maxX - size, entity.getEntityBoundingBox().maxY - size, entity.getEntityBoundingBox().maxZ - size);
 
             if(entity.world.isAreaLoaded(start, end)) {
                 @Nonnull final ChunkCache access = new ChunkCache(entity.world, start, end, 0);

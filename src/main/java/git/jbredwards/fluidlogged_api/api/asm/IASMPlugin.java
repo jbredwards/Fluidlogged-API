@@ -16,7 +16,6 @@ import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.xml.ws.Holder;
 import java.util.Collections;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -32,9 +31,9 @@ public interface IASMPlugin extends Opcodes
 {
     // set this to your mod's active transformer, this is to display the correct debug info in the console
     @Nonnull Logger PLUGIN_LOGGER = LogManager.getFormatterLogger();
-    @Nonnull Holder<String> ACTIVE_PLUGIN = new Holder<>("Unknown Plugin");
-    static void resetActivePlugin() { ACTIVE_PLUGIN.value = "Unknown Plugin"; }
-    static void setActivePlugin(@Nonnull final String plugin) { ACTIVE_PLUGIN.value = plugin; }
+    @Nonnull String[] ACTIVE_PLUGIN = new String[] {"Unknown Plugin"};
+    static void resetActivePlugin() { ACTIVE_PLUGIN[0] = "Unknown Plugin"; }
+    static void setActivePlugin(@Nonnull final String plugin) { ACTIVE_PLUGIN[0] = plugin; }
 
     /**
      * This method is run for each MethodNode in the ClassNode.
@@ -200,8 +199,8 @@ public interface IASMPlugin extends Opcodes
      */
     default void informConsole(@Nonnull final String className, @Nullable final MethodNode method) {
         if(shouldInformConsole()) {
-            if(method == null) PLUGIN_LOGGER.debug(ACTIVE_PLUGIN.value + ": transforming... " + className);
-            else PLUGIN_LOGGER.debug(ACTIVE_PLUGIN.value + ": transforming... " + className + '.' + method.name + method.desc);
+            if(method == null) PLUGIN_LOGGER.debug(ACTIVE_PLUGIN[0] + ": transforming... " + className);
+            else PLUGIN_LOGGER.debug(ACTIVE_PLUGIN[0] + ": transforming... " + className + '.' + method.name + method.desc);
         }
     }
 
