@@ -50,7 +50,7 @@ public final class PluginBlockStairs implements IASMPlugin
     public static final class Hooks
     {
         public static void notifyNeighboringFluids(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final Block blockIn, @Nonnull final BlockPos fromPos) {
-            if(pos.getY() == fromPos.getY() && BlockStairs.isBlockStairs(blockIn.getDefaultState())) FluidloggedUtils.notifyFluids(world, pos, null, false, EnumFacing.UP, EnumFacing.DOWN);
+            if(pos.getY() == fromPos.getY() && (BlockStairs.isBlockStairs(blockIn.getDefaultState()) || BlockStairs.isBlockStairs(world.getBlockState(fromPos)))) FluidloggedUtils.notifyFluids(world, pos, null, false, EnumFacing.UP, EnumFacing.DOWN);
         }
     }
 }

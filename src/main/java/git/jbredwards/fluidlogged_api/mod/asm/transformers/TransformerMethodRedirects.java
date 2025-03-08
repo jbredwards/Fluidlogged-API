@@ -28,6 +28,7 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 
 /**
  * - change all calls from Block.canConnectRedstone(state, world, pos, side) to Hooks.canConnectRedstone(block, state, world, pos, side), this allows FluidStates to connect to redstone components
@@ -48,16 +49,16 @@ public final class TransformerMethodRedirects implements IClassTransformer
         new ClassReader(basicClass).accept(classNode, 0);
 
         boolean wasClassTransformed = false;
-        for(@Nonnull final MethodNode method : classNode.methods) {
+        for(@Nonnull final MethodNode method : new ArrayList<>(classNode.methods)) {
             for(@Nonnull final AbstractInsnNode insn : method.instructions.toArray()) {
                 if(insn.getOpcode() == Opcodes.INVOKEVIRTUAL) {
                     if("canConnectRedstone".equals(((MethodInsnNode)insn).name) && "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z".equals(((MethodInsnNode)insn).desc)) {
-                        method.instructions.insert(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/transformers/TransformerMethodRedirects$Hooks", "canConnectRedstone", "(Lnet/minecraft/block/Block;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z", false));
+                        method.instructions.insert(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/transformers/TransformerMethodRedirects$Hooks", "canConnectRedstone", "(Lgit/jbredwards/fluidlogged_api/mod/asm/transformers/TransformerMethodRedirects$ConnectAccessor;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z", false));
                         method.instructions.remove(insn);
                         wasClassTransformed = true;
                     }
                     else if("getExplosionResistance".equals(((MethodInsnNode)insn).name) && "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;Lnet/minecraft/world/Explosion;)F".equals(((MethodInsnNode)insn).desc)) {
-                        method.instructions.insert(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/transformers/TransformerMethodRedirects$Hooks", "getExplosionResistance", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;Lnet/minecraft/world/Explosion;)F", false));
+                        method.instructions.insert(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, "git/jbredwards/fluidlogged_api/mod/asm/transformers/TransformerMethodRedirects$Hooks", "getExplosionResistance", "(Lgit/jbredwards/fluidlogged_api/mod/asm/transformers/TransformerMethodRedirects$ResistanceAccessor;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;Lnet/minecraft/world/Explosion;)F", false));
                         method.instructions.remove(insn);
                         wasClassTransformed = true;
                     }
@@ -78,6 +79,37 @@ public final class TransformerMethodRedirects implements IClassTransformer
                     }
                 }
             }
+            // accessors
+            if(Modifier.isPublic(method.access) && !Modifier.isAbstract(method.access) && !Modifier.isStatic(method.access)) {
+                if("canConnectRedstone".equals(method.name) && "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)Z".equals(method.desc)) {
+                    @Nonnull final MethodNode accessor = new MethodNode(Opcodes.ACC_PUBLIC, "fluidlogged_api$canConnectRedstone", method.desc, null, null);
+                    accessor.visitVarInsn(Opcodes.ALOAD, 0);
+                    accessor.visitVarInsn(Opcodes.ALOAD, 1);
+                    accessor.visitVarInsn(Opcodes.ALOAD, 2);
+                    accessor.visitVarInsn(Opcodes.ALOAD, 3);
+                    accessor.visitVarInsn(Opcodes.ALOAD, 4);
+                    accessor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, classNode.name, method.name, method.desc, false);
+                    accessor.visitInsn(Opcodes.IRETURN);
+
+                    wasClassTransformed = true;
+                    classNode.methods.add(accessor);
+                    classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/transformers/TransformerMethodRedirects$ConnectAccessor");
+                }
+                else if("getExplosionResistance".equals(method.name) && "(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/Entity;Lnet/minecraft/world/Explosion;)F".equals(method.desc)) {
+                    @Nonnull final MethodNode accessor = new MethodNode(Opcodes.ACC_PUBLIC, "fluidlogged_api$getExplosionResistance", method.desc, null, null);
+                    accessor.visitVarInsn(Opcodes.ALOAD, 0);
+                    accessor.visitVarInsn(Opcodes.ALOAD, 1);
+                    accessor.visitVarInsn(Opcodes.ALOAD, 2);
+                    accessor.visitVarInsn(Opcodes.ALOAD, 3);
+                    accessor.visitVarInsn(Opcodes.ALOAD, 4);
+                    accessor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, classNode.name, method.name, method.desc, false);
+                    accessor.visitInsn(Opcodes.FRETURN);
+
+                    wasClassTransformed = true;
+                    classNode.methods.add(accessor);
+                    classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/transformers/TransformerMethodRedirects$ResistanceAccessor");
+                }
+            }
         }
 
         if(wasClassTransformed) {
@@ -90,10 +122,24 @@ public final class TransformerMethodRedirects implements IClassTransformer
     }
 
     @SuppressWarnings("unused")
+    public interface ConnectAccessor
+    {
+        boolean fluidlogged_api$canConnectRedstone(@Nonnull final IBlockState state, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nullable final EnumFacing side);
+    }
+
+    @SuppressWarnings("unused")
+    public interface ResistanceAccessor
+    {
+        float fluidlogged_api$getExplosionResistance(@Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final Entity exploder, @Nonnull final Explosion explosion);
+    }
+
+    @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static boolean canConnectRedstone(@Nonnull final Block block, @Nonnull final IBlockState state, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nullable final EnumFacing side) {
-            if(block.canConnectRedstone(state, world, pos, side)) return true;
+        public static boolean canConnectRedstone(@Nonnull final ConnectAccessor block, @Nonnull final IBlockState state, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nullable final EnumFacing side) {
+            final boolean bCanConnect = block.fluidlogged_api$canConnectRedstone(state, world, pos, side);
+            if(bCanConnect || !(block instanceof Block)) return bCanConnect;
+
             else if(side == null || !FluidloggedAPIConfig.fixBadFluidMixing || FluidloggedUtils.canFluidFlow(world, pos, state, side.getOpposite())) {
                 @Nonnull final IBlockState fluidState = FluidState.get(world, pos).getState();
                 return fluidState.getBlock().canConnectRedstone(fluidState, world, pos, side);
@@ -102,9 +148,9 @@ public final class TransformerMethodRedirects implements IClassTransformer
             else return false;
         }
 
-        public static float getExplosionResistance(@Nonnull final Block block, @Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final Entity exploder, @Nonnull final Explosion explosion) {
-            final float bResistance = block.getExplosionResistance(world, pos, exploder, explosion);
-            if(bResistance >= Integer.MAX_VALUE || FluidloggedUtils.isFluid(block)) return bResistance;
+        public static float getExplosionResistance(@Nonnull final ResistanceAccessor block, @Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final Entity exploder, @Nonnull final Explosion explosion) {
+            final float bResistance = block.fluidlogged_api$getExplosionResistance(world, pos, exploder, explosion);
+            if(bResistance >= Integer.MAX_VALUE || !(block instanceof Block) || FluidloggedUtils.isFluid((Block)block)) return bResistance;
 
             final float fResistance = FluidState.get(world, pos).getBlock().getExplosionResistance(world, pos, exploder, explosion);
             if(fResistance >= Integer.MAX_VALUE) return fResistance;
