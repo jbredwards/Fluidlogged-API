@@ -14,7 +14,6 @@ import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IWaterHeight;
-import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import net.minecraft.block.Block;
@@ -641,10 +640,7 @@ public final class PluginWorld implements IASMPlugin
 
         public static int getStrongPower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
             @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 1, 1) : world;
-            @Nonnull final IBlockState state = access.getBlockState(pos);
-
-            if(FluidloggedAPIConfig.fixBadFluidMixing && !FluidloggedUtils.canFluidFlow(access, pos, state, direction.getOpposite())) return state.getStrongPower(access, pos, direction);
-            else return Math.max(state.getStrongPower(access, pos, direction), FluidState.get(access, pos).getState().getStrongPower(access, pos, direction));
+            return Math.max(access.getBlockState(pos).getStrongPower(access, pos, direction), FluidState.get(access, pos).getState().getStrongPower(access, pos, direction));
         }
 
         public static boolean handleMaterialAcceleration(@Nonnull final World world, @Nonnull final AxisAlignedBB bb, @Nonnull final Material material, @Nonnull final Entity entity) {

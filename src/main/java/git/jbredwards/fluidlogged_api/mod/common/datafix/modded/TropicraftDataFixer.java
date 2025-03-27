@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-package git.jbredwards.fluidlogged_api.mod.common.datafix.tropicraft;
+package git.jbredwards.fluidlogged_api.mod.common.datafix.modded;
 
 import git.jbredwards.fluidlogged_api.api.datafix.FluidMappingData;
 import git.jbredwards.fluidlogged_api.api.datafix.IFluidloggedDataMapper;

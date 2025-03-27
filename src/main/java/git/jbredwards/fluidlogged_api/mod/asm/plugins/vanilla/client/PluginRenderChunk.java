@@ -8,7 +8,6 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.client;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
-import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -122,8 +121,7 @@ public final class PluginRenderChunk implements IASMPlugin
             if(fluidState != FluidState.EMPTY && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
                 //renders the fluid in each layer
                 for(BlockRenderLayer layer : BlockRenderLayer.values()) {
-                    if(FluidloggedAPI.isBetterFoliage ? !BFHooks.canRender(fluidState, layer)
-                    : !fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer)) continue;
+                    if(!fluidState.getBlock().canRenderInLayer(fluidState.getState(), layer)) continue;
 
                     ForgeHooksClient.setRenderLayer(layer);
                     BufferBuilder buffer = generator.getRegionRenderCacheBuilder().getWorldRendererByLayer(layer);
@@ -141,14 +139,6 @@ public final class PluginRenderChunk implements IASMPlugin
                 //reset current render layer
                 ForgeHooksClient.setRenderLayer(null);
             }
-        }
-    }
-
-    public static final class BFHooks
-    {
-        // helper
-        public static boolean canRender(@Nonnull final FluidState fluidState, @Nonnull final BlockRenderLayer layer) {
-            return mods.betterfoliage.client.Hooks.canRenderBlockInLayer(fluidState.getBlock(), fluidState.getState(), layer);
         }
     }
 }

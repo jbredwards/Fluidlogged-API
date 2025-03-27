@@ -8,6 +8,7 @@ package git.jbredwards.fluidlogged_api.mod.client.model;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableMap;
+import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidBase;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidExtendedStateHandler;
 import net.minecraft.block.state.IBlockState;
@@ -255,13 +256,13 @@ public class BakedModelFluid implements IBakedModel
     // mod is passing in default state (shouldn't happen), assuming default properties for default state...
     @Nonnull
     protected static FluidExtendedStateHandler.FluidExtendedBlockState createFluidExtendedState(@Nonnull final IExtendedBlockState stateIn) {
-        if(DEBUG) new IllegalStateException("Either a mod is trying to render a fluid without calling Block.getExtendedState, or the fluid block overrides Block.getExtendedState! Assuming default properties for: \"" + stateIn + '"').printStackTrace();
+        if(DEBUG) FluidloggedAPI.LOGGER.error("Either a mod is trying to render a fluid without calling Block.getExtendedState, or the fluid block overrides Block.getExtendedState! Assuming default properties for: \"" + stateIn + '"');
 
         @Nonnull final FluidExtendedStateHandler.FluidExtendedBlockState state = new FluidExtendedStateHandler.FluidExtendedBlockState(stateIn);
         for(int i = 0; i < 4; i++) {
-            state.sideOverlays[i] = stateIn.getValue(BlockFluidBase.SIDE_OVERLAYS[i]);
-            final float corner = stateIn.getValue(BlockFluidBase.LEVEL_CORNERS[i]);
-            state.levelCorners[i] = corner == 0 ? stateIn.getBlock() instanceof PluginBlockFluidBase.Accessor ? ((PluginBlockFluidBase.Accessor)stateIn.getBlock()).getQuantaFraction_Public() : 8f/9 : corner;
+            state.sideOverlays[i] = Boolean.TRUE.equals(stateIn.getValue(BlockFluidBase.SIDE_OVERLAYS[i]));
+            @Nullable final Float corner = stateIn.getValue(BlockFluidBase.LEVEL_CORNERS[i]);
+            state.levelCorners[i] = corner == null ? stateIn.getBlock() instanceof PluginBlockFluidBase.Accessor ? ((PluginBlockFluidBase.Accessor)stateIn.getBlock()).getQuantaFraction_Public() : 8f/9 : corner;
         }
 
         // apply forge's check for under surface face rendering (causes issue#202)
@@ -274,6 +275,8 @@ public class BakedModelFluid implements IBakedModel
 
         Arrays.fill(state.shouldSideBeRenderedCache, true); // unchecked sides, calculate quads for all sides
         state.flowDirection = stateIn.getValue(BlockFluidBase.FLOW_DIRECTION);
+
+        if(state.flowDirection == null) state.flowDirection = -1000f;
         return state;
     }
 

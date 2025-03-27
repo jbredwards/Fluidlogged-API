@@ -25,7 +25,7 @@ public final class FluidloggedAPIFixableData implements IFixableData
      */
     @Override
     public int getFixVersion() { return DATA_VERSION; }
-    public static final int DATA_VERSION = 102;
+    public static final int DATA_VERSION = 103;
 
     @Nonnull
     @Override

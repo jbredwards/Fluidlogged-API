@@ -35,10 +35,10 @@ dependencies {
     // optional mod compat
     deobfProvided 'io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0-SNAPSHOT'
     deobfProvided 'curse.maven:astral-sorcery-241721:3044416'
-    deobfProvided 'curse.maven:better-foliage-228529:3393955'
     deobfProvided 'curse.maven:cb-multipart-258426:2755790'
     deobfProvided 'curse.maven:cofh-core-69162:2920433'
     deobfProvided 'curse.maven:dynamic-lights-227874:2563244'
+    deobfProvided 'curse.maven:dynamic-trees-252818:3812473'
     deobfProvided 'curse.maven:galacticraft-legacy-564236:4671122'
     deobfProvided 'curse.maven:industrial-craft-242638:3838713'
     deobfProvided 'curse.maven:mekanism-268560:2835175'
