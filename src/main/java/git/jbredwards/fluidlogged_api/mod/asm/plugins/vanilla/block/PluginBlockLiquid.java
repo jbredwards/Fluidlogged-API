@@ -381,7 +381,7 @@ public final class PluginBlockLiquid implements IASMPlugin
          *     return false;
          * }
          */
-        // addMethod(classNode, obfuscated ? "func_149698_L" : "requiresUpdates", "()Z", null, null, generator -> generator.visitInsn(ICONST_0));
+        addMethod(classNode, obfuscated ? "func_149698_L" : "requiresUpdates", "()Z", null, null, generator -> generator.visitInsn(ICONST_0));
         return true;
     }
 

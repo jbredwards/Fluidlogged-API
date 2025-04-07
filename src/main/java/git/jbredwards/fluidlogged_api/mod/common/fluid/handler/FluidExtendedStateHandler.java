@@ -169,7 +169,7 @@ public final class FluidExtendedStateHandler
 
     static boolean canFlowOrReplaceable(@Nonnull final ISpecializedFluidNeighborInfo neighborInfo, final int xi, final int yi, final int zi, final int fallbackDist, @Nonnull final EnumFacing side) {
         @Nonnull final FluidState dummyState = findLargestConnected(neighborInfo, xi, yi, zi, fallbackDist);
-        return neighborInfo.isReplaceableI(xi, yi, zi, dummyState, side, true, false) || neighborInfo.canFluidFlowI(xi, yi, zi, side) &&
+        return dummyState == FluidState.EMPTY || neighborInfo.isReplaceableI(xi, yi, zi, dummyState, side, true, false) || neighborInfo.canFluidFlowI(xi, yi, zi, side) &&
                 (neighborInfo.isCompatibleFluidI(xi, yi, zi) || neighborInfo.isFluidloggableI(xi, yi, zi, dummyState, side, true, false));
     }
 

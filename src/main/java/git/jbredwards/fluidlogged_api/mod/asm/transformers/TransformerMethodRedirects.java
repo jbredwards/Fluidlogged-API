@@ -130,7 +130,7 @@ public final class TransformerMethodRedirects implements IClassTransformer
     @SuppressWarnings("unused")
     public interface ResistanceAccessor
     {
-        float fluidlogged_api$getExplosionResistance(@Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final Entity exploder, @Nonnull final Explosion explosion);
+        float fluidlogged_api$getExplosionResistance(@Nullable final World world, @Nullable final BlockPos pos, @Nullable final Entity exploder, @Nullable final Explosion explosion);
     }
 
     @SuppressWarnings("unused")
@@ -148,9 +148,9 @@ public final class TransformerMethodRedirects implements IClassTransformer
             else return false;
         }
 
-        public static float getExplosionResistance(@Nonnull final ResistanceAccessor block, @Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final Entity exploder, @Nonnull final Explosion explosion) {
+        public static float getExplosionResistance(@Nonnull final ResistanceAccessor block, @Nullable final World world, @Nullable final BlockPos pos, @Nullable final Entity exploder, @Nullable final Explosion explosion) {
             final float bResistance = block.fluidlogged_api$getExplosionResistance(world, pos, exploder, explosion);
-            if(bResistance >= Integer.MAX_VALUE || !(block instanceof Block) || FluidloggedUtils.isFluid((Block)block)) return bResistance;
+            if(world == null || pos == null || explosion == null || bResistance >= Integer.MAX_VALUE || !(block instanceof Block) || FluidloggedUtils.isFluid((Block)block)) return bResistance;
 
             final float fResistance = FluidState.get(world, pos).getBlock().getExplosionResistance(world, pos, exploder, explosion);
             if(fResistance >= Integer.MAX_VALUE) return fResistance;
