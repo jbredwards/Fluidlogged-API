@@ -165,7 +165,7 @@ public final class FluidCollisionHandler
     public static float getFilledPercentage(@Nonnull final FluidState state, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
         if(state.getBlock() instanceof BlockLiquid) return BlockLiquid.getBlockLiquidHeight(state.getState(), world, pos);
         final float remaining = state.getBlock() instanceof BlockFluidBase ? ((BlockFluidBase)state.getBlock()).getFilledPercentage(world, pos) // don't use World if the block is a BlockFluidBase
-                : state.getFluidBlock().getFilledPercentage(IWorldProvider.getWorld(world), pos); // should never pass
+                : state.isValid() ? state.getFluidBlock().getFilledPercentage(IWorldProvider.getWorld(world), pos) : 1; // should never pass (most IFluidBlock blocks should be BlockFluidBase)
 
         // fixes a general inaccuracy with modded fluids (this especially comes up in other mods like Biomes O'Plenty)
         final float filled = (int)remaining == remaining ? remaining : remaining * state.getQuantaFraction();
