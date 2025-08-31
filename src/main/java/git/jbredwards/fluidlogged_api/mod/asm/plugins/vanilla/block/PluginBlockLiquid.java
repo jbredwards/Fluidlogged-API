@@ -27,7 +27,6 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.property.IUnlistedProperty;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.BlockFluidBase;
@@ -469,21 +468,7 @@ public final class PluginBlockLiquid implements IASMPlugin
         }
 
         public static boolean spawnDripParticles(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final Random rand) {
-            @Nonnull final Chunk chunk = world.getChunk(pos);
-            @Nonnull final IBlockState here = chunk.getBlockState(pos);
-            @Nonnull final IBlockState below = chunk.getBlockState(pos.down());
-
-            double spawnY = 0;
-            if(here != state && !FluidloggedUtils.canFluidFlow(world, pos, here, EnumFacing.DOWN)) {
-                if(!below.getMaterial().blocksMovement() && FluidloggedUtils.getFluidState(chunk, pos.down(), below).isEmpty()) spawnY = 0.05;
-            }
-
-            if(!FluidloggedUtils.canFluidFlow(world, pos.down(), below, EnumFacing.UP) && FluidloggedUtils.getFluidState(chunk, pos.down(), below).isEmpty()) {
-                @Nonnull final IBlockState under = chunk.getBlockState(pos.down(2));
-                if(!under.getMaterial().blocksMovement() && FluidloggedUtils.getFluidState(chunk, pos.down(2), under).isEmpty()) spawnY = 1.05;
-            }
-
-            if(spawnY != 0) world.spawnParticle(state.getMaterial() == Material.WATER ? EnumParticleTypes.DRIP_WATER : EnumParticleTypes.DRIP_LAVA, pos.getX() + rand.nextDouble(), pos.getY() - spawnY, pos.getZ() + rand.nextDouble(), 0, 0, 0);
+            FluidloggedUtils.positionDripParticle(world, pos, FluidState.of(state)).ifPresent(particlePos -> world.spawnParticle(state.getMaterial() == Material.WATER ? EnumParticleTypes.DRIP_WATER : EnumParticleTypes.DRIP_LAVA, particlePos.x, particlePos.y, particlePos.z, 0, 0, 0));
             return false;
         }
     }

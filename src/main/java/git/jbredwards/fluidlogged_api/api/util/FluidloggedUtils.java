@@ -28,6 +28,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -48,10 +49,7 @@ import net.minecraftforge.fml.common.network.NetworkRegistry;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.*;
 
 /**
  * A utility class containing various functions for FluidStates.
@@ -616,6 +614,54 @@ public final class FluidloggedUtils
             FluidloggedAPI.WRAPPER.sendToAllAround(new SMessageVaporizeEffects(fluidStack, pos),
                     new NetworkRegistry.TargetPoint(world.provider.getDimension(), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 64));
         }
+    }
+
+    /**
+     * Utility method that returns the position to spawn a drip particle, or empty if one cannot be spawned.
+     * A general use case looks like this:
+     * <blockquote><pre>
+     * &#64;Override
+     * &#64;SideOnly(Side.CLIENT)
+     * public void randomDisplayTick(IBlockState stateIn, World worldIn,
+     *                               BlockPos pos, Random rand) {
+     *     if(rand.nextInt(10) == 0) {
+     *         FluidloggedUtils.positionDripParticle(worldIn, pos, FluidState.of(stateIn))
+     *         .ifPresent(particlePos -> ...);
+     *     }
+     * }
+     * </pre></blockquote>
+     *
+     * @param world World.
+     * @param pos Position of the FluidState.
+     * @param fluidState FluidState creating the drip particle.
+     *
+     * @throws NullPointerException If any of the parameters are null.
+     * @since 3.1.0
+     * @author jbred
+     */
+    @Nonnull
+    public static Optional<Vec3d> positionDripParticle(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState) {
+        final int densityDir = fluidState.getDensityDir();
+        @Nonnull final Chunk chunk = world.getChunk(pos);
+        @Nonnull final IBlockState here = chunk.getBlockState(pos), below = chunk.getBlockState(pos.up(densityDir));
+
+        // spawn drip particle under this
+        if(here != fluidState.getState() && !canFluidFlow(world, pos, here, fluidState.getDownDensityFace())) {
+            if(!below.getMaterial().blocksMovement() && getFluidState(chunk, pos.up(densityDir), below).isEmpty()) {
+                return Optional.of(new Vec3d(pos).add(world.rand.nextDouble(), densityDir < 0 ? -0.05 : 1.05, world.rand.nextDouble()));
+            }
+        }
+
+        // spawn drip particle under the block below this
+        if(!canFluidFlow(world, pos.up(densityDir), below, fluidState.getUpDensityFace()) && getFluidState(chunk, pos.up(densityDir), below).isEmpty()) {
+            @Nonnull final IBlockState under = chunk.getBlockState(pos.up(densityDir << 1));
+            if(!under.getMaterial().blocksMovement() && getFluidState(chunk, pos.up(densityDir << 1), under).isEmpty()) {
+                return Optional.of(new Vec3d(pos).add(world.rand.nextDouble(), densityDir < 0 ? -1.05 : 2.05, world.rand.nextDouble()));
+            }
+        }
+
+        // cannot spawn drip particle
+        return Optional.empty();
     }
 
     /**
