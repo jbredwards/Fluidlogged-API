@@ -6,8 +6,8 @@
 package git.jbredwards.fluidlogged_api.api.network;
 
 import git.jbredwards.fluidlogged_api.api.network.message.AbstractMessage;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -41,10 +41,8 @@ public interface IClientMessageHandler<REQ extends AbstractMessage> extends IMes
     @Nullable
     @Override
     default IMessage onMessage(@Nonnull final REQ message, @Nonnull final MessageContext ctx) {
-        if(message.isValid && ctx.side.isClient()) FMLClientHandler.instance().getClient().addScheduledTask(() -> {
-            //only handle message if client is definitely still in the server (issue#204)
-            //noinspection ConstantValue
-            if(getWorldFromContext(ctx) != null) handleMessage(message, ctx);
+        if(message.isValid && ctx.side.isClient()) Minecraft.getMinecraft().addScheduledTask(() -> {
+            if(isCtxValid(message, ctx)) handleMessage(message, ctx);
             return null;
         });
 
@@ -82,7 +80,22 @@ public interface IClientMessageHandler<REQ extends AbstractMessage> extends IMes
     }
 
     /**
-     * Should always be used in place of calling {@link net.minecraft.client.Minecraft#world Minecraft.world} directly.
+     * @param message The message.
+     * @param ctx The message context.
+     * @return True if the context is valid for this message.
+     *
+     * @throws NullPointerException If message or ctx are null.
+     * @since 3.1.0
+     * @author jbred
+     */
+    @SuppressWarnings("ConstantValue")
+    @SideOnly(Side.CLIENT)
+    default boolean isCtxValid(@Nonnull final REQ message, @Nonnull final MessageContext ctx) {
+        return getWorldFromContext(ctx) != null;
+    }
+
+    /**
+     * Should always be used in place of calling {@link Minecraft#world mc.world} directly.
      *
      * @param ctx MessageContext.
      * @return WorldClient instance provided by the MessageContext's client handler.

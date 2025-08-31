@@ -5,14 +5,14 @@
 
 package git.jbredwards.fluidlogged_api.mod.common.message;
 
+import git.jbredwards.fluidlogged_api.api.network.IServerMessageHandler;
 import git.jbredwards.fluidlogged_api.api.network.message.AbstractMessage;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.world.GameRules;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  *
@@ -38,17 +38,18 @@ public final class CMessageSyncGameRule extends AbstractMessage
     }
 
     @Override
-    public void write(@Nonnull final PacketBuffer buf) { buf.writeString(gameRuleId).writeBoolean(updateRender); }
-    public enum Handler implements IMessageHandler<CMessageSyncGameRule, SMessageSyncGameRule>
+    public void write(@Nonnull final PacketBuffer buf) {
+        buf.writeString(gameRuleId).writeBoolean(updateRender);
+    }
+
+    public enum Handler implements IServerMessageHandler<CMessageSyncGameRule, SMessageSyncGameRule>
     {
         INSTANCE;
 
-        @Nullable
+        @Nonnull
         @Override
-        public SMessageSyncGameRule onMessage(@Nonnull final CMessageSyncGameRule message, @Nonnull final MessageContext ctx) {
-            if(!message.isValid || !ctx.side.isServer()) return null;
-
-            @Nonnull final GameRules gameRules = ctx.getServerHandler().player.world.getGameRules();
+        public SMessageSyncGameRule handleMessage(@Nonnull final CMessageSyncGameRule message, @Nonnull final MessageContext ctx) {
+            @Nonnull final GameRules gameRules = FMLCommonHandler.instance().getMinecraftServerInstance().getEntityWorld().getGameRules();
             return new SMessageSyncGameRule(message.gameRuleId, gameRules.getString(message.gameRuleId), message.updateRender);
         }
     }
