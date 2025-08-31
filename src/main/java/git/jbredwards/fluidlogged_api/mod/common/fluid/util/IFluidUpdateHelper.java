@@ -108,7 +108,9 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
                     for(@Nonnull final EnumFacing sideA : EnumFacing.HORIZONTALS) {
                         if(sideA != side.getOpposite() && canFluidFlowI(xio, yi, zio, sideA)) {
                             final int xioA = xio + sideA.getXOffset(), zioA = zio + sideA.getZOffset();
-                            if(isCompatibleFluidI(xioA, yi, zioA) && canFluidFlowI(xioA, yi, zioA, sideA.getOpposite()) && ++adj == 2) {
+
+                            @Nonnull final FluidState fluidState = getFluidStateI(xioA, yi, zioA);
+                            if(fluidState.isSource() && FluidloggedUtils.isCompatibleFluid(getOrigin(), fluidState) && canFluidFlowI(xioA, yi, zioA, sideA.getOpposite()) && ++adj == 2) {
                                 isOptimalFlowDirection[sideI] = getOrigin().toSource().getLevel();
                                 break;
                             }
