@@ -29,6 +29,8 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.builders_wands.Plug
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cb_multipart.PluginCBMultipart;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.ceramics.PluginItemClayBucket;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.chiseled_me.PluginChiseledMe;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.chiselsandbits.PluginBlockChiseled;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.chiselsandbits.PluginItemBlockChiseled;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cofhcore.PluginCoFHCore;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.crafttweaker.PluginCraftTweaker;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cubic_chunks.PluginCubicChunks;
@@ -214,6 +216,9 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockGrating", new PluginBlockGrating()); // make Galacticraft's grating block use actual fluidlogging, instead of pseudo fluidlogging
             plugins.put("micdoodle8.mods.galacticraft.core.util.FluidUtil", new PluginGalacticraft(true)); // make galacticraft fluid fog texture overlay rendering account for FluidStates
             plugins.put("micdoodle8.mods.galacticraft.core.GCBlocks", new PluginGCBlocks()); // don't register Galacticraft's water & lava grating blocks, so they can be remapped
+            plugins.put("mod.chiselsandbits.chiseledblock.BlockChiseled", new PluginBlockChiseled()); // return null by default, to use built-in fluid collision logic for non-fluid chisel blocks
+            plugins.put("mod.chiselsandbits.chiseledblock.ItemBlockChiseled", new PluginItemBlockChiseled(16)); // allow chisel blocks to be placed in replaceable blocks
+            plugins.put("mod.chiselsandbits.network.packets.PacketChisel", new PluginItemBlockChiseled(18)); // allow chisel blocks to be placed in replaceable blocks
             plugins.put("mods.railcraft.common.fluids.CustomContainerHandler", new PluginRailcraft()); // fix railcraft uncraftable potion bug when collecting water bottles (issue#148)
             plugins.put("moze_intel.projecte.gameObjs.entity.EntityLavaProjectile", new PluginProjectEProjectile(false)); // allow the Volcanite Amulet projectile to lavalog blocks, and fix lava placement breaking blocks
             plugins.put("moze_intel.projecte.gameObjs.entity.EntityWaterProjectile", new PluginProjectEProjectile(true)); // allow the Evertide Amulet projectile to waterlog blocks
