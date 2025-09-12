@@ -13,7 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.chunk.ChunkCompileTaskGenerator;
 import net.minecraft.client.renderer.chunk.CompiledChunk;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.renderer.chunk.RenderChunk;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -53,6 +53,7 @@ public final class PluginRenderChunk implements IASMPlugin
          */
         if(checkMethod(insn, "values", "()[Lnet/minecraft/util/BlockRenderLayer;") && insn.getPrevious() instanceof FrameNode) {
             final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ALOAD, 15));
             //boolean array variable
             list.add(new VarInsnNode(ALOAD, 11));
@@ -68,7 +69,7 @@ public final class PluginRenderChunk implements IASMPlugin
             //chunk position variable
             list.add(new VarInsnNode(ALOAD, 7));
             //adds the new code
-            list.add(genMethodNode("renderFluidState", "(Lnet/minecraft/block/state/IBlockState;[ZLnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V"));
+            list.add(genMethodNode("renderFluidState", "(Lnet/minecraft/client/renderer/chunk/RenderChunk;Lnet/minecraft/block/state/IBlockState;[ZLnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V"));
             instructions.insertBefore(insn, list);
             return true;
         }
@@ -91,6 +92,7 @@ public final class PluginRenderChunk implements IASMPlugin
          */
         else if(insn instanceof FrameNode && insn.getNext().getOpcode() == ICONST_0) {
             final InsnList list = new InsnList();
+            list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ALOAD, 18));
             //boolean array variable
             list.add(new VarInsnNode(ALOAD, 12));
@@ -105,7 +107,7 @@ public final class PluginRenderChunk implements IASMPlugin
             //chunk position variable
             list.add(new VarInsnNode(ALOAD, 7));
             //adds the new code
-            list.add(genMethodNode("renderFluidState", "(Lnet/minecraft/block/state/IBlockState;[ZLnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V"));
+            list.add(genMethodNode("renderFluidState", "(Lnet/minecraft/client/renderer/chunk/RenderChunk;Lnet/minecraft/block/state/IBlockState;[ZLnet/minecraft/client/renderer/chunk/ChunkCompileTaskGenerator;Lnet/minecraft/client/renderer/chunk/CompiledChunk;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)V"));
             instructions.insert(insn, list);
             return true;
         }
@@ -116,7 +118,7 @@ public final class PluginRenderChunk implements IASMPlugin
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static void renderFluidState(@Nonnull IBlockState state, @Nonnull boolean[] array, @Nonnull ChunkCompileTaskGenerator generator, @Nonnull CompiledChunk compiledChunk, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull BlockPos chunkPos) {
+        public static void renderFluidState(@Nonnull RenderChunk instance, @Nonnull IBlockState state, @Nonnull boolean[] array, @Nonnull ChunkCompileTaskGenerator generator, @Nonnull CompiledChunk compiledChunk, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull BlockPos chunkPos) {
             final FluidState fluidState = FluidState.get(world, pos);
             if(fluidState != FluidState.EMPTY && (!(state.getBlock() instanceof IFluidloggable) || ((IFluidloggable)state.getBlock()).shouldFluidRender(world, pos, state, fluidState))) {
                 //renders the fluid in each layer
@@ -128,8 +130,7 @@ public final class PluginRenderChunk implements IASMPlugin
 
                     if(!compiledChunk.isLayerStarted(layer)) {
                         compiledChunk.setLayerStarted(layer);
-                        buffer.begin(7, DefaultVertexFormats.BLOCK);
-                        buffer.setTranslation(-chunkPos.getX(), -chunkPos.getY(), -chunkPos.getZ());
+                        instance.preRenderBlocks(buffer, chunkPos);
                     }
 
                     //render the fluid
