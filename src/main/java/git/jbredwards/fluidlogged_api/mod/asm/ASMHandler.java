@@ -47,6 +47,9 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.Plugin
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.PluginGCBlocks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.PluginGalacticraft;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.hesperus.PluginHesperus;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.industrial_foregoing.PluginIndustrialForegoing;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.industrial_foregoing.PluginPinkSlimeFluid;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.industrial_foregoing.PluginWaterResourceTile;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.industrial_renewal.PluginIndustrialRenewal;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.lycanitesmobs.PluginLycanitesFluidBase;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.lycanitesmobs.PluginLycanitesFluidMixing;
@@ -61,6 +64,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginIRes
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginOptifine;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginSVertexBuilder;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.plus_tweaks.PluginPlusTweaks;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.pneumaticcraft.PluginItemEmptyPCB;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.projecte.PluginProjectEAmulet;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.projecte.PluginProjectEProjectile;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.projectred.PluginProjectRed;
@@ -73,6 +77,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.spongeforge.PluginS
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.tfc.PluginTFCBlockFluid;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.tfc.PluginTFCFluids;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.thermal_dynamics.PluginThermalDynamics;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.thermal_expansion.PluginThermalExpansion;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.thermal_foundation.PluginThermalAerotheum;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.thermal_foundation.PluginThermalFoundation;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.thermal_foundation.PluginThermalGlowstone;
@@ -143,12 +148,18 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("cofh.core.fluid.BlockFluidInteractive", new PluginCoFHCore(true)); // use this mod's fluid collision improvements
             plugins.put("cofh.core.proxy.EventHandlerRender", new PluginCoFHCore(false)); // fog and overlay rendering account for FluidStates
             plugins.put("cofh.thermaldynamics.duct.tiles.TileGrid", new PluginThermalDynamics()); // ray trace now skips fluids
+            plugins.put("cofh.thermalexpansion.block.device.TileFisher", new PluginThermalExpansion()); // make thermal expansion's machines FluidState-sensitive
+            plugins.put("cofh.thermalexpansion.block.device.TileWaterGen", new PluginThermalExpansion()); // make thermal expansion's machines FluidState-sensitive
             plugins.put("cofh.thermalfoundation.fluid.BlockFluidAerotheum", new PluginThermalAerotheum()); // fix conflicts
             plugins.put("cofh.thermalfoundation.fluid.BlockFluidCryotheum", new PluginThermalFoundation()); // fix conflicts
             plugins.put("cofh.thermalfoundation.fluid.BlockFluidGlowstone", new PluginThermalGlowstone()); // fix conflicts
             plugins.put("cofh.thermalfoundation.fluid.BlockFluidMana", new PluginThermalFoundation()); // fix conflicts
             plugins.put("cofh.thermalfoundation.fluid.BlockFluidPetrotheum", new PluginThermalFoundation()); // fix conflicts
             plugins.put("cofh.thermalfoundation.fluid.BlockFluidPyrotheum", new PluginThermalFoundation()); // fix conflicts
+            plugins.put("com.buuz135.industrial.proxy.BlockRegistry$1", new PluginPinkSlimeFluid()); // make industrial foregoing's pink slime fluid work better with FluidStates
+            plugins.put("com.buuz135.industrial.tile.agriculture.WaterResourcesCollectorTile", new PluginWaterResourceTile(false)); // make industrial foregoing's water resource collector account for FluidStates
+            plugins.put("com.buuz135.industrial.tile.misc.WaterCondesatorTile", new PluginWaterResourceTile(true)); // make industrial foregoing's water condesator account for FluidStates
+            plugins.put("com.buuz135.industrial.tile.world.FluidPumpTile", new PluginIndustrialForegoing()); // make industrial foregoing's fluid pump FluidState-sensitive
             plugins.put("com.enderio.core.client.handlers.FluidVisualsHandler", new PluginEnderCore()); // make endercore's fluid overlay renderer FluidState-sensitive
             plugins.put("com.enderio.core.common.fluid.BlockFluidEnder", new PluginEnderCore()); // fix endercore fluid collisions
             plugins.put("com.enderio.core.common.util.IBlockAccessWrapper", new PluginEnderCore()); // make endercore's block access wrapper FluidState-sensitive
@@ -204,6 +215,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("lumien.randomthings.item.ItemEnderBucket", new PluginRandomThings()); // make random things' ender buckets sensitive to FluidStates
             plugins.put("lumien.randomthings.item.ItemReinforcedEnderBucket", new PluginRandomThings()); // make random things' ender buckets sensitive to FluidStates
             plugins.put("mcp.mobius.waila.addons.core.PluginCore", new PluginWaila()); // remove duplicate handlers for BlockLiquid
+            plugins.put("me.desht.pneumaticcraft.common.item.ItemEmptyPCB", new PluginItemEmptyPCB()); // allow Empty PCBs to be filled using FluidStates
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingEngine", new PluginHesperus()); // phosphor takes FluidStates into account when computing light
             plugins.put("me.jellysquid.mods.phosphor.mod.world.lighting.LightingHooks", new PluginHesperus()); // phosphor takes FluidStates into account when computing light
             plugins.put("mekanism.common.block.BlockMekanismContainer", new PluginBlockFlowerPot()); // fix FluidState voiding if a fluidlogged mekanism container is removed

@@ -24,82 +24,100 @@ import javax.annotation.Nullable;
 public final class PluginIndustrialForegoing implements IASMPlugin
 {
     @Override
-    public boolean isMethodValid(@Nonnull final MethodNode method, final boolean obfuscated) { return method.name.equals("work"); }
+    public int getMethodIndex(@Nonnull final MethodNode method, final boolean obfuscated) {
+        if(method.name.equals("protectedUpdate")) return 1;
+        else return method.name.equals("work") ? 2 : 0;
+    }
 
     @Override
     public boolean transform(@Nonnull final InsnList instructions, @Nonnull final MethodNode method, @Nonnull final AbstractInsnNode insn, final boolean obfuscated, final int index) {
         /*
-         * work:
+         * protectedUpdate:
          * Old code:
-         * while (!allBlocks.isEmpty() && (this.world.isOutsideBuildHeight(peeked) || !isBlockSameFluid(peeked) || this.world.getBlockState(peeked).getBlock().getMetaFromState(this.world.getBlockState(peeked)) != 0))
-         * {
-         *     ...
-         * }
+         * FluidRegistry.lookupFluidForBlock(this.world.getBlockState(this.pos.offset(0, -1, 0)).getBlock());
          *
          * New code:
-         * // account for FluidStates
-         * while (!allBlocks.isEmpty() && (this.world.isOutsideBuildHeight(peeked) || !isBlockSameFluid(peeked) || FluidloggedUtils.getFluidState(this.world, peeked).getLevel() != 0))
-         * {
-         *     ...
-         * }
+         * // Account for FluidStates.
+         * FluidRegistry.lookupFluidForBlock(FluidloggedUtils.getFluidOrReal(this.world, this.pos.offset(0, -1, 0)).getBlock());
          */
-        if(checkMethod(insn, obfuscated ? "func_176201_c" : "getMetaFromState")) {
-            instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "git/jbredwards/fluidlogged_api/api/util/FluidState", "getLevel", "()I", false));
-            instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidState", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
-            removeFrom(instructions, insn, -6);
+        if(index == 1 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
+            instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidOrReal", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
+            instructions.remove(insn);
         }
-        /*
-         * work:
-         * Old code:
-         * if (this.world.getTileEntity(peeked) != null) return 0;
-         *
-         * New code:
-         * // tile entities are fluidloggable, so don't skip the drain if a tile entity is at the position
-         * if (null != null) return 0;
-         */
-        else if(checkMethod(insn, obfuscated ? "func_175625_s" : "getTileEntity")) {
-            instructions.insert(insn, new InsnNode(ACONST_NULL));
-            removeFrom(instructions, insn, -3);
-        }
-        /*
-         * work:
-         * Old code:
-         * if (BlockRegistry.fluidPumpBlock.isReplaceFluidWithCobble())
-         * {
-         *     ...
-         * }
-         *
-         * New code:
-         * // check if pos is replaceable before setting cobble
-         * if (Hooks.isReplaceable(this, peeked, BlockRegistry.fluidPumpBlock.isReplaceFluidWithCobble()))
-         * {
-         *     ...
-         * }
-         */
-        else if(checkMethod(insn, "isReplaceFluidWithCobble")) {
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
-            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 1));
-            instructions.insert(insn, genMethodNode("isReplaceable", "(Lnet/minecraft/tileentity/TileEntity;Lnet/minecraft/util/math/BlockPos;Z)Z"));
-        }
-        /*
-         * work:
-         * Old code:
-         * else if (world.setBlockToAir(peeked))
-         * {
-         *     ...
-         * }
-         *
-         * New code:
-         * // don't set the block to air (this was handled by the prior call to IFluidHandler#drain)
-         * else if (true)
-         * {
-         *     ...
-         * }
-         */
-        else if(checkMethod(insn, obfuscated ? "func_175698_g" : "setBlockToAir")) {
-            instructions.insert(insn, new InsnNode(ICONST_1));
-            removeFrom(instructions, insn, -3);
-            return true;
+        else if(index == 2) {
+            /*
+             * work:
+             * Old code:
+             * while (!allBlocks.isEmpty() && (this.world.isOutsideBuildHeight(peeked) || !isBlockSameFluid(peeked) || this.world.getBlockState(peeked).getBlock().getMetaFromState(this.world.getBlockState(peeked)) != 0))
+             * {
+             *     ...
+             * }
+             *
+             * New code:
+             * // account for FluidStates
+             * while (!allBlocks.isEmpty() && (this.world.isOutsideBuildHeight(peeked) || !isBlockSameFluid(peeked) || FluidloggedUtils.getFluidState(this.world, peeked).getLevel() != 0))
+             * {
+             *     ...
+             * }
+             */
+            if(checkMethod(insn, obfuscated ? "func_176201_c" : "getMetaFromState")) {
+                instructions.insert(insn, new MethodInsnNode(INVOKEVIRTUAL, "git/jbredwards/fluidlogged_api/api/util/FluidState", "getLevel", "()I", false));
+                instructions.insert(insn, genMethodNode("git/jbredwards/fluidlogged_api/api/util/FluidloggedUtils", "getFluidState", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;"));
+                removeFrom(instructions, insn, -6);
+            }
+            /*
+             * work:
+             * Old code:
+             * if (this.world.getTileEntity(peeked) != null) return 0;
+             *
+             * New code:
+             * // tile entities are fluidloggable, so don't skip the drain if a tile entity is at the position
+             * if (null != null) return 0;
+             */
+            else if(checkMethod(insn, obfuscated ? "func_175625_s" : "getTileEntity")) {
+                instructions.insert(insn, new InsnNode(ACONST_NULL));
+                removeFrom(instructions, insn, -3);
+            }
+            /*
+             * work:
+             * Old code:
+             * if (BlockRegistry.fluidPumpBlock.isReplaceFluidWithCobble())
+             * {
+             *     ...
+             * }
+             *
+             * New code:
+             * // check if pos is replaceable before setting cobble
+             * if (Hooks.isReplaceable(this, peeked, BlockRegistry.fluidPumpBlock.isReplaceFluidWithCobble()))
+             * {
+             *     ...
+             * }
+             */
+            else if(checkField(insn, "fluidPumpBlock")) {
+                instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
+                instructions.insertBefore(insn, new VarInsnNode(ALOAD, 1));
+                instructions.insert(insn.getNext(), genMethodNode("isReplaceable", "(Lnet/minecraft/tileentity/TileEntity;Lnet/minecraft/util/math/BlockPos;Z)Z"));
+            }
+            /*
+             * work:
+             * Old code:
+             * else if (world.setBlockToAir(peeked))
+             * {
+             *     ...
+             * }
+             *
+             * New code:
+             * // don't set the block to air (this was handled by the prior call to IFluidHandler#drain)
+             * else if (true)
+             * {
+             *     ...
+             * }
+             */
+            else if(checkMethod(insn, obfuscated ? "func_175698_g" : "setBlockToAir")) {
+                instructions.insert(insn, new InsnNode(ICONST_1));
+                removeFrom(instructions, insn, -3);
+                return true;
+            }
         }
 
         return false;
