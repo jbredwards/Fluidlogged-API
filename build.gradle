@@ -42,6 +42,7 @@ dependencies {
     deobfProvided 'curse.maven:galacticraft-legacy-564236:4671122'
     deobfProvided 'curse.maven:industrial-craft-242638:3838713'
     deobfProvided 'curse.maven:mekanism-268560:2835175'
+    deobfProvided 'curse.maven:random-things-59816:2905241'
     deobfProvided 'curse.maven:tropicraft-254794:2713918'
     // optional mod compat (dependencies)
     deobfProvided 'curse.maven:codechicken-lib-242818:2779848'

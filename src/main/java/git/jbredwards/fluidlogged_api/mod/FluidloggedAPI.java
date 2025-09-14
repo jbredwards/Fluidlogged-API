@@ -71,6 +71,7 @@ public final class FluidloggedAPI
             isCubicChunks    = Loader.isModLoaded("cubicchunks"),
             isDynamicLights  = Loader.isModLoaded("dynamiclights"),
             isGalacticraft   = Loader.isModLoaded("galacticraftcore"),
+            isRandomThings   = Loader.isModLoaded("randomthings"),
             isSubaquatic     = Loader.isModLoaded("subaquatic");
 
     @Mod.EventHandler

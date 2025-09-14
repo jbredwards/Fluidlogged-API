@@ -11,11 +11,13 @@ import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.fluid.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.IWorldProvider;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IWaterHeight;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
+import lumien.randomthings.handler.AsmHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -599,6 +601,11 @@ public final class PluginWorld implements IASMPlugin
         }
 
         public static int getRedstonePower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
+            if(FluidloggedAPI.isRandomThings) {
+                final int wireless = RTHooks.getRedstonePower(world, pos, direction);
+                if(wireless != 0) return wireless;
+            }
+
             @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 3, 3) : world;
             @Nonnull final IBlockState state = access.getBlockState(pos);
             if(state.getBlock().shouldCheckWeakPower(state, access, pos, direction)) return getStrongPower(access, pos);
@@ -639,6 +646,11 @@ public final class PluginWorld implements IASMPlugin
         }
 
         public static int getStrongPower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
+            if(FluidloggedAPI.isRandomThings) {
+                final int wireless = RTHooks.getStrongPower(world, pos, direction);
+                if(wireless != 0) return wireless;
+            }
+
             @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 1, 1) : world;
             return Math.max(access.getBlockState(pos).getStrongPower(access, pos, direction), FluidState.get(access, pos).getState().getStrongPower(access, pos, direction));
         }
@@ -953,11 +965,23 @@ public final class PluginWorld implements IASMPlugin
         }
     }
 
-    //hold Dynamic Lights methods in separate class to avoid crash
+    // hold Dynamic Lights methods in separate class to avoid crash
     public static final class DLHooks
     {
-        public static int getLightValue(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState fluidState) {
+        public static int getLightValue(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState fluidState) {
             return Math.max(DynamicLights.getLightValue(state.getBlock(), state, world, pos), fluidState.getLightValue(world, pos));
+        }
+    }
+
+    // hold RandomThings methods in separate class to avoid crash
+    public static final class RTHooks
+    {
+        public static int getRedstonePower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing facing) {
+            return AsmHandler.getRedstonePower(IWorldProvider.getWorld(world), pos, facing);
+        }
+
+        public static int getStrongPower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing facing) {
+            return AsmHandler.getStrongPower(IWorldProvider.getWorld(world), pos, facing);
         }
     }
 }
