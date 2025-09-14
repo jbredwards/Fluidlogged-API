@@ -22,11 +22,11 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-public final class SMessageSyncRuntimeConfigs extends AbstractMessage
+public final class SMessageSyncConfigs extends AbstractMessage
 {
     public JsonObject configs;
-    public SMessageSyncRuntimeConfigs() {}
-    public SMessageSyncRuntimeConfigs(@Nonnull final JsonObject configsIn) {
+    public SMessageSyncConfigs() {}
+    public SMessageSyncConfigs(@Nonnull final JsonObject configsIn) {
         isValid = true;
         configs = configsIn;
     }
@@ -41,18 +41,18 @@ public final class SMessageSyncRuntimeConfigs extends AbstractMessage
         MessageUtils.writeJson(buf, configs);
     }
 
-    public enum Handler implements IClientMessageHandler<SMessageSyncRuntimeConfigs>
+    public enum Handler implements IClientMessageHandler<SMessageSyncConfigs>
     {
         INSTANCE;
 
         @SideOnly(Side.CLIENT)
         @Override
-        public void handleMessage(@Nonnull final SMessageSyncRuntimeConfigs message, @Nonnull final MessageContext ctx) throws Exception {
+        public void handleMessage(@Nonnull final SMessageSyncConfigs message, @Nonnull final MessageContext ctx) throws Exception {
             FluidloggedAPIConfigs.init(message.configs);
         }
 
         @SideOnly(Side.CLIENT)
         @Override
-        public boolean isCtxValid(@Nonnull final SMessageSyncRuntimeConfigs message, @Nonnull final MessageContext ctx) { return true; }
+        public boolean isCtxValid(@Nonnull final SMessageSyncConfigs message, @Nonnull final MessageContext ctx) { return true; }
     }
 }

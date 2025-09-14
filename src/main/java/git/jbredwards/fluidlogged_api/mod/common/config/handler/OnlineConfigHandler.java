@@ -7,8 +7,12 @@ package git.jbredwards.fluidlogged_api.mod.common.config.handler;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.google.gson.stream.MalformedJsonException;
+import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigs;
 import net.minecraft.util.JsonUtils;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModContainer;
@@ -17,7 +21,6 @@ import org.apache.commons.io.IOUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -35,8 +38,8 @@ import java.nio.file.StandardCopyOption;
 public final class OnlineConfigHandler
 {
     @Nonnull static final Path
-            readmePath = Paths.get("config/fluidlogged_api/internal/README.txt"),
-            versionsPath = Paths.get("config/fluidlogged_api/internal/versions.jsonc");
+            readmePath = FluidloggedAPIConfigs.FOLDER.resolve("internal/README.txt"),
+            versionsPath = FluidloggedAPIConfigs.FOLDER.resolve("internal/versions.jsonc");
     @Nonnull static final String
             readmeURL = "https://raw.githubusercontent.com/jbredwards/Fluidlogged-API-Configs/refs/heads/1.12.2/internal/README.txt",
             versionsURL = "https://raw.githubusercontent.com/jbredwards/Fluidlogged-API-Configs/refs/heads/1.12.2/internal/versions.jsonc",
@@ -47,9 +50,15 @@ public final class OnlineConfigHandler
         else try(@Nonnull final InputStream stream = new URL(readmeURL).openStream()) { createFile(readmePath, stream); }
 
         // save old versions.jsonc, to compare to the newly downloaded versions.jsonc
-        @Nonnull final JsonObject oldVersions;
+        @Nonnull JsonObject oldVersions;
         if(!Files.exists(versionsPath)) oldVersions = new JsonObject();
         else try(@Nonnull final Reader reader = Files.newBufferedReader(versionsPath)) { oldVersions = new JsonParser().parse(reader).getAsJsonObject(); }
+        catch(@Nonnull final MalformedJsonException | JsonParseException | IllegalStateException e) { // corrupt versions.jsonc file
+            Files.copy(versionsPath, versionsPath.resolveSibling("versions.jsonc.old"), StandardCopyOption.REPLACE_EXISTING);
+            FluidloggedAPI.LOGGER.info("The file \"{}\" has been corrupted. Re-downloading Fluidlogged API community configs...", versionsPath);
+            FluidloggedAPI.LOGGER.error(e);
+            oldVersions = new JsonObject();
+        }
 
         // write new versions.jsonc file
         @Nonnull final JsonObject newVersions;
@@ -62,23 +71,22 @@ public final class OnlineConfigHandler
             @Nullable final JsonElement newElement = newVersions.get(modid);
             @Nullable final JsonElement oldElement = oldVersions.get(modid);
 
-            if(newElement == null) { if(oldElement != null) FileUtils.deleteDirectory(new File("config/fluidlogged_api/internal", modid)); }
-            else if(oldElement == null
-            || JsonUtils.getInt(oldElement, modid) < JsonUtils.getInt(newElement, modid)
-            || !Files.exists(Paths.get("config/fluidlogged_api/internal", modid))) {
-                downloadModConfig(modid, "whitelist.jsonc");
-                downloadModConfig(modid, "blacklist.jsonc");
-                downloadModConfig(modid, "fluidTags.jsonc");
+            @Nonnull final Path folder = FluidloggedAPIConfigs.FOLDER.resolve(Paths.get("internal", modid));
+            if(newElement == null) { if(oldElement != null) FileUtils.deleteDirectory(folder.toFile()); }
+            else if(oldElement == null || JsonUtils.getInt(oldElement, modid) < JsonUtils.getInt(newElement, modid) || !Files.exists(folder)) {
+                downloadModConfig(folder, modid, "whitelist.jsonc");
+                downloadModConfig(folder, modid, "blacklist.jsonc");
+                downloadModConfig(folder, modid, "fluidTags.jsonc");
             }
         }
     }
 
-    private static void downloadModConfig(@Nonnull final String modid, @Nonnull final String config) throws IOException {
+    private static void downloadModConfig(@Nonnull final Path folder, @Nonnull final String modid, @Nonnull final String config) throws IOException {
         @Nullable InputStream stream = null;
         try { stream = new URL(String.format(autoConfigURL, modid, config)).openStream(); }
         catch(@Nonnull final Throwable ignored) {} // mod does not have an auto config, skip
 
-        @Nonnull final Path path = Paths.get("config/fluidlogged_api/internal", modid, config);
+        @Nonnull final Path path = folder.resolve(config);
         if(stream == null) Files.deleteIfExists(path); // delete any old configs that have been removed from the repo
         else { // download any new configs that have been added or updated in the repo
             try { createFile(path, stream); }

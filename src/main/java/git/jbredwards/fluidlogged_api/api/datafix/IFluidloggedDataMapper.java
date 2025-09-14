@@ -26,6 +26,7 @@ public interface IFluidloggedDataMapper
     /**
      * Holds all active {@link IFluidloggedDataMapper IFluidloggedDataMappers}, used by
      * {@link git.jbredwards.fluidlogged_api.mod.common.datafix.ToFluidloggedDataFixer ToFluidloggedDataFixer}.
+     * <p>All entries should be finalized by the fml post-init phase.</p>
      *
      * @since 3.0.0
      */

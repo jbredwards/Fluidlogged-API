@@ -18,9 +18,9 @@ import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigs;
 import git.jbredwards.fluidlogged_api.mod.common.config.util.ConfigPredicate;
 import git.jbredwards.fluidlogged_api.mod.common.message.CMessageSyncGameRule;
+import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncConfigs;
 import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncFluidStates;
 import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncGameRule;
-import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncRuntimeConfigs;
 import io.github.opencubicchunks.cubicchunks.api.world.CubeWatchEvent;
 import io.github.opencubicchunks.cubicchunks.api.world.ICube;
 import net.minecraft.block.state.IBlockState;
@@ -98,7 +98,7 @@ public final class EventHandler
         if(event.getHandler() instanceof NetHandlerPlayServer) { // should always pass, but let's be safe
             @Nonnull final EntityPlayerMP player = ((NetHandlerPlayServer)event.getHandler()).player;
             if(!event.isLocal() || player.server.isDedicatedServer()) FluidloggedAPI.WRAPPER.sendTo(
-                new SMessageSyncRuntimeConfigs(FluidloggedAPIConfigs.readConfigFiles(player.server)), player);
+                new SMessageSyncConfigs(FluidloggedAPIConfigs.readConfigFiles(player.server)), player);
         }
     }
 

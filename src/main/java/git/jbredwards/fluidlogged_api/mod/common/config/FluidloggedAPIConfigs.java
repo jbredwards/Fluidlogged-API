@@ -12,7 +12,7 @@ import git.jbredwards.fluidlogged_api.api.event.FluidloggedAPIConfigsEvent;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.config.handler.*;
 import git.jbredwards.fluidlogged_api.mod.common.config.util.ConfigPredicate;
-import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncRuntimeConfigs;
+import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncConfigs;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Loader;
@@ -36,6 +36,9 @@ import java.util.function.Function;
  */
 public final class FluidloggedAPIConfigs
 {
+    @Nonnull
+    public static final Path FOLDER = Paths.get("config", FluidloggedAPI.MODID);
+
     /**
      * Loads Fluidlogged API's configs, and syncs the data for any connected players.
      * Note that <i>configs/fluidlogged_api/general.cfg</i> is not handled by this, but rather by forge's config api.
@@ -49,9 +52,9 @@ public final class FluidloggedAPIConfigs
         if(!MinecraftForge.EVENT_BUS.post(new FluidloggedAPIConfigsEvent.Apply(server, configs, isReload))) {
             init(configs);
             if(isReload) { // sync with connected players
-                if(server.isDedicatedServer()) FluidloggedAPI.WRAPPER.sendToAll(new SMessageSyncRuntimeConfigs(configs));
+                if(server.isDedicatedServer()) FluidloggedAPI.WRAPPER.sendToAll(new SMessageSyncConfigs(configs));
                 else if(server.getPlayerList().getCurrentPlayerCount() > 1) server.getPlayerList().getPlayers().forEach(player -> {
-                    if(!player.connection.getNetworkManager().isLocalChannel()) FluidloggedAPI.WRAPPER.sendTo(new SMessageSyncRuntimeConfigs(configs), player);
+                    if(!player.connection.getNetworkManager().isLocalChannel()) FluidloggedAPI.WRAPPER.sendTo(new SMessageSyncConfigs(configs), player);
                 });
             }
         }
@@ -83,7 +86,7 @@ public final class FluidloggedAPIConfigs
 
             // for auto config
             if(FluidloggedAPIConfig.downloadModConfigs != FluidloggedAPIConfig.OnlineConfigMode.DISABLED) {
-                @Nonnull final Path autoConfig = Paths.get("config/fluidlogged_api/internal", fixedModid, fileName + ".jsonc");
+                @Nonnull final Path autoConfig = FOLDER.resolve(Paths.get("internal", fixedModid, fileName + ".jsonc"));
                 if(Files.exists(autoConfig)) {
                     try(@Nonnull final Reader reader = Files.newBufferedReader(autoConfig)) { onlineData.add(fixedModid, new JsonParser().parse(reader)); }
                     catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error("Error occurred while caching " + autoConfig, t); } // catch here, to not stop reading other files
@@ -116,7 +119,7 @@ public final class FluidloggedAPIConfigs
         if(modData.size() != 0) json.add("MODDED", modData);
 
         // for user config
-        @Nonnull final Path file = Paths.get("config/fluidlogged_api", fileName + ".cfg");
+        @Nonnull final Path file = FOLDER.resolve(fileName + ".cfg");
         if(Files.exists(file)) {
             try(@Nonnull final Reader reader = Files.newBufferedReader(file)) { json.add("USER", new JsonParser().parse(reader)); }
             catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error("Error occurred while caching " + file, t); } // catch here to let the game still launch
@@ -147,7 +150,7 @@ public final class FluidloggedAPIConfigs
 
         // for auto configs
         if(json.has("ONLINE")) json.getAsJsonObject("ONLINE").entrySet().forEach(e -> {
-            @Nonnull final String file = "config/fluidlogged_api/internal/" + e.getKey() + '/' + fileName;
+            @Nonnull final String file = FOLDER + "/internal/" + e.getKey() + '/' + fileName;
             try { getAsIterable(e.getValue(), Function.identity()).forEach(element -> action.accept(file, element)); }
             catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error("Error occurred while interpreting " + file, t); } // catch here, to not stop reading other files
         });
@@ -161,7 +164,7 @@ public final class FluidloggedAPIConfigs
 
         // for user config
         if(json.has("USER")) {
-            @Nonnull final String file = "config/fluidlogged_api/" + fileName + ".cfg";
+            @Nonnull final String file = FOLDER.toString() + '/' + fileName + ".cfg";
             try { getAsIterable(json.get("USER"), Function.identity()).forEach(element -> action.accept(file, element)); }
             catch(@Nonnull final Throwable t) { FluidloggedAPI.LOGGER.error("Error occurred while interpreting " + file, t); } // catch here to let the game still launch
         }

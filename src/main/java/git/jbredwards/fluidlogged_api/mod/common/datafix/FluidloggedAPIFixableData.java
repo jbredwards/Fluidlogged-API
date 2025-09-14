@@ -6,31 +6,45 @@
 package git.jbredwards.fluidlogged_api.mod.common.datafix;
 
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.api.datafix.IFluidloggedDataMapper;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.util.datafix.FixTypes;
 import net.minecraft.util.datafix.IFixableData;
 import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.registries.GameData;
 
 import javax.annotation.Nonnull;
+import java.util.function.UnaryOperator;
 
 /**
  *
  * @author jbred
  *
  */
-public final class FluidloggedAPIFixableData implements IFixableData
+public final class FluidloggedAPIFixableData
 {
     /**
      * The current data version.
      */
-    @Override
-    public int getFixVersion() { return DATA_VERSION; }
-    public static final int DATA_VERSION = 103;
+    public static final int LEGACY_DATA_VERSION = 0;
+    public static int getToFluidStateDataVersion() { return IFluidloggedDataMapper.MAPPERS.size(); }
 
-    @Nonnull
-    @Override
-    public NBTTagCompound fixTagCompound(@Nonnull final NBTTagCompound compound) {
-        return ToFluidloggedDataFixer.fix(LegacyDataFixer.fix(compound));
+    /**
+     * Easy way to register chunk data fixers.
+     */
+    public static void register(@Nonnull final String id, final int version, @Nonnull final UnaryOperator<NBTTagCompound> fixer) {
+        FMLCommonHandler.instance().getDataFixer().init(GameData.checkPrefix(id).toString(), version).registerFix(FixTypes.CHUNK,
+            new IFixableData() {
+                @Override
+                public int getFixVersion() { return version; }
+
+                @Nonnull
+                @Override
+                public NBTTagCompound fixTagCompound(@Nonnull final NBTTagCompound compound) { return fixer.apply(compound); }
+            }
+        );
     }
 
     @Nonnull
@@ -44,7 +58,7 @@ public final class FluidloggedAPIFixableData implements IFixableData
         @Nonnull final NBTTagList cap;
         @Nonnull final String capID = IFluidStateCapability.CAPABILITY_ID.toString();
         if(forgeCaps.hasKey(capID, Constants.NBT.TAG_COMPOUND)) { // respect modern data if present
-            final NBTTagCompound capNBT = forgeCaps.getCompoundTag(capID);
+            @Nonnull final NBTTagCompound capNBT = forgeCaps.getCompoundTag(capID);
             capNBT.setTag("data", cap = capNBT.getTagList("data", Constants.NBT.TAG_COMPOUND));
         }
         else forgeCaps.setTag(capID, cap = forgeCaps.getTagList(capID, Constants.NBT.TAG_COMPOUND));

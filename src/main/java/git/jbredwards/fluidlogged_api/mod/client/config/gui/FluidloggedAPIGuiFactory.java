@@ -3,9 +3,10 @@
  * All rights reserved.
  */
 
-package git.jbredwards.fluidlogged_api.mod.client.gui;
+package git.jbredwards.fluidlogged_api.mod.client.config.gui;
 
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
+import git.jbredwards.fluidlogged_api.mod.client.config.element.ToggleableConfigElement;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -14,8 +15,6 @@ import net.minecraftforge.common.config.ConfigElement;
 import net.minecraftforge.fml.client.IModGuiFactory;
 import net.minecraftforge.fml.client.config.DummyConfigElement;
 import net.minecraftforge.fml.client.config.IConfigElement;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,7 +28,6 @@ import java.util.Set;
  * @author jbred
  *
  */
-@SideOnly(Side.CLIENT)
 public final class FluidloggedAPIGuiFactory implements IModGuiFactory
 {
     @Override
@@ -48,10 +46,10 @@ public final class FluidloggedAPIGuiFactory implements IModGuiFactory
         configElements.add(new DummyConfigElement.DummyCategoryElement("fluidlogged_api/blacklist", "configgui.fluidlogged_api.blacklist", Collections.emptyList()));
         configElements.add(new DummyConfigElement.DummyCategoryElement("fluidlogged_api/whitelist", "configgui.fluidlogged_api.whitelist", Collections.emptyList()));
         // don't change main gui screen
-        return new GuiComponentConfig(parentScreen, configElements, FluidloggedAPI.MODID, false, false, I18n.format("configgui.fluidlogged_api.configTitle"));
+        configElements.replaceAll(element -> new ToggleableConfigElement(element, ToggleableConfigElement::new));
+        return new GuiComponentConfig(parentScreen, configElements, FluidloggedAPI.MODID, false, false, I18n.format("configgui.fluidlogged_api.configTitle"), null);
     }
 
-    // NO-OP
     @Nullable
     @Override
     public Set<RuntimeOptionCategoryElement> runtimeGuiCategories() { return null; }

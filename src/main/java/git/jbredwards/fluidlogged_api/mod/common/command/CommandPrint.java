@@ -12,7 +12,7 @@ import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigs;
 import git.jbredwards.fluidlogged_api.mod.common.message.SMessageCommandPrint;
-import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncRuntimeConfigs;
+import git.jbredwards.fluidlogged_api.mod.common.message.SMessageSyncConfigs;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -241,7 +241,7 @@ public class CommandPrint extends CommandChildBase
                 @Nonnull final Object[] args = new Object[2];
                 args[0] = buf.readEnumValue(ConfigType.class);
 
-                @Nonnull final SMessageSyncRuntimeConfigs msg = new SMessageSyncRuntimeConfigs();
+                @Nonnull final SMessageSyncConfigs msg = new SMessageSyncConfigs();
                 msg.read(buf);
                 args[1] = msg.configs;
                 return args;
@@ -249,7 +249,7 @@ public class CommandPrint extends CommandChildBase
 
             @Override
             public void packetWrite(@Nonnull final PacketBuffer buf, @Nonnull final Object[] args) {
-                new SMessageSyncRuntimeConfigs((JsonObject)args[1]).write(buf.writeEnumValue((ConfigType)args[0]));
+                new SMessageSyncConfigs((JsonObject)args[1]).write(buf.writeEnumValue((ConfigType)args[0]));
             }
         };
 

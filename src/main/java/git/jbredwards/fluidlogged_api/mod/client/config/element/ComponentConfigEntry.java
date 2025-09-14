@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-package git.jbredwards.fluidlogged_api.mod.client.gui;
+package git.jbredwards.fluidlogged_api.mod.client.config.element;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
@@ -64,6 +64,14 @@ public class ComponentConfigEntry implements GuiConfigEntries.IConfigEntry
 
         else component = ForgeHooks.newChatWithLinks(parentIn.getName()).appendSibling(ForgeHooks.newChatWithLinks(parentIn.getConfigElement().getComment()));
         parent = parentIn;
+    }
+
+    @Override
+    public void drawEntry(final int slotIndex, final int x, final int y, final int listWidth, final int slotHeight, final int mouseX, final int mouseY, final boolean isSelected, final float partialTicks) {
+        @Nonnull final ToggleableConfigElement element = (ToggleableConfigElement)getConfigElement();
+        element.enabled = enabled();
+        parent.drawEntry(slotIndex, x, y, listWidth, slotHeight, mouseX, mouseY, isSelected, partialTicks);
+        element.enabled = null;
     }
 
     @Override
@@ -136,11 +144,6 @@ public class ComponentConfigEntry implements GuiConfigEntries.IConfigEntry
     @Override
     public void updatePosition(final int slotIndex, final int x, final int y, final float partialTicks) {
         parent.updatePosition(slotIndex, x, y, partialTicks);
-    }
-
-    @Override
-    public void drawEntry(final int slotIndex, final int x, final int y, final int listWidth, final int slotHeight, final int mouseX, final int mouseY, final boolean isSelected, final float partialTicks) {
-        parent.drawEntry(slotIndex, x, y, listWidth, slotHeight, mouseX, mouseY, isSelected, partialTicks);
     }
 
     @Override

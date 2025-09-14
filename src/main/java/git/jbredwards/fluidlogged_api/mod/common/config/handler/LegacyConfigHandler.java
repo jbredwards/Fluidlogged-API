@@ -9,6 +9,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfigs;
 import net.minecraft.util.JsonUtils;
 import net.minecraftforge.common.config.Config;
 import net.minecraftforge.common.config.ConfigManager;
@@ -31,9 +32,9 @@ public final class LegacyConfigHandler
     @Nonnull
     private static final Path OLD_CONFIG_PATH = Paths.get("config", "fluidlogged_api.cfg");
     public static void convertOldFile() throws IOException {
-        @Nonnull final Path blacklist = Paths.get("config", "fluidlogged_api", "blacklist.cfg");
-        @Nonnull final Path fluidTags = Paths.get("config", "fluidlogged_api", "fluidTags.cfg");
-        @Nonnull final Path whitelist = Paths.get("config", "fluidlogged_api", "whitelist.cfg");
+        @Nonnull final Path blacklist = FluidloggedAPIConfigs.FOLDER.resolve("blacklist.cfg");
+        @Nonnull final Path fluidTags = FluidloggedAPIConfigs.FOLDER.resolve("fluidTags.cfg");
+        @Nonnull final Path whitelist = FluidloggedAPIConfigs.FOLDER.resolve("whitelist.cfg");
 
         if(!Files.exists(blacklist)) Files.write(blacklist, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE);
         if(!Files.exists(fluidTags)) Files.write(fluidTags, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE);

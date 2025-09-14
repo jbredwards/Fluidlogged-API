@@ -12,6 +12,7 @@ import git.jbredwards.fluidlogged_api.mod.common.capability.util.FluidStateStora
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandFluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandReloadConfig;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandSetFluidState;
+import git.jbredwards.fluidlogged_api.mod.common.datafix.ToFluidloggedDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.datafix.modded.DynamicTreesDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.datafix.modded.GalacticraftDataFixer;
 import git.jbredwards.fluidlogged_api.mod.common.datafix.modded.TropicraftDataFixer;
@@ -25,7 +26,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.init.Items;
-import net.minecraft.util.datafix.FixTypes;
 import net.minecraftforge.client.resource.ISelectiveResourceReloadListener;
 import net.minecraftforge.client.resource.VanillaResourceType;
 import net.minecraftforge.common.ForgeModContainer;
@@ -55,7 +55,7 @@ import java.util.Optional;
  *
  */
 @Mod(modid = FluidloggedAPI.MODID, useMetadata = true,
-     guiFactory = "git.jbredwards.fluidlogged_api.mod.client.gui.FluidloggedAPIGuiFactory")
+     guiFactory = "git.jbredwards.fluidlogged_api.mod.client.config.gui.FluidloggedAPIGuiFactory")
 public final class FluidloggedAPI
 {
     // Mod Constants
@@ -67,11 +67,11 @@ public final class FluidloggedAPI
     // Mod Compatibility
     public static final boolean
             isAquaAcrobatics = Loader.isModLoaded("aquaacrobatics"),
-            isChiseledMe    = Loader.isModLoaded("chiseled_me"),
-            isCubicChunks   = Loader.isModLoaded("cubicchunks"),
-            isDynamicLights = Loader.isModLoaded("dynamiclights"),
-            isGalacticraft  = Loader.isModLoaded("galacticraftcore"),
-            isSubaquatic    = Loader.isModLoaded("subaquatic");
+            isChiseledMe     = Loader.isModLoaded("chiseled_me"),
+            isCubicChunks    = Loader.isModLoaded("cubicchunks"),
+            isDynamicLights  = Loader.isModLoaded("dynamiclights"),
+            isGalacticraft   = Loader.isModLoaded("galacticraftcore"),
+            isSubaquatic     = Loader.isModLoaded("subaquatic");
 
     @Mod.EventHandler
     static void preInit(@Nonnull final FMLPreInitializationEvent event) {
@@ -84,7 +84,7 @@ public final class FluidloggedAPI
         WRAPPER.registerMessage(CMessageSyncGameRule.Handler.INSTANCE, CMessageSyncGameRule.class, 4, Side.SERVER);
         WRAPPER.registerMessage(SMessageSyncGameRule.Handler.INSTANCE, SMessageSyncGameRule.class, 5, Side.CLIENT);
         WRAPPER.registerMessage(SMessageCommandPrint.Handler.INSTANCE, SMessageCommandPrint.class, 6, Side.CLIENT);
-        WRAPPER.registerMessage(SMessageSyncRuntimeConfigs.Handler.INSTANCE, SMessageSyncRuntimeConfigs.class, 7, Side.CLIENT);
+        WRAPPER.registerMessage(SMessageSyncConfigs.Handler.INSTANCE, SMessageSyncConfigs.class, 7, Side.CLIENT);
     }
 
     @SideOnly(Side.CLIENT)
@@ -98,8 +98,7 @@ public final class FluidloggedAPI
     static void init(@Nonnull final FMLInitializationEvent event) {
         // fix certain weird lighting issues with fluidlogged blocks
         ForgeRegistries.BLOCKS.getValuesCollection().stream().filter(FluidloggedUtils::isFluid).forEach(b -> b.useNeighborBrightness = true);
-        // fix legacy world data
-        FMLCommonHandler.instance().getDataFixer().init(MODID, FluidloggedAPIFixableData.DATA_VERSION).registerFix(FixTypes.CHUNK, new FluidloggedAPIFixableData());
+        // register legacy to-FluidState adapters
         if(Loader.isModLoaded("dynamictrees")) DynamicTreesDataFixer.register(); // fix old dynamictrees "pseudo-fluidlogged" roots
         if(Loader.isModLoaded("tropicraft")) TropicraftDataFixer.register(); // fix old tropicraft "pseudo-fluidlogged" fences
         if(isGalacticraft) GalacticraftDataFixer.register(); // fix old galacticraft "pseudo-fluidlogged" grating
@@ -130,6 +129,9 @@ public final class FluidloggedAPI
 
     @Mod.EventHandler
     static void loadComplete(@Nonnull final FMLLoadCompleteEvent event) throws IOException {
+        // fix legacy world data
+        FluidloggedAPIFixableData.register("legacy_adapter", FluidloggedAPIFixableData.LEGACY_DATA_VERSION, LegacyDataFixer::fix);
+        FluidloggedAPIFixableData.register("to_fluid_state", FluidloggedAPIFixableData.getToFluidStateDataVersion(), ToFluidloggedDataFixer::fix);
         // fix old config data if present
         LegacyConfigHandler.convertOldFile();
     }
