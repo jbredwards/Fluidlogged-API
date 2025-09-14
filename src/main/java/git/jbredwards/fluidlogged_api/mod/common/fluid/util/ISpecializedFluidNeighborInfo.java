@@ -42,8 +42,10 @@ public interface ISpecializedFluidNeighborInfo extends IFluidNeighborInfo
 
         @Override
         default int getEffectiveQuantaI(final int xi, final int yi, final int zi) {
-            if(!isCompatibleFluidI(xi, yi, zi)) return getCache().isAirBlock(getPosIB(xi, yi, zi)) ? 0 : -1;
-            final int quantaValue = getFluidStateI(xi, yi, zi).getQuantaValue();
+            @Nonnull final FluidState fluidState = getFluidStateI(xi, yi, zi);
+            if(!FluidloggedUtils.isCompatibleFluid(fluidState, getOrigin())) return getCache().isAirBlock(getPosIB(xi, yi, zi)) ? 0 : -1;
+
+            final int quantaValue = fluidState.getQuantaValue();
             return quantaValue > 0 && quantaValue < getOrigin().getQuantaPerBlock() && hasVerticalFlowI(xi, yi, zi) ? getOrigin().getQuantaPerBlock() : quantaValue;
         }
     }
@@ -63,8 +65,10 @@ public interface ISpecializedFluidNeighborInfo extends IFluidNeighborInfo
 
         @Override
         default int getEffectiveQuantaI(final int xi, final int yi, final int zi) {
-            if(!isCompatibleFluidI(xi, yi, zi)) return getCache().isAirBlock(getPosIB(xi, yi, zi)) ? 0 : -1;
-            final int quantaValue = getFluidStateI(xi, yi, zi).getLevel();
+            @Nonnull final FluidState fluidState = getFluidStateI(xi, yi, zi);
+            if(!FluidloggedUtils.isCompatibleFluid(fluidState, getOrigin())) return getCache().isAirBlock(getPosIB(xi, yi, zi)) ? 0 : -1;
+
+            final int quantaValue = fluidState.getLevel();
             return quantaValue >= 8 ? 8 : 8 - quantaValue;
         }
     }

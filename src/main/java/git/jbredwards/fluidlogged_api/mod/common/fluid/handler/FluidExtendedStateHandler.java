@@ -38,7 +38,7 @@ public final class FluidExtendedStateHandler
     @Nonnull
     public static IBlockState getExtendedState(@Nonnull final IBlockState renderState, @Nonnull final ISpecializedFluidNeighborInfo neighborInfo, @Nonnull final ToDoubleFunction<ISpecializedFluidNeighborInfo> flowDirection) {
         // should never pass, but let's be safe
-        if(!(renderState instanceof IExtendedBlockState)) return renderState;
+        if(!(renderState instanceof IExtendedBlockState) || !neighborInfo.getOrigin().isValid()) return renderState;
 
         // convert to special state for performance
         @Nonnull final FluidExtendedBlockState state = new FluidExtendedBlockState((IExtendedBlockState)renderState);
