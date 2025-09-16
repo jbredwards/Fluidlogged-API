@@ -72,6 +72,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.quantumflux.PluginQ
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.railcraft.PluginRailcraft;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.random_things.PluginRandomThings;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.reliquary.PluginReliquary;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.ruins.PluginRuins;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.sledgehammer.PluginSledgehammer;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.spongeforge.PluginSpongeForge;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.tfc.PluginTFCBlockFluid;
@@ -126,6 +127,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             // ------
             plugins.put("appeng.entity.EntityChargedQuartz", new PluginAE2()); // make ae2's fluix crystal creation FluidState-sensitive
             plugins.put("appeng.entity.EntityGrowingCrystal", new PluginAE2()); // make ae2's crystal seed growth FluidState-sensitive
+            plugins.put("atomicstryker.ruins.common.RuinTemplate", new PluginRuins()); // prevent Ruins structures from being able to contain old FluidStates
+            plugins.put("atomicstryker.ruins.common.RuinTemplateRule", new PluginRuins()); // prevent Ruins structures from being able to contain old FluidStates
             plugins.put("biomesoplenty.common.block.BlockBOPDirt", new PluginBlockGrass()); // fix grass & mycelium growing and not decaying underwater
             plugins.put("biomesoplenty.common.block.BlockBOPGrass", new PluginBlockGrass()); // fix grass & mycelium growing and not decaying underwater
             plugins.put("biomesoplenty.common.block.BlockBOPFarmland", new PluginBlockFarmland()); // farmland blocks now recognise water FluidStates
