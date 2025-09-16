@@ -14,6 +14,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.iface.IDefaultFluidState;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.ILevelFluidStateLookup;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.PluginBlockFluidBase;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
+import io.netty.util.internal.IntegerHolder;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDynamicLiquid;
@@ -435,20 +436,25 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
      */
     @Nonnull
     public FluidState withLevel(final int level) {
-        // create the FluidState lookup array for this block's BlockStateContainer if it does not yet exist
+        // Create the FluidState lookup array for this block's BlockStateContainer if it does not yet exist.
         @Nonnull final ILevelFluidStateLookup lookup = (ILevelFluidStateLookup)getBlock().getBlockState();
         if(lookup.getFluidStateLookup() == null) {
             @Nonnull final IBlockState[] states = getBlock().getBlockState().getValidStates().stream()
                     .filter(stateIn -> FluidState.of(stateIn).getLevel() == 0)
                     .toArray(IBlockState[]::new);
 
-            // create and fill the FluidState lookup array
+            // Create and fill the FluidState lookup array.
             lookup.setFluidStateLookup(new FluidState[states.length][BlockLiquid.LEVEL.getAllowedValues().size()]);
-            for(final int[] stateId = {0}; stateId[0] < states.length; stateId[0]++) BlockLiquid.LEVEL.getAllowedValues().forEach(lvl ->
-                (lookup.getFluidStateLookup()[stateId[0]][lvl] = FluidState.of(states[stateId[0]].withProperty(BlockLiquid.LEVEL, lvl))).propsKey = stateId[0]);
+            for(@Nonnull final IntegerHolder stateId = new IntegerHolder(); stateId.value < states.length; stateId.value++) BlockLiquid.LEVEL.getAllowedValues().forEach(lvl -> {
+                @Nonnull final FluidState withLevel = FluidState.of(states[stateId.value].withProperty(BlockLiquid.LEVEL, lvl));
+                lookup.getFluidStateLookup()[stateId.value][lvl] = withLevel;
+
+                // Prevents parent IFluidBlock FluidStates from being assigned the wrong propsKey.
+                if(getBlock() == withLevel.getBlock()) withLevel.propsKey = stateId.value;
+            });
         }
 
-        // get FluidState from lookup
+        // Get FluidState from lookup.
         return lookup.getFluidStateLookup()[propsKey][level];
     }
 

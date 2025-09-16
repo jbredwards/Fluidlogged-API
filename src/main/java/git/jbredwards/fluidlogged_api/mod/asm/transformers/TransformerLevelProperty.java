@@ -25,11 +25,11 @@ public final class TransformerLevelProperty implements IClassTransformer, Opcode
 {
     @Nullable
     @Override
-    public byte[] transform(@Nonnull String name, @Nonnull String transformedName, @Nullable byte[] basicClass) {
+    public byte[] transform(@Nullable String name, @Nullable String transformedName, @Nullable byte[] basicClass) {
         if(basicClass == null) return null;
 
         //don't apply the change to the actual FluidState class, since it must be called there to cache the value
-        else if("git.jbredwards.fluidlogged_api.api.util.FluidState".equals(transformedName)) return basicClass;
+        else if(transformedName == null || transformedName.startsWith("git.jbredwards.fluidlogged_api.api.util.FluidState")) return basicClass;
         final ClassNode classNode = new ClassNode();
         new ClassReader(basicClass).accept(classNode, 0);
 
