@@ -17,18 +17,22 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.astral_sorcery;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
+import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fluids.Fluid;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * fixes weird mixing interactions
@@ -139,6 +143,23 @@ public final class PluginAstralSorcery implements IASMPlugin
     }
 
     @Override
+    public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
+        overrideMethod(classNode, method -> method.name.equals("isEntityInsideMaterial"),
+            "isEntityInsideMaterial", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/entity/Entity;DLnet/minecraft/block/material/Material;Z)Ljava/lang/Boolean;", generator -> {
+                generator.visitVarInsn(ALOAD, 1);
+                generator.visitVarInsn(ALOAD, 2);
+                generator.visitVarInsn(ALOAD, 3);
+                generator.visitVarInsn(ALOAD, 4);
+                generator.visitVarInsn(DLOAD, 5);
+                generator.visitVarInsn(ALOAD, 7);
+                generator.visitVarInsn(ILOAD, 8);
+            }
+        );
+
+        return true;
+    }
+
+    @Override
     public boolean addLocalVariables(@Nonnull MethodNode method, @Nonnull LabelNode start, @Nonnull LabelNode end, int index) {
         method.localVariables.add(new LocalVariableNode("here", "Lnet/minecraft/block/state/IBlockState;", null, start, end, 11));
         method.localVariables.add(new LocalVariableNode("isHereReplaceable", "Z", null, start, end, 12));
@@ -161,6 +182,11 @@ public final class PluginAstralSorcery implements IASMPlugin
             if(FluidloggedAPIConfig.fixBadFluidMixing && !FluidloggedUtils.canFluidFlow(world, neighborPos, neighbor, side.getOpposite())) return false;
             final Fluid neighborFluid = FluidloggedUtils.getFluidState(chunk, neighborPos, neighbor).getFluid();
             return neighborFluid != null && !FluidloggedUtils.isCompatibleFluid(fluid, neighborFluid);
+        }
+
+        @Nullable
+        public static Boolean isEntityInsideMaterial(@Nonnull final IBlockAccess access, @Nonnull final BlockPos pos, @Nonnull final IBlockState state, @Nonnull final Entity entity, final double yToTest, @Nonnull final Material material, final boolean testingHead) {
+            return FluidCollisionHandler.isEntityInsideMaterial(access, pos, state, entity, yToTest, material == Material.WATER ? state.getMaterial() : material, testingHead);
         }
     }
 }

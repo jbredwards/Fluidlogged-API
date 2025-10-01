@@ -219,8 +219,10 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("hellfirepvp.astralsorcery.client.util.BlockArrayRenderHelper$WorldBlockArrayRenderAccess", new PluginAstralSorceryAccess()); // make astral sorcery's block access wrappers FluidState-sensitive
             plugins.put("hellfirepvp.astralsorcery.client.util.RenderWorldBuffer", new PluginAstralSorceryAccess()); // make astral sorcery's block access wrappers FluidState-sensitive
             plugins.put("hellfirepvp.astralsorcery.common.block.fluid.FluidBlockLiquidStarlight", new PluginAstralSorcery()); // fixes weird mixing interactions
-            plugins.put("hellfirepvp.astralsorcery.common.entities.EntityCrystal", new PluginEntityCrystal()); // make astral sorcery's crystal growth FluidState-sensitive
-            plugins.put("hellfirepvp.astralsorcery.common.entities.EntityCrystalTool", new PluginEntityCrystal()); // make astral sorcery's crystal growth FluidState-sensitive
+            plugins.put("hellfirepvp.astralsorcery.common.entities.EntityCrystal", new PluginEntityCrystal()); // make astral sorcery's starlight reactants FluidState-sensitive
+            plugins.put("hellfirepvp.astralsorcery.common.entities.EntityCrystalTool", new PluginEntityCrystal()); // make astral sorcery's starlight reactants FluidState-sensitive
+            plugins.put("hellfirepvp.astralsorcery.common.entities.EntityItemStardust", new PluginEntityCrystal()); // make astral sorcery's starlight reactants FluidState-sensitive
+            plugins.put("hellfirepvp.astralsorcery.common.entities.EntityStarlightReacttant", new PluginEntityCrystal()); // make astral sorcery's starlight reactants FluidState-sensitive
             plugins.put("io.github.lxgaming.sledgehammer.mixin.core.block.BlockDynamicLiquidMixin", new PluginSledgehammer()); // remove redundant transformer
             plugins.put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()); // fix mixin annotation to target fluidlogged api transform
             plugins.put("jotato.quantumflux.items.ItemVoidBucket", new PluginQuantumFlux()); // give void buckets an IFluidHandler, and account for FluidStates when draining fluids

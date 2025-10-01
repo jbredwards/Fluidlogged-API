@@ -17,25 +17,27 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.astral_sorcery;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import hellfirepvp.astralsorcery.common.block.fluid.FluidBlockLiquidStarlight;
+import hellfirepvp.astralsorcery.common.entities.EntityStarlightReacttant;
+import hellfirepvp.astralsorcery.common.item.crystal.base.ItemRockCrystalBase;
+import hellfirepvp.astralsorcery.common.util.EntityUtils;
+import hellfirepvp.astralsorcery.common.util.ItemUtils;
+import hellfirepvp.astralsorcery.common.util.OreDictAlias;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.EntityItem;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.oredict.OreDictionary;
-import org.apache.commons.lang3.ArrayUtils;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
-import java.util.Collection;
-import java.util.stream.IntStream;
+import java.util.List;
 
 /**
- * make astral sorcery's crystal growth FluidState-sensitive
+ * make astral sorcery's starlight reactants FluidState-sensitive
  * @author jbred
  *
  */
@@ -68,51 +70,52 @@ public final class PluginEntityCrystal implements IASMPlugin
 
     @Override
     public boolean transformClass(@Nonnull final ClassNode classNode, final boolean obfuscated) {
-        overrideMethod(classNode, method -> method.name.equals("canCraft"), "canCraft", "(Lnet/minecraft/entity/Entity;)I", generator -> generator.visitVarInsn(ALOAD, 0));
-        overrideMethod(classNode, method -> method.name.equals("getCraftMode"), "getCraftMode", "(Lnet/minecraft/entity/Entity;)I", generator -> generator.visitVarInsn(ALOAD, 0));
-        return true;
+        if(classNode.name.equals("hellfirepvp/astralsorcery/common/entities/EntityItemStardust")) {
+            overrideMethod(classNode, method -> method.name.equals("canCraft"), "canCraft", "(Lnet/minecraft/entity/Entity;Lnet/minecraft/util/math/AxisAlignedBB;)Z", generator -> {
+                generator.visitVarInsn(ALOAD, 0);
+                generator.visitFieldInsn(GETSTATIC, classNode.name, "boxCraft", "Lnet/minecraft/util/math/AxisAlignedBB;");
+            });
+        }
+
+        overrideMethod(classNode, method -> method.name.equals("getCraftMode"), "getCraftMode", "(Lnet/minecraft/entity/Entity;Lnet/minecraft/util/math/AxisAlignedBB;)I", generator -> {
+            generator.visitVarInsn(ALOAD, 0);
+            generator.visitFieldInsn(GETSTATIC, classNode.name, "boxCraft", "Lnet/minecraft/util/math/AxisAlignedBB;");
+        });
+
+        overrideMethod(classNode, method -> method.name.equals("isInLiquidStarlight"), "isInLiquidStarlight", "(Lnet/minecraft/entity/Entity;)Z", generator -> generator.visitVarInsn(ALOAD, 1));
+        return classNode.methods.stream().anyMatch(method -> isMethodValid(method, obfuscated));
     }
 
     @SuppressWarnings("unused")
     public static final class Hooks
     {
-        public static boolean canCraft(@Nonnull final Entity crystal) {
+        public static boolean canCraft(@Nonnull final Entity crystal, @Nonnull final AxisAlignedBB boxCraft) {
+            if(!((EntityStarlightReacttant)crystal).isInLiquidStarlight(crystal)) return false;
             @Nonnull final BlockPos pos = new BlockPos(crystal.posX, crystal.posY, crystal.posZ);
-            // check for liquid starlight
-            @Nonnull final Chunk chunk = crystal.world.getChunk(pos);
-            if(!(FluidloggedUtils.getFluidOrReal(chunk, pos).getBlock() instanceof FluidBlockLiquidStarlight)) return false;
-            // check for colliding entities
-            @Nonnull final AxisAlignedBB bb = new AxisAlignedBB(pos);
-            return IntStream.rangeClosed(
-                        MathHelper.clamp(MathHelper.floor((bb.minY - World.MAX_ENTITY_RADIUS) / 16), 0, chunk.getEntityLists().length),
-                        MathHelper.clamp(MathHelper.floor((bb.maxY + World.MAX_ENTITY_RADIUS) / 16), 0, chunk.getEntityLists().length)
-                    )
-                    .mapToObj(i -> chunk.getEntityLists()[i])
-                    .flatMap(Collection::stream)
-                    .noneMatch(e -> e != crystal && bb.intersects(e.getEntityBoundingBox()));
+
+            if(!crystal.world.getBlockState(pos).getBlock().isReplaceable(crystal.world, pos)) return false; // Don't allow the replacing of non-replaceable blocks.
+            else return !crystal.world.getEntitiesInAABBexcluding(crystal, boxCraft.offset(crystal.posX, crystal.posY, crystal.posZ), EntityUtils.selectItemClassInstaceof(ItemRockCrystalBase.class)).isEmpty();
         }
 
-        public static int getCraftMode(@Nonnull final Entity crystal) {
+        public static int getCraftMode(@Nonnull final Entity crystal, @Nonnull final AxisAlignedBB boxCraft) {
+            if(!((EntityStarlightReacttant)crystal).isInLiquidStarlight(crystal)) return -1;
+            @Nonnull final BlockPos pos = new BlockPos(crystal.posX, crystal.posY, crystal.posZ);
+            @Nonnull final List<Entity> foundEntities = crystal.world.getEntitiesInAABBexcluding(crystal, boxCraft.offset(pos), entity -> true);
+
+            if(foundEntities.isEmpty()) return 0;
+            else if(!crystal.world.getBlockState(pos).getBlock().isReplaceable(crystal.world, pos)) return -1; // Don't allow the replacing of non-replaceable blocks.
+            else return foundEntities.stream().filter(EntityUtils.selectItemStack(stack -> ItemUtils.hasOreName(stack, OreDictAlias.ITEM_GLOWSTONE_DUST))).count() == 1 ? 1 : -1;
+        }
+
+        public static boolean isInLiquidStarlight(@Nonnull final Entity crystal) {
             @Nonnull final BlockPos pos = new BlockPos(crystal.posX, crystal.posY, crystal.posZ);
             @Nonnull final Chunk chunk = crystal.world.getChunk(pos);
-            // check colliding entities for crystal+glowstone recipe
-            boolean foundGlowstone = false;
-            @Nonnull final AxisAlignedBB bb = new AxisAlignedBB(pos);
-            for(@Nonnull final Entity entity : IntStream.rangeClosed(
-                    MathHelper.clamp(MathHelper.floor((bb.minY - World.MAX_ENTITY_RADIUS) / 16), 0, chunk.getEntityLists().length),
-                    MathHelper.clamp(MathHelper.floor((bb.maxY + World.MAX_ENTITY_RADIUS) / 16), 0, chunk.getEntityLists().length)
-            ).mapToObj(i -> chunk.getEntityLists()[i]).flatMap(Collection::stream).toArray(Entity[]::new)) {
-                if(entity != crystal && entity.getEntityBoundingBox().intersects(bb)) {
-                    if(!foundGlowstone && entity instanceof EntityItem // colliding entity found, check if it's a glowstone item
-                    && ArrayUtils.contains(OreDictionary.getOreIDs(((EntityItem)entity).getItem()), OreDictionary.getOreID("dustGlowstone")))
-                        foundGlowstone = true;
-                    else return -1;
-                }
-            }
-            // crystal+glowstone recipe shouldn't check for FluidStates, it replaces the block here
-            if(foundGlowstone) return chunk.getBlockState(pos).getBlock() instanceof FluidBlockLiquidStarlight ? 1 : -1;
-            // check crystal growth conditions (if no colliding entities)
-            return FluidloggedUtils.getFluidOrReal(chunk, pos).getBlock() instanceof FluidBlockLiquidStarlight ? 0 : -1;
+            // check for liquid starlight
+            @Nonnull final IBlockState state = chunk.getBlockState(pos);
+            @Nonnull final FluidState fluidState = FluidloggedUtils.getFluidState(chunk, pos, state);
+            return fluidState.getBlock() instanceof FluidBlockLiquidStarlight && fluidState.isSource()
+                    && (state.isSideSolid(chunk.getWorld(), pos, EnumFacing.DOWN)
+                    || chunk.getBlockState(pos.down()).isSideSolid(chunk.getWorld(), pos.down(), EnumFacing.UP));
         }
     }
 }
