@@ -28,7 +28,7 @@ minecraft {
 
 repositories {
     maven { url 'https://cursemaven.com' }
-    maven { url 'https://oss.sonatype.org/content/repositories/public/' }
+    maven { url 'https://maven.daporkchop.net/' }
 }
 
 dependencies {
