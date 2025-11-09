@@ -28,6 +28,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -43,7 +44,7 @@ public final class SMessageCommandPrint extends AbstractMessage
     public Object[] args;
 
     public SMessageCommandPrint() {}
-    public SMessageCommandPrint(@Nonnull final Path pathIn, @Nonnull final CommandPrint.FluidloggableType fluidloggableTypeIn, @Nonnull final Object[] argsIn) {
+    public SMessageCommandPrint(@Nullable final Path pathIn, @Nonnull final CommandPrint.FluidloggableType fluidloggableTypeIn, @Nonnull final Object[] argsIn) {
         isValid = true;
         path = pathIn;
         fluidloggableType = fluidloggableTypeIn;
@@ -52,13 +53,15 @@ public final class SMessageCommandPrint extends AbstractMessage
 
     @Override
     public void read(@Nonnull final PacketBuffer buf) {
-        path = Paths.get(buf.readString(Short.MAX_VALUE));
+        path = buf.readBoolean() ? Paths.get(buf.readString(Short.MAX_VALUE)) : CommandPrint.getFallbackDirectory();
         args = (fluidloggableType = buf.readEnumValue(CommandPrint.FluidloggableType.class)).packetRead(buf);
     }
 
     @Override
     public void write(@Nonnull final PacketBuffer buf) {
-        fluidloggableType.packetWrite(buf.writeString(path.toString()).writeEnumValue(fluidloggableType), args);
+        buf.writeBoolean(path != null);
+        if(path != null) buf.writeString(path.toString());
+        fluidloggableType.packetWrite(buf.writeEnumValue(fluidloggableType), args);
     }
 
     public enum Handler implements IClientMessageHandler<SMessageCommandPrint>

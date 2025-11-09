@@ -43,11 +43,13 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.fml.common.eventhandler.EventBus;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.fml.relauncher.FMLInjectionData;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import net.minecraftforge.fml.relauncher.Side;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.*;
@@ -89,13 +91,13 @@ public class CommandPrint extends CommandChildBase
         // collect rest of args
         @Nonnull final ConfigType configToSave = Optional.ofNullable(commandArgs.valueOf(configToSaveSpec)).orElse(ConfigType.ALL);
         @Nonnull final FluidloggableType fluidloggableType = Optional.ofNullable(commandArgs.valueOf(fluidloggableTypeSpec)).orElse(FluidloggableType.ALL);
-        @Nonnull final Path path = Optional.ofNullable(commandArgs.valueOf(pathSpec)).orElseGet(() -> Paths.get("fluidlogged_api/print_command_out"));
+        @Nullable final Path path = commandArgs.valueOf(pathSpec);
 
         // run command on server
         if(side.isServer() || isPlayer && !server.isDedicatedServer() && ((EntityPlayerMP)sender).connection.getNetworkManager().isLocalChannel()) {
             try {
                 sender.sendMessage(new TextComponentTranslation("commands.fluidlogged_api.print.start"));
-                fluidloggableType.save(path, fluidloggableType.getCommandArgs(configToSave, server));
+                fluidloggableType.save(path != null ? path : getFallbackDirectory(), fluidloggableType.getCommandArgs(configToSave, server));
                 sender.sendMessage(new TextComponentTranslation("commands.fluidlogged_api.generic.finished"));
             }
             catch(@Nonnull final Exception e) {
@@ -117,6 +119,11 @@ public class CommandPrint extends CommandChildBase
     @Override
     public int getRequiredPermissionLevel() { return 2; }
     public int getServerRequiredPermissionLevel() { return super.getRequiredPermissionLevel(); }
+
+    @Nonnull
+    public static Path getFallbackDirectory() {
+        return (/* The minecraft dir */(File)FMLInjectionData.data()[6]).toPath().resolve("fluidlogged_api/print_command_out");
+    }
 
     public enum ConfigType
     {

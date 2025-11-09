@@ -48,7 +48,7 @@ import java.util.function.Function;
 public final class FluidloggedAPIConfigs
 {
     @Nonnull
-    public static final Path FOLDER = Paths.get("config", FluidloggedAPI.MODID);
+    public static final Path FOLDER = Loader.instance().getConfigDir().toPath().resolve(FluidloggedAPI.MODID);
 
     /**
      * Loads Fluidlogged API's configs, and syncs the data for any connected players.

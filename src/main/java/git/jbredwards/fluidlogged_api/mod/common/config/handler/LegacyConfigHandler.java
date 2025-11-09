@@ -25,6 +25,7 @@ import net.minecraft.util.JsonUtils;
 import net.minecraftforge.common.config.Config;
 import net.minecraftforge.common.config.ConfigManager;
 import net.minecraftforge.common.crafting.CraftingHelper;
+import net.minecraftforge.fml.common.Loader;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -41,15 +42,16 @@ import java.util.Collections;
 public final class LegacyConfigHandler
 {
     @Nonnull
-    private static final Path OLD_CONFIG_PATH = Paths.get("config", "fluidlogged_api.cfg");
+    private static final Path OLD_CONFIG_PATH = Loader.instance().getConfigDir().toPath().resolve("fluidlogged_api.cfg");
     public static void convertOldFile() throws IOException {
         @Nonnull final Path blacklist = FluidloggedAPIConfigs.FOLDER.resolve("blacklist.cfg");
         @Nonnull final Path fluidTags = FluidloggedAPIConfigs.FOLDER.resolve("fluidTags.cfg");
         @Nonnull final Path whitelist = FluidloggedAPIConfigs.FOLDER.resolve("whitelist.cfg");
 
-        if(!Files.exists(blacklist)) Files.write(blacklist, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE);
-        if(!Files.exists(fluidTags)) Files.write(fluidTags, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE);
-        if(!Files.exists(whitelist)) Files.write(whitelist, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE);
+        Files.createDirectories(FluidloggedAPIConfigs.FOLDER);
+        if(!Files.exists(blacklist)) Files.write(blacklist, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE_NEW);
+        if(!Files.exists(fluidTags)) Files.write(fluidTags, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE_NEW);
+        if(!Files.exists(whitelist)) Files.write(whitelist, Collections.singleton("[\n\n]"), StandardOpenOption.CREATE_NEW);
 
         // convert old file
         if(Files.exists(OLD_CONFIG_PATH)) {
@@ -77,11 +79,11 @@ public final class LegacyConfigHandler
             if(json.has("whitelist")) try(@Nonnull final Writer writer = Files.newBufferedWriter(whitelist)) { CraftingHelper.GSON.toJson(json.get("whitelist"), writer); }
 
             // move old settings to a backup file, then delete the old file
-            Files.write(Paths.get("config", "fluidlogged_api.cfg_old"), bytes);
+            Files.write(Loader.instance().getConfigDir().toPath().resolve("fluidlogged_api.cfg_old"), bytes);
             Files.delete(OLD_CONFIG_PATH);
 
             // create readme file to tell users what happened to their old config
-            Files.write(Paths.get("config", "fluidlogged_api.cfg_README.txt"), Arrays.asList(
+            Files.write(Loader.instance().getConfigDir().toPath().resolve("fluidlogged_api.cfg_README.txt"), Arrays.asList(
                     "As of Fluidlogged API v3.0.0, the config is broken up into multiple files, and is stored in a new `./config/fluidlogged_api` folder.",
                     "",
                     "Any data in your old config should have been converted automatically. But just in case, a copy of your old config exists as `./config/fluidlogged_api.cfg_old`.",
