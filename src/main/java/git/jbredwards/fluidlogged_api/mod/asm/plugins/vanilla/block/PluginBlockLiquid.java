@@ -437,7 +437,8 @@ public final class PluginBlockLiquid implements IASMPlugin
 
         @Nonnull
         public static IBlockState getLiquidExtendedState(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final IBlockState oldState) {
-            return FluidExtendedStateHandler.getExtendedState(oldState, new SpecializedFluidNeighborInfo.Vanilla(world, pos, FluidState.of(oldState), 1), FluidFlowHandler::getFlowAngle);
+            return FluidExtendedStateHandler.getExtendedState(oldState, new SpecializedFluidNeighborInfo.Vanilla(world, pos, FluidState.of(oldState), 1), info ->
+                    FluidFlowHandler.getFlowAngle(((BlockLiquid)info.getOrigin().getBlock()).getFlow(info.getCache(), pos, info.getOrigin().getState())));
         }
 
         public static float getBlockLiquidHeight(@Nonnull IBlockState state, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {

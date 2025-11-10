@@ -31,6 +31,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
 import org.objectweb.asm.tree.*;
 
@@ -412,7 +413,8 @@ public final class PluginBlockFluidBase implements IASMPlugin
 
         @Nonnull
         public static IBlockState getFluidExtendedState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull final IBlockState state) {
-            return FluidExtendedStateHandler.getExtendedState(state, new SpecializedFluidNeighborInfo.Forge(world, pos, FluidState.of(state), 1), FluidFlowHandler::getFlowAngle);
+            return FluidExtendedStateHandler.getExtendedState(state, new SpecializedFluidNeighborInfo.Forge(world, pos, FluidState.of(state), 1), info ->
+                    FluidFlowHandler.getFlowAngle(((BlockFluidBase)info.getOrigin().getBlock()).getFlowVector(info.getCache(), pos)));
         }
 
         @Nonnull

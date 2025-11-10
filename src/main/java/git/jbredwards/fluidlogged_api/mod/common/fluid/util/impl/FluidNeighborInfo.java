@@ -48,7 +48,7 @@ public class FluidNeighborInfo implements IFluidNeighborInfo
             && cacheIn.maxY >= originIn.getY() + 1
             && cacheIn.minZ <= originIn.getZ() - radius
             && cacheIn.maxZ >= originIn.getZ() + radius) cache = cacheIn;
-            else cache = new FluidCache(accessIn, originIn, radius, 1);
+            else cache = new FluidCache(cacheIn.getWrapped(), originIn, radius, 1);
         }
 
         else cache = new FluidCache(accessIn, originIn, radius, 1);

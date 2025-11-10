@@ -54,9 +54,12 @@ public final class FluidFlowHandler
     // FLOW VECTOR
     // ===========
 
+    public static double getFlowAngle(@Nonnull final Vec3d flowVec) {
+        return flowVec.x == 0 && flowVec.z == 0 ? -1000 : MathHelper.atan2(flowVec.z, flowVec.x) - Math.PI / 2;
+    }
+
     public static double getFlowAngle(@Nonnull final ISpecializedFluidNeighborInfo info) {
-        @Nonnull final Vec3d vec = getFlowVec(info);
-        return vec.x == 0.0D && vec.z == 0.0D ? -1000 : MathHelper.atan2(vec.z, vec.x) - Math.PI / 2;
+        return getFlowAngle(getFlowVec(info));
     }
 
     @Nonnull
