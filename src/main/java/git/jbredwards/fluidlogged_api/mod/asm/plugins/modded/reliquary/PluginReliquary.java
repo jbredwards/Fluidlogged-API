@@ -20,10 +20,13 @@ import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.item.PluginItemBucket;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagByte;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -68,6 +71,14 @@ public final class PluginReliquary implements IASMPlugin
         public static ActionResult<ItemStack> onItemRightClick(@Nonnull final World world, @Nonnull final EntityPlayer player, @Nonnull final EnumHand hand) {
             @Nonnull final ItemStack held = player.getHeldItem(hand);
             final boolean enabled = held.hasTagCompound() && held.getTagCompound().getBoolean("enabled");
+            if(player.isSneaking()) {
+                if(!world.isRemote) {
+                    held.setTagInfo("enabled", new NBTTagByte((byte)(enabled ? 0 : 1)));
+                    world.playSound(null, player.getPosition(), SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS, 0.1f, (world.rand.nextFloat() - world.rand.nextFloat()) * 0.35f + 0.6f);
+                }
+
+                return ActionResult.newResult(EnumActionResult.SUCCESS, held);
+            }
 
             @Nonnull final Vec3d eyeVec = player.getPositionEyes(1);
             @Nonnull final Vec3d reachVec = eyeVec.add(player.getLookVec().scale(player.getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue()));
