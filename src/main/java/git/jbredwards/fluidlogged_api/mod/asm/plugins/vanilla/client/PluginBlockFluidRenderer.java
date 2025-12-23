@@ -46,6 +46,7 @@ public final class PluginBlockFluidRenderer implements IASMPlugin
             f9 = findLocal(method, "f9", "F").index;
             f10 = findLocal(method, "f10", "F").index;
             d1 = findLocal(method, "d1", "D").index;
+            pos = 0;
             return 1;
         }
 

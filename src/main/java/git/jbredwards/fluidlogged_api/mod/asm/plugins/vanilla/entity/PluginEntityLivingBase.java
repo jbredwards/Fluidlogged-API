@@ -41,7 +41,11 @@ public final class PluginEntityLivingBase implements IASMPlugin
 
     @Override
     public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
-        if(method.name.equals(obfuscated ? "func_70636_d" : "onLivingUpdate")) return 1;
+        if(method.name.equals(obfuscated ? "func_70636_d" : "onLivingUpdate")) {
+            moveIndex = 0;
+            return 1;
+        }
+
         else return method.name.equals(obfuscated ? "func_191986_a" : "travel") ? 2 : 0;
     }
 
@@ -95,7 +99,7 @@ public final class PluginEntityLivingBase implements IASMPlugin
              * // add ladder functionality while submerged
              * Hooks.moveWithLadder(MoverType.SELF, this.motionX, this.motionY, this.motionZ);
              */
-            if(checkMethod(insn, obfuscated ? "func_70091_d" : "move") && moveIndex ++>= 1) {
+            if(checkMethod(insn, obfuscated ? "func_70091_d" : "move") && moveIndex ++>= 2) {
                 instructions.insert(insn, genMethodNode("moveWithLadder", "(Lnet/minecraft/entity/EntityLivingBase;Lnet/minecraft/entity/MoverType;DDD)V"));
                 instructions.remove(insn);
             }
