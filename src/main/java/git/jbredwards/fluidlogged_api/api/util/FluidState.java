@@ -449,21 +449,7 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
     public FluidState withLevel(final int level) {
         // Create the FluidState lookup array for this block's BlockStateContainer if it does not yet exist.
         @Nonnull final ILevelFluidStateLookup lookup = (ILevelFluidStateLookup)getBlock().getBlockState();
-        if(lookup.getFluidStateLookup() == null) {
-            @Nonnull final IBlockState[] states = getBlock().getBlockState().getValidStates().stream()
-                    .filter(stateIn -> FluidState.of(stateIn).getLevel() == 0)
-                    .toArray(IBlockState[]::new);
-
-            // Create and fill the FluidState lookup array.
-            lookup.setFluidStateLookup(new FluidState[states.length][BlockLiquid.LEVEL.getAllowedValues().size()]);
-            for(@Nonnull final IntegerHolder stateId = new IntegerHolder(); stateId.value < states.length; stateId.value++) BlockLiquid.LEVEL.getAllowedValues().forEach(lvl -> {
-                @Nonnull final FluidState withLevel = FluidState.of(states[stateId.value].withProperty(BlockLiquid.LEVEL, lvl));
-                lookup.getFluidStateLookup()[stateId.value][lvl] = withLevel;
-
-                // Prevents parent IFluidBlock FluidStates from being assigned the wrong propsKey.
-                if(getBlock() == withLevel.getBlock()) withLevel.propsKey = stateId.value;
-            });
-        }
+        if(lookup.getFluidStateLookup() == null) buildFluidLevelLookup(lookup);
 
         // Get FluidState from lookup.
         return lookup.getFluidStateLookup()[propsKey][level];
@@ -750,6 +736,33 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
      */
     @Nonnull
     public EnumFacing getUpDensityFace() { return getDensityDir() < 0 ? EnumFacing.UP : EnumFacing.DOWN; }
+
+    /**
+     * Internal function that constructs the FluidState lookup array for this block's
+     * BlockStateContainer if it does not yet exist.
+     *
+     * @since 3.1.3
+     * @author jbred
+     */
+    protected final synchronized void buildFluidLevelLookup(@Nonnull final ILevelFluidStateLookup lookup) {
+        if(lookup.getFluidStateLookup() == null) {
+            @Nonnull final IBlockState[] states = getBlock().getBlockState().getValidStates().stream()
+                    .filter(stateIn -> FluidState.of(stateIn).getLevel() == 0)
+                    .toArray(IBlockState[]::new);
+
+            // Create and fill the FluidState lookup array.
+            @Nonnull final FluidState[][] fluidStateLookup = new FluidState[states.length][BlockLiquid.LEVEL.getAllowedValues().size()];
+            for(@Nonnull final IntegerHolder stateId = new IntegerHolder(); stateId.value < states.length; stateId.value++) BlockLiquid.LEVEL.getAllowedValues().forEach(lvl -> {
+                @Nonnull final FluidState withLevel = FluidState.of(states[stateId.value].withProperty(BlockLiquid.LEVEL, lvl));
+                fluidStateLookup[stateId.value][lvl] = withLevel;
+
+                // Prevents parent IFluidBlock FluidStates from being assigned the wrong propsKey.
+                if(getBlock() == withLevel.getBlock()) withLevel.propsKey = stateId.value;
+            });
+
+            lookup.setFluidStateLookup(fluidStateLookup);
+        }
+    }
 
     // ===============================================================
     // METHODS FROM PAIR, PLEASE USE getFluid & getState WHEN POSSIBLE
