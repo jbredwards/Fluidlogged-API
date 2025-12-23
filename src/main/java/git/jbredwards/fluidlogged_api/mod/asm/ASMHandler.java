@@ -24,6 +24,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.appliedenergistics2
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.astral_sorcery.PluginAstralSorcery;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.astral_sorcery.PluginAstralSorceryAccess;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.astral_sorcery.PluginEntityCrystal;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.bedrockores.PluginBedrockOre;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.betweenlands.PluginBetweenlands;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.betweenlands.PluginBetweenlandsRubber;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.betweenlands.PluginBetweenlandsStates;
@@ -228,6 +229,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("jotato.quantumflux.items.ItemVoidBucket", new PluginQuantumFlux()); // give void buckets an IFluidHandler, and account for FluidStates when draining fluids
             plugins.put("knightminer.ceramics.items.ItemClayBucket", new PluginItemClayBucket()); // offset the placement pos if the block is fluidloggable, so it can be fluidlogged
             plugins.put("net.journey.items.JItemWaterLily", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
+            plugins.put("li.cil.bedrockores.common.block.BlockBedrockOre", new PluginBedrockOre()); // fix issue#276
             plugins.put("lumien.randomthings.item.ItemEnderBucket", new PluginRandomThings()); // make random things' ender buckets sensitive to FluidStates
             plugins.put("lumien.randomthings.item.ItemReinforcedEnderBucket", new PluginRandomThings()); // make random things' ender buckets sensitive to FluidStates
             plugins.put("mcp.mobius.waila.addons.core.PluginCore", new PluginWaila()); // remove duplicate handlers for BlockLiquid
