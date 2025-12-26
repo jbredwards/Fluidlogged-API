@@ -174,12 +174,12 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
         return ret;
     }
 
-    default void setFluidI(final int xi, final int yi, final int zi, @Nonnull final FluidState fluidToPlace, final boolean setToAir, final int tickRate) {
+    default void setFluidI(final int xi, final int yi, final int zi, @Nonnull final FluidState fluidToPlace, final boolean setToAir, final int tickRate, final int blockFlags) {
         // set IBlockState
-        if(getBlockStateI(xi, yi, zi) == getOrigin().getState() || !setToAir && vaporizeI(xi, yi, zi, fluidToPlace, null)) {
+        if(getBlockStateI(xi, yi, zi).getBlock() == getOrigin().getBlock() || !setToAir && vaporizeI(xi, yi, zi, fluidToPlace, null)) {
             if(setToAir) getCache().getWorld().setBlockState(getPosIB(xi, yi, zi), BlockStateContainer.AIR_BLOCK_STATE);
             else {
-                getCache().getWorld().setBlockState(getPosIB(xi, yi, zi), fluidToPlace.getState(), Constants.BlockFlags.SEND_TO_CLIENTS);
+                getCache().getWorld().setBlockState(getPosIB(xi, yi, zi), fluidToPlace.getState(), blockFlags);
                 if(tickRate > 0) {
                     getCache().getWorld().scheduleUpdate(getCache().mutablePos, getOrigin().getBlock(), tickRate);
                     getCache().getWorld().notifyNeighborsOfStateChange(getCache().mutablePos, getOrigin().getBlock(), false);
@@ -193,7 +193,7 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
                 if(!isFluidloggableI(xi, yi, zi, fluidToPlace, null, false, false))
                     FluidloggedUtils.setFluidState(getCache().getWorld(), getPosIB(xi, yi, zi), getBlockStateI(xi, yi, zi), FluidState.EMPTY, false);
                 else {
-                    FluidloggedUtils.setFluidState(getCache().getWorld(), getPosIB(xi, yi, zi), getBlockStateI(xi, yi, zi), fluidToPlace, false, Constants.BlockFlags.SEND_TO_CLIENTS);
+                    FluidloggedUtils.setFluidState(getCache().getWorld(), getPosIB(xi, yi, zi), getBlockStateI(xi, yi, zi), fluidToPlace, false, blockFlags);
                     if(tickRate > 0) {
                         getCache().getWorld().scheduleUpdate(getCache().mutablePos, getOrigin().getBlock(), tickRate);
                         getCache().getWorld().notifyNeighborsOfStateChange(getCache().mutablePos, getOrigin().getBlock(), false);
@@ -258,7 +258,11 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
     }
 
     default void setFluid(final int x, final int y, final int z, @Nonnull final FluidState fluidToPlace, final boolean setToAir, final int tickRate) {
-        setFluidI(getXI(x), getYI(y), getZI(z), fluidToPlace, setToAir, tickRate);
+        setFluidI(getXI(x), getYI(y), getZI(z), fluidToPlace, setToAir, tickRate, Constants.BlockFlags.SEND_TO_CLIENTS);
+    }
+
+    default void setFluid(final int x, final int y, final int z, @Nonnull final FluidState fluidToPlace, final boolean setToAir, final int tickRate, final int blockFlags) {
+        setFluidI(getXI(x), getYI(y), getZI(z), fluidToPlace, setToAir, tickRate, blockFlags);
     }
 
     default void resetDataAt(final int x, final int y, final int z) {

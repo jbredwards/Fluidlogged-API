@@ -19,6 +19,7 @@ package git.jbredwards.fluidlogged_api.mod.common.fluid.handler;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IConditionalFluid;
+import git.jbredwards.fluidlogged_api.mod.asm.iface.IFluidFlowListener;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.IFluidUpdateHelper;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.ISpecializedFluidNeighborInfo;
@@ -104,7 +105,7 @@ public final class FluidFlowHandler
     // BlockFluidClassic
     // =================
 
-    public static void updateClassic(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull final FluidState originState) {
+    public static void updateClassic(@Nonnull final World world, @Nonnull final BlockPos origin, @Nonnull FluidState originState) {
         final int flowCost = originState.getFlowCost(world);
         final int slopeDist = originState.getQuantaPerBlock() >> flowCost;
         if(world.isRemote || !world.isAreaLoaded(origin, slopeDist)) return;
@@ -112,14 +113,11 @@ public final class FluidFlowHandler
         // world.profiler.startSection("fluidUpdateClassic");
         @Nonnull final IFluidUpdateHelper helper = new IFluidUpdateHelper.Forge(world, origin, originState, slopeDist);
 
-        // check if the fluid can exist here before proceeding (compatibility with Thermal Foundation)
-        /*if(originState.getBlock() instanceof IConditionalFluid && ((IConditionalFluid)originState.getBlock()).canCondenseAt(helper.getCache(), origin, originState)) {
-            @Nonnull final IBlockState condenseState = ((IConditionalFluid)originState.getBlock()).getCondenseState(helper.getCache(), origin, originState);
-            if(condenseState != BlockStateContainer.AIR_BLOCK_STATE && helper.getBlockState(0, 0, 0).getBlock().isReplaceable(helper.getCache(), origin)) world.setBlockState(origin, condenseState);
-            else FluidloggedUtils.setFluidToAir(world, origin, helper.getCache().getBlockState(origin), Constants.BlockFlags.DEFAULT);
-            // world.profiler.endSection();
-            return;
-        }*/
+        // run extra FluidState logic before proceeding (compatibility with Immersive Engineering)
+        if(originState.getBlock() instanceof IFluidFlowListener) {
+            if(!((IFluidFlowListener)originState.getBlock()).preFluidUpdate(helper, origin, originState)) return;
+            else originState = helper.getFluidState(0, 0, 0);
+        }
 
         // check adjacent block levels if non-source
         int quantaRemaining = originState.getQuantaPerBlock() - originState.getLevel();
@@ -141,6 +139,11 @@ public final class FluidFlowHandler
             || !helper.canFluidFlow(0, 0, 0, originState.getDownDensityFace())
             || helper.isSource(0, -1, 0, originState.getUpDensityFace())))
                 expQuanta = originState.getQuantaPerBlock();
+
+            // custom level update handling
+            else if(originState.getBlock() instanceof IFluidFlowListener && ((IFluidFlowListener)originState.getBlock()).delayCalculation(helper, origin, originState)) {
+                expQuanta = quantaRemaining;
+            }
 
             // vertical flow into block
             else if(helper.hasVerticalFlow(0, 0, 0))
@@ -182,17 +185,21 @@ public final class FluidFlowHandler
         int flowMeta = originState.getQuantaPerBlock() - quantaRemaining + flowCost;
         if(flowMeta >= originState.getQuantaPerBlock()) {
             // world.profiler.endSection();
+            if(originState.getBlock() instanceof IFluidFlowListener) ((IFluidFlowListener)originState.getBlock()).postFluidUpdate(helper, origin, originState, false);
             return;
         }
 
         if(flowMeta >= 0 && (helper.getFluidState(0, 0, 0).isSource() || !helper.canFlowInto(0, 0, 0, flowCost, originState.getDownDensityFace(), true, true))) {
             if(helper.hasVerticalFlow(0, 0, 0)) flowMeta = flowCost;
+            boolean hasFlown = false;
 
             @Nonnull final int[] flowTo = helper.getOptimalFlowDirections(0, 0, 0, originState.getQuantaPerBlock(), flowMeta, flowCost, levelIn -> flowCost);
             for(int i = 0; i < 4; i++) if(flowTo[i] > -1) {
                 @Nonnull final EnumFacing side = EnumFacing.HORIZONTALS[i];
-                helper.flowInto(0, 0, 0, flowTo[i], side, true, false, Constants.BlockFlags.DEFAULT);
+                hasFlown |= helper.flowInto(0, 0, 0, flowTo[i], side, true, false, Constants.BlockFlags.DEFAULT);
             }
+
+            if(originState.getBlock() instanceof IFluidFlowListener) ((IFluidFlowListener)originState.getBlock()).postFluidUpdate(helper, origin, originState, hasFlown);
         }
 
         // world.profiler.endSection();

@@ -40,6 +40,7 @@ dependencies {
     deobfProvided 'curse.maven:dynamic-lights-227874:2563244'
     deobfProvided 'curse.maven:dynamic-trees-252818:3812473'
     deobfProvided 'curse.maven:galacticraft-legacy-564236:4671122'
+    deobfProvided 'curse.maven:immersiveengineering-231951:2974106'
     deobfProvided 'curse.maven:industrial-craft-242638:3838713'
     deobfProvided 'curse.maven:mekanism-268560:2835175'
     deobfProvided 'curse.maven:random-things-59816:2905241'

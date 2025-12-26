@@ -59,6 +59,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.Plugin
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.PluginGCBlocks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.galacticraft.PluginGalacticraft;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.hesperus.PluginHesperus;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.immersiveengineering.PluginFluidConcrete;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.industrial_foregoing.PluginIndustrialForegoing;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.industrial_foregoing.PluginPinkSlimeFluid;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.industrial_foregoing.PluginWaterResourceTile;
@@ -151,6 +152,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("biomesoplenty.common.fluids.blocks.BlockQuicksandFluid", new PluginBiomesOPlenty(true)); // fix BOP fluid block mixing
             plugins.put("biomesoplenty.common.handler.BucketEventHandler", new PluginBucketEventHandler()); // remove unnecessary event handler for BOP fluid bucket filling (and fixes a honey fluid dupe)
             plugins.put("biomesoplenty.common.item.ItemBOPLilypad", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
+            plugins.put("blusunrize.immersiveengineering.common.blocks.BlockIEFluidConcrete", new PluginFluidConcrete()); // fix issue#275
             plugins.put("buildcraft.factory.tile.TileFloodGate", new PluginTileFloodGate()); // make buildcraft's TileFloodGate FluidState-sensitive
             plugins.put("buildcraft.factory.tile.TilePump", new PluginTilePump()); // make buildcraft's pump account for FluidStates when checking for an infinite water source
             plugins.put("buildcraft.lib.misc.BlockUtil", new PluginBlockUtil()); // make buildcraft's BlockUtil fluid utility methods FluidState-sensitive
@@ -228,7 +230,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()); // fix mixin annotation to target fluidlogged api transform
             plugins.put("jotato.quantumflux.items.ItemVoidBucket", new PluginQuantumFlux()); // give void buckets an IFluidHandler, and account for FluidStates when draining fluids
             plugins.put("knightminer.ceramics.items.ItemClayBucket", new PluginItemClayBucket()); // offset the placement pos if the block is fluidloggable, so it can be fluidlogged
-            plugins.put("net.journey.items.JItemWaterLily", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
             plugins.put("li.cil.bedrockores.common.block.BlockBedrockOre", new PluginBedrockOre()); // fix issue#276
             plugins.put("lumien.randomthings.item.ItemEnderBucket", new PluginRandomThings()); // make random things' ender buckets sensitive to FluidStates
             plugins.put("lumien.randomthings.item.ItemReinforcedEnderBucket", new PluginRandomThings()); // make random things' ender buckets sensitive to FluidStates
@@ -257,6 +258,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("mrtjp.projectred.core.TFaceConnectable$class", new PluginProjectRed()); // allow wires to connect through fluids
             plugins.put("net.dries007.tfc.objects.blocks.BlockFluidTFC", new PluginTFCBlockFluid()); // duplicate fluid logic isn't needed, and causes conflicts with this mod
             plugins.put("net.dries007.tfc.objects.fluids.FluidsTFC", new PluginTFCFluids()); // use ICompatibleFluid for water-like fluids
+            plugins.put("net.journey.items.JItemWaterLily", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
             plugins.put("net.optifine.override.ChunkCacheOF", new PluginOptifine()); // better optifine compat
             plugins.put("net.optifine.reflect.ReflectorClass", new PluginIResolvable()); // fix crashes caused by Optifine loading classes too early
             plugins.put("net.optifine.reflect.ReflectorConstructor", new PluginIResolvable()); // fix crashes caused by Optifine loading classes too early

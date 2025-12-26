@@ -17,16 +17,13 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.bedrockores;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraftforge.client.MinecraftForgeClient;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * fix issue#276
@@ -41,7 +38,7 @@ public final class PluginBedrockOre implements IASMPlugin
     @Override
     public boolean transform(@Nonnull final InsnList instructions, @Nonnull final MethodNode method, @Nonnull final AbstractInsnNode insn, final boolean obfuscated, final int index) {
         /*
-         * getActualState:
+         * getActualState (server-side transformation only):
          * Old code:
          * if ((world instanceof World && !((World) world).isRemote) || MinecraftForgeClient.getRenderLayer() == null)
          * {
@@ -50,25 +47,23 @@ public final class PluginBedrockOre implements IASMPlugin
          *
          * New code:
          * // Prevent loading client-side class on server.
-         * if ((world instanceof World && !((World) world).isRemote) || Hooks.getRenderLayer() == null)
+         * if ((world instanceof World && !((World) world).isRemote) || null == null)
          * {
          *     ...
          * }
          */
         if(checkMethod(insn, "getRenderLayer")) {
-            ((MethodInsnNode)insn).owner = getHookClass();
+            method.instructions.insert(insn, new InsnNode(ACONST_NULL));
+            method.instructions.remove(insn);
             return true;
         }
 
         return false;
     }
 
-    @SuppressWarnings("unused")
-    public static final class Hooks
-    {
-        @Nullable
-        public static BlockRenderLayer getRenderLayer() {
-            return FMLCommonHandler.instance().getSide().isClient() ? MinecraftForgeClient.getRenderLayer() : null;
-        }
+    @Nonnull
+    @Override
+    public byte[] transform(@Nonnull final byte[] basicClass, final boolean obfuscated) {
+        return FMLLaunchHandler.side().isServer() ? IASMPlugin.super.transform(basicClass, obfuscated) : basicClass;
     }
 }

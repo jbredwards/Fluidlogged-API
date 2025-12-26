@@ -798,7 +798,7 @@ public final class PluginWorld implements IASMPlugin
 
                     if(handler.isFluidloggableFluid(oldFluidState) && handler.isStateFluidloggable(newState, world, pos, oldFluidState)) {
                         FluidloggedUtils.setFluidState(world, pos, newState, oldFluidState, false, blockFlags);
-                        oldFluidState.getState().neighborChanged(world, pos, newState.getBlock(), pos);
+                        if(!world.isRemote) oldFluidState.getState().neighborChanged(world, pos, newState.getBlock(), pos);
                     }
                 }
             }
