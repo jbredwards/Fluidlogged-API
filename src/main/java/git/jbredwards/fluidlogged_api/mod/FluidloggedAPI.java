@@ -65,7 +65,7 @@ import java.util.Optional;
  * @author jbred
  *
  */
-@Mod(modid = FluidloggedAPI.MODID, useMetadata = true,
+@Mod(modid = FluidloggedAPI.MODID, name = "Fluidlogged API", version = "3.1.3",
      guiFactory = "git.jbredwards.fluidlogged_api.mod.client.config.gui.FluidloggedAPIGuiFactory")
 public final class FluidloggedAPI
 {
