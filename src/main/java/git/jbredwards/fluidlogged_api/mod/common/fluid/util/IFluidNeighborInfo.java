@@ -18,9 +18,11 @@ package git.jbredwards.fluidlogged_api.mod.common.fluid.util;
 
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.IBlockAccessWrapper;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 
 import javax.annotation.Nonnull;
 
@@ -30,7 +32,7 @@ import javax.annotation.Nonnull;
  * @author jbred
  *
  */
-public interface IFluidNeighborInfo
+public interface IFluidNeighborInfo extends IBlockAccessWrapper
 {
     // -----------
     // origin info
@@ -77,6 +79,10 @@ public interface IFluidNeighborInfo
 
     @Nonnull
     FluidCache getCache();
+
+    @Nonnull
+    @Override
+    default IBlockAccess getWrapped() { return getCache(); }
 
     //@Nonnull
     //Boolean[] getCanFluidFlow();

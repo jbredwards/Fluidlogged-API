@@ -22,6 +22,7 @@ import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.api.world.IChunkProvider;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidExtendedStateHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidFlowHandler;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.util.ISpecializedFluidNeighborInfo;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.impl.SpecializedFluidNeighborInfo;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -414,12 +415,13 @@ public final class PluginBlockFluidBase implements IASMPlugin
         @Nonnull
         public static IBlockState getFluidExtendedState(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull final IBlockState state) {
             return FluidExtendedStateHandler.getExtendedState(state, new SpecializedFluidNeighborInfo.Forge(world, pos, FluidState.of(state), 1), info ->
-                    FluidFlowHandler.getFlowAngle(((BlockFluidBase)info.getOrigin().getBlock()).getFlowVector(info.getCache(), pos)));
+                    FluidFlowHandler.getFlowAngle(((BlockFluidBase)info.getOrigin().getBlock()).getFlowVector(info, pos)));
         }
 
         @Nonnull
         public static Vec3d getFluidFlowVector(@Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-            return FluidFlowHandler.getFlowVec(new SpecializedFluidNeighborInfo.Forge(world, pos, FluidloggedUtils.getFluidState(world, pos), 1));
+            return FluidFlowHandler.getFlowVec(world instanceof ISpecializedFluidNeighborInfo ? (ISpecializedFluidNeighborInfo)world :
+                    new SpecializedFluidNeighborInfo.Forge(world, pos, FluidloggedUtils.getFluidState(world, pos), 1));
         }
 
         public static boolean hasVerticalFlow(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final Fluid fluid, final int densityDir) {

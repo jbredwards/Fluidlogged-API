@@ -23,6 +23,7 @@ import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidExtendedStateHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidFlowHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
+import git.jbredwards.fluidlogged_api.mod.common.fluid.util.ISpecializedFluidNeighborInfo;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.impl.SpecializedFluidNeighborInfo;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
@@ -438,7 +439,7 @@ public final class PluginBlockLiquid implements IASMPlugin
         @Nonnull
         public static IBlockState getLiquidExtendedState(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final IBlockState oldState) {
             return FluidExtendedStateHandler.getExtendedState(oldState, new SpecializedFluidNeighborInfo.Vanilla(world, pos, FluidState.of(oldState), 1), info ->
-                    FluidFlowHandler.getFlowAngle(((BlockLiquid)info.getOrigin().getBlock()).getFlow(info.getCache(), pos, info.getOrigin().getState())));
+                    FluidFlowHandler.getFlowAngle(((BlockLiquid)info.getOrigin().getBlock()).getFlow(info, pos, info.getOrigin().getState())));
         }
 
         public static float getBlockLiquidHeight(@Nonnull IBlockState state, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
@@ -456,7 +457,8 @@ public final class PluginBlockLiquid implements IASMPlugin
 
         @Nonnull
         public static Vec3d getFlow(@Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull IBlockState here) {
-            return FluidFlowHandler.getFlowVec(new SpecializedFluidNeighborInfo.Vanilla(world, pos, FluidloggedUtils.getFluidState(world, pos, here), 1));
+            return FluidFlowHandler.getFlowVec(world instanceof ISpecializedFluidNeighborInfo ? (ISpecializedFluidNeighborInfo)world
+                    : new SpecializedFluidNeighborInfo.Vanilla(world, pos, FluidloggedUtils.getFluidState(world, pos, here), 1));
         }
 
         public static int getFlowCost(@Nonnull final FluidState fluidState, @Nonnull final World world) {
