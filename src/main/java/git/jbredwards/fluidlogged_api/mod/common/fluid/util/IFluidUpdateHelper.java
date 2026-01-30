@@ -73,7 +73,7 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
                 final int cappedLvl = Math.min(flowMeta + recurseDepth, quantaPerBlock - 1);
 
                 if((!FluidloggedUtils.isCompatibleFluid(fluid, getOrigin()) || !fluid.isSource()) && canFlowIntoI(xi, yi, zi, cappedLvl, side, true, true)) {
-                    if(canFlowIntoI(xio, yi, zio, downMeta.applyAsInt(cappedLvl), getOrigin().getDownDensityFace(), true, true)) return recurseDepth;
+                    if(canFlowIntoI(xio, yi, zio, downMeta.applyAsInt(cappedLvl), getOrigin().getDownDensityFace(), true, true, true)) return recurseDepth;
                     else if(recurseDepth < quantaPerBlock >> flowCost) cost = Math.min(cost, calculateFlowCostI(xio, yi, zio, quantaPerBlock, flowMeta, flowCost, recurseDepth + flowCost, downMeta, side.getOpposite()));
                 }
             }
@@ -93,7 +93,7 @@ public interface IFluidUpdateHelper extends ISpecializedFluidNeighborInfo
 
             @Nonnull final FluidState fluid = getFluidStateI(xio, yi, zio);
             if((!FluidloggedUtils.isCompatibleFluid(fluid, getOrigin()) || !fluid.isSource()) && canFlowIntoI(xi, yi, zi, flowMeta, side, true, true)) {
-                if(canFlowIntoI(xio, yi, zio, downMeta.applyAsInt(flowMeta), getOrigin().getDownDensityFace(), true, true)) adjFlowCost[sideI] = 0;
+                if(canFlowIntoI(xio, yi, zio, downMeta.applyAsInt(flowMeta), getOrigin().getDownDensityFace(), true, true, true)) adjFlowCost[sideI] = 0;
                 else adjFlowCost[sideI] = flowMeta < quantaPerBlock ? calculateFlowCostI(xio, yi, zio, quantaPerBlock, flowMeta, flowCost, flowCost, downMeta, side.getOpposite()) : DEFAULT_COST;
             }
         }

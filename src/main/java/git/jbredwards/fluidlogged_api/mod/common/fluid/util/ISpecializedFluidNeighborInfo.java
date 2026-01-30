@@ -106,13 +106,17 @@ public interface ISpecializedFluidNeighborInfo extends IFluidNeighborInfo
 
     boolean canDisplaceI(final int xi, final int yi, final int zi);
     default boolean canFlowIntoI(final int xi, final int yi, final int zi, final int flowMeta, @Nonnull final EnumFacing sideToCheck, final boolean checkReplaceable, final boolean allowMatching) {
+        return canFlowIntoI(xi, yi, zi, flowMeta, sideToCheck, checkReplaceable, allowMatching, false);
+    }
+
+    default boolean canFlowIntoI(final int xi, final int yi, final int zi, final int flowMeta, @Nonnull final EnumFacing sideToCheck, final boolean checkReplaceable, final boolean allowMatching, final boolean ignoreFluidloggable) {
         final int xio = xi + sideToCheck.getDirectionVec().getX(), yio = yi + sideToCheck.getDirectionVec().getY() *- getOrigin().getDensityDir(), zio = zi + sideToCheck.getDirectionVec().getZ();
         if(getOrigin().getBlock() instanceof IConditionalFluid) {
             if(((IConditionalFluid)getOrigin().getBlock()).cannotFlowAt(getCache(), getPosIB(xio, yio, zio), getOrigin().withLevel(flowMeta))) return false;
         }
 
         return canFluidFlowI(xi, yi, zi, sideToCheck) && (isReplaceableI(xio, yio, zio, getOrigin().withLevel(flowMeta), sideToCheck.getOpposite(), checkReplaceable, allowMatching)
-                || canFluidFlowI(xio, yio, zio, sideToCheck.getOpposite()) && isFluidloggableI(xio, yio, zio, getOrigin().withLevel(flowMeta), sideToCheck.getOpposite(), checkReplaceable, allowMatching));
+                || canFluidFlowI(xio, yio, zio, sideToCheck.getOpposite()) && (ignoreFluidloggable || isFluidloggableI(xio, yio, zio, getOrigin().withLevel(flowMeta), sideToCheck.getOpposite(), checkReplaceable, allowMatching)));
     }
 
     int getEffectiveQuantaI(final int xi, final int yi, final int zi);
