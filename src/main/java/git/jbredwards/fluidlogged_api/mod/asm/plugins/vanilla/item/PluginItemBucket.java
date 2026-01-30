@@ -106,7 +106,7 @@ public final class PluginItemBucket implements IASMPlugin
         @Nonnull
         public static ActionResult<ItemStack> drainFluid(@Nonnull final World world, @Nonnull final EntityPlayer player, @Nonnull final ItemStack held, @Nonnull final RayTraceResult trace) {
             if(world.isBlockModifiable(player, trace.getBlockPos())) {
-                @Nonnull final FluidActionResult filledResult = FluidUtil.tryPickUpFluid(held.copy(), player, world, trace.getBlockPos(), trace.sideHit);
+                @Nonnull final FluidActionResult filledResult = FluidUtil.tryPickUpFluid(held, player, world, trace.getBlockPos(), trace.sideHit);
                 if(filledResult.isSuccess()) {
                     if(!player.isCreative()) {
                         held.shrink(1);
@@ -140,7 +140,7 @@ public final class PluginItemBucket implements IASMPlugin
 
                 // can the player place there?
                 if(world.isBlockModifiable(player, targetPos) && player.canPlayerEdit(targetPos, trace.sideHit, held)) {
-                    @Nonnull final FluidActionResult drainedResult = FluidUtil.tryPlaceFluid(null, world, targetPos, held.copy(), new FluidStack(fluid, Fluid.BUCKET_VOLUME));
+                    @Nonnull final FluidActionResult drainedResult = FluidUtil.tryPlaceFluid(null, world, targetPos, held, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
 
                     // drained fluid from bucket and placed it at the pos
                     if(drainedResult.isSuccess()) {
