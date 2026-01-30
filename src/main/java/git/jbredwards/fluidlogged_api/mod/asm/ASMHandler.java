@@ -85,6 +85,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.quantumflux.PluginQ
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.railcraft.PluginRailcraft;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.random_things.PluginRandomThings;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.reliquary.PluginReliquary;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.rsgauges.PluginBlockSwitch;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.ruins.PluginRuins;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.sledgehammer.PluginSledgehammer;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.spongeforge.PluginSpongeForge;
@@ -299,6 +300,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("twilightforest.item.ItemBlockTFHugeWaterLily", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
             plugins.put("vazkii.botania.common.item.ItemOpenBucket", new PluginBotania()); // allow botania's void bucket item to recognise tanks and FluidStates
             plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); // wooden bowls can now be filled by using water FluidStates
+            plugins.put("wile.rsgauges.blocks.BlockSwitch", new PluginBlockSwitch()); // allow non-World IBlockAccess instances to read redstone signal strength
             plugins.put("xreliquary.items.ItemEmperorChalice", new PluginReliquary()); // make reliquary's chalice use its IFluidHandler when placing/taking fluids
             // -------
             // vanilla
