@@ -49,7 +49,7 @@ public final class PluginFluidConcrete implements IASMPlugin
          *
          * New code:
          * // Don't update concrete fluid if fluidlogged.
-         * if(Accessor.isStateFluidlogged(world, pos, state, this.enableSourceFall)) return;
+         * if(Hooks.isStateFluidlogged(world, pos, state, this.enableSourceFall)) return;
          * ...
          */
 
@@ -57,7 +57,7 @@ public final class PluginFluidConcrete implements IASMPlugin
         list.add(new VarInsnNode(ALOAD, 0));
         list.add(new VarInsnNode(ALOAD, 1));
         list.add(new VarInsnNode(ALOAD, 2));
-        list.add(genMethodNode(getAccessorClass(), "isStateFluidlogged", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z"));
+        list.add(genMethodNode("isStateFluidlogged", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z"));
 
         @Nonnull final LabelNode label = new LabelNode();
         list.add(new JumpInsnNode(IFEQ, label));
@@ -91,8 +91,12 @@ public final class PluginFluidConcrete implements IASMPlugin
         default boolean isStateFluidloggable(@Nonnull final IBlockState state, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState) {
             return !ArrayUtils.contains(CONCRETE, state) && IFluidloggableFluid.super.isStateFluidloggable(state, world, pos, fluidState);
         }
+    }
 
-        static boolean isStateFluidlogged(@Nonnull final Block fluid, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
+    @SuppressWarnings("unused")
+    public static final class Hooks
+    {
+        public static boolean isStateFluidlogged(@Nonnull final Block fluid, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
             return FluidState.get(world, pos).getBlock() == fluid;
         }
     }
