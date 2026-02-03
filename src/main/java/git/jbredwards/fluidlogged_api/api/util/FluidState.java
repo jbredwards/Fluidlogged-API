@@ -671,10 +671,10 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
         @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 1, 1) : world;
         @Nonnull final EnumFacing side = getUpDensityFace();
 
-        if(FluidloggedUtils.canFluidFlow(access, pos, access.getBlockState(pos), side)) {
+        if(FluidloggedUtils.canFluidConnect(access, pos, access.getBlockState(pos), side)) {
             @Nonnull final BlockPos offset = pos.offset(side);
             @Nonnull final IBlockState above = access.getBlockState(offset);
-            return FluidloggedUtils.canFluidFlow(access, offset, above, side.getOpposite())
+            return FluidloggedUtils.canFluidConnect(access, offset, above, side.getOpposite())
                     && FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(access, offset, above), this) ? 1 : getHeight();
         }
 

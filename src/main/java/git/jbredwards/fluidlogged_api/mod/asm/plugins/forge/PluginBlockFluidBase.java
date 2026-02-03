@@ -444,7 +444,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
         }
 
         public static boolean shouldFluidSideBeRendered(@Nonnull IBlockState state, @Nonnull IBlockAccess world, @Nonnull BlockPos pos, @Nonnull EnumFacing side, int densityDir) {
-            if(!FluidloggedUtils.canFluidFlow(world, pos, world.getBlockState(pos), side)) return true;
+            if(!FluidloggedUtils.canFluidConnect(world, pos, world.getBlockState(pos), side)) return true;
             final Fluid fluid = FluidloggedUtils.getFluidFromState(state);
 
             final BlockPos offset = pos.offset(side);
@@ -453,7 +453,7 @@ public final class PluginBlockFluidBase implements IASMPlugin
             //this check exists for mods like coral reef that don't have proper block sides
             if(FluidloggedUtils.isCompatibleFluid(fluid, FluidloggedUtils.getFluidFromState(neighbor))) return false;
             else if(side != (densityDir > 0 ? EnumFacing.DOWN : EnumFacing.UP) && neighbor.doesSideBlockRendering(world, offset, side.getOpposite())) return false;
-            return !FluidloggedUtils.canFluidFlow(world, offset, neighbor, side.getOpposite()) || !FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(world, offset, neighbor).getFluid(), fluid);
+            return !FluidloggedUtils.canFluidConnect(world, offset, neighbor, side.getOpposite()) || !FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(world, offset, neighbor).getFluid(), fluid);
         }
     }
 

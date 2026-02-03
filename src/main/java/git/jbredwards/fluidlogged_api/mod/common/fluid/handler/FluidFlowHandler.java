@@ -74,12 +74,12 @@ public final class FluidFlowHandler
 
         @Nonnull Vec3d vec = Vec3d.ZERO;
         for(@Nonnull final EnumFacing side : EnumFacing.HORIZONTALS) {
-            if(info.canFluidFlow(0, 0, 0, side)) {
+            if(info.canFluidConnect(0, 0, 0, side)) {
                 final int xo = side.getXOffset(), zo = side.getZOffset();
-                if(!info.isCompatibleFluid(xo, 0, zo) || info.canFluidFlow(xo, 0, zo, side.getOpposite())) {
+                if(!info.isCompatibleFluid(xo, 0, zo) || info.canFluidConnect(xo, 0, zo, side.getOpposite())) {
                     int otherDecay = max - info.getEffectiveQuanta(xo, 0, zo);
                     if(otherDecay >= max) {
-                        if(info.canFluidFlow(xo, 0, zo, down) && (!info.isCompatibleFluid(xo, -1, zo) || info.canFluidFlow(xo, -1, zo, up))) {
+                        if(info.canFluidConnect(xo, 0, zo, down) && (!info.isCompatibleFluid(xo, -1, zo) || info.canFluidFlow(xo, -1, zo, up))) {
                             otherDecay = max - info.getEffectiveQuanta(xo, -1, zo);
                             if(otherDecay < max) {
                                 final int power = otherDecay - (decay - max);

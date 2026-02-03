@@ -175,7 +175,7 @@ public final class PluginEntityRenderer implements IASMPlugin
             final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, here);
 
             return fluidState.isEmpty() || fluidState.getMaterial() != Material.LAVA
-                    || !FluidloggedUtils.canFluidFlow(world, pos, here, EnumFacing.UP);
+                    || !FluidloggedUtils.canFluidConnect(world, pos, here, EnumFacing.UP);
         }
 
         @Nonnull

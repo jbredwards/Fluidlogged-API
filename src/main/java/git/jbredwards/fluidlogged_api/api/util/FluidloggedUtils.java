@@ -422,6 +422,7 @@ public final class FluidloggedUtils
     }
 
     /**
+     * Also see {@link FluidloggedUtils#canFluidConnect(IBlockAccess, BlockPos, IBlockState, EnumFacing)}.
      * <li> Returns true if the contained fluid can flow from the specified side.</li>
      * <li> Returns true if a fluid can flow into this block from the specified side.</li>
      *
@@ -446,6 +447,23 @@ public final class FluidloggedUtils
         else return (here.getBlock() instanceof IFluidloggable)
                 ? ((IFluidloggable)here.getBlock()).canFluidFlow(access, pos, here, side)
                 : here.getBlockFaceShape(access, pos, side) != BlockFaceShape.SOLID;
+    }
+
+    /**
+     * Also see {@link FluidloggedUtils#canFluidFlow(IBlockAccess, BlockPos, IBlockState, EnumFacing)}.
+     * <li> Returns true if the contained fluid can visually connect to compatible fluids at the specified side.</li>
+     *
+     * @param access IBlockAccess.
+     * @param pos Position.
+     * @param here IBlockState at the position.
+     * @param side Side to test.
+     *
+     * @throws NullPointerException If any of the parameters are null.
+     * @since 3.2.0
+     * @author jbred
+     */
+    public static boolean canFluidConnect(@Nonnull final IBlockAccess access, @Nonnull final BlockPos pos, @Nonnull final IBlockState here, @Nonnull final EnumFacing side) {
+        return here.getBlock() instanceof IFluidloggable ? ((IFluidloggable)here.getBlock()).canFluidConnect(access, pos, here, side) : canFluidFlow(access, pos, here, side);
     }
 
     /**
@@ -680,14 +698,14 @@ public final class FluidloggedUtils
         @Nonnull final IBlockState here = chunk.getBlockState(pos), below = chunk.getBlockState(pos.up(densityDir));
 
         // spawn drip particle under this
-        if(here != fluidState.getState() && !canFluidFlow(world, pos, here, fluidState.getDownDensityFace())) {
+        if(here != fluidState.getState() && !canFluidConnect(world, pos, here, fluidState.getDownDensityFace())) {
             if(!below.getMaterial().blocksMovement() && getFluidState(chunk, pos.up(densityDir), below).isEmpty()) {
                 return Optional.of(new Vec3d(pos).add(world.rand.nextDouble(), densityDir < 0 ? -0.05 : 1.05, world.rand.nextDouble()));
             }
         }
 
         // spawn drip particle under the block below this
-        if(!canFluidFlow(world, pos.up(densityDir), below, fluidState.getUpDensityFace()) && getFluidState(chunk, pos.up(densityDir), below).isEmpty()) {
+        if(!canFluidConnect(world, pos.up(densityDir), below, fluidState.getUpDensityFace()) && getFluidState(chunk, pos.up(densityDir), below).isEmpty()) {
             @Nonnull final IBlockState under = chunk.getBlockState(pos.up(densityDir << 1));
             if(!under.getMaterial().blocksMovement() && getFluidState(chunk, pos.up(densityDir << 1), under).isEmpty()) {
                 return Optional.of(new Vec3d(pos).add(world.rand.nextDouble(), densityDir < 0 ? -1.05 : 2.05, world.rand.nextDouble()));

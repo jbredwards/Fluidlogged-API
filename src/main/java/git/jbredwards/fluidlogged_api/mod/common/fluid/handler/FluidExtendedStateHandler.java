@@ -91,16 +91,16 @@ public final class FluidExtendedStateHandler
                 for(int i = 0; i < 4; i++) {
                     if(state.shouldSideBeRenderedCache[EnumFacing.HORIZONTALS[i].getIndex()]) {
                         @Nonnull final Vec3i direction = EnumFacing.HORIZONTALS[i].getDirectionVec();
-                        state.sideOverlays[i] = !neighborInfo.canFluidFlowI(direction.getX() + 1, 1, direction.getZ() + 1, EnumFacing.HORIZONTALS[i].getOpposite());
+                        state.sideOverlays[i] = !neighborInfo.canFluidConnectI(direction.getX() + 1, 1, direction.getZ() + 1, EnumFacing.HORIZONTALS[i].getOpposite());
                     }
                 }
             }
 
             // apply vanilla's check for under surface face render (issue#202)
             if(heights[1][1] != 1) {
-                if(!neighborInfo.canFluidFlowI(1, 1, 1, neighborInfo.getOrigin().getUpDensityFace())) state.renderUnder = true;
+                if(!neighborInfo.canFluidConnectI(1, 1, 1, neighborInfo.getOrigin().getUpDensityFace())) state.renderUnder = true;
                 else for(int xi = 0; xi < 3; xi++) for(int zi = 0; zi < 3; zi++) {
-                    if(neighborInfo.canFluidFlowI(xi, 2, zi, neighborInfo.getOrigin().getDownDensityFace()) && !neighborInfo.isCompatibleFluidI(xi, 2, zi)) {
+                    if(neighborInfo.canFluidConnectI(xi, 2, zi, neighborInfo.getOrigin().getDownDensityFace()) && !neighborInfo.isCompatibleFluidI(xi, 2, zi)) {
                         state.renderUnder = true;
                         break;
                     }
@@ -145,9 +145,9 @@ public final class FluidExtendedStateHandler
 
         // x-axis
         if(zi == 1) {
-            if(!neighborInfo.canFluidFlowI(1, yi, 1, xSide) || !canFlowOrReplaceable(neighborInfo, xi, yi, zi, 1, xSide.getOpposite())) {
+            if(!neighborInfo.canFluidConnectI(1, yi, 1, xSide) || !canFlowOrReplaceable(neighborInfo, xi, yi, zi, 1, xSide.getOpposite())) {
                 final int zc = (ziH - 1) << 1;
-                if(!neighborInfo.canFluidFlowI(1, yi, 1, zSide) || !canFlowOrReplaceable(neighborInfo, 1, yi, zc, 1, zSide.getOpposite()) ||
+                if(!neighborInfo.canFluidConnectI(1, yi, 1, zSide) || !canFlowOrReplaceable(neighborInfo, 1, yi, zc, 1, zSide.getOpposite()) ||
                    !canFlowOrReplaceable(neighborInfo, 1, yi, zc, 1, xSide) || !canFlowOrReplaceable(neighborInfo, xi, yi, zc, 2, xSide.getOpposite()) ||
                    !canFlowOrReplaceable(neighborInfo, xi, yi, zc, 2, zSide.getOpposite()) || !canFlowOrReplaceable(neighborInfo, xi, yi, zi, 3, zSide)) return -1;
             }
@@ -157,9 +157,9 @@ public final class FluidExtendedStateHandler
 
         // z-axis
         else if(xi == 1) {
-            if(!neighborInfo.canFluidFlowI(1, yi, 1, zSide) || !canFlowOrReplaceable(neighborInfo, xi, yi, zi, 1, zSide.getOpposite())) {
+            if(!neighborInfo.canFluidConnectI(1, yi, 1, zSide) || !canFlowOrReplaceable(neighborInfo, xi, yi, zi, 1, zSide.getOpposite())) {
                 final int xc = (xiH - 1) << 1;
-                if(!neighborInfo.canFluidFlowI(1, yi, 1, xSide) || !canFlowOrReplaceable(neighborInfo, xc, yi, 1, 1, xSide.getOpposite()) ||
+                if(!neighborInfo.canFluidConnectI(1, yi, 1, xSide) || !canFlowOrReplaceable(neighborInfo, xc, yi, 1, 1, xSide.getOpposite()) ||
                    !canFlowOrReplaceable(neighborInfo, xc, yi, 1, 1, zSide) || !canFlowOrReplaceable(neighborInfo, xc, yi, zi, 2, zSide.getOpposite()) ||
                    !canFlowOrReplaceable(neighborInfo, xc, yi, zi, 2, xSide.getOpposite()) || !canFlowOrReplaceable(neighborInfo, xi, yi, zi, 3, xSide)) return -1;
             }
@@ -169,10 +169,10 @@ public final class FluidExtendedStateHandler
 
         // corner
         else return
-            (neighborInfo.canFluidFlowI(1, yi, 1, xSide) && canFlowOrReplaceable(neighborInfo, xi, yi, 1, 1, xSide.getOpposite())
+            (neighborInfo.canFluidConnectI(1, yi, 1, xSide) && canFlowOrReplaceable(neighborInfo, xi, yi, 1, 1, xSide.getOpposite())
             && canFlowOrReplaceable(neighborInfo, xi, yi, 1, 1, zSide) && canFlowOrReplaceable(neighborInfo, xi, yi, zi, 2, zSide.getOpposite())
 
-            || neighborInfo.canFluidFlowI(1, yi, 1, zSide) && canFlowOrReplaceable(neighborInfo, 1, yi, zi, 1, zSide.getOpposite())
+            || neighborInfo.canFluidConnectI(1, yi, 1, zSide) && canFlowOrReplaceable(neighborInfo, 1, yi, zi, 1, zSide.getOpposite())
             && canFlowOrReplaceable(neighborInfo, 1, yi, zi, 1, xSide) && canFlowOrReplaceable(neighborInfo, xi, yi, zi, 2, xSide.getOpposite()))
 
             ? neighborInfo.isCompatibleFluidI(xi, yi, zi) ? getRenderLevel(neighborInfo, xi, yi, zi) : 0 : -1;
@@ -180,7 +180,7 @@ public final class FluidExtendedStateHandler
 
     static boolean canFlowOrReplaceable(@Nonnull final ISpecializedFluidNeighborInfo neighborInfo, final int xi, final int yi, final int zi, final int fallbackDist, @Nonnull final EnumFacing side) {
         @Nonnull final FluidState dummyState = findLargestConnected(neighborInfo, xi, yi, zi, fallbackDist);
-        return dummyState == FluidState.EMPTY || neighborInfo.isReplaceableI(xi, yi, zi, dummyState, side, true, false) || neighborInfo.canFluidFlowI(xi, yi, zi, side) &&
+        return dummyState == FluidState.EMPTY || neighborInfo.isReplaceableI(xi, yi, zi, dummyState, side, true, false) || neighborInfo.canFluidConnectI(xi, yi, zi, side) &&
                 (neighborInfo.isCompatibleFluidI(xi, yi, zi) || neighborInfo.isFluidloggableI(xi, yi, zi, dummyState, side, true, false));
     }
 
@@ -194,11 +194,11 @@ public final class FluidExtendedStateHandler
 
         @Nonnull FluidState largest = FluidState.EMPTY;
         for(@Nonnull final EnumFacing side : EnumFacing.HORIZONTALS) {
-            if(neighborInfo.canFluidFlowI(xi, yi, zi, side)) {
+            if(neighborInfo.canFluidConnectI(xi, yi, zi, side)) {
                 final int xo = side.getXOffset() + xi, zo = side.getZOffset() + zi;
                 if(xo >= 0 && xo < 3 && zo >= 0 && zo < 3 && (xo == 1 || zo == 1)
                 && neighborInfo.isCompatibleFluidI(xo, yi, zo)
-                && neighborInfo.canFluidFlowI(xo, yi, zo, side.getOpposite())) {
+                && neighborInfo.canFluidConnectI(xo, yi, zo, side.getOpposite())) {
                     @Nonnull final FluidState fluidState = neighborInfo.getFluidStateI(xo, yi, zo);
                     if(largest == FluidState.EMPTY || (isFinite ? largest.getLevel() < fluidState.getLevel()
                     : largest.getWrappedLevel(world) > fluidState.getWrappedLevel(world))) largest = fluidState;
@@ -226,8 +226,8 @@ public final class FluidExtendedStateHandler
     // return true if the fluid at the pos is physically connected vertically to the origin fluid
     static boolean isConnectedVertical(@Nonnull final IFluidNeighborInfo neighborInfo, final int xi, final int zi) {
         return neighborInfo.isCompatibleFluidI(xi, 1, zi) && neighborInfo.isCompatibleFluidI(xi, 2, zi)
-                && neighborInfo.canFluidFlowI(xi, 1, zi, neighborInfo.getOrigin().getUpDensityFace())
-                && neighborInfo.canFluidFlowI(xi, 2, zi, neighborInfo.getOrigin().getDownDensityFace());
+                && neighborInfo.canFluidConnectI(xi, 1, zi, neighborInfo.getOrigin().getUpDensityFace())
+                && neighborInfo.canFluidConnectI(xi, 2, zi, neighborInfo.getOrigin().getDownDensityFace());
     }
 
     // copied from BlockFluidBase
@@ -252,7 +252,7 @@ public final class FluidExtendedStateHandler
     }
 
     static boolean shouldFluidSideBeRendered(@Nonnull final IFluidNeighborInfo neighborInfo, @Nonnull final EnumFacing side) {
-        if(!neighborInfo.canFluidFlowI(1, 1, 1, side)) return true;
+        if(!neighborInfo.canFluidConnectI(1, 1, 1, side)) return true;
 
         @Nonnull final Vec3i vec = side.getDirectionVec();
         final int xi = vec.getX() + 1, yi = vec.getY() * -neighborInfo.getOrigin().getDensityDir() + 1, zi = vec.getZ() + 1;
@@ -261,7 +261,7 @@ public final class FluidExtendedStateHandler
         // this check exists for mods like coral reef that don't have proper block sides
         if(FluidloggedUtils.isCompatibleFluid(neighborInfo.getOrigin().getFluid(), FluidloggedUtils.getFluidFromState(neighbor))) return false;
         else if(vec.getY() != -neighborInfo.getOrigin().getDensityDir() && neighbor.doesSideBlockRendering(neighborInfo.getCache(), neighborInfo.getPosIB(xi, yi, zi), side.getOpposite())) return false;
-        else return !neighborInfo.canFluidFlowI(xi, yi, zi, side.getOpposite()) || !neighborInfo.isCompatibleFluidI(xi, yi, zi);
+        else return !neighborInfo.canFluidConnectI(xi, yi, zi, side.getOpposite()) || !neighborInfo.isCompatibleFluidI(xi, yi, zi);
     }
 
     // faster version of the default IExtendedBlockState but with hardcoded properties, used exclusively for rendering & collision logic

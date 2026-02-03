@@ -120,6 +120,21 @@ public interface IFluidloggable
      * @param world IBlockAccess.
      * @param pos Position.
      * @param here IBlockState at the position.
+     * @param side Side to check.
+     * @return True if the contained fluid can visually connect to compatible fluids at the specified side.
+     *
+     * @throws NullPointerException If parameters are null.
+     * @since 3.2.0
+     * @author jbred
+     */
+    default boolean canFluidConnect(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final IBlockState here, @Nonnull final EnumFacing side) {
+        return FluidloggedUtils.canFluidFlow(world, pos, here, side);
+    }
+
+    /**
+     * @param world IBlockAccess.
+     * @param pos Position.
+     * @param here IBlockState at the position.
      * @param fluidState FluidState at the position.
      * @return True if the FluidState should be visible while this is fluidlogged.
      *
@@ -194,5 +209,7 @@ public interface IFluidloggable
      * @since 3.0.0
      * @author jbred
      */
-    default boolean overrideApplyDefaultsSetting() { return false; }
+    default boolean overrideApplyDefaultsSetting() {
+        return false;
+    }
 }

@@ -104,6 +104,10 @@ public interface IFluidNeighborInfo extends IBlockAccessWrapper
         return getCache().getFluidOrReal(getXIB(xi), getYIB(yi), getZIB(zi));
     }
 
+    default boolean canFluidConnectI(final int xi, final int yi, final int zi, @Nonnull final EnumFacing side) {
+        return FluidloggedUtils.canFluidConnect(getCache(), getPosIB(xi, yi, zi), getCache().getBlockState(getCache().mutablePos), side);
+    }
+
     default boolean canFluidFlowI(final int xi, final int yi, final int zi, @Nonnull final EnumFacing side) {
         /*final int index = side.getIndex() * getIsCompatibleFluid().length + getCache().getIndexI(xi, yi, zi);
         return getCanFluidFlow()[index] != null ? getCanFluidFlow()[index] : (getCanFluidFlow()[index] =*/ return
@@ -128,6 +132,10 @@ public interface IFluidNeighborInfo extends IBlockAccessWrapper
     @Nonnull
     default FluidState getFluidState(final int x, final int y, final int z) {
         return getCache().getFluidOrReal(getXB(x), getYB(y), getZB(z));
+    }
+
+    default boolean canFluidConnect(final int x, final int y, final int z, @Nonnull final EnumFacing side) {
+        return canFluidConnectI(getXI(x), getYI(y), getZI(z), side);
     }
 
     default boolean canFluidFlow(final int x, final int y, final int z, @Nonnull final EnumFacing side) {

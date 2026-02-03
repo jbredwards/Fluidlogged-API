@@ -445,8 +445,8 @@ public final class PluginBlockLiquid implements IASMPlugin
         public static float getBlockLiquidHeight(@Nonnull IBlockState state, @Nonnull IBlockAccess worldIn, @Nonnull BlockPos pos) {
             final IBlockState up = worldIn.getBlockState(pos.up());
             final boolean flag = FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(worldIn, pos.up(), up).getFluid(), FluidloggedUtils.getFluidFromState(state))
-                    && FluidloggedUtils.canFluidFlow(worldIn, pos.up(), up, EnumFacing.DOWN)
-                    && FluidloggedUtils.canFluidFlow(worldIn, pos, worldIn.getBlockState(pos), EnumFacing.UP);
+                    && FluidloggedUtils.canFluidConnect(worldIn, pos.up(), up, EnumFacing.DOWN)
+                    && FluidloggedUtils.canFluidConnect(worldIn, pos, worldIn.getBlockState(pos), EnumFacing.UP);
 
             return flag ? 1 : 1 - BlockLiquid.getLiquidHeightPercent(state.getValue(BlockLiquid.LEVEL));
         }
