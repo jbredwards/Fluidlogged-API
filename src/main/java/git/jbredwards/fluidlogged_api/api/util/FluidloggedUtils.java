@@ -260,10 +260,33 @@ public final class FluidloggedUtils
      * @return True if the FluidState was successfully set, false otherwise.
      *
      * @throws NullPointerException If world, pos, or fluidState are null.
+     * @since 3.0.0
+     * @author jbred
+     */
+    public static boolean setFluidState(@Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final IBlockState here, @Nonnull final FluidState fluidState, final boolean checkVaporize, final int blockFlags) {
+        return setFluidState(world, pos, here, fluidState, checkVaporize, (blockFlags & Constants.BlockFlags.NO_RERENDER) == 0, blockFlags);
+    }
+
+    /**
+     * Set a FluidState in the world.
+     *
+     * @param world World.
+     * @param pos Position.
+     * @param here IBlockState at the position, may be null.
+     * @param fluidState FluidState to place in the world, may be empty.
+     * @param checkVaporize True if fluid vaporizing should be checked. For example, water vaporizing in the nether.
+     * @param doRenderUpdate True if the FluidState should cause a block render update when received by the client.
+     * @param blockFlags Flag 1 will cause a block update. Flag 2 will send the change to clients. Flag 4 will prevent the block from
+     * being re-rendered, if this is a client world. Flag 8 will force any re-renders to run on the main thread instead
+     * of the worker pool, if this is a client world and flag 4 is clear. Flag 16 will prevent observers from seeing
+     * this change. Flags can be OR-ed.
+     * @return True if the FluidState was successfully set, false otherwise.
+     *
+     * @throws NullPointerException If world, pos, or fluidState are null.
      * @since 1.7.0
      * @author jbred
      */
-    public static boolean setFluidState(@Nonnull final World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull final FluidState fluidState, final boolean checkVaporize, final int blockFlags) {
+    public static boolean setFluidState(@Nonnull final World world, @Nonnull BlockPos pos, @Nullable IBlockState here, @Nonnull final FluidState fluidState, final boolean checkVaporize, final boolean doRenderUpdate, final int blockFlags) {
         if(world.isOutsideBuildHeight(pos) || world.getWorldType() == WorldType.DEBUG_ALL_BLOCK_STATES) return false;
 
         @Nonnull final Chunk chunk = world.getChunk(pos);
@@ -296,7 +319,7 @@ public final class FluidloggedUtils
         }
 
         // moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-        setFluidState_Internal(world, chunk, here, pos, event.fluidState, event.blockFlags);
+        setFluidState_Internal(world, chunk, here, pos, event.fluidState, doRenderUpdate, event.blockFlags);
 
         // default
         return true;
@@ -304,14 +327,14 @@ public final class FluidloggedUtils
 
     // if you're not an event instance or an IFluidloggable instance, use setFluidState instead!
     // moved to separate function, as to allow easy calling by IFluidloggable instances that use IFluidloggable#onFluidChange
-    public static void setFluidState_Internal(@Nonnull final World world, @Nonnull final Chunk chunk, @Nonnull final IBlockState here, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState, final int blockFlags) {
+    public static void setFluidState_Internal(@Nonnull final World world, @Nonnull final Chunk chunk, @Nonnull final IBlockState here, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState, final boolean doRenderUpdate, final int blockFlags) {
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
         if(cap == null) throw new NullPointerException("There was a critical internal error involving the Fluidlogged API mod, notify the mod author!");
         else if(world.isRemote) { if(!cap.getContainer(pos.getY()).setFluidState(pos, fluidState)) return; }
         else {
             if(!cap.getContainer(pos.getY()).setFluidState(pos, fluidState)) return;
             else if((blockFlags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) // send changes to clients
-                MessageUtils.sendToAllTracking(new SMessageSyncFluidState(pos, fluidState, true), chunk, FluidloggedAPI.WRAPPER);
+                MessageUtils.sendToAllTracking(new SMessageSyncFluidState(pos, fluidState, doRenderUpdate), chunk, FluidloggedAPI.WRAPPER);
 
             fluidState.getBlock().onBlockAdded(world, pos, fluidState.getState());
         }
@@ -707,5 +730,17 @@ public final class FluidloggedUtils
     @Deprecated
     public static boolean isStateFluidloggable(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos, @Nullable final Fluid fluid) {
         return isStateFluidloggable(state, world, pos, FluidState.of(fluid));
+    }
+
+    /**
+     * Deprecated since 3.2.0.
+     *
+     * @throws NullPointerException If any parameters are null.
+     * @since 3.0.0
+     * @author jbred
+     */
+    @Deprecated
+    public static void setFluidState_Internal(@Nonnull final World world, @Nonnull final Chunk chunk, @Nonnull final IBlockState here, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState, final int blockFlags) {
+        setFluidState_Internal(world, chunk, here, pos, fluidState, (blockFlags & Constants.BlockFlags.NO_RERENDER) == 0, blockFlags);
     }
 }
