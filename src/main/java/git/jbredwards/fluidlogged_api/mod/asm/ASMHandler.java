@@ -87,6 +87,8 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.random_things.Plugi
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.reliquary.PluginReliquary;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.rsgauges.PluginBlockSwitch;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.ruins.PluginRuins;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.schematica.PluginBlockList;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.schematica.PluginSchematicWorld;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.sledgehammer.PluginSledgehammer;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.spongeforge.PluginSpongeForge;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.tfc.PluginTFCBlockFluid;
@@ -183,6 +185,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("com.enderio.core.common.util.IBlockAccessWrapper", new PluginEnderCore()); // make endercore's block access wrapper FluidState-sensitive
             plugins.put("com.ferreusveritas.dynamictrees.blocks.BlockRootyWater", new PluginBlockRootyWater()); // make DynamicTrees' water root block use actual fluidlogging, instead of pseudo fluidlogging
             plugins.put("com.ferreusveritas.dynamictrees.models.ModelRootyWater", new PluginModelRootyWater()); // remove water model, as the water is now handled via fluidlogging
+            plugins.put("com.github.lunatrius.schematica.client.util.BlockList", new PluginBlockList()); // don't use chunks when getting IFluidHandler
+            plugins.put("com.github.lunatrius.schematica.client.world.SchematicWorld", new PluginSchematicWorld()); // no FluidStates in schematics
             plugins.put("com.kashdeya.tinyprogressions.items.misc.InfinBucket", new PluginTinyProgressions()); // allow tiny progressions' bucket to recognise tanks and FluidStates
             plugins.put("com.legacy.blue_skies.blocks.natural.BlockSkyFarmland", new PluginBlockFarmland()); // farmland blocks now recognise water FluidStates
             plugins.put("com.legacy.blue_skies.blocks.natural.BlockSkyLilyPad", new PluginBlockLilyPad()); // lily pads can stay on certain water FluidStates

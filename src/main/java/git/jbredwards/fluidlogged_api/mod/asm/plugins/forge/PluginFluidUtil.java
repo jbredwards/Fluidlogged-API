@@ -19,12 +19,14 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
 import git.jbredwards.fluidlogged_api.api.fluid.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
+import git.jbredwards.fluidlogged_api.api.world.IWorldProvider;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.BlockFluidFinite;
 import net.minecraftforge.fluids.FluidStack;
@@ -124,23 +126,27 @@ public final class PluginFluidUtil implements IASMPlugin
     {
         @Nullable
         public static IFluidHandler getFluidStateHandler(@Nonnull World world, @Nonnull BlockPos pos, @Nullable EnumFacing side) {
-            @Nonnull final FluidCache cache = new FluidCache(world, pos, 0, 0);
-            @Nonnull final IBlockState state = cache.getBlockState(pos);
+            return getFluidStateHandler(new FluidCache(world, pos, 0, 0), pos, side);
+        }
+
+        @Nullable
+        public static IFluidHandler getFluidStateHandler(@Nonnull IBlockAccess access, @Nonnull BlockPos pos, @Nullable EnumFacing side) {
+            @Nonnull final IBlockState state = access.getBlockState(pos);
 
             // check block here
             if(state.getBlock() instanceof IFluidBlock) {
-                @Nullable final TileEntity tile = cache.getTileEntity(pos);
+                @Nullable final TileEntity tile = access.getTileEntity(pos);
                 return tile != null && tile.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, side)
                         ? tile.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, side)
-                        : new FluidBlockWrapper((IFluidBlock)state.getBlock(), world, pos);
+                        : new FluidBlockWrapper((IFluidBlock)state.getBlock(), IWorldProvider.getWorld(access), pos);
             }
 
             // check fluid here
-            @Nonnull final FluidState fluidState = cache.getFluidState(pos);
-            if(fluidState.isValid()) return new FluidBlockWrapper(fluidState.getFluidBlock(), world, pos);
+            @Nonnull final FluidState fluidState = FluidState.get(access, pos);
+            if(fluidState.isValid()) return new FluidBlockWrapper(fluidState.getFluidBlock(), IWorldProvider.getWorld(access), pos);
 
             // check tile here
-            @Nullable final TileEntity tile = cache.getTileEntity(pos);
+            @Nullable final TileEntity tile = access.getTileEntity(pos);
             return tile != null && tile.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, side)
                     ? tile.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, side)
                     : null;
