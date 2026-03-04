@@ -78,13 +78,14 @@ public final class FluidloggedAPI
 
     // Mod Compatibility
     public static final boolean
-            isAquaAcrobatics = Loader.isModLoaded("aquaacrobatics"),
-            isChiseledMe     = Loader.isModLoaded("chiseled_me"),
-            isCubicChunks    = Loader.isModLoaded("cubicchunks"),
-            isDynamicLights  = Loader.isModLoaded("dynamiclights"),
-            isGalacticraft   = Loader.isModLoaded("galacticraftcore"),
-            isRandomThings   = Loader.isModLoaded("randomthings"),
-            isSubaquatic     = Loader.isModLoaded("subaquatic");
+            isAquaAcrobatics       = Loader.isModLoaded("aquaacrobatics"),
+            isChiseledMe           = Loader.isModLoaded("chiseled_me"),
+            isCubicChunks          = Loader.isModLoaded("cubicchunks"),
+            isDynamicLights        = Loader.isModLoaded("dynamiclights"),
+            isGalacticraft         = Loader.isModLoaded("galacticraftcore"),
+            isImmersiveEngineering = Loader.isModLoaded("immersiveengineering"),
+            isRandomThings         = Loader.isModLoaded("randomthings"),
+            isSubaquatic           = Loader.isModLoaded("subaquatic");
 
     @Mod.EventHandler
     static void preInit(@Nonnull final FMLPreInitializationEvent event) {

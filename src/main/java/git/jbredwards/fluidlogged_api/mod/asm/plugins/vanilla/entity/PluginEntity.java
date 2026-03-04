@@ -16,9 +16,11 @@
 
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.entity;
 
+import blusunrize.immersiveengineering.api.energy.wires.ImmersiveNetHandler;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import net.minecraft.block.Block;
@@ -246,6 +248,9 @@ public final class PluginEntity implements IASMPlugin
                             throw new ReportedException(report);
                         }
                     }
+
+                    // for Immersive Engineering
+                    if(FluidloggedAPI.isImmersiveEngineering) { IEHooks.doBlockCollision(entity, pos); }
                 });
             }
 
@@ -293,6 +298,14 @@ public final class PluginEntity implements IASMPlugin
             }
 
             return null;
+        }
+    }
+
+    //hold Immersive Engineering methods in separate class to avoid crash
+    public static final class IEHooks
+    {
+        public static void doBlockCollision(@Nonnull final Entity entity, @Nonnull final BlockPos pos) {
+            ImmersiveNetHandler.handleEntityCollision(pos, entity);
         }
     }
 
