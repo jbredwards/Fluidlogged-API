@@ -76,6 +76,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.openblocks.PluginOp
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginIResolvable;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginOptifine;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginSVertexBuilder;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.orelib.PluginOreLib;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.plus_tweaks.PluginPlusTweaks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.pneumaticcraft.PluginItemEmptyPCB;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.projecte.PluginProjectEAmulet;
@@ -278,6 +279,8 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.tropicraft.core.common.fluid.FluidTropicsWater", new PluginTropicraftFluid(false)); // fix issue#183
             plugins.put("openblocks.common.block.BlockSponge", new PluginOpenBlocks()); // make openblocks' sponge FluidState-sensitive
             plugins.put("org.cyclops.flopper.tileentity.TileFlopper", new PluginFlopper()); // make floppers account for FluidStates
+            plugins.put("org.orecruncher.lib.chunk.DirectChunkCache", new PluginOreLib(true)); // allow OreLib's IBlockAccessEx to read FluidStates
+            plugins.put("org.orecruncher.lib.chunk.PassThroughChunkCache", new PluginOreLib(false)); // allow OreLib's IBlockAccessEx to read FluidStates
             plugins.put("org.spongepowered.common.mixin.core.block.BlockDynamicLiquidMixin", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.block.BlockLiquidMixin", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods
             plugins.put("org.spongepowered.common.mixin.core.block.BlockStaticLiquidMixin", new PluginSpongeForge()); // spongeforge no longer mixins into conflicting methods
