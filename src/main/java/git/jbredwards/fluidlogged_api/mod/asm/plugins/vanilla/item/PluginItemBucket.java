@@ -140,7 +140,7 @@ public final class PluginItemBucket implements IASMPlugin
 
                 // can the player place there?
                 if(world.isBlockModifiable(player, targetPos) && player.canPlayerEdit(targetPos, trace.sideHit, held)) {
-                    @Nonnull final FluidActionResult drainedResult = FluidUtil.tryPlaceFluid(null, world, targetPos, held, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
+                    @Nonnull final FluidActionResult drainedResult = FluidUtil.tryPlaceFluid(player, world, targetPos, held, new FluidStack(fluid, Fluid.BUCKET_VOLUME));
 
                     // drained fluid from bucket and placed it at the pos
                     if(drainedResult.isSuccess()) {
