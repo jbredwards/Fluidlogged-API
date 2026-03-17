@@ -26,6 +26,7 @@ import git.jbredwards.fluidlogged_api.api.world.IWorldProvider;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IWaterHeight;
+import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import lumien.randomthings.handler.AsmHandler;
@@ -37,7 +38,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.*;
-import net.minecraft.world.ChunkCache;
 import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -668,13 +668,22 @@ public final class PluginWorld implements IASMPlugin
 
         public static boolean handleMaterialAcceleration(@Nonnull final World world, @Nonnull final AxisAlignedBB bb, @Nonnull final Material material, @Nonnull final Entity entity) {
             final int minX = MathHelper.floor(bb.minX), minY = MathHelper.floor(bb.minY), minZ = MathHelper.floor(bb.minZ), maxX = MathHelper.ceil(bb.maxX), maxY = MathHelper.ceil(bb.maxY), maxZ = MathHelper.ceil(bb.maxZ);
-            if(!world.isAreaLoaded(minX, minY, minZ, maxX, maxY, maxZ, true)) return false;
+            final boolean checkExtendedStates = FluidloggedAPIConfig.fancyFluidEntityCollision.test(bb, entity);
+            final int
+                    minCacheX = checkExtendedStates ? minX - 1 : minX,
+                    minCacheY = checkExtendedStates ? minY - 1 : minY,
+                    minCacheZ = checkExtendedStates ? minZ - 1 : minZ,
+                    maxCacheX = checkExtendedStates ? maxX : maxX - 1,
+                    maxCacheY = checkExtendedStates ? maxY : maxY - 1,
+                    maxCacheZ = checkExtendedStates ? maxZ : maxZ - 1;
+
+            if(!world.isAreaLoaded(minCacheX, minCacheY, minCacheZ, maxCacheX, maxCacheY, maxCacheZ, true)) return false;
 
             @Nonnull final IWaterHeight waterHeight = (IWaterHeight)entity;
             @Nonnull final BlockPos.PooledMutableBlockPos pos = BlockPos.PooledMutableBlockPos.retain();
             if(material == Material.WATER) FluidCollisionHandler.cacheHeight.set(waterHeight);
 
-            @Nonnull final ChunkCache cache = new ChunkCache(world, new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ), 0);
+            @Nonnull final FluidCache cache = new FluidCache(world, minCacheX, maxCacheX, minCacheY, maxCacheY, minCacheZ, maxCacheZ);
             @Nonnull Vec3d vec = Vec3d.ZERO;
 
             waterHeight.setBox(null);
