@@ -73,6 +73,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.mekanism.PluginMeka
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.mekanism.PluginMekanismUtils;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.nethercraft.PluginNethercraftClassic;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.nothirium.PluginNothirium;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.nuclearcraft.PluginNuclearCraft;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.openblocks.PluginOpenBlocks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginIResolvable;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginOptifine;
@@ -264,6 +265,10 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("moze_intel.projecte.gameObjs.items.EvertideAmulet", new PluginProjectEAmulet()); // allow the Evertide Amulet to waterlog blocks
             plugins.put("moze_intel.projecte.gameObjs.items.VolcaniteAmulet", new PluginProjectEAmulet()); // allow the Volcanite Amulet to lavalog blocks
             plugins.put("mrtjp.projectred.core.TFaceConnectable$class", new PluginProjectRed()); // allow wires to connect through fluids
+            plugins.put("nc.block.fluid.BlockFluidGas", new PluginNuclearCraft()); // make source gas blocks only vaporize their FluidState while fluidlogged instead of the whole block
+            plugins.put("nc.block.fluid.BlockFluidHotGas", new PluginNuclearCraft()); // make source hot gas blocks only vaporize their FluidState while fluidlogged instead of the whole block
+            plugins.put("nc.block.fluid.BlockFluidParticle", new PluginNuclearCraft()); // make particle fluid blocks only vaporize their FluidState while fluidlogged instead of the whole block
+            plugins.put("nc.block.fluid.BlockFluidSteam", new PluginNuclearCraft()); // make source steam blocks only vaporize their FluidState while fluidlogged instead of the whole block
             plugins.put("net.dries007.tfc.objects.blocks.BlockFluidTFC", new PluginTFCBlockFluid()); // duplicate fluid logic isn't needed, and causes conflicts with this mod
             plugins.put("net.dries007.tfc.objects.fluids.FluidsTFC", new PluginTFCFluids()); // use ICompatibleFluid for water-like fluids
             plugins.put("net.journey.items.JItemWaterLily", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
