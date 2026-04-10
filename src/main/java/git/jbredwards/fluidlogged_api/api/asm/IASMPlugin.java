@@ -305,18 +305,35 @@ public interface IASMPlugin extends Opcodes
 
     /**
      * Removes all nodes from indexes 0 though n (inclusive), relative to the provided insn (representing index 0).
+     * This automatically skips over label, line, and frame nodes.
      *
      * @param instructions The list of instructions to modify.
      * @param insn The origin insn.
      * @param n How many nodes to remove after (can be negative to instead remove nodes before).
-     *          
+     *
      * @throws NullPointerException If instructions or insn are null.
      * @since 1.9.0
      * @author jbred
      */
     default void removeFrom(@Nonnull final InsnList instructions, @Nonnull final AbstractInsnNode insn, final int n) {
-        if(n > 0) for(int i = 0; i < n; i++) instructions.remove(insn.getNext());
-        else for(int i = 0; i > n; i--) instructions.remove(insn.getPrevious());
+        @Nonnull AbstractInsnNode pointer = insn; int type;
+
+        if(n > 0) for(int i = 0; i < n; i++) {
+            do type = (pointer = pointer.getNext()).getType();
+            while(type == AbstractInsnNode.LABEL || type == AbstractInsnNode.LINE || type == AbstractInsnNode.FRAME);
+
+            pointer = pointer.getPrevious();
+            instructions.remove(pointer.getNext());
+        }
+
+        else for(int i = 0; i > n; i--) {
+            do type = (pointer = pointer.getPrevious()).getType();
+            while(type == AbstractInsnNode.LABEL || type == AbstractInsnNode.LINE || type == AbstractInsnNode.FRAME);
+
+            pointer = pointer.getNext();
+            instructions.remove(pointer.getPrevious());
+        }
+
         instructions.remove(insn);
     }
 
