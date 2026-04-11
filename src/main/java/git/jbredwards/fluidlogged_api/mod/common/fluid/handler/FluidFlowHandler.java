@@ -64,6 +64,7 @@ public final class FluidFlowHandler
 
     @Nonnull
     public static Vec3d getFlowVec(@Nonnull final ISpecializedFluidNeighborInfo info) {
+        if(info.getOrigin().isEmpty()) return Vec3d.ZERO;
         // info.getCache().getWorld().profiler.startSection("fluidFlowVec");
 
         final int max = info.getOrigin().getQuantaPerBlock();
