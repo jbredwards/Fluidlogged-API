@@ -18,6 +18,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -134,10 +135,10 @@ public final class PluginWorldServer implements IASMPlugin
         public static IBlockState getHereOrFluidIfMatch(@Nonnull WorldServer world, @Nonnull BlockPos pos, @Nonnull Block compare) {
             if(world.isOutsideBuildHeight(pos)) return Blocks.AIR.getDefaultState();
 
-            final Chunk chunk = world.getChunk(pos);
-            final IBlockState here = chunk.getBlockState(pos);
+            final ICubeData data = ICubeData.get(world, pos);
+            final IBlockState here = data.getBlockState(pos);
 
-            return Block.isEqualTo(compare, here.getBlock()) ? here : FluidState.getFromProvider(chunk, pos).getState();
+            return Block.isEqualTo(compare, here.getBlock()) ? here : data.getFluidState(pos).getState();
         }
     }
 }

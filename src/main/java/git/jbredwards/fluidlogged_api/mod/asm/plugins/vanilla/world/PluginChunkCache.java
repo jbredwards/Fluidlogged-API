@@ -36,7 +36,10 @@ import javax.annotation.Nullable;
 public final class PluginChunkCache implements IASMPlugin
 {
     @Override
-    public boolean isMethodValid(@Nonnull MethodNode method, boolean obfuscated) { return method.name.equals(obfuscated ? "func_175629_a" : "getLightForExt"); }
+    public int getMethodIndex(@Nonnull MethodNode method, boolean obfuscated) {
+        if(method.name.equals(obfuscated ? "func_175629_a" : "getLightForExt")) return 1;
+        return checkMethod(method, obfuscated ? "func_175627_a" : "getStrongPower", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I") ? 2 : 0;
+    }
 
     @Override
     public boolean transform(@Nonnull InsnList instructions, @Nonnull MethodNode method, @Nonnull AbstractInsnNode insn, boolean obfuscated, int index) {
@@ -55,9 +58,26 @@ public final class PluginChunkCache implements IASMPlugin
          *     ...
          * }
          */
-        if(checkMethod(insn, obfuscated ? "func_185916_f" : "useNeighborBrightness")) {
+        if(index == 1 && checkMethod(insn, obfuscated ? "func_185916_f" : "useNeighborBrightness")) {
             instructions.insert(insn, genMethodNode("useNeighborBrightness", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z"));
             removeFrom(instructions, insn, -1);
+            return true;
+        }
+        /*
+         * getStrongPower: (changes are around line 197)
+         * Old code:
+         * return this.getBlockState(pos).getStrongPower(this, pos, direction);
+         *
+         * New code:
+         * // Allow FluidStates to output a redstone signal
+         * return PluginWorld.Hooks.getStrongPowerHook(this.getBlockState(pos).getStrongPower(this, pos, direction), this, pos, direction);
+         */
+        else if(index == 2 && checkMethod(insn.getPrevious(), obfuscated ? "func_185893_b" : "getStrongPower")) {
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 1));
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 2));
+            instructions.insertBefore(insn, genMethodNode("git/jbredwards/fluidlogged_api/mod/asm/plugins/vanilla/world/PluginWorld$Hooks",
+            "getStrongPowerHook", "(ILnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I"));
             return true;
         }
 

@@ -46,6 +46,7 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.chiselsandbits.Plug
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cofhcore.PluginCoFHCore;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.crafttweaker.PluginCraftTweaker;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cubic_chunks.PluginCubicChunks;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cubic_chunks.PluginICube;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dsurround.PluginBreathEffect;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dynamictrees.PluginBlockRootyWater;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dynamictrees.PluginModelRootyWater;
@@ -89,7 +90,6 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.quantumflux.PluginQ
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.railcraft.PluginRailcraft;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.random_things.PluginRandomThings;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.reliquary.PluginReliquary;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.rsgauges.PluginBlockSwitch;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.ruins.PluginRuins;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.schematica.PluginBlockList;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.schematica.PluginSchematicWorld;
@@ -236,6 +236,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("hellfirepvp.astralsorcery.common.entities.EntityItemStardust", new PluginEntityCrystal()); // make astral sorcery's starlight reactants FluidState-sensitive
             plugins.put("hellfirepvp.astralsorcery.common.entities.EntityStarlightReacttant", new PluginEntityCrystal()); // make astral sorcery's starlight reactants FluidState-sensitive
             plugins.put("io.github.lxgaming.sledgehammer.mixin.core.block.BlockDynamicLiquidMixin", new PluginSledgehammer()); // remove redundant transformer
+            plugins.put("io.github.opencubicchunks.cubicchunks.api.world.ICube", new PluginICube()); // make Cubic Chunks ICube implement ICubeData
             plugins.put("io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.client.MixinChunkCache_HeightLimits", new PluginCubicChunks()); // fix mixin annotation to target fluidlogged api transform
             plugins.put("jotato.quantumflux.items.ItemVoidBucket", new PluginQuantumFlux()); // give void buckets an IFluidHandler, and account for FluidStates when draining fluids
             plugins.put("knightminer.ceramics.items.ItemClayBucket", new PluginItemClayBucket()); // offset the placement pos if the block is fluidloggable, so it can be fluidlogged
@@ -316,7 +317,6 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("twilightforest.item.ItemBlockTFHugeWaterLily", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
             plugins.put("vazkii.botania.common.item.ItemOpenBucket", new PluginBotania()); // allow botania's void bucket item to recognise tanks and FluidStates
             plugins.put("vazkii.botania.common.world.SkyblockWorldEvents", new PluginGardenOfGlass()); // wooden bowls can now be filled by using water FluidStates
-            plugins.put("wile.rsgauges.blocks.BlockSwitch", new PluginBlockSwitch()); // allow non-World IBlockAccess instances to read redstone signal strength
             plugins.put("xreliquary.items.ItemEmperorChalice", new PluginReliquary()); // make reliquary's chalice use its IFluidHandler when placing/taking fluids
             // -------
             // vanilla

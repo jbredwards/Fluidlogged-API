@@ -21,7 +21,7 @@ import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.api.fluid.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.api.network.MessageUtils;
-import git.jbredwards.fluidlogged_api.api.world.IChunkProvider;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
 import git.jbredwards.fluidlogged_api.api.world.IWorldProvider;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.ICanFluidFlowHandler;
@@ -85,8 +85,8 @@ public final class FluidloggedUtils
      */
     @Nonnull
     public static FluidState getFluidState(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
-        @Nullable final Chunk chunk = world instanceof IChunkProvider ? ((IChunkProvider)world).getChunk(pos) : null;
-        return chunk != null ? getFluidState(chunk, pos) : getFluidState(world, pos, world.getBlockState(pos));
+        @Nonnull final ICubeData cube = ICubeData.get(world, pos);
+        return cube != ICubeData.EMPTY ? getFluidState(cube, pos) : getFluidState(world, pos, world.getBlockState(pos));
     }
 
     /**
@@ -121,7 +121,7 @@ public final class FluidloggedUtils
      */
     @Nonnull
     public static FluidState getFluidState(@Nonnull final Chunk chunk, @Nonnull final BlockPos pos) {
-        return getFluidState(chunk, pos, chunk.getBlockState(pos));
+        return getFluidState(ICubeData.getFromChunk(chunk, pos.getY() >> 4), pos);
     }
 
     /**
@@ -143,6 +143,41 @@ public final class FluidloggedUtils
     }
 
     /**
+     * If the state at the position is a fluid, return it as a FluidState. Otherwise, return the FluidState at the position.
+     * If you know that the state at the position is not a fluid, use {@link ICubeData#getFluidState(net.minecraft.util.math.Vec3i) ICubeData::getFluidState} instead.
+     *
+     * @param cube ICubeData.
+     * @param pos Position.
+     * @return The state at the position as a fluidState (if the state is a fluid). Otherwise, returns the fluidState at the position.
+     *
+     * @throws NullPointerException If cube or pos are null.
+     * @since 3.3.0
+     * @author jbred
+     */
+    @Nonnull
+    public static FluidState getFluidState(@Nonnull final ICubeData cube, @Nonnull final BlockPos pos) {
+        return getFluidState(cube, pos, cube.getBlockState(pos));
+    }
+
+    /**
+     * If the state at the position is a fluid, return it as a FluidState. Otherwise, return the FluidState at the position.
+     * If you know that the state at the position is not a fluid, use {@link ICubeData#getFluidState(net.minecraft.util.math.Vec3i) ICubeData::getFluidState} instead.
+     *
+     * @param cube ICubeData.
+     * @param pos Position.
+     * @param state IBlockState at the position.
+     * @return The state at the position as a fluidState (if the state is a fluid). Otherwise, returns the fluidState at the position.
+     *
+     * @throws NullPointerException If cube or pos are null.
+     * @since 3.3.0
+     * @author jbred
+     */
+    @Nonnull
+    public static FluidState getFluidState(@Nonnull final ICubeData cube, @Nonnull final BlockPos pos, @Nullable final IBlockState state) {
+        return isFluid(state) ? FluidState.of(state) : cube.getFluidState(pos);
+    }
+
+    /**
      * @param world IBlockAccess.
      * @param pos Position.
      * @return The IBlockState at the position if it's either a fluid or if there's no FluidState at the position. Otherwise, return the FluidState at the position.
@@ -153,8 +188,8 @@ public final class FluidloggedUtils
      */
     @Nonnull
     public static IBlockState getFluidOrReal(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
-        @Nullable final Chunk chunk = world instanceof IChunkProvider ? ((IChunkProvider)world).getChunk(pos) : null;
-        return chunk != null ? getFluidOrReal(chunk, pos) : getFluidOrReal(world, pos, world.getBlockState(pos));
+        @Nonnull final ICubeData cube = ICubeData.get(world, pos);
+        return cube != ICubeData.EMPTY ? getFluidOrReal(cube, pos) : getFluidOrReal(world, pos, world.getBlockState(pos));
     }
 
     /**
@@ -186,7 +221,7 @@ public final class FluidloggedUtils
      */
     @Nonnull
     public static IBlockState getFluidOrReal(@Nonnull final Chunk chunk, @Nonnull final BlockPos pos) {
-        return getFluidOrReal(chunk, pos, chunk.getBlockState(pos));
+        return getFluidOrReal(ICubeData.getFromChunk(chunk, pos.getY() >> 4), pos);
     }
 
     /**
@@ -204,6 +239,38 @@ public final class FluidloggedUtils
         if(isFluid(state)) return state; // if the state here is a fluid, return it
 
         @Nonnull final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
+        return fluidState.isEmpty() ? state : fluidState.getState();
+    }
+
+    /**
+     * @param cube ICubeData.
+     * @param pos Position.
+     * @return The IBlockState at the position if it's either a fluid or if there's no FluidState at the position. Otherwise, return the FluidState at the position.
+     *
+     * @throws NullPointerException If cube or pos are null.
+     * @since 3.3.0
+     * @author jbred
+     */
+    @Nonnull
+    public static IBlockState getFluidOrReal(@Nonnull final ICubeData cube, @Nonnull final BlockPos pos) {
+        return getFluidOrReal(cube, pos, cube.getBlockState(pos));
+    }
+
+    /**
+     * @param cube ICubeData.
+     * @param pos Position.
+     * @param state IBlockState at the position.
+     * @return The IBlockState at the position if it's either a fluid or if there's no FluidState at the position. Otherwise, return the FluidState at the position.
+     *
+     * @throws NullPointerException If any parameters are null.
+     * @since 3.3.0
+     * @author jbred
+     */
+    @Nonnull
+    public static IBlockState getFluidOrReal(@Nonnull final ICubeData cube, @Nonnull final BlockPos pos, @Nonnull final IBlockState state) {
+        if(isFluid(state)) return state; // if the state here is a fluid, return it
+
+        @Nonnull final FluidState fluidState = cube.getFluidState(pos);
         return fluidState.isEmpty() ? state : fluidState.getState();
     }
 

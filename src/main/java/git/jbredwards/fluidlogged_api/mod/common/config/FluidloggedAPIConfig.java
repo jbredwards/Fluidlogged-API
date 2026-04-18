@@ -123,6 +123,9 @@ public final class FluidloggedAPIConfig
     @Config.LangKey("configgui.fluidlogged_api.general.fixBadFluidMixing")
     public static boolean fixBadFluidMixing = true;
 
+    @Config.LangKey("configgui.fluidlogged_api.general.fluidStateRedstone")
+    public static boolean fluidStateEmitRedstone = true;
+
     @Config.LangKey("configgui.fluidlogged_api.general.fluidStateIsFireInsulator")
     public static boolean fluidStateIsFireInsulator = true;
 

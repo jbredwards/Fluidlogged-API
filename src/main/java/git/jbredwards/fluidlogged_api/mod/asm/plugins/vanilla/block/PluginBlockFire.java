@@ -19,6 +19,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import net.minecraft.block.material.Material;
@@ -28,7 +29,6 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
@@ -107,12 +107,12 @@ public final class PluginBlockFire implements IASMPlugin
             @Nonnull final FluidCache cache = new FluidCache(access, pos, 0, 0);
             @Nonnull final IBlockState state = cache.getBlockState(pos);
 
-            final boolean blockFlammable = state.getBlock().isFlammable(cache, pos, side);
+            final boolean blockFlammable = state.getBlock().isFlammable(access, pos, side);
             if(!blockFlammable) return false;
             else if(FluidloggedUtils.isFluid(state) || !FluidloggedAPIConfig.fluidStateIsFireInsulator) return true;
 
             @Nonnull final FluidState fluidState = cache.getFluidState(pos);
-            return fluidState == FluidState.EMPTY || fluidState.getMaterial() == Material.LAVA || fluidState.getBlock().isFlammable(cache, pos, side);
+            return fluidState == FluidState.EMPTY || fluidState.getMaterial() == Material.LAVA || fluidState.getBlock().isFlammable(access, pos, side);
         }
 
         @Nonnull
@@ -122,14 +122,14 @@ public final class PluginBlockFire implements IASMPlugin
         }
 
         public static int getFlammability(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing side) {
-            @Nonnull final Chunk chunk = world.getChunk(pos);
+            @Nonnull final ICubeData cube = ICubeData.get(world, pos);
 
-            @Nonnull final IBlockState state = chunk.getBlockState(pos);
+            @Nonnull final IBlockState state = cube.getBlockState(pos);
             final int blockFlammability = state.getBlock().getFlammability(world, pos, side);
             if(blockFlammability == 0) return 0;
 
             if(FluidloggedUtils.isFluid(state)) return blockFlammability;
-            @Nonnull final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
+            @Nonnull final FluidState fluidState = cube.getFluidState(pos);
             if(fluidState == FluidState.EMPTY || fluidState.getMaterial() == Material.LAVA) return blockFlammability;
 
             final int fluidFlammability = fluidState.getBlock().getFlammability(world, pos, side);
@@ -146,7 +146,7 @@ public final class PluginBlockFire implements IASMPlugin
                 @Nonnull final BlockPos offset = pos.offset(side);
                 @Nonnull final IBlockState state = cache.getBlockState(pos);
 
-                final int blockEncouragement = state.getBlock().getFireSpreadSpeed(cache, offset, side.getOpposite());
+                final int blockEncouragement = state.getBlock().getFireSpreadSpeed(world, offset, side.getOpposite());
                 if(blockEncouragement == 0) continue;
 
                 else if(FluidloggedUtils.isFluid(state)) {
@@ -160,7 +160,7 @@ public final class PluginBlockFire implements IASMPlugin
                     continue;
                 }
 
-                final int fluidEncouragement = fluidState.getBlock().getFireSpreadSpeed(cache, offset, side.getOpposite());
+                final int fluidEncouragement = fluidState.getBlock().getFireSpreadSpeed(world, offset, side.getOpposite());
                 if(fluidEncouragement == 0) {
                     if(!FluidloggedAPIConfig.fluidStateIsFireInsulator) maxEncouragement = Math.max(blockEncouragement, maxEncouragement);
                 }

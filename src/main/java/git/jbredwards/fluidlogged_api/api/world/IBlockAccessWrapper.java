@@ -128,13 +128,22 @@ public interface IBlockAccessWrapper extends IBlockAccess, IWorldChunkProvider
     @Nullable
     @Override
     default Chunk getChunk(final int chunkX, final int chunkZ) {
-        return getWrapped() instanceof IChunkProvider ? ((IChunkProvider)getWrapped()).getChunk(chunkX, chunkZ) : null;
+        @Nonnull final IBlockAccess wrapped = getWrapped();
+        return wrapped instanceof IChunkProvider ? ((IChunkProvider)wrapped).getChunk(chunkX, chunkZ) : null;
+    }
+
+    @Nonnull
+    @Override
+    default ICubeData getCubeData(final int chunkX, final int chunkY, final int chunkZ) {
+        @Nonnull final IBlockAccess wrapped = getWrapped();
+        return wrapped instanceof ICubeDataProvider ? ((ICubeDataProvider)wrapped).getCubeData(chunkX, chunkY, chunkZ) : ICubeData.EMPTY;
     }
 
     @Nonnull
     @Override
     default FluidState getFluidState(final int x, final int y, final int z) {
-        return getWrapped() instanceof IFluidStateProvider ? ((IFluidStateProvider)getWrapped()).getFluidState(x, y, z) : FluidState.EMPTY;
+        @Nonnull final IBlockAccess wrapped = getWrapped();
+        return wrapped instanceof IFluidStateProvider ? ((IFluidStateProvider)wrapped).getFluidState(x, y, z) : FluidState.EMPTY;
     }
 
     @Nonnull

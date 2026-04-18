@@ -19,12 +19,10 @@ package git.jbredwards.fluidlogged_api.mod.common.fluid.util;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
 import git.jbredwards.fluidlogged_api.api.world.IBlockAccessWrapper;
-import git.jbredwards.fluidlogged_api.api.world.IChunkProvider;
-import git.jbredwards.fluidlogged_api.api.world.IFluidStateProvider;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world.PluginWorld;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
+import git.jbredwards.fluidlogged_api.api.world.ICubeDataProvider;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -43,22 +41,10 @@ import javax.annotation.Nullable;
  */
 public class FluidCache extends IBlockAccessWrapper.Impl
 {
-    // @Nonnull
-    // public final IBlockState[] states;
+    @Nonnull public final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
+    @Nonnull protected final ICubeData[] cubes;
 
-    @Nonnull
-    protected final OptionalChunk[] chunks;
-    protected static final class OptionalChunk
-    {
-        @Nullable
-        public final Chunk chunk;
-        public OptionalChunk(@Nullable final Chunk chunkIn) { chunk = chunkIn; }
-    }
-
-    @Nonnull
-    public final BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
-    public final int minX, minY, minZ, maxX, maxY, maxZ, cMinX, cMinZ, cMaxX, cMaxZ;
-
+    public final int minX, minY, minZ, maxX, maxY, maxZ, cMinX, cMinY, cMinZ, cMaxX, cMaxY, cMaxZ;
     public FluidCache(@Nonnull final IBlockAccess accessIn, @Nonnull final Vec3i pos, final int radiusXZ, final int radiusY) {
         this(accessIn, pos.getX(), pos.getY(), pos.getZ(), radiusXZ, radiusY);
     }
@@ -77,12 +63,13 @@ public class FluidCache extends IBlockAccessWrapper.Impl
         maxZ = maxZIn;
 
         cMinX = minX >> 4;
+        cMinY = minY >> 4;
         cMinZ = minZ >> 4;
         cMaxX = maxX >> 4;
+        cMaxY = maxY >> 4;
         cMaxZ = maxZ >> 4;
 
-        // states = new IBlockState[(maxXIn - minXIn + 1) * (maxYIn - minYIn + 1) * (maxZIn - minZIn + 1)];
-        chunks = new OptionalChunk[(cMaxX - cMinX + 1) * (cMaxZ - cMinZ + 1)];
+        cubes = new ICubeData[(cMaxX - cMinX + 1) * (cMaxY - cMinY + 1) * (cMaxZ - cMinZ + 1)];
     }
 
     public FluidCache(@Nonnull final IBlockAccess accessIn, @Nonnull final AxisAlignedBB box) {
@@ -106,7 +93,7 @@ public class FluidCache extends IBlockAccessWrapper.Impl
 
     @Nonnull
     public FluidState getFluidOrReal(final int x, final int y, final int z) {
-        return FluidloggedUtils.getFluidState(wrapped, mutablePos.setPos(x, y, z));
+        return FluidloggedUtils.getFluidState(this, mutablePos.setPos(x, y, z));
     }
 
     @Nonnull
@@ -117,32 +104,34 @@ public class FluidCache extends IBlockAccessWrapper.Impl
 
     @Nonnull
     public IBlockState getBlockState(final int x, final int y, final int z) {
-        /*if(x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
-            final int index = (y - minY) * (maxZ - minZ + 1) * (maxX - minX + 1) + (z - minZ) * (maxX - minX + 1) + x - minX;
-            if(states[index] != null) return states[index];
-
-            @Nullable final Chunk chunk = getChunk(x >> 4, z >> 4);
-            return states[index] = (chunk != null ? chunk.getBlockState(x, y, z) : wrapped.getBlockState(mutablePos.setPos(x, y, z)));
-        }*/
-
-        @Nullable final Chunk chunk = getChunk(x >> 4, z >> 4);
-        return chunk != null ? chunk.getBlockState(x, y, z) : wrapped.getBlockState(mutablePos.setPos(x, y, z));
+        @Nonnull final ICubeData cube = getCubeData(x >> 4, y >> 4, z >> 4);
+        return cube != ICubeData.EMPTY ? cube.getBlockState(x, y, z) : super.getBlockState(mutablePos.setPos(x, y, z));
     }
 
     @Nullable
     @Override
     public Chunk getChunk(final int chunkX, final int chunkZ) {
-        if(chunkX < cMinX || chunkX > cMaxX || chunkZ < cMinZ || chunkZ > cMaxZ || !(wrapped instanceof IChunkProvider)) return null;
-        final int index = (chunkZ - cMinZ) * (cMaxX - cMinX + 1) + chunkX - cMinX;
-        return (chunks[index] != null ? chunks[index] : (chunks[index] = new OptionalChunk(((IChunkProvider)wrapped).getChunk(chunkX, chunkZ)))).chunk;
+        @Nullable final Chunk chunk = getCubeData(chunkX, cMinY, chunkZ).asChunk();
+        return chunk != null ? chunk : super.getChunk(chunkX, chunkZ);
+    }
+
+    @Nonnull
+    @Override
+    public ICubeData getCubeData(final int chunkX, final int chunkY, final int chunkZ) {
+        if(chunkX < cMinX || chunkX > cMaxX || chunkY < cMinY || chunkY > cMaxY || chunkZ < cMinZ || chunkZ > cMaxZ || !(wrapped instanceof ICubeDataProvider)) return ICubeData.EMPTY;
+        final int index = getCubeIndex(chunkX, chunkY, chunkZ);
+        return (cubes[index] != null ? cubes[index] : (cubes[index] = ((ICubeDataProvider)wrapped).getCubeData(chunkX, chunkY, chunkZ)));
+    }
+
+    protected int getCubeIndex(final int chunkX, final int chunkY, final int chunkZ) {
+        return (chunkY - cMinY) * (cMaxZ - cMinZ + 1) * (cMaxX - cMinX + 1) + (chunkZ - cMinZ) * (cMaxX - cMinX + 1) + chunkX - cMinX;
     }
 
     @Nonnull
     @Override
     public FluidState getFluidState(final int x, final int y, final int z) {
-        if(!(wrapped instanceof IFluidStateProvider)) return FluidState.EMPTY;
-        @Nullable final Chunk chunk = getChunk(x >> 4, z >> 4);
-        return chunk != null ? FluidState.getFromProvider(chunk, x, y, z) : ((IFluidStateProvider)wrapped).getFluidState(x, y, z);
+        @Nonnull final ICubeData cube = getCubeData(x >> 4, y >> 4, z >> 4);
+        return cube != ICubeData.EMPTY ? cube.getFluidState(x, y, z) : super.getFluidState(x, y, z);
     }
 
     @Nullable
@@ -153,22 +142,17 @@ public class FluidCache extends IBlockAccessWrapper.Impl
             @Nullable final TileEntity pending = world.getPendingTileEntityAt(pos);
             if(pending != null) return pending;
 
-            @Nullable final Chunk chunk = getChunk(pos);
-            return chunk != null ? chunk.getTileEntity(pos, Chunk.EnumCreateEntityType.IMMEDIATE) : null;
+            @Nonnull final ICubeData cube = getCubeData(pos);
+            return cube != ICubeData.EMPTY ? cube.getTileEntity(pos) : null;
         }
 
         else {
-            @Nullable final Chunk chunk = getChunk(pos);
-            if(chunk == null) return world.getPendingTileEntityAt(pos);
+            @Nonnull final ICubeData cube = getCubeData(pos);
+            if(cube == ICubeData.EMPTY) return world.getPendingTileEntityAt(pos);
 
-            @Nullable final TileEntity here = chunk.getTileEntity(pos, Chunk.EnumCreateEntityType.IMMEDIATE);
+            @Nullable final TileEntity here = cube.getTileEntity(pos);
             return here != null ? here : world.getPendingTileEntityAt(pos);
         }
-    }
-
-    @Override
-    public int getStrongPower(@Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
-        return PluginWorld.Hooks.getStrongPower(this, pos, direction);
     }
 
     @Override

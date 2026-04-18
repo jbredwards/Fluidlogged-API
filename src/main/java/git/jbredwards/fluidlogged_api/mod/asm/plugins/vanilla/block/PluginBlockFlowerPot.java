@@ -17,11 +17,10 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.block;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.util.Constants;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
@@ -65,9 +64,9 @@ public final class PluginBlockFlowerPot implements IASMPlugin
     public static final class Hooks
     {
         public static void setFlowerPotToAir(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState state) {
-            @Nonnull final Chunk chunk = world.getChunk(pos);
-            if(chunk.getBlockState(pos) == state) {
-                world.setBlockState(pos, FluidState.getFromProvider(chunk, pos).toFlowing().getState(),
+            @Nonnull final ICubeData cube = ICubeData.get(world, pos);
+            if(cube.getBlockState(pos) == state) {
+                world.setBlockState(pos, cube.getFluidState(pos).toFlowing().getState(),
                         world.isRemote ? Constants.BlockFlags.DEFAULT_AND_RERENDER : Constants.BlockFlags.DEFAULT);
             }
         }

@@ -20,6 +20,7 @@ import git.jbredwards.fluidlogged_api.api.fluid.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidFlowHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
 import net.minecraft.block.BlockLiquid;
@@ -28,7 +29,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
@@ -167,18 +167,18 @@ public final class PluginBlockFluidClassic implements IASMPlugin
 
         @Nullable
         public static FluidStack drain(@Nonnull IFluidBlock block, @Nonnull World world, @Nonnull BlockPos pos, boolean doDrain, @Nullable FluidStack stack) {
-            @Nonnull final Chunk chunk = world.getChunk(pos);
+            @Nonnull final ICubeData cube = ICubeData.get(world, pos);
             doDrain &= !world.isRemote; // prevent bucket desync
 
             // drain IBlockState
-            @Nonnull final IBlockState here = chunk.getBlockState(pos);
+            @Nonnull final IBlockState here = cube.getBlockState(pos);
             if(FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidFromState(here), block.getFluid())) {
                 if(doDrain) world.setBlockState(pos, Blocks.AIR.getDefaultState());
                 return here.getValue(BlockLiquid.LEVEL) > 0 ? null : stack == null ? new FluidStack(block.getFluid(), Fluid.BUCKET_VOLUME) : stack;
             }
 
             // drain FluidState
-            @Nonnull final FluidState fluidState = FluidState.getFromProvider(chunk, pos);
+            @Nonnull final FluidState fluidState = cube.getFluidState(pos);
             if(!FluidloggedUtils.isCompatibleFluid(fluidState.getFluid(), block.getFluid())) return null;
             else if(doDrain) FluidloggedUtils.setFluidState(world, pos, here, FluidState.EMPTY, false);
             return !fluidState.isSource() ? null : stack == null ? fluidState.createFluidStack() : stack.copy();
@@ -199,11 +199,11 @@ public final class PluginBlockFluidClassic implements IASMPlugin
             else if(doPlace && !world.isRemote) {
                 @Nonnull final FluidState fluidState = FluidState.of(defaultState).toFlowing();
 
-                @Nonnull final Chunk chunk = world.getChunk(pos);
-                @Nonnull final IBlockState here = chunk.getBlockState(pos);
+                @Nonnull final ICubeData cube = ICubeData.get(world, pos);
+                @Nonnull final IBlockState here = cube.getBlockState(pos);
 
                 // check that any existing FluidState is replaceable by the new one
-                @Nonnull final FluidState fluidHere = FluidloggedUtils.getFluidState(chunk, pos, here);
+                @Nonnull final FluidState fluidHere = FluidloggedUtils.getFluidState(cube, pos, here);
                 if(fluidHere.getFluid() == fluidState.getFluid() && fluidHere.getLevel() == fluidState.getLevel() || fluidHere.getBlock() instanceof IFluidloggableFluid
                 && !((IFluidloggableFluid)fluidHere.getBlock()).isReplaceableByOther(world, fluidHere, fluidState, true))
                     return Fluid.BUCKET_VOLUME;

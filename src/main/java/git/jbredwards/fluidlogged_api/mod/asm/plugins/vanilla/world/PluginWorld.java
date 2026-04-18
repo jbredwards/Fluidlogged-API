@@ -22,6 +22,7 @@ import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.fluid.IFluidloggableFluid;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
 import git.jbredwards.fluidlogged_api.api.world.IWorldProvider;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.IConfigFluidBox;
@@ -29,7 +30,6 @@ import git.jbredwards.fluidlogged_api.mod.asm.iface.IWaterHeight;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.FluidCache;
-import lumien.randomthings.handler.AsmHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -51,6 +51,7 @@ import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collections;
 
 /**
  * corrects a lot of FluidState related interactions
@@ -80,7 +81,6 @@ public final class PluginWorld implements IASMPlugin
 
         //changes some methods to use FluidloggedUtils#getFluidOrReal
         else if(checkMethod(method, obfuscated ? "func_72953_d" : "containsAnyLiquid", null)
-        || checkMethod(method, obfuscated ? "func_147470_e" : "isFlammableWithin", null)
         || checkMethod(method, obfuscated ? "func_175696_F" : "isWater", null))
             return 6;
 
@@ -91,6 +91,11 @@ public final class PluginWorld implements IASMPlugin
         else if(checkMethod(method, obfuscated ? "func_175721_c" : "getLight", "(Lnet/minecraft/util/math/BlockPos;Z)I")
         || method.name.equals(obfuscated ? "func_175705_a" : "getLightFromNeighborsFor"))
             return 8;
+
+        //allow FluidStates to output a redstone signal
+        else if(method.name.equals(obfuscated ? "func_175651_c" : "getRedstonePower")) return 10;
+        else if(checkMethod(method, obfuscated ? "func_175627_a" : "getStrongPower", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I"))
+            return 11;
 
         else if(method.name.equals(obfuscated ? "func_180500_c" : "checkLightFor")) return 9;
         return 0;
@@ -263,19 +268,19 @@ public final class PluginWorld implements IASMPlugin
          *
          * New code:
          * //account for FluidStates
-         * if (block == Blocks.FIRE || Hooks.isFlammableFluidWithin(block, this, blockpos$pooledmutableblockpos, bb))
+         * if (block == Blocks.FIRE || block == Blocks.FLOWING_LAVA || block == Hooks.isFlammableFluidWithin(Blocks.LAVA, block, this, blockpos$pooledmutableblockpos, bb))
          * {
          *     ...
          * }
          */
         else if(index == 7 && checkField(insn, obfuscated ? "field_150353_l" : "LAVA")) {
             final InsnList list = new InsnList();
+            list.add(insn.getPrevious().clone(Collections.emptyMap()));
             list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ALOAD, findLocal(method, "blockpos$pooledmutableblockpos", "Lnet/minecraft/util/math/BlockPos$PooledMutableBlockPos;").index));
             list.add(new VarInsnNode(ALOAD, 1));
-            list.add(genMethodNode("isFlammableFluidWithin", "(Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Z"));
+            list.add(genMethodNode("isFlammableFluidWithin", "(Lnet/minecraft/block/Block;Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Lnet/minecraft/block/Block;"));
             instructions.insert(insn, list);
-            removeFrom(instructions, insn, -3);
             return true;
         }
         /*
@@ -321,6 +326,39 @@ public final class PluginWorld implements IASMPlugin
                 instructions.remove(insn);
                 return true;
             }
+        }
+        /*
+         * getRedstonePower: (changes are around line 3558)
+         * Old code:
+         * return ... iblockstate1.getWeakPower(this, pos, facing);
+         *
+         * New code:
+         * // Allow FluidStates to output a redstone signal
+         * return ... Hooks.getRedstonePowerHook(iblockstate1.getWeakPower(this, pos, facing), iblockstate1, this, pos, facing);
+         */
+        else if(index == 10 && checkMethod(insn.getPrevious(), obfuscated ? "func_185911_a" : "getWeakPower")) {
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 3));
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 1));
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 2));
+            instructions.insertBefore(insn, genMethodNode("getRedstonePowerHook", "(ILnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I"));
+            return true;
+        }
+        /*
+         * getStrongPower: (changes are around line 3487)
+         * Old code:
+         * return this.getBlockState(pos).getStrongPower(this, pos, direction);
+         *
+         * New code:
+         * // Allow FluidStates to output a redstone signal
+         * return Hooks.getStrongPowerHook(this.getBlockState(pos).getStrongPower(this, pos, direction), this, pos, direction);
+         */
+        else if(index == 11 && checkMethod(insn.getPrevious(), obfuscated ? "func_185893_b" : "getStrongPower")) {
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 1));
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 2));
+            instructions.insertBefore(insn, genMethodNode("getStrongPowerHook", "(ILnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I"));
+            return true;
         }
 
         return false;
@@ -407,83 +445,6 @@ public final class PluginWorld implements IASMPlugin
             generator.visitVarInsn(ALOAD, 1);
             generator.visitMethodInsn(INVOKEVIRTUAL, "net/minecraft/block/Block", "isAir", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", false);
         });
-        /*
-         * getStrongPower:
-         * New code:
-         * // Allow FluidStates to output a redstone signal
-         * public int getStrongPower(BlockPos pos, EnumFacing direction)
-         * {
-         *     return Hooks.getStrongPower(this, pos, direction);
-         * }
-         */
-        overrideMethod(classNode, method -> checkMethod(method, obfuscated ? "func_175627_a" : "getStrongPower", "(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I"),
-            "getStrongPower", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitVarInsn(ALOAD, 1);
-                generator.visitVarInsn(ALOAD, 2);
-            }
-        );
-        /*
-         * getStrongPower:
-         * New code:
-         * // Allow FluidStates to output a redstone signal
-         * public int getStrongPower(BlockPos pos)
-         * {
-         *     return Hooks.getStrongPower(this, pos);
-         * }
-         */
-        overrideMethod(classNode, method -> checkMethod(method, obfuscated ? "func_175676_y" : "getStrongPower", "(Lnet/minecraft/util/math/BlockPos;)I"),
-            "getStrongPower", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitVarInsn(ALOAD, 1);
-            }
-        );
-        /*
-         * getRedstonePower:
-         * New code:
-         * // Allow FluidStates to output a redstone signal
-         * public int getRedstonePower(BlockPos pos, EnumFacing facing)
-         * {
-         *     return Hooks.getRedstonePower(this, pos, facing);
-         * }
-         */
-        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_175651_c" : "getRedstonePower"),
-            "getRedstonePower", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/EnumFacing;)I", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitVarInsn(ALOAD, 1);
-                generator.visitVarInsn(ALOAD, 2);
-            }
-        );
-        /*
-         * getRedstonePowerFromNeighbors:
-         * New code:
-         * // Allow FluidStates to output a redstone signal
-         * public int getRedstonePowerFromNeighbors(BlockPos pos)
-         * {
-         *     return Hooks.getRedstonePowerFromNeighbors(this, pos);
-         * }
-         */
-        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_175687_A" : "getRedstonePowerFromNeighbors"),
-            "getRedstonePowerFromNeighbors", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)I", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitVarInsn(ALOAD, 1);
-            }
-        );
-        /*
-         * isBlockPowered:
-         * New code:
-         * // Allow FluidStates to output a redstone signal
-         * public boolean isBlockPowered(BlockPos pos)
-         * {
-         *     return Hooks.isBlockPowered(this, pos);
-         * }
-         */
-        overrideMethod(classNode, method -> method.name.equals(obfuscated ? "func_175640_z" : "isBlockPowered"),
-            "isBlockPowered", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;)Z", generator -> {
-                generator.visitVarInsn(ALOAD, 0);
-                generator.visitVarInsn(ALOAD, 1);
-            }
-        );
 
         return true;
     }
@@ -590,9 +551,9 @@ public final class PluginWorld implements IASMPlugin
 
         public static int getRawLight(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EnumSkyBlock lightType) {
             if(lightType == EnumSkyBlock.SKY && world.canSeeSky(pos)) return 15;
-            final Chunk chunk = world.getChunk(pos);
-            final IBlockState state = chunk.getBlockState(pos);
-            final IBlockState fluidState = FluidState.getFromProvider(chunk, pos).getState();
+            final ICubeData cube = ICubeData.get(world, pos);
+            final IBlockState state = cube.getBlockState(pos);
+            final IBlockState fluidState = cube.getFluidState(pos).getState();
             int light = lightType == EnumSkyBlock.SKY ? 0 : FluidloggedAPI.isDynamicLights
                     ? DLHooks.getLightValue(state, world, pos, fluidState)
                     : Math.max(state.getLightValue(world, pos), fluidState.getLightValue(world, pos));
@@ -611,59 +572,17 @@ public final class PluginWorld implements IASMPlugin
             return light;
         }
 
-        public static int getRedstonePower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
-            if(FluidloggedAPI.isRandomThings) {
-                final int wireless = RTHooks.getRedstonePower(world, pos, direction);
-                if(wireless != 0) return wireless;
-            }
+        public static int getRedstonePowerHook(final int original, @Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
+            if(!FluidloggedAPIConfig.fluidStateEmitRedstone || original >= 15 || FluidloggedUtils.isFluid(state)) return original;
 
-            @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 3, 3) : world;
-            @Nonnull final IBlockState state = access.getBlockState(pos);
-            if(state.getBlock().shouldCheckWeakPower(state, access, pos, direction)) return getStrongPower(access, pos);
+            @Nonnull final IBlockState fluidState = FluidState.get(world, pos).getState();
+            if(fluidState.getBlock().shouldCheckWeakPower(fluidState, world, pos, direction)) return world.getStrongPower(pos);
 
-            @Nonnull final IBlockState fluidState = FluidState.get(access, pos).getState();
-            if(fluidState.getBlock().shouldCheckWeakPower(fluidState, access, pos, direction)) return getStrongPower(access, pos);
-            else return Math.max(state.getWeakPower(access, pos, direction), fluidState.getWeakPower(access, pos, direction));
+            else return Math.max(original, fluidState.getWeakPower(world, pos, direction));
         }
 
-        public static int getRedstonePowerFromNeighbors(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
-            @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 4, 4) : world;
-            @Nonnull final FluidState fluidState = FluidState.get(access, pos);
-
-            int currMax = fluidState.isEmpty() ? 0 : fluidState.getState().getWeakPower(access, pos, fluidState.getDownDensityFace());
-            if(currMax >= 15) return currMax;
-
-            else if((currMax = Math.max(currMax, getRedstonePower(access, pos.down(), EnumFacing.DOWN))) >= 15) return currMax;
-            else if((currMax = Math.max(currMax, getRedstonePower(access, pos.up(), EnumFacing.UP))) >= 15) return currMax;
-            else if((currMax = Math.max(currMax, getRedstonePower(access, pos.north(), EnumFacing.NORTH))) >= 15) return currMax;
-            else if((currMax = Math.max(currMax, getRedstonePower(access, pos.south(), EnumFacing.SOUTH))) >= 15) return currMax;
-            else if((currMax = Math.max(currMax, getRedstonePower(access, pos.west(), EnumFacing.WEST))) >= 15) return currMax;
-            else return Math.max(currMax, getRedstonePower(access, pos.east(), EnumFacing.EAST));
-        }
-
-        public static int getStrongPower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
-            @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 2, 2) : world;
-            @Nonnull final FluidState fluidState = FluidState.get(access, pos);
-
-            int currMax = fluidState.isEmpty() ? 0 : fluidState.getState().getStrongPower(access, pos, fluidState.getDownDensityFace());
-            if(currMax >= 15) return currMax;
-
-            else if((currMax = Math.max(currMax, getStrongPower(access, pos.down(), EnumFacing.DOWN))) >= 15) return currMax;
-            else if((currMax = Math.max(currMax, getStrongPower(access, pos.up(), EnumFacing.UP))) >= 15) return currMax;
-            else if((currMax = Math.max(currMax, getStrongPower(access, pos.north(), EnumFacing.NORTH))) >= 15) return currMax;
-            else if((currMax = Math.max(currMax, getStrongPower(access, pos.south(), EnumFacing.SOUTH))) >= 15) return currMax;
-            else if((currMax = Math.max(currMax, getStrongPower(access, pos.west(), EnumFacing.WEST))) >= 15) return currMax;
-            else return Math.max(currMax, getStrongPower(access, pos.east(), EnumFacing.EAST));
-        }
-
-        public static int getStrongPower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
-            if(FluidloggedAPI.isRandomThings) {
-                final int wireless = RTHooks.getStrongPower(world, pos, direction);
-                if(wireless != 0) return wireless;
-            }
-
-            @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 1, 1) : world;
-            return Math.max(access.getBlockState(pos).getStrongPower(access, pos, direction), FluidState.get(access, pos).getState().getStrongPower(access, pos, direction));
+        public static int getStrongPowerHook(final int original, @Nonnull final IBlockAccess access, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
+            return !FluidloggedAPIConfig.fluidStateEmitRedstone || original >= 15 ? original : Math.max(original, FluidState.get(access, pos).getState().getStrongPower(access, pos, direction));
         }
 
         public static boolean handleMaterialAcceleration(@Nonnull final World world, @Nonnull final AxisAlignedBB bb, @Nonnull final Material material, @Nonnull final Entity entity) {
@@ -813,23 +732,11 @@ public final class PluginWorld implements IASMPlugin
             }
         }
 
-        public static boolean isBlockPowered(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
-            @Nonnull final IBlockAccess access = world instanceof World ? new FluidCache(world, pos, 4, 4) : world;
-            @Nonnull final FluidState fluidState = FluidState.get(access, pos);
-
-            return !fluidState.isEmpty() && fluidState.getState().getWeakPower(access, pos, fluidState.getDownDensityFace()) > 0 ||
-                    0 < getRedstonePower(access, pos.down(), EnumFacing.DOWN) ||
-                    0 < getRedstonePower(access, pos.up(), EnumFacing.UP) ||
-                    0 < getRedstonePower(access, pos.north(), EnumFacing.NORTH) ||
-                    0 < getRedstonePower(access, pos.south(), EnumFacing.SOUTH) ||
-                    0 < getRedstonePower(access, pos.west(), EnumFacing.WEST) ||
-                    0 < getRedstonePower(access, pos.east(), EnumFacing.EAST);
-        }
-
-        public static boolean isFlammableFluidWithin(@Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
-            if(block.getDefaultState().getMaterial() == Material.LAVA) return Boolean.TRUE.equals(block.isAABBInsideLiquid(world, pos, bb));
+        @Nonnull
+        public static Block isFlammableFluidWithin(@Nonnull Block lava, @Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
+            if(block.getDefaultState().getMaterial() == Material.LAVA) return Boolean.TRUE.equals(block.isAABBInsideLiquid(world, pos, bb)) ? block : lava;
             final FluidState fluidState = FluidState.get(world, pos); //handle possible lava FluidState
-            return fluidState.getMaterial() == Material.LAVA && Boolean.TRUE.equals(fluidState.getBlock().isAABBInsideLiquid(world, pos, bb));
+            return fluidState.getMaterial() == Material.LAVA && Boolean.TRUE.equals(fluidState.getBlock().isAABBInsideLiquid(world, pos, bb)) ? block : lava;
         }
 
         public static boolean isMaterialInFluidBB(@Nonnull World world, @Nonnull AxisAlignedBB bb, @Nonnull Material materialIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
@@ -975,13 +882,42 @@ public final class PluginWorld implements IASMPlugin
 
         // helper
         public static boolean setBlockToAir(@Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState airState, final int blockFlags) {
-            @Nonnull final Chunk chunk = world.getChunk(pos);
-            if(world.isRemote && FluidloggedUtils.isFluid(chunk.getBlockState(pos))) return false; // prevents possible client desync
-            else return world.setBlockState(pos, FluidState.getFromProvider(chunk, pos).toFlowing().getState(), blockFlags | 32);
+            @Nonnull final ICubeData cube = ICubeData.get(world, pos);
+            if(world.isRemote && FluidloggedUtils.isFluid(cube.getBlockState(pos))) return false; // prevents possible client desync
+            else return world.setBlockState(pos, cube.getFluidState(pos).toFlowing().getState(), blockFlags | 32);
         }
 
         public static boolean useNeighborBrightness(@Nonnull World world, @Nonnull BlockPos pos) {
             return PluginChunkCache.Hooks.useNeighborBrightness(world, pos);
+        }
+
+        // ------------------------------------
+        // Old redstone overwrites, now unused.
+        // ------------------------------------
+
+        @Deprecated
+        public static int getRedstonePower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
+            return IWorldProvider.getWorld(world).getRedstonePower(pos, direction);
+        }
+
+        @Deprecated
+        public static int getRedstonePowerFromNeighbors(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
+            return IWorldProvider.getWorld(world).getRedstonePowerFromNeighbors(pos);
+        }
+
+        @Deprecated
+        public static int getStrongPower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
+            return IWorldProvider.getWorld(world).getStrongPower(pos);
+        }
+
+        @Deprecated
+        public static int getStrongPower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing direction) {
+            return IWorldProvider.getWorld(world).getStrongPower(pos, direction);
+        }
+
+        @Deprecated
+        public static boolean isBlockPowered(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
+            return IWorldProvider.getWorld(world).isBlockPowered(pos);
         }
     }
 
@@ -990,18 +926,6 @@ public final class PluginWorld implements IASMPlugin
     {
         public static int getLightValue(@Nonnull final IBlockState state, @Nonnull final World world, @Nonnull final BlockPos pos, @Nonnull final IBlockState fluidState) {
             return Math.max(DynamicLights.getLightValue(state.getBlock(), state, world, pos), fluidState.getLightValue(world, pos));
-        }
-    }
-
-    // hold RandomThings methods in separate class to avoid crash
-    public static final class RTHooks
-    {
-        public static int getRedstonePower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing facing) {
-            return AsmHandler.getRedstonePower(IWorldProvider.getWorld(world), pos, facing);
-        }
-
-        public static int getStrongPower(@Nonnull final IBlockAccess world, @Nonnull final BlockPos pos, @Nonnull final EnumFacing facing) {
-            return AsmHandler.getStrongPower(IWorldProvider.getWorld(world), pos, facing);
         }
     }
 }

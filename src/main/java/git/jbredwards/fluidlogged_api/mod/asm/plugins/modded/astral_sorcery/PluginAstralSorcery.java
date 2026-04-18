@@ -18,6 +18,7 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.astral_sorcery;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
 import git.jbredwards.fluidlogged_api.mod.common.config.FluidloggedAPIConfig;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidCollisionHandler;
 import net.minecraft.block.material.Material;
@@ -27,7 +28,6 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fluids.Fluid;
 import org.objectweb.asm.tree.*;
 
@@ -176,11 +176,11 @@ public final class PluginAstralSorcery implements IASMPlugin
             if(!isHereReplaceable || side == EnumFacing.DOWN || FluidloggedAPIConfig.fixBadFluidMixing && !FluidloggedUtils.canFluidFlow(world, pos, here, side)) return false;
 
             final BlockPos neighborPos = pos.offset(side);
-            final Chunk chunk = world.getChunk(neighborPos);
-            final IBlockState neighbor = chunk.getBlockState(neighborPos);
+            final ICubeData cube = ICubeData.get(world, neighborPos);
+            final IBlockState neighbor = cube.getBlockState(neighborPos);
 
             if(FluidloggedAPIConfig.fixBadFluidMixing && !FluidloggedUtils.canFluidFlow(world, neighborPos, neighbor, side.getOpposite())) return false;
-            final Fluid neighborFluid = FluidloggedUtils.getFluidState(chunk, neighborPos, neighbor).getFluid();
+            final Fluid neighborFluid = FluidloggedUtils.getFluidState(cube, neighborPos, neighbor).getFluid();
             return neighborFluid != null && !FluidloggedUtils.isCompatibleFluid(fluid, neighborFluid);
         }
 

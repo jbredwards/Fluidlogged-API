@@ -17,6 +17,7 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.vanilla.world;
 
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateContainer;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
 import git.jbredwards.fluidlogged_api.api.world.IFluidStatePrimer;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
@@ -29,12 +30,16 @@ import git.jbredwards.fluidlogged_api.mod.common.capability.cubicchunks.FluidSta
 import io.github.opencubicchunks.cubicchunks.api.world.IColumn;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * account for FluidState light opacity & light values
@@ -280,6 +285,7 @@ public final class PluginChunk implements IASMPlugin
          * Accessors
          * =========
          */
+        classNode.interfaces.add(getAccessorClass());
         classNode.interfaces.add("git/jbredwards/fluidlogged_api/mod/asm/iface/IHardcodedCapability");
         classNode.fields.add(new FieldNode(ACC_PUBLIC, "fluidStateCapability", "Lgit/jbredwards/fluidlogged_api/api/capability/IFluidStateCapability;", null, null));
         /*
@@ -320,7 +326,7 @@ public final class PluginChunk implements IASMPlugin
     {
         public static void createCapabilityInstance(@Nonnull final Chunk chunk) {
             // create hardcoded capability instance
-            final boolean cubic = FluidloggedAPI.isCubicChunks && CCHooks.isColumn(chunk) && CCHooks.isCubicWorld(chunk.getWorld());
+            final boolean cubic = FluidloggedAPI.isCubicChunks && CCHooks.isColumn(chunk);
             ((IHardcodedCapability)chunk).setFluidStateCapability(cubic ? new FluidStateCapabilityIColumn(chunk) : new FluidStateCapabilityVanilla(chunk.x, chunk.z));
         }
 
@@ -337,6 +343,13 @@ public final class PluginChunk implements IASMPlugin
                     }
                 }
             }
+        }
+
+        //helper
+        @Nonnull
+        public static ICubeData getCubeData(@Nonnull final Chunk chunk, final int chunkY) {
+            final boolean cubic = FluidloggedAPI.isCubicChunks && CCHooks.isColumn(chunk);
+            return cubic ? CCHooks.getCubeData(chunk, chunkY) : (ICubeData)chunk;
         }
 
         public static int getFluidLightOpacity(@Nonnull IBlockState state, @Nonnull Chunk chunk, int x, int y, int z) {
@@ -366,6 +379,40 @@ public final class PluginChunk implements IASMPlugin
         }
     }
 
+    @SuppressWarnings("unused")
+    public interface Accessor extends ICubeData, ICapabilityProvider
+    {
+        @Nonnull
+        @Override
+        default Chunk asChunk() {
+            return (Chunk)this;
+        }
+
+        @Nonnull
+        @Override
+        default IBlockState getBlockState(final int x, final int y, final int z) {
+            return asChunk().getBlockState(x, y, z);
+        }
+
+        @Nonnull
+        @Override
+        default FluidState getFluidState(final int x, final int y, final int z) {
+            return FluidState.getFromProvider(this, x, y, z);
+        }
+
+        @Nullable
+        @Override
+        default TileEntity getTileEntity(final int x, final int y, final int z) {
+            return getTileEntity(new BlockPos(x, y, z));
+        }
+
+        @Nullable
+        @Override
+        default TileEntity getTileEntity(@Nonnull final Vec3i pos) {
+            return asChunk().getTileEntity(pos instanceof BlockPos ? (BlockPos)pos : new BlockPos(pos), Chunk.EnumCreateEntityType.IMMEDIATE);
+        }
+    }
+
     //hold Cubic Chunks methods in separate class to avoid crash
     public static final class CCHooks
     {
@@ -375,6 +422,11 @@ public final class PluginChunk implements IASMPlugin
 
         public static boolean isCubicWorld(@Nonnull final World world) {
             return world instanceof ICubicWorld && ((ICubicWorld)world).isCubicWorld();
+        }
+
+        @Nonnull
+        private static ICubeData getCubeData(@Nonnull final Chunk chunk, final int chunkY) {
+            return (ICubeData)((IColumn)chunk).getCube(chunkY);
         }
     }
 }

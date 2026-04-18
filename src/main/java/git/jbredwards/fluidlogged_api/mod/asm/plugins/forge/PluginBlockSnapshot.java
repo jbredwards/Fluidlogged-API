@@ -19,11 +19,11 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.util.BlockSnapshot;
 import org.objectweb.asm.tree.*;
 
@@ -200,9 +200,9 @@ public final class PluginBlockSnapshot implements IASMPlugin
         @Nonnull
         public static BlockSnapshot getBlockSnapshot(@Nonnull final World world, @Nonnull final BlockPos pos) {
             gatheringFluids.set(Boolean.TRUE);
-            @Nonnull final Chunk chunk = world.getChunk(pos);
-            @Nonnull final BlockSnapshot snapshot = new BlockSnapshot(world, pos, chunk.getBlockState(pos));
-            ((Accessor)snapshot).setReplacedFluid(FluidState.getFromProvider(chunk, pos));
+            @Nonnull final ICubeData cube = ICubeData.get(world, pos);
+            @Nonnull final BlockSnapshot snapshot = new BlockSnapshot(world, pos, cube.getBlockState(pos));
+            ((Accessor)snapshot).setReplacedFluid(cube.getFluidState(pos));
             gatheringFluids.set(Boolean.FALSE);
             return snapshot;
         }
@@ -210,9 +210,9 @@ public final class PluginBlockSnapshot implements IASMPlugin
         @Nonnull
         public static BlockSnapshot getBlockSnapshot(@Nonnull final World world, @Nonnull final BlockPos pos, final int flags) {
             gatheringFluids.set(Boolean.TRUE);
-            @Nonnull final Chunk chunk = world.getChunk(pos);
-            @Nonnull final BlockSnapshot snapshot = new BlockSnapshot(world, pos, chunk.getBlockState(pos), flags);
-            ((Accessor)snapshot).setReplacedFluid(FluidState.getFromProvider(chunk, pos));
+            @Nonnull final ICubeData cube = ICubeData.get(world, pos);
+            @Nonnull final BlockSnapshot snapshot = new BlockSnapshot(world, pos, cube.getBlockState(pos), flags);
+            ((Accessor)snapshot).setReplacedFluid(cube.getFluidState(pos));
             gatheringFluids.set(Boolean.FALSE);
             return snapshot;
         }

@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
  * @author jbred
  *
  */
-public interface IChunkProvider extends IFluidStateProvider
+public interface IChunkProvider extends IFluidStateProvider, ICubeDataProvider
 {
     /**
      * @param chunkX X position of the chunk (chunk coords, not block coords).
@@ -54,7 +54,9 @@ public interface IChunkProvider extends IFluidStateProvider
      * @author jbred
      */
     @Nullable
-    default Chunk getChunk(@Nonnull final Vec3i pos) { return getChunk(pos.getX() >> 4, pos.getZ() >> 4); }
+    default Chunk getChunk(@Nonnull final Vec3i pos) {
+        return getChunk(pos.getX() >> 4, pos.getZ() >> 4);
+    }
 
     /**
      * @param x X position.
@@ -69,5 +71,20 @@ public interface IChunkProvider extends IFluidStateProvider
     @Override
     default FluidState getFluidState(final int x, final int y, final int z) {
         return FluidState.getFromProvider(getChunk(x >> 4, z >> 4), x, y, z);
+    }
+
+    /**
+     * @param chunkX X position of the cube (chunk coords, not block coords).
+     * @param chunkY Y position of the cube (chunk coords, not block coords).
+     * @param chunkZ Z position of the cube (chunk coords, not block coords).
+     * @return A 16x16x16 view of this IBlockAccess at the given chunk coords.
+     *
+     * @since 3.3.0
+     * @author jbred
+     */
+    @Nonnull
+    @Override
+    default ICubeData getCubeData(final int chunkX, final int chunkY, final int chunkZ) {
+        return ICubeData.getFromChunk(getChunk(chunkX, chunkZ), chunkY);
     }
 }

@@ -84,7 +84,6 @@ public final class FluidloggedAPI
             isDynamicLights        = Loader.isModLoaded("dynamiclights"),
             isGalacticraft         = Loader.isModLoaded("galacticraftcore"),
             isImmersiveEngineering = Loader.isModLoaded("immersiveengineering"),
-            isRandomThings         = Loader.isModLoaded("randomthings"),
             isSubaquatic           = Loader.isModLoaded("subaquatic");
 
     @Mod.EventHandler

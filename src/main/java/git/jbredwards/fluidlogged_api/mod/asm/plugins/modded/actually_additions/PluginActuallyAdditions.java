@@ -19,12 +19,12 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.actually_additions
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDirectional;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fluids.*;
 import org.objectweb.asm.tree.ClassNode;
 
@@ -75,10 +75,10 @@ public final class PluginActuallyAdditions implements IASMPlugin
             if(isPlacer) {
                 @Nullable final Block fluid = tank.getFluid().getFluid().getBlock();
                 if(fluid instanceof IFluidBlock) {
-                    @Nonnull final Chunk chunk = tile.getWorld().getChunk(offset);
-                    @Nonnull final IBlockState neighbor = chunk.getBlockState(offset);
+                    @Nonnull final ICubeData cube = ICubeData.get(tile.getWorld(), offset);
+                    @Nonnull final IBlockState neighbor = cube.getBlockState(offset);
                     if(!FluidloggedUtils.isFluid(neighbor)) {
-                        @Nonnull final FluidState neighborFluid = FluidState.getFromProvider(chunk, offset);
+                        @Nonnull final FluidState neighborFluid = cube.getFluidState(offset);
                         if(neighborFluid.isEmpty() && (neighbor.getBlock().isReplaceable(tile.getWorld(), offset)
                         || FluidloggedUtils.isStateFluidloggable(neighbor, tile.getWorld(), offset, FluidState.of(fluid)))) {
                             tank.drainInternal(((IFluidBlock)fluid).place(tile.getWorld(), offset, new FluidStack(tank.getFluid(), Fluid.BUCKET_VOLUME), true), true);

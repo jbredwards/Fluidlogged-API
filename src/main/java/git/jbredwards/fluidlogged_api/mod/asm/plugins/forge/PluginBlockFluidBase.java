@@ -19,7 +19,8 @@ package git.jbredwards.fluidlogged_api.mod.asm.plugins.forge;
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
-import git.jbredwards.fluidlogged_api.api.world.IChunkProvider;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
+import git.jbredwards.fluidlogged_api.api.world.ICubeDataProvider;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidExtendedStateHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.handler.FluidFlowHandler;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.ISpecializedFluidNeighborInfo;
@@ -31,13 +32,11 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fluids.BlockFluidBase;
 import net.minecraftforge.fluids.Fluid;
 import org.objectweb.asm.tree.*;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -429,12 +428,12 @@ public final class PluginBlockFluidBase implements IASMPlugin
             if(!FluidloggedUtils.canFluidFlow(world, pos, world.getBlockState(pos), facing)) return false;
 
             @Nonnull final BlockPos offset = pos.down(densityDir);
-            if(world instanceof IChunkProvider) {
-                @Nullable final Chunk chunk = ((IChunkProvider)world).getChunk(pos);
-                if(chunk != null) {
-                    @Nonnull final IBlockState state = chunk.getBlockState(offset);
+            if(world instanceof ICubeDataProvider) {
+                @Nonnull final ICubeData cube = ((ICubeDataProvider)world).getCubeData(offset);
+                if(cube != ICubeData.EMPTY) {
+                    @Nonnull final IBlockState state = cube.getBlockState(offset);
                     return FluidloggedUtils.canFluidFlow(world, offset, state, facing.getOpposite())
-                            && FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(chunk, offset, state).getFluid(), fluid);
+                            && FluidloggedUtils.isCompatibleFluid(FluidloggedUtils.getFluidState(cube, offset, state).getFluid(), fluid);
                 }
             }
 
