@@ -19,6 +19,7 @@ package git.jbredwards.fluidlogged_api.mod.common.fluid.handler;
 import com.google.common.collect.ImmutableMap;
 import git.jbredwards.fluidlogged_api.api.util.FluidState;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.IWorldProvider;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.IFluidNeighborInfo;
 import git.jbredwards.fluidlogged_api.mod.common.fluid.util.ISpecializedFluidNeighborInfo;
 import net.minecraft.block.BlockLiquid;
@@ -50,6 +51,8 @@ public final class FluidExtendedStateHandler
     public static IBlockState getExtendedState(@Nonnull final IBlockState renderState, @Nonnull final ISpecializedFluidNeighborInfo neighborInfo, @Nonnull final ToDoubleFunction<ISpecializedFluidNeighborInfo> flowDirection) {
         // should never pass, but let's be safe
         if(!(renderState instanceof IExtendedBlockState) || !neighborInfo.getOrigin().isValid()) return renderState;
+        final boolean isClient = FMLCommonHandler.instance().getSide().isClient();
+        if(isClient) if(IWorldProvider.getWorldClient() == null) return renderState;
 
         // convert to special state for performance
         @Nonnull final FluidExtendedBlockState state = new FluidExtendedBlockState((IExtendedBlockState)renderState);
@@ -82,7 +85,7 @@ public final class FluidExtendedStateHandler
 
         // only calculate client-side props if state is being gathered for rendering
         boolean calcFlowDirection = false;
-        if(FMLCommonHandler.instance().getSide().isClient() && MinecraftForgeClient.getRenderLayer() != null) {
+        if(isClient && MinecraftForgeClient.getRenderLayer() != null) {
             // don't calculate quads for sides that won't end up rendering anyway, this results in much better performance during rendering
             for(@Nonnull final EnumFacing side : EnumFacing.VALUES) state.shouldSideBeRenderedCache[side.getIndex()] = shouldFluidSideBeRendered(neighborInfo, side);
 
