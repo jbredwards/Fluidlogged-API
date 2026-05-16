@@ -17,8 +17,8 @@
 package git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.orelib;
 
 import git.jbredwards.fluidlogged_api.api.asm.IASMPlugin;
-import git.jbredwards.fluidlogged_api.api.util.FluidState;
-import git.jbredwards.fluidlogged_api.api.world.IFluidStateProvider;
+import git.jbredwards.fluidlogged_api.api.world.ICubeData;
+import git.jbredwards.fluidlogged_api.api.world.ICubeDataProvider;
 import org.objectweb.asm.tree.ClassNode;
 
 import javax.annotation.Nonnull;
@@ -36,18 +36,18 @@ public final class PluginOreLib implements IASMPlugin
 
     @Override
     public boolean transformClass(@Nonnull ClassNode classNode, boolean obfuscated) {
-        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/world/IFluidStateProvider");
+        classNode.interfaces.add("git/jbredwards/fluidlogged_api/api/world/ICubeDataProvider");
         /*
          * New code:
          * //allow OreLib's IBlockAccessEx to read FluidStates
          * @ASMGenerated
-         * public git.jbredwards.fluidlogged_api.api.util.FluidState getFluidState(int x, int y, int z)
+         * public git.jbredwards.fluidlogged_api.api.world.ICubeData getCubeData(int chunkX, int chunkY, int chunkZ)
          * {
-         *     return Hooks.getFluidState(this.cache, x, y, z);
+         *     return Hooks.getCubeData(this.cache, chunkX, chunkY, chunkZ);
          * }
          */
-        addMethod(classNode, "getFluidState", "(III)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;",
-            "getFluidState", "(Lgit/jbredwards/fluidlogged_api/api/world/IFluidStateProvider;III)Lgit/jbredwards/fluidlogged_api/api/util/FluidState;", generator -> {
+        addMethod(classNode, "getCubeData", "(III)Lgit/jbredwards/fluidlogged_api/api/world/ICubeData;",
+            "getCubeData", "(Lgit/jbredwards/fluidlogged_api/api/world/ICubeDataProvider;III)Lgit/jbredwards/fluidlogged_api/api/world/ICubeData;", generator -> {
                 generator.visitVarInsn(ALOAD, 0);
                 generator.visitFieldInsn(GETFIELD, classNode.name, useWorld ? "world" : "cache", useWorld ? "Lnet/minecraft/world/World;" : "Lnet/minecraft/world/ChunkCache;");
                 generator.visitVarInsn(ILOAD, 1);
@@ -63,8 +63,8 @@ public final class PluginOreLib implements IASMPlugin
     public static final class Hooks
     {
         @Nonnull
-        public static FluidState getFluidState(@Nullable final IFluidStateProvider provider, final int x, final int y, final int z) {
-            return provider == null ? FluidState.EMPTY : provider.getFluidState(x, y, z);
+        public static ICubeData getCubeData(@Nullable final ICubeDataProvider provider, final int chunkX, final int chunkY, final int chunkZ) {
+            return provider == null ? ICubeData.EMPTY : provider.getCubeData(chunkX, chunkY, chunkZ);
         }
     }
 }

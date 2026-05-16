@@ -48,6 +48,9 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cofhcore.PluginCoFH
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.crafttweaker.PluginCraftTweaker;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cubic_chunks.PluginCubicChunks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cubic_chunks.PluginICube;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dsurround.PluginBiomeUtil;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dsurround.PluginScanner;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dsurround.PluginStreamJetEffect;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dynamictrees.PluginBlockRootyWater;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dynamictrees.PluginModelRootyWater;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.endercore.PluginEnderCore;
@@ -289,7 +292,14 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.tropicraft.core.common.fluid.FluidTropicsWater", new PluginTropicraftFluid(false)); // fix issue#183
             plugins.put("openblocks.common.block.BlockSponge", new PluginOpenBlocks()); // make openblocks' sponge FluidState-sensitive
             plugins.put("org.cyclops.flopper.tileentity.TileFlopper", new PluginFlopper()); // make floppers account for FluidStates
+            plugins.put("org.orecruncher.dsurround.client.fx.JetEffect", new PluginStreamJetEffect()); // account for FluidStates when checking surrounding blocks
+            plugins.put("org.orecruncher.dsurround.client.fx.SteamJetEffect", new PluginStreamJetEffect()); // account for FluidStates and side solidity
             plugins.put("org.orecruncher.dsurround.client.handlers.effects.BreathEffect", new PluginFluidOrReal("getHeadBlock")); // make the underwater breathing effect account for FluidStates
+            plugins.put("org.orecruncher.dsurround.client.handlers.scanners.AlwaysOnBlockEffectScanner", new PluginScanner()); // also scan FluidStates
+            plugins.put("org.orecruncher.dsurround.client.handlers.scanners.RandomBlockEffectScanner", new PluginScanner()); // also scan FluidStates
+            plugins.put("org.orecruncher.dsurround.lib.scanner.CuboidScanner", new PluginScanner()); // also scan FluidStates
+            plugins.put("org.orecruncher.dsurround.lib.scanner.Scanner", new PluginScanner()); // also scan FluidStates
+            plugins.put("org.orecruncher.dsurround.registry.biome.BiomeUtil", new PluginBiomeUtil()); // account for FluidStates
             plugins.put("org.orecruncher.lib.chunk.DirectChunkCache", new PluginOreLib(true)); // allow OreLib's IBlockAccessEx to read FluidStates
             plugins.put("org.orecruncher.lib.chunk.PassThroughChunkCache", new PluginOreLib(false)); // allow OreLib's IBlockAccessEx to read FluidStates
             plugins.put("org.orecruncher.lib.WorldUtils", new PluginWorldUtils()); // make WorldUtils account for FluidStates

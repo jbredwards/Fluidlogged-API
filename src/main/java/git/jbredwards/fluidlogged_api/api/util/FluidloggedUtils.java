@@ -18,10 +18,12 @@ package git.jbredwards.fluidlogged_api.api.util;
 
 import git.jbredwards.fluidlogged_api.api.block.IFluidloggable;
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
+import git.jbredwards.fluidlogged_api.api.capability.IFluidStateContainer;
 import git.jbredwards.fluidlogged_api.api.event.FluidloggedEvent;
 import git.jbredwards.fluidlogged_api.api.fluid.ICompatibleFluid;
 import git.jbredwards.fluidlogged_api.api.network.MessageUtils;
 import git.jbredwards.fluidlogged_api.api.world.ICubeData;
+import git.jbredwards.fluidlogged_api.api.world.IFluidEventListener;
 import git.jbredwards.fluidlogged_api.api.world.IWorldProvider;
 import git.jbredwards.fluidlogged_api.mod.FluidloggedAPI;
 import git.jbredwards.fluidlogged_api.mod.asm.iface.ICanFluidFlowHandler;
@@ -397,10 +399,14 @@ public final class FluidloggedUtils
     public static void setFluidState_Internal(@Nonnull final World world, @Nonnull final Chunk chunk, @Nonnull final IBlockState here, @Nonnull final BlockPos pos, @Nonnull final FluidState fluidState, final boolean doRenderUpdate, final int blockFlags) {
         final @Nullable IFluidStateCapability cap = IFluidStateCapability.get(chunk);
         if(cap == null) throw new NullPointerException("There was a critical internal error involving the Fluidlogged API mod, notify the mod author!");
-        else if(world.isRemote) { if(!cap.getContainer(pos.getY()).setFluidState(pos, fluidState)) return; }
-        else {
-            if(!cap.getContainer(pos.getY()).setFluidState(pos, fluidState)) return;
-            else if((blockFlags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) // send changes to clients
+
+        @Nonnull final IFluidStateContainer container = cap.getContainer(pos.getY());
+        @Nonnull final FluidState prevFluidState = IFluidEventListener.LISTENERS.isEmpty() ? FluidState.EMPTY : container.getFluidState(pos, FluidState.EMPTY);
+
+        // set FluidState at the position, and notify clients
+        if(!container.setFluidState(pos, fluidState)) return;
+        else if(!world.isRemote) {
+            if((blockFlags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0) // send changes to clients
                 MessageUtils.sendToAllTracking(new SMessageSyncFluidState(pos, fluidState, doRenderUpdate), chunk, FluidloggedAPI.WRAPPER);
 
             fluidState.getBlock().onBlockAdded(world, pos, fluidState.getState());
@@ -409,6 +415,7 @@ public final class FluidloggedUtils
         // update blocks & fluids
         relightFluidBlock(world, pos, chunk, fluidState);
         world.markAndNotifyBlock(pos, chunk, here, here, blockFlags);
+        for(@Nonnull final IFluidEventListener listener : IFluidEventListener.LISTENERS) listener.notifyFluidUpdate(chunk, pos, prevFluidState, fluidState, blockFlags);
     }
 
     /**

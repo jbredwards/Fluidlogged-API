@@ -18,6 +18,7 @@ package git.jbredwards.fluidlogged_api.mod;
 
 import git.jbredwards.fluidlogged_api.api.capability.IFluidStateCapability;
 import git.jbredwards.fluidlogged_api.api.util.FluidloggedUtils;
+import git.jbredwards.fluidlogged_api.api.world.IFluidEventListener;
 import git.jbredwards.fluidlogged_api.mod.client.optifine.OptifineHelper;
 import git.jbredwards.fluidlogged_api.mod.common.capability.util.FluidStateStorage;
 import git.jbredwards.fluidlogged_api.mod.common.command.CommandFluidloggedAPI;
@@ -40,7 +41,9 @@ import net.minecraft.init.Items;
 import net.minecraftforge.client.resource.ISelectiveResourceReloadListener;
 import net.minecraftforge.client.resource.VanillaResourceType;
 import net.minecraftforge.common.ForgeModContainer;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.CapabilityManager;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.DispenseFluidContainer;
 import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.*;
@@ -53,6 +56,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.orecruncher.dsurround.event.BlockUpdateEvent;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -111,6 +115,11 @@ public final class FluidloggedAPI
     static void init(@Nonnull final FMLInitializationEvent event) {
         // fix certain weird lighting issues with fluidlogged blocks
         ForgeRegistries.BLOCKS.getValuesCollection().stream().filter(FluidloggedUtils::isFluid).forEach(b -> b.useNeighborBrightness = true);
+        // register FluidState listener for dynamic surroundings
+        if(Loader.isModLoaded("dsurround")) IFluidEventListener.LISTENERS.add((chunk, pos, oldState, newState, flags) -> {
+            if((flags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0 && (!chunk.getWorld().isRemote || (flags &  Constants.BlockFlags.NO_RERENDER) == 0) && chunk.isPopulated())
+                MinecraftForge.EVENT_BUS.post(new BlockUpdateEvent(chunk.getWorld(), pos, oldState.getState(), newState.getState(), flags));
+        });
         // register legacy to-FluidState adapters
         if(Loader.isModLoaded("dynamictrees")) DynamicTreesDataFixer.register(); // fix old dynamictrees "pseudo-fluidlogged" roots
         if(Loader.isModLoaded("tropicraft")) TropicraftDataFixer.register(); // fix old tropicraft "pseudo-fluidlogged" fences

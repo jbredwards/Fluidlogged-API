@@ -59,7 +59,7 @@ public interface ICubeData
 
         @Nullable
         @Override
-        public TileEntity getTileEntity(int x, int y, int z) { return null; }
+        public TileEntity getTileEntity(final int x, final int y, final int z) { return null; }
     };
 
     /**
