@@ -36,6 +36,7 @@ import net.minecraftforge.fluids.BlockFluidFinite;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 
 import javax.annotation.Nonnull;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.function.ToDoubleFunction;
@@ -50,12 +51,15 @@ public final class FluidExtendedStateHandler
     @Nonnull
     public static IBlockState getExtendedState(@Nonnull final IBlockState renderState, @Nonnull final ISpecializedFluidNeighborInfo neighborInfo, @Nonnull final ToDoubleFunction<ISpecializedFluidNeighborInfo> flowDirection) {
         // should never pass, but let's be safe
-        if(!(renderState instanceof IExtendedBlockState) || !neighborInfo.getOrigin().isValid()) return renderState;
-        final boolean isClient = FMLCommonHandler.instance().getSide().isClient();
-        if(isClient) if(IWorldProvider.getWorldClient() == null) return renderState;
+        if(!(renderState instanceof IExtendedBlockState)) return renderState;
 
         // convert to special state for performance
         @Nonnull final FluidExtendedBlockState state = new FluidExtendedBlockState((IExtendedBlockState)renderState);
+
+        // sanity checks
+        if(!neighborInfo.getOrigin().isValid()) return state.defaults();
+        final boolean isClient = FMLCommonHandler.instance().getSide().isClient();
+        if(isClient) if(IWorldProvider.getWorldClient() == null) return state.defaults();
 
         // corner height variables
         @Nonnull final float[][] heights = new float[4][4];
@@ -282,6 +286,14 @@ public final class FluidExtendedStateHandler
         public FluidExtendedBlockState(@Nonnull final IExtendedBlockState parentIn) {
             super(parentIn.getBlock(), parentIn.getProperties());
             parent = parentIn;
+        }
+
+        @Nonnull
+        private FluidExtendedBlockState defaults() {
+            Arrays.fill(levelCorners, FluidState.of(this).getQuantaFraction());
+            Arrays.fill(sideOverlays, Boolean.FALSE);
+            flowDirection = -1000f;
+            return this;
         }
 
         @SuppressWarnings("unchecked")
