@@ -18,6 +18,7 @@ package git.jbredwards.fluidlogged_api.mod.asm;
 
 import git.jbredwards.fluidlogged_api.api.asm.AbstractClassTransformer;
 import git.jbredwards.fluidlogged_api.api.asm.BasicLoadingPlugin;
+import git.jbredwards.fluidlogged_api.mod.asm.plugins.PluginFluidOrReal;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.forge.*;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.actually_additions.PluginActuallyAdditions;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.appliedenergistics2.PluginAE2;
@@ -47,7 +48,6 @@ import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cofhcore.PluginCoFH
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.crafttweaker.PluginCraftTweaker;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cubic_chunks.PluginCubicChunks;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.cubic_chunks.PluginICube;
-import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dsurround.PluginBreathEffect;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dynamictrees.PluginBlockRootyWater;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.dynamictrees.PluginModelRootyWater;
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.endercore.PluginEnderCore;
@@ -257,6 +257,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("micdoodle8.mods.galacticraft.core.blocks.BlockGrating", new PluginBlockGrating()); // make Galacticraft's grating block use actual fluidlogging, instead of pseudo fluidlogging
             plugins.put("micdoodle8.mods.galacticraft.core.util.FluidUtil", new PluginGalacticraft(true)); // make galacticraft fluid fog texture overlay rendering account for FluidStates
             plugins.put("micdoodle8.mods.galacticraft.core.GCBlocks", new PluginGCBlocks()); // don't register Galacticraft's water & lava grating blocks, so they can be remapped
+            plugins.put("micdoodle8.mods.galacticraft.planets.mars.client.fx.ParticleDrip", new PluginFluidOrReal("func_189213_a", "onUpdate")); // drip particles collide with FluidStates
             plugins.put("mod.chiselsandbits.chiseledblock.BlockChiseled", new PluginBlockChiseled()); // return null by default, to use built-in fluid collision logic for non-fluid chisel blocks
             plugins.put("mod.chiselsandbits.chiseledblock.ItemBlockChiseled", new PluginItemBlockChiseled(16)); // allow chisel blocks to be placed in replaceable blocks
             plugins.put("mod.chiselsandbits.network.packets.PacketChisel", new PluginItemBlockChiseled(18)); // allow chisel blocks to be placed in replaceable blocks
@@ -283,11 +284,12 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.tropicraft.core.common.block.BlockTropicraftFence", new PluginTropicraftFence()); // fixes for tropicraft fences
             plugins.put("net.tropicraft.core.common.block.BlockTropicraftSands", new PluginTropicraftSand()); // account for FluidStates
             plugins.put("net.tropicraft.core.common.block.BlockTropicsWater", new PluginTropicraftFluid(true)); // fix flow direction
+            plugins.put("net.tropicraft.core.common.entity.passive.EntityFishHook", new PluginEntityFishHook()); // fishhook entities generate the fishing particles at water FluidStates
             plugins.put("net.tropicraft.core.common.event.ItemEvents", new PluginTropicraftBucket()); // account for FluidStates
             plugins.put("net.tropicraft.core.common.fluid.FluidTropicsWater", new PluginTropicraftFluid(false)); // fix issue#183
             plugins.put("openblocks.common.block.BlockSponge", new PluginOpenBlocks()); // make openblocks' sponge FluidState-sensitive
             plugins.put("org.cyclops.flopper.tileentity.TileFlopper", new PluginFlopper()); // make floppers account for FluidStates
-            plugins.put("org.orecruncher.dsurround.client.handlers.effects.BreathEffect", new PluginBreathEffect()); // make the underwater breathing effect account for FluidStates
+            plugins.put("org.orecruncher.dsurround.client.handlers.effects.BreathEffect", new PluginFluidOrReal("getHeadBlock")); // make the underwater breathing effect account for FluidStates
             plugins.put("org.orecruncher.lib.chunk.DirectChunkCache", new PluginOreLib(true)); // allow OreLib's IBlockAccessEx to read FluidStates
             plugins.put("org.orecruncher.lib.chunk.PassThroughChunkCache", new PluginOreLib(false)); // allow OreLib's IBlockAccessEx to read FluidStates
             plugins.put("org.orecruncher.lib.WorldUtils", new PluginWorldUtils()); // make WorldUtils account for FluidStates
@@ -347,7 +349,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.client.entity.EntityPlayerSP", new PluginEntityPlayerSP()); // disable sprint while in water
             plugins.put("net.minecraft.client.multiplayer.WorldClient", new PluginWorldClient()); // non-empty FluidStates call randomDisplayTick & move hardcoded barrier stuff to barrier.randomDisplayTick
             plugins.put("net.minecraft.client.particle.ParticleBubble", new PluginWaterParticles()); // this doesn't instantly disappear while inside water FluidStates
-            plugins.put("net.minecraft.client.particle.ParticleDrip", new PluginWaterParticles()); // this doesn't instantly disappear while inside water FluidStates
+            plugins.put("net.minecraft.client.particle.ParticleDrip", new PluginFluidOrReal("func_189213_a", "onUpdate")); // drip particles collide with FluidStates
             plugins.put("net.minecraft.client.particle.ParticleRain", new PluginParticleRain()); // fix all fluid-related rain collisions
             plugins.put("net.minecraft.client.particle.ParticleSuspend", new PluginWaterParticles()); // this doesn't instantly disappear while inside water FluidStates
             plugins.put("net.minecraft.client.renderer.chunk.RenderChunk", new PluginRenderChunk()); // allows the game to render FluidStates
