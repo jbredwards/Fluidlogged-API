@@ -49,7 +49,7 @@ public final class PluginWaterParticles implements IASMPlugin
          *
          * New code:
          * //this particle doesn't disappear while within a water FluidState
-         * if (Hooks.getFluidMaterial(this.world, new BlockPos(this.posX, this.posY, this.posZ), this.posY).getMaterial() != Material.WATER)
+         * if (Hooks.getFluidMaterial(this.world, new BlockPos(this.posX, this.posY, this.posZ), this.posY, this.height).getMaterial() != Material.WATER)
          * {
          *     ...
          * }
@@ -57,7 +57,9 @@ public final class PluginWaterParticles implements IASMPlugin
         if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState", null)) {
             instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
             instructions.insertBefore(insn, new FieldInsnNode(GETFIELD, "net/minecraft/client/particle/Particle", obfuscated ? "field_187127_g" : "posY", "D"));
-            instructions.insertBefore(insn, genMethodNode( "getFluidMaterial", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;D)Lnet/minecraft/block/state/IBlockState;"));
+            instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
+            instructions.insertBefore(insn, new FieldInsnNode(GETFIELD, "net/minecraft/client/particle/Particle", obfuscated ? "field_187135_o" : "height", "F"));
+            instructions.insertBefore(insn, genMethodNode( "getFluidMaterial", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;DF)Lnet/minecraft/block/state/IBlockState;"));
             instructions.remove(insn);
             return true;
         }
@@ -69,8 +71,8 @@ public final class PluginWaterParticles implements IASMPlugin
     public static final class Hooks
     {
         @Nonnull
-        public static IBlockState getFluidMaterial(@Nonnull final IBlockAccess access, @Nonnull final BlockPos pos, final double posY) {
-            return (FluidCollisionHandler.isYWithinMaterialEstimate(access, pos, posY, posY, Material.WATER) ? Blocks.WATER : Blocks.AIR).getDefaultState();
+        public static IBlockState getFluidMaterial(@Nonnull final IBlockAccess access, @Nonnull final BlockPos pos, final double posY, final float height) {
+            return (FluidCollisionHandler.isYWithinMaterialEstimate(access, pos, posY, posY + height, Material.WATER) ? Blocks.WATER : Blocks.AIR).getDefaultState();
         }
     }
 }
