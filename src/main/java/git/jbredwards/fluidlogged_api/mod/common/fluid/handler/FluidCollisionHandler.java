@@ -170,8 +170,8 @@ public final class FluidCollisionHandler
     }
 
     public static double applyQolOffset(final double fluidHeight) {
-        final double qolOffset = 0.015; // move the level to check down slightly, so things like lava next to soul sand don't light players on fire
-        return (int)fluidHeight == fluidHeight ? fluidHeight : fluidHeight - qolOffset;
+        final double maxHeight = 0.875; // move the level to check down slightly, so things like lava next to soul sand don't light players on fire
+        return fluidHeight == 1 ? 1 : Math.min(fluidHeight, maxHeight);
     }
 
     public static float getFilledPercentage(@Nonnull final FluidState state, @Nonnull final IBlockAccess world, @Nonnull final BlockPos pos) {
