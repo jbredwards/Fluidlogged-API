@@ -813,7 +813,7 @@ public final class PluginWorld implements IASMPlugin
 
         public static boolean setBlockToAir(@Nonnull final Chunk chunk, @Nonnull final BlockPos pos, final int blockFlags) {
             @Nonnull final ICubeData cube = ICubeData.getFromChunk(chunk, pos);
-            if(chunk.getWorld().isRemote && FluidloggedUtils.isFluid(cube.getBlockState(pos))) return false; // prevents possible client desync
+            if(chunk.getWorld().isRemote && FluidloggedUtils.isFluid(cube.getBlockState(pos))) return true; // prevents possible client desync
             else return chunk.getWorld().setBlockState(pos, cube.getFluidState(pos).toFlowing().getState(), blockFlags | 32);
         }
 
