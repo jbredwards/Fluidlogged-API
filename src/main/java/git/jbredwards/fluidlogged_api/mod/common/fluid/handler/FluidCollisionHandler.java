@@ -152,7 +152,7 @@ public final class FluidCollisionHandler
 
     static boolean isYWithinFluid(@Nullable final Fluid fluid, @Nonnull final BlockPos pos, final double minY, final double maxY, final double fluidHeight, final boolean checkCache) {
         final boolean gas = fluid != null && fluid.isLighterThanAir();
-        final boolean isWithin = gas ? maxY > pos.getY() + 1 - fluidHeight && minY < pos.getY() + 1 : minY < pos.getY() + fluidHeight && maxY > pos.getY();
+        final boolean isWithin = gas ? maxY > pos.getY() + 1 - fluidHeight && minY <= pos.getY() + 1 : minY <= pos.getY() + fluidHeight && maxY > pos.getY();
 
         if(!isWithin) return false;
         else if(checkCache && FluidloggedAPIConfig.ignoreLowFluidCollision) {
