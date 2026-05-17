@@ -259,27 +259,20 @@ public final class PluginWorld implements IASMPlugin
             return true;
         }
         /*
-         * isFlammableWithin: (changes are around line 2379)
+         * isFlammableWithin: (changes are around line 2377)
          * Old code:
-         * if (block == Blocks.FIRE || block == Blocks.FLOWING_LAVA || block == Blocks.LAVA)
-         * {
-         *     ...
-         * }
+         * Block block = this.getBlockState(blockpos$pooledmutableblockpos.setPos(l3, i4, j4)).getBlock();
          *
          * New code:
          * //account for FluidStates
-         * if (block == Blocks.FIRE || block == Blocks.FLOWING_LAVA || block == Hooks.isFlammableFluidWithin(Blocks.LAVA, block, this, blockpos$pooledmutableblockpos, bb))
-         * {
-         *     ...
-         * }
+         * Block block = Hooks.isFlammableFluidWithin(this.getBlockState(blockpos$pooledmutableblockpos.setPos(l3, i4, j4)), this, blockpos$pooledmutableblockpos, bb).getBlock();
          */
-        else if(index == 7 && checkField(insn, obfuscated ? "field_150353_l" : "LAVA")) {
+        else if(index == 7 && checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
             final InsnList list = new InsnList();
-            list.add(insn.getPrevious().clone(Collections.emptyMap()));
             list.add(new VarInsnNode(ALOAD, 0));
             list.add(new VarInsnNode(ALOAD, findLocal(method, "blockpos$pooledmutableblockpos", "Lnet/minecraft/util/math/BlockPos$PooledMutableBlockPos;").index));
             list.add(new VarInsnNode(ALOAD, 1));
-            list.add(genMethodNode("isFlammableFluidWithin", "(Lnet/minecraft/block/Block;Lnet/minecraft/block/Block;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Lnet/minecraft/block/Block;"));
+            list.add(genMethodNode("isFlammableFluidWithin", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/AxisAlignedBB;)Lnet/minecraft/block/state/IBlockState;"));
             instructions.insert(insn, list);
             return true;
         }
@@ -733,10 +726,13 @@ public final class PluginWorld implements IASMPlugin
         }
 
         @Nonnull
-        public static Block isFlammableFluidWithin(@Nonnull Block lava, @Nonnull Block block, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
-            if(block.getDefaultState().getMaterial() == Material.LAVA) return Boolean.TRUE.equals(block.isAABBInsideLiquid(world, pos, bb)) ? block : lava;
+        public static IBlockState isFlammableFluidWithin(@Nonnull IBlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull AxisAlignedBB bb) {
+            if(state.getBlock() == Blocks.FIRE) return state;
+            else if(FluidCollisionHandler.isAABBInsideMaterial(state, world, pos, bb, Material.LAVA)) return Blocks.FIRE.getDefaultState();
+            else if(state.getBlock().isAir(state, world, pos) || FluidloggedUtils.isFluid(state)) return Blocks.AIR.getDefaultState();
+
             final FluidState fluidState = FluidState.get(world, pos); //handle possible lava FluidState
-            return fluidState.getMaterial() == Material.LAVA && Boolean.TRUE.equals(fluidState.getBlock().isAABBInsideLiquid(world, pos, bb)) ? block : lava;
+            return FluidCollisionHandler.isAABBInsideMaterial(fluidState.getState(), world, pos, bb, Material.LAVA) ? Blocks.FIRE.getDefaultState() : state;
         }
 
         public static boolean isMaterialInFluidBB(@Nonnull World world, @Nonnull AxisAlignedBB bb, @Nonnull Material materialIn, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
@@ -744,17 +740,7 @@ public final class PluginWorld implements IASMPlugin
                 for(int y = minY; y < maxY; ++y) {
                     for(int z = minZ; z < maxZ; ++z) {
                         final BlockPos pos = new BlockPos(x, y, z);
-                        final FluidState fluidState = FluidState.get(world, pos);
-
-                        if(!fluidState.isEmpty()) {
-                            @Nullable Boolean result = fluidState.getBlock().isAABBInsideMaterial(world, pos, bb, materialIn);
-                            if(result != null) {
-                                if(!result) continue;
-                                return true;
-                            }
-                            else if(fluidState.getMaterial() == materialIn)
-                                return true;
-                        }
+                        if(FluidCollisionHandler.isAABBInsideMaterial(FluidState.get(world, pos).getState(), world, pos, bb, materialIn)) return true;
                     }
                 }
             }

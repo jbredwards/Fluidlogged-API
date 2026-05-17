@@ -190,10 +190,14 @@ public final class FluidCollisionHandler
 
         if(!(fluidState.getBlock() instanceof IFluidBlock)) {
             @Nonnull final AxisAlignedBB bb = new AxisAlignedBB(pos.getX(), minY, pos.getZ(), pos.getX() + 1, maxY, pos.getZ() + 1);
-            @Nullable final Boolean ret = fluidState.getBlock().isAABBInsideMaterial(IWorldProvider.getWorld(world), pos, bb, target);
-            return ret == null ? fluidState.getMaterial() == target : ret;
+            return isAABBInsideMaterial(fluidState, world, pos, bb, target);
         }
 
         return fluidState.getMaterial() == target && isYWithinFluidEstimate(access, pos, minY, maxY, fluidState, false);
+    }
+
+    public static boolean isAABBInsideMaterial(@Nonnull final IBlockState state, @Nonnull final IBlockAccess access, @Nonnull final BlockPos pos, @Nonnull final AxisAlignedBB bb, @Nonnull final Material material) {
+        @Nullable final Boolean ret = state.getBlock().isAABBInsideMaterial(IWorldProvider.getWorld(access), pos, bb, material);
+        return ret == null ? state.getMaterial() == material : ret;
     }
 }
