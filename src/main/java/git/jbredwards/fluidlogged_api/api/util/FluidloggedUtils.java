@@ -510,8 +510,6 @@ public final class FluidloggedUtils
      * @author jbred
      */
     public static boolean canFluidFlow(@Nonnull final IBlockAccess access, @Nonnull BlockPos pos, @Nonnull final IBlockState here, @Nonnull final EnumFacing side) {
-        pos = pos.toImmutable(); // this is dumb, but without it corner rendering breaks for some reason
-
         // config override
         @Nonnull final IBlockState actualState = here.getActualState(access, pos);
         @Nullable final ICanFluidFlowHandler override = ICanFluidFlowHandler.Accessor.getOverride(actualState);

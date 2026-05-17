@@ -84,12 +84,6 @@ public interface IFluidNeighborInfo extends IBlockAccessWrapper
     @Override
     default IBlockAccess getWrapped() { return getCache(); }
 
-    //@Nonnull
-    //Boolean[] getCanFluidFlow();
-
-    //@Nonnull
-    //Boolean[] getIsCompatibleFluid();
-
     // ------------------------
     // index-relative functions
     // ------------------------
@@ -105,19 +99,17 @@ public interface IFluidNeighborInfo extends IBlockAccessWrapper
     }
 
     default boolean canFluidConnectI(final int xi, final int yi, final int zi, @Nonnull final EnumFacing side) {
-        return FluidloggedUtils.canFluidConnect(getCache(), getPosIB(xi, yi, zi), getCache().getBlockState(getCache().mutablePos), side);
+        @Nonnull final BlockPos pos = new BlockPos(getXIB(xi), getYIB(yi), getZIB(zi)); // this is dumb, but without it corner rendering breaks for some reason
+        return FluidloggedUtils.canFluidConnect(getCache(), pos, getCache().getBlockState(pos), side);
     }
 
     default boolean canFluidFlowI(final int xi, final int yi, final int zi, @Nonnull final EnumFacing side) {
-        /*final int index = side.getIndex() * getIsCompatibleFluid().length + getCache().getIndexI(xi, yi, zi);
-        return getCanFluidFlow()[index] != null ? getCanFluidFlow()[index] : (getCanFluidFlow()[index] =*/ return
-                FluidloggedUtils.canFluidFlow(getCache(), getPosIB(xi, yi, zi), getCache().getBlockState(getCache().mutablePos), side);//);
+        @Nonnull final BlockPos pos = new BlockPos(getXIB(xi), getYIB(yi), getZIB(zi)); // this is dumb, but without it corner rendering breaks for some reason
+        return FluidloggedUtils.canFluidFlow(getCache(), pos, getCache().getBlockState(pos), side);
     }
 
     default boolean isCompatibleFluidI(final int xi, final int yi, final int zi) {
-        /*final int index = getCache().getIndexI(xi, yi, zi);
-        return getIsCompatibleFluid()[index] != null ? getIsCompatibleFluid()[index] : (getIsCompatibleFluid()[index] =*/ return
-                FluidloggedUtils.isCompatibleFluid(getOrigin(), getFluidStateI(xi, yi, zi));//);
+        return FluidloggedUtils.isCompatibleFluid(getOrigin(), getFluidStateI(xi, yi, zi));
     }
 
     // -------------------------
