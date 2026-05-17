@@ -78,6 +78,19 @@ public interface ICubeData
 
     /**
      * @param chunk Chunk.
+     * @param pos Position.
+     * @return A 16x16x16 cube that's aligned with the provided chunk.
+     *
+     * @since 3.3.0
+     * @author jbred
+     */
+    @Nonnull
+    static ICubeData getFromChunk(@Nullable final Chunk chunk, @Nonnull final Vec3i pos) {
+        return getFromChunk(chunk, pos.getY() >> 4);
+    }
+
+    /**
+     * @param chunk Chunk.
      * @param chunkY Y position of the cube (chunk coords, not block coords).
      * @return A 16x16x16 cube that's aligned with the provided chunk.
      *

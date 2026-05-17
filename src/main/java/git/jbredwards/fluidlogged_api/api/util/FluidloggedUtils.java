@@ -123,7 +123,7 @@ public final class FluidloggedUtils
      */
     @Nonnull
     public static FluidState getFluidState(@Nonnull final Chunk chunk, @Nonnull final BlockPos pos) {
-        return getFluidState(ICubeData.getFromChunk(chunk, pos.getY() >> 4), pos);
+        return getFluidState(ICubeData.getFromChunk(chunk, pos.getY()), pos);
     }
 
     /**
@@ -223,7 +223,7 @@ public final class FluidloggedUtils
      */
     @Nonnull
     public static IBlockState getFluidOrReal(@Nonnull final Chunk chunk, @Nonnull final BlockPos pos) {
-        return getFluidOrReal(ICubeData.getFromChunk(chunk, pos.getY() >> 4), pos);
+        return getFluidOrReal(ICubeData.getFromChunk(chunk, pos.getY()), pos);
     }
 
     /**
