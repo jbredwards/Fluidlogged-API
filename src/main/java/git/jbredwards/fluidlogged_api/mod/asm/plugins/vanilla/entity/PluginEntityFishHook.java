@@ -35,7 +35,6 @@ public final class PluginEntityFishHook extends PluginFluidOrReal
          * //account for FluidStates
          * IBlockState iblockstate = FluidloggedUtils.getFluidOrReal(this.world, blockpos);
          */
-        super("func_70071_h_", "onUpdate", "func_190621_a", "catchingFish");
-        onlyFirst = false;
+        super(false, "func_70071_h_", "onUpdate", "func_190621_a", "catchingFish");
     }
 }

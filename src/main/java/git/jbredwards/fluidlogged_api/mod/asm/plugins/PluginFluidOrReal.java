@@ -32,9 +32,13 @@ public class PluginFluidOrReal implements IASMPlugin
 {
     @Nonnull
     private final String[] names;
-    protected boolean onlyFirst = true;
+    protected final boolean onlyFirst;
 
-    public PluginFluidOrReal(@Nonnull final String... namesIn) { names = namesIn; }
+    public PluginFluidOrReal(@Nonnull final String... namesIn) { this(true, namesIn); }
+    public PluginFluidOrReal(final boolean onlyFirstIn, @Nonnull final String... namesIn) {
+        onlyFirst = onlyFirstIn;
+        names = namesIn;
+    }
 
     @Override
     public boolean isMethodValid(@Nonnull final MethodNode method, final boolean obfuscated) {

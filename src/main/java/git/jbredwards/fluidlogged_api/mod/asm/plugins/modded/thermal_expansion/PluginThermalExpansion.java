@@ -40,7 +40,6 @@ public final class PluginThermalExpansion extends PluginFluidOrReal
          * // Account for FluidStates.
          * IBlockState state = FluidloggedUtils.getFluidOrReal(this.world, this.pos);
          */
-        super("updateValidity");
-        onlyFirst = false;
+        super(false, "updateValidity");
     }
 }
