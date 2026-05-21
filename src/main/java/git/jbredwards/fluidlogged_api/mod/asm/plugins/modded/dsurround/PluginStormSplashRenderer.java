@@ -82,7 +82,7 @@ public final class PluginStormSplashRenderer implements IASMPlugin
     {
         public static double fixParticleY(@Nonnull final IBlockState state, @Nonnull final IBlockAccess access, @Nonnull final BlockPos pos) {
             @Nonnull final FluidState fluidState = FluidState.of(state);
-            return 1 - (fluidState.isEmpty() ? state.getBoundingBox(access, pos).maxY : fluidState.getHeight());
+            return 1 - (fluidState.isEmpty() ? state.getBoundingBox(access, pos).maxY : (fluidState.getHeight() + 0.1f));
         }
 
         @Nonnull

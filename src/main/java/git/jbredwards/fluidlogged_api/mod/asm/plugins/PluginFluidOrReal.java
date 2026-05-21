@@ -31,19 +31,21 @@ import javax.annotation.Nonnull;
 public class PluginFluidOrReal implements IASMPlugin
 {
     @Nonnull
-    private final String[] names;
-    protected final boolean onlyFirst;
+    protected final String[] names;
+    protected final boolean onlyFirst, anyObf;
 
-    public PluginFluidOrReal(@Nonnull final String... namesIn) { this(true, namesIn); }
-    public PluginFluidOrReal(final boolean onlyFirstIn, @Nonnull final String... namesIn) {
+    public PluginFluidOrReal(@Nonnull final String... namesIn) { this(true, true, namesIn); }
+    public PluginFluidOrReal(final boolean onlyFirstIn, final boolean anyObfIn, @Nonnull final String... namesIn) {
         onlyFirst = onlyFirstIn;
+        anyObf = anyObfIn;
         names = namesIn;
     }
 
     @Override
     public boolean isMethodValid(@Nonnull final MethodNode method, final boolean obfuscated) {
         if(names.length == 1) return method.name.equals(names[0]);
-        for(int i = obfuscated ? 0 : 1; i < names.length; i += 2) if(method.name.equals(names[i])) return true;
+        else if(anyObf) { for(int i = obfuscated ? 0 : 1; i < names.length; i += 2) if(method.name.equals(names[i])) return true; }
+        else for(@Nonnull final String name : names) if(method.name.equals(name)) return true;
         return false;
     }
 
