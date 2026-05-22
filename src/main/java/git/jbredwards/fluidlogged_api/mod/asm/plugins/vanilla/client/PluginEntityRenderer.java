@@ -84,7 +84,7 @@ public final class PluginEntityRenderer implements IASMPlugin
              *
              * New code:
              * //replace old height with better one
-             * AxisAlignedBB axisalignedbb = Hooks/fixRainCollision(iblockstate, world, blockpos2);
+             * AxisAlignedBB axisalignedbb = Hooks.fixRainCollision(iblockstate, world, blockpos2);
              */
             if(checkMethod(insn, obfuscated ? "func_185900_c" : "getBoundingBox")) {
                 instructions.insert(insn, genMethodNode("fixRainCollision", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/util/math/AxisAlignedBB;"));
@@ -181,10 +181,10 @@ public final class PluginEntityRenderer implements IASMPlugin
         @Nonnull
         public static AxisAlignedBB fixRainCollision(@Nonnull IBlockState here, @Nonnull World world, @Nonnull BlockPos pos) {
             final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, here);
-            final AxisAlignedBB aabb = here.getBoundingBox(world, pos);
             //skip fluid check if none are present, or if it's a bad fluid
-            if(fluidState.isEmpty() || !fluidState.isValid()) return aabb;
-            final double fluidHeight = Math.max(FluidloggedUtils.isFluid(here) ? 0 : aabb.maxY, FluidCollisionHandler.getFilledPercentage(fluidState, world, pos));
+            if(fluidState.isEmpty() || !fluidState.isValid()) return here.getBoundingBox(world, pos);
+            final double maxY = here.getMaterial().blocksMovement() ? here.getBoundingBox(world, pos).maxY : 0;
+            final double fluidHeight = Math.max(FluidloggedUtils.isFluid(here) ? 0 : maxY, FluidCollisionHandler.getFilledPercentage(fluidState, world, pos));
             return new AxisAlignedBB(0, 0, 0, 1, fluidHeight, 1);
         }
     }

@@ -89,10 +89,13 @@ public final class PluginStormSplashRenderer implements IASMPlugin
         public static IBlockState getExposedFluid(@Nonnull final IBlockAccess access, @Nonnull final BlockPos pos) {
             @Nonnull final ICubeData cube = ICubeData.get(access, pos);
             @Nonnull final IBlockState state = cube.getBlockState(pos);
-            if(!FluidloggedUtils.canFluidConnect(access, pos, state, EnumFacing.UP)) return state;
+
+            if(FluidloggedUtils.isFluid(state)) return state;
+            final boolean solid = state.getMaterial().blocksMovement();
+            if(solid && !FluidloggedUtils.canFluidConnect(access, pos, state, EnumFacing.UP)) return state;
 
             @Nonnull final FluidState fluidState = cube.getFluidState(pos);
-            return fluidState.getHeight() > state.getBoundingBox(access, pos).maxY ? fluidState.getState() : state;
+            return !solid || fluidState.getHeight() > state.getBoundingBox(access, pos).maxY ? fluidState.getState() : state;
         }
     }
 }
