@@ -25,8 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Allows custom code to be executed when a FluidState changes somewhere in the world.
- * This functions similarly to {@link net.minecraft.world.IWorldEventListener#notifyBlockUpdate IWorldEventListener.notifyBlockUpdate()}.
+ * Allows code to be executed when a FluidState changes somewhere in the world.
+ * This is intended to be used the same way as {@link net.minecraft.world.IWorldEventListener#notifyBlockUpdate IWorldEventListener.notifyBlockUpdate()}.
  *
  * @since 3.3.0
  * @see git.jbredwards.fluidlogged_api.api.block.IFluidloggable#onFluidChange

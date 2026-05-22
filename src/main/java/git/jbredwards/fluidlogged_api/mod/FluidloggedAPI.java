@@ -69,7 +69,7 @@ import java.util.Optional;
  * @author jbred
  *
  */
-@Mod(modid = FluidloggedAPI.MODID, name = "Fluidlogged API", version = "3.2.0",
+@Mod(modid = FluidloggedAPI.MODID, name = "Fluidlogged API", version = "3.3.0",
      updateJSON = "https://api.modrinth.com/updates/fluidlogged-api/forge_updates.json",
      guiFactory = "git.jbredwards.fluidlogged_api.mod.client.config.gui.FluidloggedAPIGuiFactory")
 public final class FluidloggedAPI
@@ -115,11 +115,6 @@ public final class FluidloggedAPI
     static void init(@Nonnull final FMLInitializationEvent event) {
         // fix certain weird lighting issues with fluidlogged blocks
         ForgeRegistries.BLOCKS.getValuesCollection().stream().filter(FluidloggedUtils::isFluid).forEach(b -> b.useNeighborBrightness = true);
-        // register FluidState listener for dynamic surroundings
-        if(Loader.isModLoaded("dsurround")) IFluidEventListener.LISTENERS.add((chunk, pos, oldState, newState, flags) -> {
-            if((flags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0 && (!chunk.getWorld().isRemote || (flags &  Constants.BlockFlags.NO_RERENDER) == 0) && chunk.isPopulated())
-                MinecraftForge.EVENT_BUS.post(new BlockUpdateEvent(chunk.getWorld(), pos, oldState.getState(), newState.getState(), flags));
-        });
         // register legacy to-FluidState adapters
         if(Loader.isModLoaded("dynamictrees")) DynamicTreesDataFixer.register(); // fix old dynamictrees "pseudo-fluidlogged" roots
         if(Loader.isModLoaded("tropicraft")) TropicraftDataFixer.register(); // fix old tropicraft "pseudo-fluidlogged" fences
@@ -139,6 +134,11 @@ public final class FluidloggedAPI
                     mod.getMetadata().description = I18n.format(descKey == null ? descKey = mod.getMetadata().description : descKey);
                 }
             });
+        });
+        // register FluidState listener for dynamic surroundings
+        if(Loader.isModLoaded("dsurround")) IFluidEventListener.LISTENERS.add((chunk, pos, oldState, newState, flags) -> {
+            if((flags & Constants.BlockFlags.SEND_TO_CLIENTS) != 0 && (!chunk.getWorld().isRemote || (flags & Constants.BlockFlags.NO_RERENDER) == 0) && chunk.isPopulated())
+                MinecraftForge.EVENT_BUS.post(new BlockUpdateEvent(chunk.getWorld(), pos, oldState.getState(), newState.getState(), flags));
         });
     }
 

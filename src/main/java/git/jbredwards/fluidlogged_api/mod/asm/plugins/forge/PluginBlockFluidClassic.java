@@ -185,7 +185,7 @@ public final class PluginBlockFluidClassic implements IASMPlugin
         }
 
         public static int getQuantaValue(@Nonnull IFluidBlock block, @Nonnull IBlockAccess world, @Nonnull BlockPos pos) {
-            @Nonnull final FluidCache cache = new FluidCache(world, pos, 0, 1);
+            @Nonnull final FluidCache cache = new FluidCache(world, pos, 0, 0);
             @Nonnull final FluidState fluidState = FluidloggedUtils.getFluidState(cache, pos);
 
             return FluidloggedUtils.isCompatibleFluid(fluidState.getFluid(), block.getFluid()) ? fluidState.getQuantaValue() : cache.isAirBlock(pos) ? 0 : -1;
