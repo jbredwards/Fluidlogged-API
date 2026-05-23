@@ -14,7 +14,7 @@
  * <https://www.github.com/jbredwards/mod-permissions-license>.
  */
 
-package git.jbredwards.fluidlogged_api.mod.client.optifine;
+package git.jbredwards.fluidlogged_api.mod.client.compat;
 
 import git.jbredwards.fluidlogged_api.mod.asm.plugins.modded.optifine.PluginIResolvable;
 import net.minecraft.init.Biomes;
