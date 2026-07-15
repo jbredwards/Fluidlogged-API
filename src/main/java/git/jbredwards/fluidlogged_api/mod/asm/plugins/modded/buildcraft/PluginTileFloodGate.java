@@ -50,7 +50,7 @@ public final class PluginTileFloodGate implements IASMPlugin
          */
         if(checkMethod(insn, "getLocalState")) {
             instructions.insert(insn, genMethodNode("getFluidOrReal", "(Lnet/minecraft/tileentity/TileEntity;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"));
-            removeFrom(instructions, insn, -1);
+            instructions.remove(insn);
             return true;
         }
 
