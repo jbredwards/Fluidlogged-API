@@ -108,7 +108,7 @@ public final class PluginEntityRenderer implements IASMPlugin
             else if(checkField(insn, obfuscated ? "field_151587_i" : "LAVA", "Lnet/minecraft/block/material/Material;")) {
                 final InsnList list = new InsnList();
                 //adds new code
-                list.add(new VarInsnNode(ALOAD, 17));
+                list.add(new VarInsnNode(ALOAD, findLocal(method, "blockpos1", "Lnet/minecraft/util/math/BlockPos;").index));
                 list.add(genMethodNode("addRainParticles", "(Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/util/math/BlockPos;)Z"));
                 ((JumpInsnNode)insn.getNext()).setOpcode(IFEQ);
                 instructions.insert(insn, list);
