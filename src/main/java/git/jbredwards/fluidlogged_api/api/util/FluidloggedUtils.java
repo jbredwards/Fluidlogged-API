@@ -510,8 +510,12 @@ public final class FluidloggedUtils
      * @author jbred
      */
     public static boolean canFluidFlow(@Nonnull final IBlockAccess access, @Nonnull BlockPos pos, @Nonnull final IBlockState here, @Nonnull final EnumFacing side) {
+        @Nonnull IBlockState actualState;
+        try { actualState = here.getActualState(access, pos); }
+        // some mods don't support `getActualState` before block placement
+        catch(@Nonnull final Throwable t) { actualState = here; }
+
         // config override
-        @Nonnull final IBlockState actualState = here.getActualState(access, pos);
         @Nullable final ICanFluidFlowHandler override = ICanFluidFlowHandler.Accessor.getOverride(actualState);
         if(override != null) return override.canFluidFlow(access, pos, actualState, side);
 
