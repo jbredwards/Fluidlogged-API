@@ -183,7 +183,7 @@ public final class PluginEntityRenderer implements IASMPlugin
             final FluidState fluidState = FluidloggedUtils.getFluidState(world, pos, here);
             //skip fluid check if none are present, or if it's a bad fluid
             if(fluidState.isEmpty() || !fluidState.isValid()) return here.getBoundingBox(world, pos);
-            final double maxY = here.getMaterial().blocksMovement() ? here.getBoundingBox(world, pos).maxY : 0;
+            final double maxY = here.getBlock().isPassable(world, pos) ? 0 : here.getBoundingBox(world, pos).maxY;
             final double fluidHeight = Math.max(FluidloggedUtils.isFluid(here) ? 0 : maxY, FluidCollisionHandler.getFilledPercentage(fluidState, world, pos));
             return new AxisAlignedBB(0, 0, 0, 1, fluidHeight, 1);
         }

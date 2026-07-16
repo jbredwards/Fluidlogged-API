@@ -91,7 +91,7 @@ public final class PluginStormSplashRenderer implements IASMPlugin
             @Nonnull final IBlockState state = cube.getBlockState(pos);
 
             if(FluidloggedUtils.isFluid(state)) return state;
-            final boolean solid = state.getMaterial().blocksMovement();
+            final boolean solid = !state.getBlock().isPassable(access, pos);
             if(solid && !FluidloggedUtils.canFluidConnect(access, pos, state, EnumFacing.UP)) return state;
 
             @Nonnull final FluidState fluidState = cube.getFluidState(pos);
