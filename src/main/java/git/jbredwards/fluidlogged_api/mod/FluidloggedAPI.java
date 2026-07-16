@@ -66,7 +66,7 @@ import java.util.Optional;
  * @author jbred
  *
  */
-@Mod(modid = FluidloggedAPI.MODID, name = "Fluidlogged API", version = "3.3.2",
+@Mod(modid = FluidloggedAPI.MODID, name = "Fluidlogged API", version = "3.3.3",
      updateJSON = "https://api.modrinth.com/updates/fluidlogged-api/forge_updates.json",
      guiFactory = "git.jbredwards.fluidlogged_api.mod.client.config.gui.FluidloggedAPIGuiFactory")
 public final class FluidloggedAPI

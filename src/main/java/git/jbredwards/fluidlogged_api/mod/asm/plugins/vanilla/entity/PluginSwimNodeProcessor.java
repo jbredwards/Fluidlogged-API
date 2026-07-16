@@ -60,11 +60,12 @@ public final class PluginSwimNodeProcessor implements IASMPlugin
              *
              * New code:
              * // Account for FluidStates.
-             * IBlockState iblockstate = Hooks.isFree(this.blockaccess, blockpos$mutableblockpos.setPos(i, j, k), this);
+             * IBlockState iblockstate = Hooks.isFree(this.blockaccess, blockpos$mutableblockpos.setPos(i, j, k), this.entity);
              */
             if(checkMethod(insn, obfuscated ? "func_180495_p" : "getBlockState")) {
                 instructions.insertBefore(insn, new VarInsnNode(ALOAD, 0));
-                instructions.insertBefore(insn, genMethodNode("isFree", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/pathfinding/NodeProcessor;)Lnet/minecraft/block/state/IBlockState;"));
+                instructions.insertBefore(insn, new FieldInsnNode(GETFIELD, "net/minecraft/pathfinding/NodeProcessor", obfuscated ? "field_186326_b" : "entity", "Lnet/minecraft/entity/EntityLiving;"));
+                instructions.insertBefore(insn, genMethodNode("isFree", "(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/entity/EntityLiving;)Lnet/minecraft/block/state/IBlockState;"));
                 instructions.remove(insn);
                 return true;
             }
@@ -91,8 +92,8 @@ public final class PluginSwimNodeProcessor implements IASMPlugin
         }
 
         @Nonnull
-        public static IBlockState isFree(@Nonnull final IBlockAccess access, @Nonnull final BlockPos pos, @Nonnull final NodeProcessor processor) {
-            if(isPassableWater(access.getBlockState(pos), access, pos, processor.entity))
+        public static IBlockState isFree(@Nonnull final IBlockAccess access, @Nonnull final BlockPos pos, @Nonnull final EntityLiving entity) {
+            if(isPassableWater(access.getBlockState(pos), access, pos, entity))
                 return Blocks.WATER.getDefaultState(); // "WATER".
             else
                 return Blocks.AIR.getDefaultState(); // "BLOCKED".
