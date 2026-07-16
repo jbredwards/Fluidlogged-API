@@ -38,12 +38,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.init.Items;
-import net.minecraft.pathfinding.PathNodeType;
 import net.minecraftforge.client.resource.ISelectiveResourceReloadListener;
 import net.minecraftforge.client.resource.VanillaResourceType;
 import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.util.EnumHelper;
 import net.minecraftforge.fluids.DispenseFluidContainer;
 import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.*;
@@ -54,7 +52,6 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import org.apache.commons.lang3.EnumUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -89,12 +86,6 @@ public final class FluidloggedAPI
             isGalacticraft         = Loader.isModLoaded("galacticraftcore"),
             isImmersiveEngineering = Loader.isModLoaded("immersiveengineering"),
             isSubaquatic           = Loader.isModLoaded("subaquatic");
-
-    @Mod.EventHandler
-    static void construct(@Nonnull final FMLConstructionEvent event) {
-        // add new enums
-        if(!EnumUtils.isValidEnum(PathNodeType.class, "BREACH")) EnumHelper.addEnum(PathNodeType.class, "BREACH", new Class[] {float.class}, 4f);
-    }
 
     @Mod.EventHandler
     static void preInit(@Nonnull final FMLPreInitializationEvent event) {

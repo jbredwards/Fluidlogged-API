@@ -383,7 +383,7 @@ public final class ASMHandler implements BasicLoadingPlugin
             plugins.put("net.minecraft.item.ItemBucket", new PluginItemBucket()); // make vanilla buckets use their IFluidHandler when placing/taking fluids
             plugins.put("net.minecraft.item.ItemGlassBottle", new PluginItemGlassBottle()); // glass bottles can now be filled by using water FluidStates
             plugins.put("net.minecraft.item.ItemLilyPad", new PluginItemLilyPad()); // lily pads can be placed on certain water FluidStates
-            plugins.put("net.minecraft.pathfinding.SwimNodeProcessor", new PluginSwimNodeProcessor()); // account for FluidStates and add new PathNodeType
+            plugins.put("net.minecraft.pathfinding.SwimNodeProcessor", new PluginSwimNodeProcessor()); // account for FluidStates
             plugins.put("net.minecraft.pathfinding.WalkNodeProcessor", new PluginWalkNodeProcessor()); // account for FluidStates
             plugins.put("net.minecraft.world.chunk.Chunk", new PluginChunk()); // account for FluidState light opacity & light values
             plugins.put("net.minecraft.world.chunk.ChunkPrimer", new PluginChunkPrimer()); // allow mods to generate FluidStates more optimally during world gen
