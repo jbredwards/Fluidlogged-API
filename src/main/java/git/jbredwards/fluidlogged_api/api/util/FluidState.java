@@ -469,8 +469,11 @@ public class FluidState extends Pair<Fluid, IBlockState> implements Object2Objec
      */
     @Nonnull
     public FluidState addLevel(final int toAdd) {
-        if(getBlock() instanceof BlockFluidFinite) return withLevel(Math.max(getLevel() - toAdd, 0));
-        else return withLevel(MathHelper.clamp(getLevel() + toAdd, 0, getQuantaPerBlock() - 1));
+        final int quantaPerBlock = getQuantaPerBlock();
+        if(quantaPerBlock == 0) return this;
+
+        else if(getBlock() instanceof BlockFluidFinite) return withLevel(Math.max(getLevel() - toAdd, 0));
+        else return withLevel(MathHelper.clamp(getLevel() + toAdd, 0, quantaPerBlock - 1));
     }
 
     /**
